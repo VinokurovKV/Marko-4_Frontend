@@ -1,0 +1,13 @@
+# compiled output
+/node_modules/
+/build/
+
+# OS
+.DS_Store
+
+# dotenv environment variable files
+.env
+
+# React Router
+/.react-router/
+
