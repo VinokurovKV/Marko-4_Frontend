@@ -2,6 +2,7 @@
   "extends": "../tsconfig.json",
   "include": [
     "**/*",
+    "../common/**/*",
     "**/.server/**/*",
     "**/.client/**/*",
     ".react-router/types/**/*"
@@ -16,6 +17,7 @@
     "rootDirs": [".", "./.react-router/types"],
     "baseUrl": ".",
     "paths": {
+      "@common/*": ["../common/src/*"],
       "~/*": ["./app/*"]
     },
     "esModuleInterop": true,
