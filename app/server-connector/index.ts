@@ -714,6 +714,7 @@ import type {
   UpdateSliceSuccessResultDto
 } from '@common/dtos/server-api/slices.dto'
 import type { DtoWithoutEnums } from '@common/dto-without-enums'
+import { generateRandomInt } from '@common/utilities'
 import { log, logWithoutTime } from '../utilities'
 import type { ServerConnectorDelegate } from './delegate'
 import {
@@ -727,7 +728,6 @@ import axios from 'axios'
 // import type { ClassConstructor } from 'class-transformer'
 // import { plainToClass } from 'class-transformer'
 // import { validateOrReject } from 'class-validator'
-import { randomUniform } from 'd3-random'
 
 const HOST = 'http://localhost:3000'
 const PATH_PREFIX = '/api'
@@ -998,7 +998,7 @@ export class ServerConnector {
       accessTokenExpirationTimeMs -
         MIN_DURATION_TO_TOKEN_EXPIRATION_TO_PLAN_REFRESH
     )
-    const refreshTimeMs = randomUniform(minRefreshTimeMs, maxRefreshTimeMs)()
+    const refreshTimeMs = generateRandomInt(minRefreshTimeMs, maxRefreshTimeMs)
     this.refreshTokensPlanId = setTimeout(() => {
       void (async () => {
         const refreshTokenData = this.delegate.getRefreshTokenData()
