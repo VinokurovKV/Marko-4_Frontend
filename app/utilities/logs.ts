@@ -97,7 +97,7 @@ export function logCommon(
     }
     if (index > 0 || typeof message !== 'string' || withoutTime) {
       if (typeof message !== 'string') {
-        console.log(message)
+        console.dir(message)
       } else {
         switch (messageType) {
           case 'default':

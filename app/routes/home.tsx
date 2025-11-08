@@ -2,7 +2,8 @@ import type { Route } from './+types/home'
 import { Welcome } from '../welcome/welcome'
 
 import { serverConnector } from '~/server-connector'
-import { ActionTypeEnum } from '@common/enums'
+// import { ActionTypeEnum } from '@common/enums'
+import { log } from '~/utilities'
 
 async function process() {
   console.log('PROCESS')
@@ -25,9 +26,9 @@ async function process() {
   // })()
   await (async () => {
     const actionInfos = await serverConnector.readActionInfos({
-      types: [ActionTypeEnum.CREATE_ROLE]
+      types: ['CREATE_ROLE']
     })
-    console.log(actionInfos)
+    log([actionInfos], 'default')
   })()
   await (async () => {
     // const role = await serverConnector.readRole(
@@ -38,17 +39,17 @@ async function process() {
     //     scope: 'ALL_PROPS'
     //   }
     // )
-    await serverConnector.createRole({
-      name: 'role4',
-      description: {
-        format: 'PLAIN',
-        text: 'asfasasgasgsag'
-      }
-    })
+    // await serverConnector.createRole({
+    //   name: 'role4',
+    //   description: {
+    //     format: 'PLAIN',
+    //     text: 'asfasasgasgsag'
+    //   }
+    // })
     const roles = await serverConnector.readRoles({
       scope: 'PRIMARY_PROPS'
     })
-    console.log(roles)
+    log([roles], 'default')
   })()
 }
 
