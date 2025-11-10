@@ -7,35 +7,6 @@ import {
   ScrollRestoration
 } from 'react-router'
 
-//import * as schedule from 'node-schedule'
-
-// console.log(window)
-
-// console.log('asfasfasfasfas')
-// console.log(schedule)
-
-// import {
-//   SERVER_CONNECTOR_ERROR_STATUS,
-//   ServerConnectorError
-// } from '~/server-connector/error'
-// import { ServerConnector } from '~/server-connector'
-// import { serverConnector } from '~/server-connector'
-// async function process() {
-//   const result = await serverConnector.login({
-//     login: 'owner',
-//     pass: '12345678'
-//   })
-//   console.log(result)
-// }
-
-// console.log(ServerConnectorError)
-
-// const asd = new ServerConnectorError(12, 'sads')
-
-// console.log(asd)
-
-// process()
-
 import type { Route } from './+types/root'
 import './app.css'
 

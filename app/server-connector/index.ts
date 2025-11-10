@@ -2,6 +2,10 @@
 import type { SimpleObject } from '@common/simple-object'
 import type { Right } from '@common/enums'
 import type {
+  SubscriptionIdWrapDto,
+  SubscriptionIdNullWrapDto
+} from '@common/dtos'
+import type {
   LoginBodyDto,
   LoginSuccessResultDto,
   LogoutBodyDto,
@@ -713,7 +717,24 @@ import type {
   UpdateSliceBodyDto,
   UpdateSliceSuccessResultDto
 } from '@common/dtos/server-api/slices.dto'
+import type {
+  SubscribeToActionInfosDataItemDto,
+  SubscribeToActionInfosNotificationDto,
+  SubscribeToActionInfosParamsDto,
+  SubscribeToEventsDataItemDto,
+  SubscribeToEventsNotificationDto,
+  SubscribeToEventsParamsDto,
+  SubscribeToResourceDataDto,
+  SubscribeToResourceNotificationDto,
+  SubscribeToResourceParamsDto,
+  SubscribeToResourcesDataDto,
+  SubscribeToResourcesNotificationDto,
+  SubscribeToResourcesParamsDto,
+  UnsubscribeManyParamsDto,
+  UnsubscribeOneParamsDto
+} from '@common/dtos/server-api/subscriptions.dto'
 import type { DtoWithoutEnums } from '@common/dto-without-enums'
+import { WEB_SOCKET_CONFIG } from '@common/web-socket-config'
 import { generateRandomInt } from '@common/utilities'
 import { log, logWithoutTime } from '../utilities'
 import type { ServerConnectorDelegate } from './delegate'
@@ -728,6 +749,9 @@ import axios from 'axios'
 // import type { ClassConstructor } from 'class-transformer'
 // import { plainToClass } from 'class-transformer'
 // import { validateOrReject } from 'class-validator'
+import type { Socket } from 'socket.io-client'
+import { io } from 'socket.io-client'
+import Queue from 'yocto-queue'
 
 const HOST = 'http://localhost:3000'
 const PATH_PREFIX = '/api'
@@ -737,6 +761,8 @@ const MIN_DURATION_TO_TOKEN_EXPIRATION_TO_PLAN_REFRESH = 1 * MINS
 const MAX_DURATION_TO_TOKEN_EXPIRATION_TO_PLAN_REFRESH = 2 * MINS
 const MIN_DURATION_FROM_NOW_TO_PLAN_TOKEN_REFRESH = 1 * SECS
 const MAX_DURATION_FROM_NOW_TO_PLAN_TOKEN_REFRESH = 5 * SECS
+const WEB_SOCKET_RECONNECTION_DELAY = 2000
+const WEB_SOCKET_RESUBSCRIBE_DELAY = 1000
 
 interface PrimaryPropsScopeWrap {
   scope: 'PRIMARY_PROPS'
@@ -871,9 +897,26 @@ type Result<SuccessResultDto> = Promise<DtoWithoutEnums<SuccessResultDto>>
 
 type MultipartFormVal = SimpleObject | File | File[]
 
+interface SubscriptionBlock {
+  subscriptionId: number
+  type: 'RESOURCE' | 'RESOURCES' | 'ACTION_INFOS' | 'EVENTS'
+  params: any
+  handler?: (data: any) => void
+}
+
 export class ServerConnector {
   private accessToken: string | null = null
   private refreshTokensPlanId: NodeJS.Timeout | null = null
+  private socket: Socket | null = null
+  private lastUsedSubscriptionId = -1
+  private subscriptionBlockForSubscriptionId = new Map<
+    number,
+    SubscriptionBlock
+  >()
+  private serverSubscriptionIdForSubscriptionId = new Map<number, number>()
+  private subscriptionIdForServerSubscriptionId = new Map<number, number>()
+  private inactiveSubscriptionIds = new Queue<number>()
+  private activateSubscriptionsPlanId: NodeJS.Timeout | null = null
   constructor(
     private delegate: ServerConnectorDelegate,
     private host: string = ''
@@ -906,6 +949,7 @@ export class ServerConnector {
     )
     this.accessToken = result.accessToken
     this.planToRefreshTokens(result.accessTokenExpirationTime)
+    this.initWebSocket()
     return {
       userId: result.userId,
       rigths: result.rights
@@ -927,6 +971,7 @@ export class ServerConnector {
       this.delegate.deleteRefreshTokenData()
       this.delegate.deleteAccessTokenData()
       this.accessToken = null
+      this.destroyWebSocket()
     }
   }
   // Auth private
@@ -944,6 +989,7 @@ export class ServerConnector {
     if (this.accessToken !== null) {
       try {
         await this.check()
+        this.initWebSocket()
         return
       } catch (error) {
         if (
@@ -965,6 +1011,7 @@ export class ServerConnector {
     ) {
       try {
         await this.refreshTokens(refreshTokenData.token)
+        this.initWebSocket()
         return
       } catch (error) {
         if (
@@ -979,7 +1026,7 @@ export class ServerConnector {
     throw new ServerConnectorUnauthorizedError()
   }
   private async check(): Promise<object> {
-    return await this.getObject<object>('/auth/check')
+    return await this.getObject<object>('/auth/check', undefined, false)
   }
   private planToRefreshTokens(accessTokenExpirationTime: Date) {
     if (this.refreshTokensPlanId !== null) {
@@ -1035,6 +1082,84 @@ export class ServerConnector {
     this.accessToken = result.accessToken
     log(['Tokens refreshed'], 'default')
     this.planToRefreshTokens(result.accessTokenExpirationTime)
+  }
+  private initWebSocket() {
+    if (
+      (this.socket === null || this.socket.connected === false) &&
+      this.accessToken !== null
+    ) {
+      try {
+        this.socket = io(HOST, {
+          extraHeaders: {
+            Authorization: `Bearer ${this.accessToken}`
+          },
+          reconnection: false
+        })
+      } catch {
+        setTimeout(() => {
+          this.initWebSocket()
+        }, WEB_SOCKET_RECONNECTION_DELAY)
+      }
+      const socket = this.socket!
+      socket.on('connect', () => {
+        console.log('WS: CONNECTED')
+        void this.activateSubscriptions()
+      })
+      const emit = (notification: { subscriptionId: number; data: any }) => {
+        console.log(`WS: NOTIFICATION`, notification)
+        const subscriptionId = this.subscriptionIdForServerSubscriptionId.get(
+          notification.subscriptionId
+        )
+        if (subscriptionId !== undefined) {
+          this.subscriptionBlockForSubscriptionId
+            .get(subscriptionId)
+            ?.handler?.(notification.data)
+        }
+      }
+      socket.on(
+        WEB_SOCKET_CONFIG.MESSAGE_TYPE.RESOURCE_NOTIFICATION,
+        (notification: SubscribeToResourceNotificationDto) => {
+          emit(notification)
+        }
+      )
+      socket.on(
+        WEB_SOCKET_CONFIG.MESSAGE_TYPE.RESOURCES_NOTIFICATION,
+        (notification: SubscribeToResourcesNotificationDto) => {
+          emit(notification)
+        }
+      )
+      socket.on(
+        WEB_SOCKET_CONFIG.MESSAGE_TYPE.ACTION_INFOS_NOTIFICATION,
+        (notification: SubscribeToActionInfosNotificationDto) => {
+          emit(notification)
+        }
+      )
+      socket.on(
+        WEB_SOCKET_CONFIG.MESSAGE_TYPE.EVENTS_NOTIFICATION,
+        (notification: SubscribeToEventsNotificationDto) => {
+          emit(notification)
+        }
+      )
+      socket.on('disconnect', () => {
+        this.socket = null
+        this.serverSubscriptionIdForSubscriptionId.clear()
+        this.subscriptionIdForServerSubscriptionId.clear()
+        this.inactiveSubscriptionIds.clear()
+        for (const subscriptionId of this.subscriptionBlockForSubscriptionId.keys()) {
+          this.inactiveSubscriptionIds.enqueue(subscriptionId)
+        }
+        setTimeout(() => {
+          this.initWebSocket()
+        }, WEB_SOCKET_RECONNECTION_DELAY)
+        console.log('WS: DISCONNECTED')
+      })
+    }
+  }
+  private destroyWebSocket() {
+    if (this.socket !== null && this.socket.connected) {
+      this.socket.disconnect()
+    }
+    this.socket = null
   }
   // Common
   setup(params: Params<SetupBodyDto>): Result<SetupSuccessResultDto> {
@@ -2892,7 +3017,6 @@ export class ServerConnector {
   > {
     return this.getObject('/task-reports', params)
   }
-
   // Slices
   readSlicesCount(
     params: Params<ReadSlicesCountQueryDto>
@@ -2958,6 +3082,201 @@ export class ServerConnector {
     params: Params<DeleteSlicesBodyDto>
   ): Result<DeleteSlicesSuccessResultDto> {
     return this.postForObject('/slices/actions/delete-many', params)
+  }
+  // Subscriptions
+  subscribeToResource(
+    params: DtoWithoutEnums<SubscribeToResourceParamsDto>,
+    handler?: (data: SubscribeToResourceDataDto) => void
+  ): SubscriptionIdWrapDto {
+    const subscriptionId = this.getUniqueSubscriptionId()
+    this.addSubscriptionBlock({
+      subscriptionId: subscriptionId,
+      type: 'RESOURCE',
+      params: params,
+      handler: handler
+    })
+    return { subscriptionId: subscriptionId }
+  }
+  subscribeToResources(
+    params: DtoWithoutEnums<SubscribeToResourcesParamsDto>,
+    handler?: (data: SubscribeToResourcesDataDto) => void
+  ): SubscriptionIdWrapDto {
+    const subscriptionId = this.getUniqueSubscriptionId()
+    this.addSubscriptionBlock({
+      subscriptionId: subscriptionId,
+      type: 'RESOURCES',
+      params: params,
+      handler: handler
+    })
+    return { subscriptionId: subscriptionId }
+  }
+  subscribeToActionInfos(
+    params: DtoWithoutEnums<SubscribeToActionInfosParamsDto>,
+    handler?: (data: SubscribeToActionInfosDataItemDto[]) => void
+  ): SubscriptionIdWrapDto {
+    const subscriptionId = this.getUniqueSubscriptionId()
+    this.addSubscriptionBlock({
+      subscriptionId: subscriptionId,
+      type: 'ACTION_INFOS',
+      params: params,
+      handler: handler
+    })
+    return { subscriptionId: subscriptionId }
+  }
+  subscribeToEvents(
+    params: DtoWithoutEnums<SubscribeToEventsParamsDto>,
+    handler?: (data: SubscribeToEventsDataItemDto[]) => void
+  ): SubscriptionIdWrapDto {
+    const subscriptionId = this.getUniqueSubscriptionId()
+    this.addSubscriptionBlock({
+      subscriptionId: subscriptionId,
+      type: 'EVENTS',
+      params: params,
+      handler: handler
+    })
+    return { subscriptionId: subscriptionId }
+  }
+  async unsubscribe(subscriptionId: number) {
+    this.subscriptionBlockForSubscriptionId.delete(subscriptionId)
+    const serverSubscriptionId =
+      this.serverSubscriptionIdForSubscriptionId.get(subscriptionId)
+    this.serverSubscriptionIdForSubscriptionId.delete(subscriptionId)
+    if (serverSubscriptionId !== undefined) {
+      this.subscriptionIdForServerSubscriptionId.delete(serverSubscriptionId)
+      if (this.socket !== null) {
+        const params: UnsubscribeOneParamsDto = {
+          subscriptionId: subscriptionId
+        }
+        try {
+          await this.socket.emitWithAck(
+            WEB_SOCKET_CONFIG.MESSAGE_TYPE.UNSUBSCRIBE_ONE,
+            params
+          )
+          console.log('WS: UNSUBSCRIBE:', serverSubscriptionId)
+        } catch {
+          //
+        }
+      }
+    }
+  }
+  async unsubscribeMany(subscriptionIds: number[]) {
+    for (const subscriptionId of subscriptionIds) {
+      this.subscriptionBlockForSubscriptionId.delete(subscriptionId)
+      const serverSubscriptionId =
+        this.serverSubscriptionIdForSubscriptionId.get(subscriptionId)
+      this.serverSubscriptionIdForSubscriptionId.delete(subscriptionId)
+      if (serverSubscriptionId !== undefined) {
+        this.subscriptionIdForServerSubscriptionId.delete(serverSubscriptionId)
+      }
+    }
+    if (this.socket !== null) {
+      const params: UnsubscribeManyParamsDto = {
+        subscriptionIds: subscriptionIds
+      }
+      try {
+        await this.socket.emitWithAck(
+          WEB_SOCKET_CONFIG.MESSAGE_TYPE.UNSUBSCRIBE_MANY,
+          params
+        )
+        console.log('WS: UNSUBSCRIBE:', subscriptionIds)
+      } catch {
+        //
+      }
+    }
+  }
+  async unsubscribeAll() {
+    this.subscriptionBlockForSubscriptionId.clear()
+    this.serverSubscriptionIdForSubscriptionId.clear()
+    this.subscriptionIdForServerSubscriptionId.clear()
+    this.inactiveSubscriptionIds.clear()
+    if (this.socket !== null) {
+      try {
+        await this.socket.emitWithAck(
+          WEB_SOCKET_CONFIG.MESSAGE_TYPE.UNSUBSCRIBE_ALL
+        )
+        console.log('WS: UNSUBSCRIBE ALL')
+      } catch {
+        //
+      }
+    }
+  }
+  private addSubscriptionBlock(block: SubscriptionBlock) {
+    this.subscriptionBlockForSubscriptionId.set(block.subscriptionId, block)
+    this.inactiveSubscriptionIds.enqueue(block.subscriptionId)
+    void this.activateSubscriptions()
+  }
+  private async activateSubscriptions(): Promise<void> {
+    while (this.inactiveSubscriptionIds.size > 0) {
+      if (this.socket !== null && this.socket.active) {
+        const subscriptionId = this.inactiveSubscriptionIds.dequeue()!
+        if (
+          this.subscriptionBlockForSubscriptionId.has(subscriptionId) === false
+        ) {
+          continue
+        }
+        const block =
+          this.subscriptionBlockForSubscriptionId.get(subscriptionId)!
+        const messageType = {
+          RESOURCE: WEB_SOCKET_CONFIG.MESSAGE_TYPE.SUBSCRIBE_TO_RESOURCE,
+          RESOURCES: WEB_SOCKET_CONFIG.MESSAGE_TYPE.SUBSCRIBE_TO_RESOURCES,
+          ACTION_INFOS:
+            WEB_SOCKET_CONFIG.MESSAGE_TYPE.SUBSCRIBE_TO_ACTION_INFOS,
+          EVENTS: WEB_SOCKET_CONFIG.MESSAGE_TYPE.SUBSCRIBE_TO_EVENTS
+        }[block.type]
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          const response: SubscriptionIdNullWrapDto =
+            await this.socket.emitWithAck(messageType, block.params)
+          console.log('WS: SUBSCRIBE:', response)
+          const serverSubscriptionId = response.subscriptionId
+          if (
+            serverSubscriptionId !== null &&
+            this.subscriptionBlockForSubscriptionId.has(subscriptionId)
+          ) {
+            this.serverSubscriptionIdForSubscriptionId.set(
+              subscriptionId,
+              serverSubscriptionId
+            )
+            this.subscriptionIdForServerSubscriptionId.set(
+              serverSubscriptionId,
+              subscriptionId
+            )
+          } else {
+            this.inactiveSubscriptionIds.enqueue(subscriptionId)
+            if (serverSubscriptionId !== null) {
+              const params: UnsubscribeOneParamsDto = {
+                subscriptionId: serverSubscriptionId
+              }
+              try {
+                await this.socket.emitWithAck(
+                  WEB_SOCKET_CONFIG.MESSAGE_TYPE.UNSUBSCRIBE_ONE,
+                  params
+                )
+                console.log('WS: UNSUBSCRIBE:', serverSubscriptionId)
+              } catch {
+                //
+              }
+            }
+            break
+          }
+        } catch {
+          this.inactiveSubscriptionIds.enqueue(subscriptionId)
+          break
+        }
+      }
+    }
+    if (this.inactiveSubscriptionIds.size > 0) {
+      if (this.activateSubscriptionsPlanId !== null) {
+        clearTimeout(this.activateSubscriptionsPlanId)
+      }
+      this.activateSubscriptionsPlanId = setTimeout(() => {
+        void this.activateSubscriptions()
+      }, WEB_SOCKET_RESUBSCRIBE_DELAY)
+    }
+  }
+  private getUniqueSubscriptionId() {
+    this.lastUsedSubscriptionId += 1
+    return this.lastUsedSubscriptionId
   }
   // Auxiliary
   private getObject<Response extends object>(
