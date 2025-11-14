@@ -9,6 +9,11 @@
     "typecheck": "react-router typegen && tsc"
   },
   "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@fontsource/roboto": "^5.2.8",
+    "@mui/icons-material": "^7.3.5",
+    "@mui/material": "^7.3.5",
     "@react-router/node": "^7.9.2",
     "@react-router/serve": "^7.9.2",
     "axios": "^1.13.2",

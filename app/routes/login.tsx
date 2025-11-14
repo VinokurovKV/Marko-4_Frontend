@@ -1,9 +1,8 @@
 // Project
 import { serverConnector } from '~/server-connector'
-import { SelfMetaProvider } from '~/providers/self-meta'
 import { LoadErrorScreen } from '~/components/screens/problem/load-error'
 // React router
-import type { Route } from './+types/home'
+import type { Route } from './+types/login'
 import { redirect } from 'react-router'
 
 export async function clientLoader() {
@@ -11,22 +10,20 @@ export async function clientLoader() {
     const meta = await serverConnector.readMeta()
     if (meta.setup === false) {
       return redirect('/setup')
-    } else if (serverConnector.authorized() === false) {
-      return redirect('/login')
+    } else if (serverConnector.authorized()) {
+      return redirect('/index')
     }
   } catch {
     return 'LOAD_ERROR'
   }
 }
 
-export default function Home({ loaderData }: Route.ComponentProps) {
+export default function Login({ loaderData }: Route.ComponentProps) {
   return loaderData === 'LOAD_ERROR' ? (
     <LoadErrorScreen />
   ) : (
-    <SelfMetaProvider>
-      <div>
-        <h1>Home</h1>
-      </div>
-    </SelfMetaProvider>
+    <div>
+      <h1>Login</h1>
+    </div>
   )
 }

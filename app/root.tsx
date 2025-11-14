@@ -1,3 +1,8 @@
+// Project
+import { serverConnector } from './server-connector'
+import type { Route } from './+types/root'
+import './app.css'
+// React router
 import {
   isRouteErrorResponse,
   Links,
@@ -6,9 +11,23 @@ import {
   Scripts,
   ScrollRestoration
 } from 'react-router'
+// Material UI
+import CssBaseline from '@mui/material/CssBaseline'
 
-import type { Route } from './+types/root'
-import './app.css'
+export async function clientLoader() {
+  await serverConnector.connect()
+}
+
+// eslint-disable-next-line no-empty-pattern
+export function meta({}: Route.MetaArgs) {
+  return [
+    { title: 'Марко-4' },
+    {
+      name: 'description',
+      content: 'Марко-4 - приложение для тестирования сетевых устройств'
+    }
+  ]
+}
 
 export const links: Route.LinksFunction = () => [
   { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
@@ -28,7 +47,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
     <html lang="en">
       <head>
         <meta charSet="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="viewport" content="initial-scale=1, width=device-width" />
         <Meta />
         <Links />
       </head>
@@ -42,7 +61,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
-  return <Outlet />
+  return (
+    <>
+      <CssBaseline />
+      <Outlet />
+    </>
+  )
 }
 
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {

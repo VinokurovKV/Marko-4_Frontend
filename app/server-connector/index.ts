@@ -13,6 +13,7 @@ import type {
   RefreshTokensSuccessResultDto
 } from '@common/dtos/server-api/auth.dto'
 import type {
+  ReadMetaSuccessResultDto,
   SetupBodyDto,
   SetupSuccessResultDto
 } from '@common/dtos/server-api/common.dto'
@@ -44,6 +45,8 @@ import type {
   ReadRolesWithUpToSecondaryPropsSuccessResultItemDto,
   ReadRolesCountQueryDto,
   ReadRolesCountSuccessResultDto,
+  ReadRoleExistsFlagQueryDto,
+  ReadRoleExistsFlagSuccessResultDto,
   ReadRoleVersionParamsDto,
   ReadRoleVersionSuccessResultDto,
   ReadRoleTransitionsParamsDto,
@@ -72,7 +75,9 @@ import type {
   DeleteUserSuccessResultDto,
   DeleteUsersBodyDto,
   DeleteUsersSuccessResultDto,
-  ReadSelfRightsSuccessResultDto,
+  ReadSelfMetaSuccessResultDto,
+  ReadUserExistsFlagQueryDto,
+  ReadUserExistsFlagSuccessResultDto,
   ReadUserParamsDto,
   ReadUserQueryDto,
   ReadUserTransitionsCountParamsDto,
@@ -104,6 +109,8 @@ import type {
   DeleteTagSuccessResultDto,
   DeleteTagsBodyDto,
   DeleteTagsSuccessResultDto,
+  ReadTagExistsFlagQueryDto,
+  ReadTagExistsFlagSuccessResultDto,
   ReadTagParamsDto,
   ReadTagQueryDto,
   ReadTagTransitionsCountParamsDto,
@@ -138,6 +145,8 @@ import type {
   DeleteDocumentsUnsafeBodyDto,
   DeleteDocumentsUnsafeSuccessResultDto,
   ReadDocumentConfigParamsDto,
+  ReadDocumentExistsFlagQueryDto,
+  ReadDocumentExistsFlagSuccessResultDto,
   ReadDocumentParamsDto,
   ReadDocumentQueryDto,
   ReadDocumentTransitionsCountParamsDto,
@@ -169,6 +178,8 @@ import type {
   DeleteFragmentsBodyDto,
   DeleteFragmentsSuccessResultDto,
   ReadFragmentConfigParamsDto,
+  ReadFragmentExistsFlagQueryDto,
+  ReadFragmentExistsFlagSuccessResultDto,
   ReadFragmentParamsDto,
   ReadFragmentQueryDto,
   ReadFragmentTransitionsCountParamsDto,
@@ -199,6 +210,8 @@ import type {
   DeleteRequirementSuccessResultDto,
   DeleteRequirementsBodyDto,
   DeleteRequirementsSuccessResultDto,
+  ReadRequirementExistsFlagQueryDto,
+  ReadRequirementExistsFlagSuccessResultDto,
   ReadRequirementParamsDto,
   ReadRequirementQueryDto,
   ReadRequirementTransitionsCountParamsDto,
@@ -228,6 +241,8 @@ import type {
   DeleteCoverageSuccessResultDto,
   DeleteCoveragesBodyDto,
   DeleteCoveragesSuccessResultDto,
+  ReadCoverageExistsFlagQueryDto,
+  ReadCoverageExistsFlagSuccessResultDto,
   ReadCoverageParamsDto,
   ReadCoverageQueryDto,
   ReadCoverageTransitionsCountParamsDto,
@@ -261,6 +276,8 @@ import type {
   DeleteCommonTopologiesSuccessResultDto,
   DeleteCommonTopologiesUnsafeBodyDto,
   DeleteCommonTopologiesUnsafeSuccessResultDto,
+  ReadCommonTopologyExistsFlagQueryDto,
+  ReadCommonTopologyExistsFlagSuccessResultDto,
   ReadCommonTopologyParamsDto,
   ReadCommonTopologyQueryDto,
   ReadCommonTopologyTransitionsCountParamsDto,
@@ -290,6 +307,8 @@ import type {
   DeleteTopologySuccessResultDto,
   DeleteTopologiesBodyDto,
   DeleteTopologiesSuccessResultDto,
+  ReadTopologyExistsFlagQueryDto,
+  ReadTopologyExistsFlagSuccessResultDto,
   ReadTopologyParamsDto,
   ReadTopologyQueryDto,
   ReadTopologyTransitionsCountParamsDto,
@@ -320,6 +339,8 @@ import type {
   DeleteDsefsBodyDto,
   DeleteDsefsSuccessResultDto,
   ReadDsefAdapterParamsDto,
+  ReadDsefExistsFlagQueryDto,
+  ReadDsefExistsFlagSuccessResultDto,
   ReadDsefNoAdapterConfigParamsDto,
   ReadDsefParamsDto,
   ReadDsefQueryDto,
@@ -354,6 +375,8 @@ import type {
   DeleteDbcsSuccessResultDto,
   ReadDbcConfigParamsDto,
   ReadDbcDsefConfigParamsDto,
+  ReadDbcExistsFlagQueryDto,
+  ReadDbcExistsFlagSuccessResultDto,
   ReadDbcParamsDto,
   ReadDbcQueryDto,
   ReadDbcTransitionsCountParamsDto,
@@ -386,6 +409,8 @@ import type {
   DeleteTestTemplatesBodyDto,
   DeleteTestTemplatesSuccessResultDto,
   ReadTestTemplateConfigParamsDto,
+  ReadTestTemplateExistsFlagQueryDto,
+  ReadTestTemplateExistsFlagSuccessResultDto,
   ReadTestTemplateParamsDto,
   ReadTestTemplateQueryDto,
   ReadTestTemplateTransitionsCountParamsDto,
@@ -419,6 +444,8 @@ import type {
   ReadTestConfigParamsDto,
   ReadTestDeltaDsefConfigParamsDto,
   ReadTestDeltaParamsDto,
+  ReadTestExistsFlagQueryDto,
+  ReadTestExistsFlagSuccessResultDto,
   ReadTestParamsDto,
   ReadTestQueryDto,
   ReadTestTransitionsCountParamsDto,
@@ -451,6 +478,8 @@ import type {
   DeleteSubgroupSuccessResultDto,
   DeleteSubgroupsBodyDto,
   DeleteSubgroupsSuccessResultDto,
+  ReadSubgroupExistsFlagQueryDto,
+  ReadSubgroupExistsFlagSuccessResultDto,
   ReadSubgroupParamsDto,
   ReadSubgroupQueryDto,
   ReadSubgroupTransitionsCountParamsDto,
@@ -480,6 +509,8 @@ import type {
   DeleteGroupSuccessResultDto,
   DeleteGroupsBodyDto,
   DeleteGroupsSuccessResultDto,
+  ReadGroupExistsFlagQueryDto,
+  ReadGroupExistsFlagSuccessResultDto,
   ReadGroupParamsDto,
   ReadGroupQueryDto,
   ReadGroupTransitionsCountParamsDto,
@@ -514,6 +545,8 @@ import type {
   ReadDeviceConfigParamsDto,
   ReadDeviceDsefAccessConfigParamsDto,
   ReadDeviceDsefClearConfigParamsDto,
+  ReadDeviceExistsFlagQueryDto,
+  ReadDeviceExistsFlagSuccessResultDto,
   ReadDeviceParamsDto,
   ReadDeviceQueryDto,
   ReadDeviceTransitionsCountParamsDto,
@@ -589,6 +622,8 @@ import type {
   DeleteTaskTemplateSuccessResultDto,
   DeleteTaskTemplatesBodyDto,
   DeleteTaskTemplatesSuccessResultDto,
+  ReadTaskTemplateExistsFlagQueryDto,
+  ReadTaskTemplateExistsFlagSuccessResultDto,
   ReadTaskTemplateParamsDto,
   ReadTaskTemplateQueryDto,
   ReadTaskTemplateTransitionsCountParamsDto,
@@ -695,6 +730,8 @@ import type {
   DeleteSliceSuccessResultDto,
   DeleteSlicesBodyDto,
   DeleteSlicesSuccessResultDto,
+  ReadSliceExistsFlagQueryDto,
+  ReadSliceExistsFlagSuccessResultDto,
   ReadSliceParamsDto,
   ReadSliceQueryDto,
   ReadSliceTransitionsCountParamsDto,
@@ -899,8 +936,8 @@ type MultipartFormVal = SimpleObject | File | File[]
 
 interface SubscriptionBlock {
   subscriptionId: number
-  type: 'RESOURCE' | 'RESOURCES' | 'ACTION_INFOS' | 'EVENTS'
-  params: any
+  type: 'SELF_META' | 'RESOURCE' | 'RESOURCES' | 'ACTION_INFOS' | 'EVENTS'
+  params?: any
   handler?: (data: any) => void
 }
 
@@ -917,20 +954,30 @@ export class ServerConnector {
   private subscriptionIdForServerSubscriptionId = new Map<number, number>()
   private inactiveSubscriptionIds = new Queue<number>()
   private activateSubscriptionsPlanId: NodeJS.Timeout | null = null
+  selfMeta: DtoWithoutEnums<ReadSelfMetaSuccessResultDto> | null = null
   constructor(
     private delegate: ServerConnectorDelegate,
     private host: string = ''
-  ) {
-    void (async () => {
+  ) {}
+  // Authorize
+  async connect() {
+    try {
       await this.authorize()
       const accessTokenExpirationTime =
         this.delegate.getAccessTokenData()?.expirationTime
       if (accessTokenExpirationTime !== undefined) {
         this.planToRefreshTokens(accessTokenExpirationTime)
       }
-    })()
+    } catch (error) {
+      if (error instanceof ServerConnectorUnauthorizedError === false) {
+        throw error
+      }
+    }
   }
   // Auth
+  authorized() {
+    return this.accessToken !== null
+  }
   async login(
     params: Params<LoginBodyDto>
   ): Promise<{ userId: number; rigths: Right[] }> {
@@ -1162,6 +1209,9 @@ export class ServerConnector {
     this.socket = null
   }
   // Common
+  readMeta(): Result<ReadMetaSuccessResultDto> {
+    return this.getObject(`/common/meta`)
+  }
   setup(params: Params<SetupBodyDto>): Result<SetupSuccessResultDto> {
     return this.postForObject('/common/setup', params)
   }
@@ -1217,6 +1267,16 @@ export class ServerConnector {
     return this.getObject(`/events`, params)
   }
   // Roles
+  async readRoleExistsFlag(
+    params: ReadRoleExistsFlagQueryDto
+  ): Promise<boolean> {
+    return (
+      await this.getObject<ReadRoleExistsFlagSuccessResultDto>(
+        '/roles/exists',
+        params
+      )
+    ).exists
+  }
   readRolesCount(
     params: Params<ReadRolesCountQueryDto>
   ): Result<ReadRolesCountSuccessResultDto> {
@@ -1291,8 +1351,24 @@ export class ServerConnector {
     return this.postForObject('/roles/actions/delete-many', params)
   }
   // Users
-  readSelfRights(): Result<ReadSelfRightsSuccessResultDto> {
-    return this.getObject('/users/self-rights')
+  cachedSelfMeta(): DtoWithoutEnums<ReadSelfMetaSuccessResultDto> | null {
+    return this.accessToken === null ? null : this.selfMeta
+  }
+  async readSelfMeta(): Result<ReadSelfMetaSuccessResultDto> {
+    const selfMeta: DtoWithoutEnums<ReadSelfMetaSuccessResultDto> =
+      await this.getObject('/users/self-meta')
+    this.selfMeta = selfMeta
+    return selfMeta
+  }
+  async readUserExistsFlag(
+    params: ReadUserExistsFlagQueryDto
+  ): Promise<boolean> {
+    return (
+      await this.getObject<ReadUserExistsFlagSuccessResultDto>(
+        '/users/exists',
+        params
+      )
+    ).exists
   }
   readUsersCount(
     params: Params<ReadUsersCountQueryDto>
@@ -1363,6 +1439,14 @@ export class ServerConnector {
     return this.postForObject('/users/actions/delete-many', params)
   }
   // Tags
+  async readTagExistsFlag(params: ReadTagExistsFlagQueryDto): Promise<boolean> {
+    return (
+      await this.getObject<ReadTagExistsFlagSuccessResultDto>(
+        '/tags/exists',
+        params
+      )
+    ).exists
+  }
   readTagsCount(
     params: Params<ReadTagsCountQueryDto>
   ): Result<ReadTagsCountSuccessResultDto> {
@@ -1427,6 +1511,16 @@ export class ServerConnector {
     return this.postForObject('/tags/actions/delete-many', params)
   }
   // Documents
+  async readDocumentExistsFlag(
+    params: ReadDocumentExistsFlagQueryDto
+  ): Promise<boolean> {
+    return (
+      await this.getObject<ReadDocumentExistsFlagSuccessResultDto>(
+        '/documents/exists',
+        params
+      )
+    ).exists
+  }
   readDocumentsCount(
     params: Params<ReadDocumentsCountQueryDto>
   ): Result<ReadDocumentsCountSuccessResultDto> {
@@ -1522,6 +1616,16 @@ export class ServerConnector {
     return this.postForObject('/documents/actions/delete-many', params)
   }
   // Fragments
+  async readFragmentExistsFlag(
+    params: ReadFragmentExistsFlagQueryDto
+  ): Promise<boolean> {
+    return (
+      await this.getObject<ReadFragmentExistsFlagSuccessResultDto>(
+        '/fragments/exists',
+        params
+      )
+    ).exists
+  }
   readFragmentsCount(
     params: Params<ReadFragmentsCountQueryDto>
   ): Result<ReadFragmentsCountSuccessResultDto> {
@@ -1600,6 +1704,16 @@ export class ServerConnector {
     return this.postForObject('/fragments/actions/delete-many', params)
   }
   // Requirements
+  async readRequirementExistsFlag(
+    params: ReadRequirementExistsFlagQueryDto
+  ): Promise<boolean> {
+    return (
+      await this.getObject<ReadRequirementExistsFlagSuccessResultDto>(
+        '/requirements/exists',
+        params
+      )
+    ).exists
+  }
   readRequirementsCount(
     params: Params<ReadRequirementsCountQueryDto>
   ): Result<ReadRequirementsCountSuccessResultDto> {
@@ -1666,6 +1780,16 @@ export class ServerConnector {
     return this.postForObject('/requirements/actions/delete-many', params)
   }
   // Coverages
+  async readCoverageExistsFlag(
+    params: ReadCoverageExistsFlagQueryDto
+  ): Promise<boolean> {
+    return (
+      await this.getObject<ReadCoverageExistsFlagSuccessResultDto>(
+        '/coverages/exists',
+        params
+      )
+    ).exists
+  }
   readCoveragesCount(
     params: Params<ReadCoveragesCountQueryDto>
   ): Result<ReadCoveragesCountSuccessResultDto> {
@@ -1732,6 +1856,16 @@ export class ServerConnector {
     return this.postForObject('/coverages/actions/delete-many', params)
   }
   // CommonTopologies
+  async readCommonTopologyExistsFlag(
+    params: ReadCommonTopologyExistsFlagQueryDto
+  ): Promise<boolean> {
+    return (
+      await this.getObject<ReadCommonTopologyExistsFlagSuccessResultDto>(
+        '/common-topologies/exists',
+        params
+      )
+    ).exists
+  }
   readCommonTopologiesCount(
     params: Params<ReadCommonTopologiesCountQueryDto>
   ): Result<ReadCommonTopologiesCountSuccessResultDto> {
@@ -1817,6 +1951,16 @@ export class ServerConnector {
     return this.postForObject('/common-topologies/actions/delete-many', params)
   }
   // Topologies
+  async readTopologyExistsFlag(
+    params: ReadTopologyExistsFlagQueryDto
+  ): Promise<boolean> {
+    return (
+      await this.getObject<ReadTopologyExistsFlagSuccessResultDto>(
+        '/topologies/exists',
+        params
+      )
+    ).exists
+  }
   readTopologiesCount(
     params: Params<ReadTopologiesCountQueryDto>
   ): Result<ReadTopologiesCountSuccessResultDto> {
@@ -1883,6 +2027,16 @@ export class ServerConnector {
     return this.postForObject('/topologies/actions/delete-many', params)
   }
   // Dsefs
+  async readDsefExistsFlag(
+    params: ReadDsefExistsFlagQueryDto
+  ): Promise<boolean> {
+    return (
+      await this.getObject<ReadDsefExistsFlagSuccessResultDto>(
+        '/dsefs/exists',
+        params
+      )
+    ).exists
+  }
   readDsefsCount(
     params: Params<ReadDsefsCountQueryDto>
   ): Result<ReadDsefsCountSuccessResultDto> {
@@ -1987,6 +2141,14 @@ export class ServerConnector {
     return this.postForObject('/dsefs/actions/delete-many', params)
   }
   // Dbcs
+  async readDbcExistsFlag(params: ReadDbcExistsFlagQueryDto): Promise<boolean> {
+    return (
+      await this.getObject<ReadDbcExistsFlagSuccessResultDto>(
+        '/dbcs/exists',
+        params
+      )
+    ).exists
+  }
   readDbcsCount(
     params: Params<ReadDbcsCountQueryDto>
   ): Result<ReadDbcsCountSuccessResultDto> {
@@ -2089,6 +2251,16 @@ export class ServerConnector {
     return this.postForObject('/dbcs/actions/delete-many', params)
   }
   // TestTemplates
+  async readTestTemplateExistsFlag(
+    params: ReadTestTemplateExistsFlagQueryDto
+  ): Promise<boolean> {
+    return (
+      await this.getObject<ReadTestTemplateExistsFlagSuccessResultDto>(
+        '/test-templates/exists',
+        params
+      )
+    ).exists
+  }
   readTestTemplatesCount(
     params: Params<ReadTestTemplatesCountQueryDto>
   ): Result<ReadTestTemplatesCountSuccessResultDto> {
@@ -2186,6 +2358,16 @@ export class ServerConnector {
     return this.postForObject('/test-templates/actions/delete-many', params)
   }
   // Tests
+  async readTestExistsFlag(
+    params: ReadTestExistsFlagQueryDto
+  ): Promise<boolean> {
+    return (
+      await this.getObject<ReadTestExistsFlagSuccessResultDto>(
+        '/tests/exists',
+        params
+      )
+    ).exists
+  }
   readTestsCount(
     params: Params<ReadTestsCountQueryDto>
   ): Result<ReadTestsCountSuccessResultDto> {
@@ -2312,6 +2494,16 @@ export class ServerConnector {
     return this.postForObject('/tests/actions/delete-many', params)
   }
   // Subgroups
+  async readSubgroupExistsFlag(
+    params: ReadSubgroupExistsFlagQueryDto
+  ): Promise<boolean> {
+    return (
+      await this.getObject<ReadSubgroupExistsFlagSuccessResultDto>(
+        '/subgroups/exists',
+        params
+      )
+    ).exists
+  }
   readSubgroupsCount(
     params: Params<ReadSubgroupsCountQueryDto>
   ): Result<ReadSubgroupsCountSuccessResultDto> {
@@ -2378,6 +2570,16 @@ export class ServerConnector {
     return this.postForObject('/subgroups/actions/delete-many', params)
   }
   // Groups
+  async readGroupExistsFlag(
+    params: ReadGroupExistsFlagQueryDto
+  ): Promise<boolean> {
+    return (
+      await this.getObject<ReadGroupExistsFlagSuccessResultDto>(
+        '/groups/exists',
+        params
+      )
+    ).exists
+  }
   readGroupsCount(
     params: Params<ReadGroupsCountQueryDto>
   ): Result<ReadGroupsCountSuccessResultDto> {
@@ -2444,6 +2646,16 @@ export class ServerConnector {
     return this.postForObject('/groups/actions/delete-many', params)
   }
   // Devices
+  async readDeviceExistsFlag(
+    params: ReadDeviceExistsFlagQueryDto
+  ): Promise<boolean> {
+    return (
+      await this.getObject<ReadDeviceExistsFlagSuccessResultDto>(
+        '/devices/exists',
+        params
+      )
+    ).exists
+  }
   readDevicesCount(
     params: Params<ReadDevicesCountQueryDto>
   ): Result<ReadDevicesCountSuccessResultDto> {
@@ -2705,6 +2917,16 @@ export class ServerConnector {
     return this.postForObject('/tasks/actions/delete-many', params)
   }
   // TaskTemplates
+  async readTaskTemplateExistsFlag(
+    params: ReadTaskTemplateExistsFlagQueryDto
+  ): Promise<boolean> {
+    return (
+      await this.getObject<ReadTaskTemplateExistsFlagSuccessResultDto>(
+        '/task-templates/exists',
+        params
+      )
+    ).exists
+  }
   readTaskTemplatesCount(
     params: Params<ReadTaskTemplatesCountQueryDto>
   ): Result<ReadTaskTemplatesCountSuccessResultDto> {
@@ -3018,6 +3240,16 @@ export class ServerConnector {
     return this.getObject('/task-reports', params)
   }
   // Slices
+  async readSliceExistsFlag(
+    params: ReadSliceExistsFlagQueryDto
+  ): Promise<boolean> {
+    return (
+      await this.getObject<ReadSliceExistsFlagSuccessResultDto>(
+        '/slices/exists',
+        params
+      )
+    ).exists
+  }
   readSlicesCount(
     params: Params<ReadSlicesCountQueryDto>
   ): Result<ReadSlicesCountSuccessResultDto> {
@@ -3084,6 +3316,17 @@ export class ServerConnector {
     return this.postForObject('/slices/actions/delete-many', params)
   }
   // Subscriptions
+  subscribeToSelfMeta(
+    handler?: (data: SubscribeToResourceDataDto) => void
+  ): SubscriptionIdWrapDto {
+    const subscriptionId = this.getUniqueSubscriptionId()
+    this.addSubscriptionBlock({
+      subscriptionId: subscriptionId,
+      type: 'SELF_META',
+      handler: handler
+    })
+    return { subscriptionId: subscriptionId }
+  }
   subscribeToResource(
     params: DtoWithoutEnums<SubscribeToResourceParamsDto>,
     handler?: (data: SubscribeToResourceDataDto) => void
@@ -3217,6 +3460,7 @@ export class ServerConnector {
         const block =
           this.subscriptionBlockForSubscriptionId.get(subscriptionId)!
         const messageType = {
+          SELF_META: WEB_SOCKET_CONFIG.MESSAGE_TYPE.SUBSCRIBE_TO_SELF_META,
           RESOURCE: WEB_SOCKET_CONFIG.MESSAGE_TYPE.SUBSCRIBE_TO_RESOURCE,
           RESOURCES: WEB_SOCKET_CONFIG.MESSAGE_TYPE.SUBSCRIBE_TO_RESOURCES,
           ACTION_INFOS:
@@ -3263,6 +3507,8 @@ export class ServerConnector {
           this.inactiveSubscriptionIds.enqueue(subscriptionId)
           break
         }
+      } else {
+        break
       }
     }
     if (this.inactiveSubscriptionIds.size > 0) {
