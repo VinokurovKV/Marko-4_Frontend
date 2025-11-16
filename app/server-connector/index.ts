@@ -1,6 +1,5 @@
 // Project
 import type { SimpleObject } from '@common/simple-object'
-import type { Right } from '@common/enums'
 import type {
   SubscriptionIdWrapDto,
   SubscriptionIdNullWrapDto
@@ -978,14 +977,10 @@ export class ServerConnector {
   authorized() {
     return this.accessToken !== null
   }
-  async login(
-    params: Params<LoginBodyDto>
-  ): Promise<{ userId: number; rigths: Right[] }> {
-    const result = await this.postForObject<LoginSuccessResultDto>(
-      '/auth/login',
-      params,
-      false
-    )
+  async login(params: Params<LoginBodyDto>) {
+    const result = await this.postForObject<
+      DtoWithoutEnums<LoginSuccessResultDto>
+    >('/auth/login', params, false)
     this.delegate.setRefreshTokenData(
       result.refreshToken,
       result.refreshTokenExpirationTime
@@ -999,7 +994,7 @@ export class ServerConnector {
     this.initWebSocket()
     return {
       userId: result.userId,
-      rigths: result.rights
+      rights: result.rights
     }
   }
   async logout(params: { deactivateAllTokens: boolean }): Promise<void> {

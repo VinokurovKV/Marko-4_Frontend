@@ -1,7 +1,14 @@
 // Project
 import { serverConnector } from './server-connector'
 import type { Route } from './+types/root'
-import './app.css'
+//import './app.css'
+// import AppTheme from './theme/AppTheme'
+// import {
+//   dataGridCustomizations,
+//   datePickersCustomizations,
+//   sidebarCustomizations,
+//   formInputCustomizations
+// } from './theme/customizations'
 // React router
 import {
   isRouteErrorResponse,
@@ -60,14 +67,30 @@ export function Layout({ children }: { children: React.ReactNode }) {
   )
 }
 
+// const themeComponents = {
+//   ...dataGridCustomizations,
+//   ...datePickersCustomizations,
+//   ...sidebarCustomizations,
+//   ...formInputCustomizations
+// }
+
 export default function App() {
   return (
     <>
-      <CssBaseline />
+      <CssBaseline enableColorScheme />
       <Outlet />
     </>
   )
 }
+
+// export default function App(props: { disableCustomTheme?: boolean }) {
+//   return (
+//     <AppTheme {...props} themeComponents={themeComponents}>
+//       <CssBaseline enableColorScheme />
+//       <Outlet />
+//     </AppTheme>
+//   )
+// }
 
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
   let message = 'Oops!'

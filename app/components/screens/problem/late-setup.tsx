@@ -3,12 +3,12 @@ import { WarningScreen } from './warning'
 // React router
 import { useNavigate } from 'react-router'
 // React
-import { useCallback } from 'react'
+import * as React from 'react'
 
 export function LateSetupScreen() {
   const navigate = useNavigate()
 
-  const handleClick = useCallback(() => {
+  const handleClick = React.useCallback(() => {
     void navigate('/')
   }, [navigate])
 

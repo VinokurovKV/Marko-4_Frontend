@@ -2,9 +2,8 @@
 import { ServerConnectorUnauthorizedError } from '~/server-connector/error'
 import type { ServerConnector } from '~/server-connector'
 import { serverConnector } from '~/server-connector'
-// React router
 // React
-import { createContext, useContext, useEffect, useState } from 'react'
+import * as React from 'react'
 
 export async function clientLoader() {
   await serverConnector.connect()
@@ -18,20 +17,20 @@ type SelfMetaContextType = Awaited<
   ReturnType<ServerConnector['readSelfMeta']>
 > | null
 
-const SelfMetaContext = createContext<SelfMetaContextType>(null)
+const SelfMetaContext = React.createContext<SelfMetaContextType>(null)
 
 export const useSelfMeta = () => {
-  return useContext(SelfMetaContext)
+  return React.useContext(SelfMetaContext)
 }
 
 type InitializeStatus = 'WAITING' | 'SUCCESS' | 'ERROR'
 
 export function SelfMetaProvider({ children }: { children: React.ReactNode }) {
   const [initializeStatus, setInitializeStatus] =
-    useState<InitializeStatus>('WAITING')
-  const [selfMeta, setSelfMeta] = useState<SelfMetaContextType>(null)
+    React.useState<InitializeStatus>('WAITING')
+  const [selfMeta, setSelfMeta] = React.useState<SelfMetaContextType>(null)
 
-  useEffect(() => {
+  React.useEffect(() => {
     const updateSelfMeta = async () => {
       try {
         const selfMeta = await serverConnector.readSelfMeta()

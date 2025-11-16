@@ -1,250 +1,477 @@
 // Project
 import { restrictionConfig } from '@common/restriction-config'
+// Other
+import equal from 'fast-deep-equal'
 
-type FormValidatorOneFieldRuleType =
-  | 'REQUIRED'
-  | 'NAME_WITHOUT_UNIQUENESS'
-  | 'LOGIN_WITHOUT_UNIQUENESS'
+type FormValidatorFieldTransform = 'TRIM' | 'EMPTY_STR_TO_UNDEFINED'
+
+type FormValidatorOneFieldRule =
+  | 'ALLOW_UNDEFINED'
+  | 'NOT_UNDEFINED'
+  | 'NOT_EMPTY_STR'
+  | 'NAME'
+  | 'LOGIN'
   | 'PASS'
 
-type FormValidatorManyFieldsRuleType =
+type FormValidatorManyFieldsRule =
   | 'DISTINCT_NAMES'
   | 'DISTINCT_LOGINS'
   | 'EQUAL_PASSES'
 
-type FormValidatorOneFieldRule<Field extends string> = [
-  FormValidatorOneFieldRuleType,
-  Field
-]
+export type FormData = { [index: string]: any }
 
-type FormValidatorManyFieldsRule<Field extends string> = [
-  FormValidatorManyFieldsRuleType,
-  Field[]
-]
+export type FormKey<Data extends FormData> = keyof Data & string
 
-type FormData = { [index: string]: any }
+export type FormVal<Data extends FormData> = Data[FormKey<Data>]
 
-type FormKey<Data extends FormData> = keyof Data & string
-
-interface FormValidatorRules<Data extends FormData> {
-  oneField: FormValidatorOneFieldRule<FormKey<Data>>[]
-  manyField: FormValidatorManyFieldsRule<FormKey<Data>>[]
+interface FormValidatorConfig<Data extends FormData> {
+  oneField?: {
+    [property in keyof Data]?: {
+      transforms?: FormValidatorFieldTransform[]
+      rules?: FormValidatorOneFieldRule[]
+    }
+  }
+  manyFields?: [FormValidatorManyFieldsRule, ...FormKey<Data>[]][]
 }
 
-type FormValidatorPrompts<Data extends FormData> = {
+export type FormValidatorPrompts<Data extends FormData> = {
   [property in keyof Data]?: string[]
 }
 
-type FormValidatorErrors<Data extends FormData> = {
+export type FormValidatorPromptsJoined<Data extends FormData> = {
+  [property in keyof Data]?: string
+}
+
+export type FormValidatorErrors<Data extends FormData> = {
   [property in keyof Data]?: string[]
 }
 
-type FormValidatorResult<Data extends FormData> =
-  | {
-      success: true
-      result: Data
-    }
-  | {
-      success: false
-      errors: FormValidatorErrors<Data>
-    }
+export type FormValidatorErrorsJoined<Data extends FormData> = {
+  [property in keyof Data]?: string
+}
 
 export class FormValidator<Data extends FormData> {
-  constructor(private readonly rules: FormValidatorRules<FormData>) {}
+  constructor(private readonly config: FormValidatorConfig<Data>) {}
+
+  getPromptsJoined(): FormValidatorPromptsJoined<Data> {
+    const promptsJoined: FormValidatorPromptsJoined<Data> = {}
+    const prompts = this.getPrompts()
+    for (const field of Object.keys(prompts)) {
+      promptsJoined[field as keyof Data] = prompts[field]?.join(', ')
+    }
+    return promptsJoined
+  }
 
   getPrompts(): FormValidatorPrompts<Data> {
     const prompts: FormValidatorPrompts<Data> = {}
-    this.rules.oneField.forEach((rule) => {
-      this.addPromptsForOneField({ prompts, rule })
-    })
+    for (const field of Object.keys(this.config.oneField ?? {})) {
+      const fieldPrompts = this.getPromptsForOneField(field)
+      if (fieldPrompts !== null) {
+        prompts[field as keyof Data] = fieldPrompts
+      }
+    }
     return prompts
   }
 
-  private addPromptsForOneField(props: {
-    prompts: FormValidatorPrompts<Data>
-    rule: FormValidatorOneFieldRule<FormKey<FormData>>
-  }): void {
-    const { prompts } = props
-    const [ruleType, field] = props.rule
-    switch (ruleType) {
-      case 'REQUIRED':
-        this.addPrompt(field, prompts, 'обязательное поле')
-        return
-      case 'NAME_WITHOUT_UNIQUENESS':
-        ;(() => {
-          const { minLength, maxLength } = restrictionConfig.common.name
-          this.addPrompt(field, prompts, `${minLength}-${maxLength} символов`)
-        })()
-        return
-      case 'LOGIN_WITHOUT_UNIQUENESS':
-        ;(() => {
-          const { minLength, maxLength } = restrictionConfig.common.login
-          this.addPrompt(field, prompts, 'ASCII-строка')
-          this.addPrompt(field, prompts, 'без пробелов')
-          this.addPrompt(field, prompts, `${minLength}-${maxLength} символов`)
-        })()
-        return
-      case 'PASS':
-        ;(() => {
-          const { minLength, maxLength } = restrictionConfig.common.pass
-          this.addPrompt(field, prompts, `${minLength}-${maxLength} символов`)
-        })()
-        return
-    }
+  private getPromptsForOneField(field: FormKey<Data>): string[] | null {
+    const props: string[] = []
+    const rules = this.config.oneField?.[field]?.rules ?? []
+    rules.forEach((rule) => {
+      switch (rule) {
+        case 'ALLOW_UNDEFINED':
+          // props.push('необязательное поле')
+          break
+        case 'NOT_UNDEFINED':
+          // props.push('обязательное поле')
+          break
+        case 'NOT_EMPTY_STR':
+          // props.push('обязательное поле')
+          break
+        case 'NAME':
+          ;(() => {
+            const { minLength, maxLength } = restrictionConfig.common.name
+            props.push(`${minLength}-${maxLength} символов`)
+          })()
+          break
+        case 'LOGIN':
+          ;(() => {
+            const { minLength, maxLength } = restrictionConfig.common.login
+            props.push('ASCII-строка')
+            props.push('без пробелов')
+            props.push(`${minLength}-${maxLength} символов`)
+          })()
+          break
+        case 'PASS':
+          ;(() => {
+            const { minLength, maxLength } = restrictionConfig.common.pass
+            props.push(`${minLength}-${maxLength} символов`)
+          })()
+          break
+      }
+    })
+    return props.length > 0 ? props : null
   }
 
-  private addPrompt(
-    field: FormKey<Data>,
-    prompts: FormValidatorPrompts<Data>,
-    prompt: string
-  ): void {
-    if (prompts[field] === undefined) {
-      ;(prompts[field] as string[] | undefined) = []
-    }
-    ;(prompts[field] as string[]).push(prompt)
-  }
-
-  validate(data: Data): FormValidatorResult<Data> {
+  getTransformed(data: Data): Data {
     const result = structuredClone(data)
-    const errors: FormValidatorErrors<Data> = {}
-    this.prepareData(data)
-    this.rules.oneField.forEach((rule) => {
-      this.validateOneField({ data: result, errors, rule })
-    })
-    this.rules.manyField.forEach((rule) => {
-      this.validateManyFields({ data: result, errors, rule })
-    })
-    return Object.keys(errors).every(
-      (key) => errors[key] === undefined || errors[key].length === 0
-    )
-      ? {
-          success: true,
-          result: result
-        }
-      : {
-          success: false,
-          errors: errors
-        }
+    for (const field of Object.keys(data)) {
+      this.transformField(result, field)
+    }
+    return result
   }
 
-  private prepareData(data: Data): void {
-    for (const key of Object.keys(data)) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const val = data[key]
-      if (typeof val === 'string' && key !== 'pass') {
-        ;(data[key] as string) = val.trim()
+  private transformField(data: Data, field: FormKey<Data>): void {
+    data[field] = this.getTransformedField(data, field)
+  }
+
+  private getTransformedField(
+    data: Data,
+    field: FormKey<Data>
+  ): Data[FormKey<Data>] {
+    let val = data[field]
+    const transforms = this.config.oneField?.[field]?.transforms ?? []
+    transforms.forEach((transform) => {
+      switch (transform) {
+        case 'TRIM':
+          if (typeof val === 'string') {
+            ;(val as string) = (val as string).trim()
+          }
+          break
+        case 'EMPTY_STR_TO_UNDEFINED':
+          if (val === '') {
+            ;(val as string | undefined) = undefined
+          }
+          break
+      }
+    })
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    return val
+  }
+
+  getErrorsJoined(data: Data): FormValidatorErrorsJoined<Data> | null {
+    const errorsJoined: FormValidatorErrorsJoined<Data> = {}
+    const errors = this.getErrors(data)
+    if (errors === null) {
+      return null
+    }
+    for (const field of Object.keys(errors)) {
+      errorsJoined[field as keyof Data] = errors[field]?.join(', ')
+    }
+    return errorsJoined
+  }
+
+  getErrors(data: Data): FormValidatorErrors<Data> | null {
+    const resultErrors: FormValidatorErrors<Data> = {}
+    function addErrors(field: FormKey<Data>, errors: string[]): void {
+      if (resultErrors[field] === undefined) {
+        ;(resultErrors[field] as string[] | undefined) = []
+      }
+      ;(resultErrors[field] as string[]).push(...errors)
+    }
+    const allRuleFields = this.getAllRuleFields()
+    for (const field of allRuleFields) {
+      const oneFieldErrors = this.getOneFieldErrors(data, field)
+      if (oneFieldErrors !== null) {
+        addErrors(field, oneFieldErrors)
+      }
+    }
+    const manyFieldsErrors = this.getManyFieldsErrors(data, allRuleFields)
+    if (manyFieldsErrors !== null) {
+      for (const field of Object.keys(manyFieldsErrors)) {
+        const errors = manyFieldsErrors[field]
+        if (errors !== undefined) {
+          addErrors(field, errors)
+        }
+      }
+    }
+    return Object.keys(resultErrors).every(
+      (key) => resultErrors[key] === undefined
+    )
+      ? null
+      : resultErrors
+  }
+
+  revalidateJoined(
+    data: Data,
+    oldErrorsJoined: FormValidatorErrorsJoined<Data> | null,
+    updatedFields: FormKey<Data>[]
+  ):
+    | {
+        errorsChanged: false
+      }
+    | {
+        errorsChanged: true
+        newErrorsJoined: FormValidatorErrorsJoined<Data> | null
+      } {
+    const oldErrors = (() => {
+      let oldErrors: FormValidatorErrors<Data> | null = {}
+      if (oldErrorsJoined === null) {
+        oldErrors = null
+      } else {
+        for (const field of Object.keys(oldErrorsJoined)) {
+          oldErrors[field as keyof Data] = oldErrorsJoined[field]?.split(', ')
+        }
+      }
+      return oldErrors
+    })()
+    const revalidateResult = this.revalidate(data, oldErrors, updatedFields)
+    if (revalidateResult.errorsChanged) {
+      const newErrors = revalidateResult.newErrors
+      const newErrorsJoined = (() => {
+        let newErrorsJoined: FormValidatorErrorsJoined<Data> | null = {}
+        if (newErrors === null) {
+          newErrorsJoined = null
+        } else {
+          for (const field of Object.keys(newErrors)) {
+            newErrorsJoined[field as keyof Data] = newErrors[field]?.join(', ')
+          }
+        }
+        return newErrorsJoined
+      })()
+      return {
+        errorsChanged: true,
+        newErrorsJoined: newErrorsJoined
+      }
+    } else {
+      return {
+        errorsChanged: false
       }
     }
   }
 
-  private validateOneField(props: {
-    data: Data
-    errors: FormValidatorErrors<Data>
-    rule: FormValidatorOneFieldRule<FormKey<FormData>>
-  }): void {
-    const { data, errors } = props
-    const [ruleType, field] = props.rule
-    switch (ruleType) {
-      case 'REQUIRED':
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-        if ([undefined, null, ''].includes(data[field])) {
-          this.addError(field, errors, 'поле обязательно для заполнения')
+  revalidate(
+    data: Data,
+    oldErrors: FormValidatorErrors<Data> | null,
+    updatedFields: FormKey<Data>[]
+  ):
+    | {
+        errorsChanged: false
+      }
+    | {
+        errorsChanged: true
+        newErrors: FormValidatorErrors<Data> | null
+      } {
+    const updatedFieldsSet = new Set(updatedFields)
+    const usedFieldsSet = new Set(updatedFields)
+    ;(this.config.manyFields ?? []).forEach(([, ...ruleFields]) => {
+      if (ruleFields.some((field) => updatedFieldsSet.has(field))) {
+        for (const field of ruleFields) {
+          usedFieldsSet.add(field)
         }
-        return
-      case 'NAME_WITHOUT_UNIQUENESS':
-        this.assertString(
-          data[field],
-          field,
-          errors,
-          restrictionConfig.common.name.minLength,
-          restrictionConfig.common.name.maxLength
-        )
-        return
-      case 'LOGIN_WITHOUT_UNIQUENESS':
-        this.assertString(
-          data[field],
-          field,
-          errors,
-          restrictionConfig.common.login.minLength,
-          restrictionConfig.common.login.maxLength,
-          true,
-          true
-        )
-        return
-      case 'PASS':
-        this.assertString(
-          data[field],
-          field,
-          errors,
-          restrictionConfig.common.pass.minLength,
-          restrictionConfig.common.pass.maxLength
-        )
-        return
+      }
+    })
+    const usedFields = Array.from(usedFieldsSet)
+    const newErrors: FormValidatorErrors<Data> = {}
+    function addErrors(field: FormKey<Data>, errors: string[]): void {
+      if (newErrors[field] === undefined) {
+        ;(newErrors[field] as string[] | undefined) = []
+      }
+      ;(newErrors[field] as string[]).push(...errors)
     }
-  }
-
-  private validateManyFields(props: {
-    data: Data
-    errors: FormValidatorErrors<Data>
-    rule: FormValidatorManyFieldsRule<FormKey<FormData>>
-  }): void {
-    const { data, errors } = props
-    const [ruleType, fields] = props.rule
-    switch (ruleType) {
-      case 'DISTINCT_NAMES':
-        this.assertUniqueness(data, errors, fields, 'неуникальное название')
-        return
-      case 'DISTINCT_LOGINS':
-        this.assertUniqueness(data, errors, fields, 'неуникальный логин')
-        return
-      case 'EQUAL_PASSES':
-        if (fields.length > 0) {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-          const pass = data[fields[0]]
-          for (let i = 1; i < fields.length; i++) {
-            const field = fields[i]
-            if (data[field] !== pass) {
-              this.addError(field, errors, 'пароли должны совпадать')
-            }
+    for (const field of usedFields) {
+      const oneFieldErrors = this.getOneFieldErrors(data, field)
+      if (oneFieldErrors !== null) {
+        addErrors(field, oneFieldErrors)
+      }
+    }
+    const manyFieldsErrors = this.getManyFieldsErrors(data, usedFields)
+    if (manyFieldsErrors !== null) {
+      for (const field of Object.keys(manyFieldsErrors)) {
+        const errors = manyFieldsErrors[field]
+        if (errors !== undefined) {
+          addErrors(field, errors)
+        }
+      }
+    }
+    const oldErrorsUnnulled: FormValidatorErrors<Data> = oldErrors ?? {}
+    if (
+      usedFields.every((field) =>
+        equal(oldErrorsUnnulled[field], newErrors[field])
+      )
+    ) {
+      return {
+        errorsChanged: false
+      }
+    } else {
+      const allRuleFields = this.getAllRuleFields()
+      for (const field of allRuleFields) {
+        if (usedFieldsSet.has(field) === false) {
+          const errors = oldErrorsUnnulled[field]
+          if (errors !== undefined) {
+            addErrors(field, errors)
           }
         }
-        return
+      }
+      return {
+        errorsChanged: true,
+        newErrors: Object.keys(newErrors).every(
+          (key) => newErrors[key] === undefined
+        )
+          ? null
+          : newErrors
+      }
     }
   }
 
-  private assertString(
+  private getOneFieldErrors(data: Data, field: FormKey<Data>): string[] | null {
+    const errors: string[] = []
+    const rules = this.config.oneField?.[field]?.rules ?? []
+    const val = this.getTransformedField(data, field)
+    rules.forEach((rule) => {
+      switch (rule) {
+        case 'ALLOW_UNDEFINED':
+          if (val === undefined) {
+            return []
+          }
+          break
+        case 'NOT_UNDEFINED':
+          if (val === undefined) {
+            errors.push('поле обязательно для заполнения')
+          }
+          break
+        case 'NOT_EMPTY_STR':
+          if (val === '') {
+            errors.push('поле обязательно для заполнения')
+          }
+          break
+        case 'NAME':
+          ;(() => {
+            const nameErrors = this.getStringErrors(
+              val,
+              restrictionConfig.common.name.minLength,
+              restrictionConfig.common.name.maxLength
+            )
+            if (nameErrors !== null) {
+              errors.push(...nameErrors)
+            }
+          })()
+          break
+        case 'LOGIN':
+          ;(() => {
+            const loginErrors = this.getStringErrors(
+              val,
+              restrictionConfig.common.login.minLength,
+              restrictionConfig.common.login.maxLength,
+              true,
+              true
+            )
+            if (loginErrors !== null) {
+              errors.push(...loginErrors)
+            }
+          })()
+          break
+        case 'PASS':
+          ;(() => {
+            const passErrors = this.getStringErrors(
+              val,
+              restrictionConfig.common.pass.minLength,
+              restrictionConfig.common.pass.maxLength
+            )
+            if (passErrors !== null) {
+              errors.push(...passErrors)
+            }
+          })()
+
+          break
+      }
+    })
+    return errors.length > 0 ? errors : null
+  }
+
+  private getManyFieldsErrors(
+    data: Data,
+    fields: FormKey<Data>[]
+  ): FormValidatorErrors<Data> | null {
+    const errors: FormValidatorErrors<Data> = {}
+    const fieldsSet = new Set(fields)
+    function addError(field: FormKey<Data>, error: string): void {
+      if (fieldsSet.has(field) === false) {
+        return
+      }
+      if (errors[field] === undefined) {
+        ;(errors[field] as string[] | undefined) = []
+      }
+      ;(errors[field] as string[]).push(error)
+    }
+    const valForField = (() => {
+      const valForField = new Map<FormKey<Data>, any>()
+      for (const field of this.getAllRuleFields()) {
+        valForField.set(field, this.getTransformedField(data, field))
+      }
+      return valForField
+    })()
+    ;(this.config.manyFields ?? []).forEach(([rule, ...ruleFields]) => {
+      if (ruleFields.some((field) => fieldsSet.has(field))) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+        const vals = ruleFields.map((field) => valForField.get(field))
+        switch (rule) {
+          case 'DISTINCT_NAMES':
+            if (this.isDistinct(vals) === false) {
+              ruleFields.forEach((field) => {
+                addError(field, 'неуникальное название')
+              })
+            }
+            break
+          case 'DISTINCT_LOGINS':
+            if (this.isDistinct(vals) === false) {
+              ruleFields.forEach((field) => {
+                addError(field, 'неуникальный логин')
+              })
+            }
+            break
+          case 'EQUAL_PASSES':
+            if (this.isEqual(vals) === false) {
+              ruleFields.forEach((field, fieldIndex) => {
+                if (fieldIndex !== 0) {
+                  addError(field, 'пароли должны совпадать')
+                }
+              })
+            }
+            break
+        }
+      }
+    })
+    return Object.keys(errors).length > 0 ? errors : null
+  }
+
+  private getAllRuleFields(): FormKey<Data>[] {
+    const fieldsSet = new Set<FormKey<Data>>()
+    for (const field of Object.keys(this.config.oneField ?? {})) {
+      fieldsSet.add(field)
+    }
+    ;(this.config.manyFields ?? []).forEach(([, fields]) => {
+      for (const field of fields) {
+        fieldsSet.add(field)
+      }
+    })
+    return Array.from(fieldsSet)
+  }
+
+  private getStringErrors(
     val: any,
-    field: FormKey<Data>,
-    errors: FormValidatorErrors<Data>,
     minLength: number | undefined,
     maxLength: number | undefined,
     isAscii: boolean = false,
     withoutWhitespace: boolean = false
-  ) {
+  ): string[] | null {
+    const errors: string[] = []
     if (typeof val !== 'string') {
-      this.addError(field, errors, 'значение должно быть строкой')
+      errors.push('значение должно быть строкой')
     } else {
       if (minLength !== undefined && val !== '' && val.length < minLength) {
-        this.addError(
-          field,
-          errors,
-          `должно быть не менее ${minLength} символов`
-        )
+        errors.push(`допускается не менее ${minLength} символов`)
       }
       if (maxLength !== undefined && val.length > maxLength) {
-        this.addError(
-          field,
-          errors,
-          `должно быть не более ${maxLength} символов`
-        )
+        errors.push(`допускается не более ${maxLength} символов`)
       }
       if (isAscii && this.isAscii(val) === false) {
-        this.addError(field, errors, `допускаются только ASCII-символы`)
+        errors.push(`допускаются только ASCII-символы`)
       }
       if (withoutWhitespace && this.withWhitespace(val)) {
-        this.addError(field, errors, `пробелы не допускаются`)
+        errors.push(`пробелы не допускаются`)
       }
     }
+    return errors.length > 0 ? errors : null
   }
 
   private isAscii(str: string): boolean {
@@ -253,38 +480,19 @@ export class FormValidator<Data extends FormData> {
   }
 
   private withWhitespace(str: string): boolean {
-    return /^\s*$/.test(str)
+    return /\s+/.test(str)
   }
 
-  private assertUniqueness(
-    data: Data,
-    errors: FormValidatorErrors<Data>,
-    fields: FormKey<FormData>[],
-    message: string
-  ) {
+  private isDistinct(vals: any[]): boolean {
     /* eslint-disable */
-    for (const field of fields) {
-      const val = data[field]
-      if (
-        [undefined, null, ''].includes(val) === false &&
-        fields.some(
-          (otherField) => otherField !== field && data[otherField] === val
-        )
-      ) {
-        this.addError(field, errors, message)
-      }
-    }
+    const valsFiltered = vals.filter(
+      (val) => [undefined, null].includes(val) === false
+    )
+    return new Set(valsFiltered).size === valsFiltered.length
     /* eslint-enable */
   }
 
-  private addError(
-    field: FormKey<Data>,
-    errors: FormValidatorErrors<Data>,
-    error: string
-  ): void {
-    if (errors[field] === undefined) {
-      ;(errors[field] as string[] | undefined) = []
-    }
-    ;(errors[field] as string[]).push(error)
+  private isEqual(vals: any[]): boolean {
+    return vals.length === 0 || new Set(vals).size === 1
   }
 }

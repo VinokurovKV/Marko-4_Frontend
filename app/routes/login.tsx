@@ -1,9 +1,12 @@
 // Project
 import { serverConnector } from '~/server-connector'
 import { LoadErrorScreen } from '~/components/screens/problem/load-error'
+import { LoginScreen } from '~/components/screens/login'
 // React router
 import type { Route } from './+types/login'
-import { redirect } from 'react-router'
+import { redirect, useNavigate } from 'react-router'
+// React
+import * as React from 'react'
 
 export async function clientLoader() {
   try {
@@ -18,12 +21,16 @@ export async function clientLoader() {
   }
 }
 
-export default function Login({ loaderData }: Route.ComponentProps) {
+export default function LoginRoute({ loaderData }: Route.ComponentProps) {
+  const navigate = useNavigate()
+
+  const handleSuccessLogin = React.useCallback(() => {
+    void navigate('/')
+  }, [navigate])
+
   return loaderData === 'LOAD_ERROR' ? (
     <LoadErrorScreen />
   ) : (
-    <div>
-      <h1>Login</h1>
-    </div>
+    <LoginScreen onSuccessLogin={handleSuccessLogin} />
   )
 }

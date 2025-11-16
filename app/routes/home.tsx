@@ -19,7 +19,7 @@ export async function clientLoader() {
   }
 }
 
-export default function Home({ loaderData }: Route.ComponentProps) {
+export default function HomeRoute({ loaderData }: Route.ComponentProps) {
   return loaderData === 'LOAD_ERROR' ? (
     <LoadErrorScreen />
   ) : (
