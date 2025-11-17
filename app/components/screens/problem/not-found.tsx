@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router'
 // React
 import * as React from 'react'
 
-export function LateSetupScreen() {
+export function NotFoundScreen() {
   const navigate = useNavigate()
 
   const handleClick = React.useCallback(() => {
@@ -14,8 +14,8 @@ export function LateSetupScreen() {
 
   return (
     <WarningScreen
-      text="Инициализация системы уже выполнена"
-      actionButton={{ text: 'войти в систему', onClick: handleClick }}
+      text="Страница не найдена (404)"
+      actionButton={{ text: 'на главный экран', onClick: handleClick }}
     />
   )
 }

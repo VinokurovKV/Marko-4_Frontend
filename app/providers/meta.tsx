@@ -1,0 +1,125 @@
+// Project
+import type { Right } from '@common/enums'
+import { serverConnector } from '~/server-connector'
+// React
+import * as React from 'react'
+
+// TODO: need to subscribe to server connector instead of polling
+
+const POLLING_INTERVAL = 200
+
+interface SelfMeta {
+  id: number
+  login: string
+  rights: Right[]
+}
+
+export type MetaContextType =
+  | {
+      status: 'NOT_CONNECTED' | 'NOT_SETUP' | 'NOT_AUTHENTICATED'
+    }
+  | {
+      status: 'AUTHENTICATED'
+      selfMeta: SelfMeta
+    }
+
+const NOT_CONNECTED_META: MetaContextType = {
+  status: 'NOT_CONNECTED'
+}
+
+function metasAreEqual(meta_1: MetaContextType, meta_2: MetaContextType) {
+  const status_1 = meta_1.status
+  const status_2 = meta_2.status
+  return (
+    status_1 === status_2 &&
+    (status_1 !== 'AUTHENTICATED' ||
+      status_2 !== 'AUTHENTICATED' ||
+      JSON.stringify([
+        meta_1.selfMeta.id,
+        meta_1.selfMeta.login,
+        meta_1.selfMeta.rights
+      ]) ===
+        JSON.stringify([
+          meta_2.selfMeta.id,
+          meta_2.selfMeta.login,
+          meta_2.selfMeta.rights
+        ]))
+  )
+}
+
+const MetaContext = React.createContext<MetaContextType>(NOT_CONNECTED_META)
+
+export const useMeta = () => {
+  return React.useContext(MetaContext)
+}
+
+export function MetaProvider({ children }: { children: React.ReactNode }) {
+  const [initialized, setInitialized] = React.useState(false)
+  const [meta, setMeta] = React.useState<MetaContextType>(NOT_CONNECTED_META)
+
+  const updateSelfMeta = React.useCallback(async () => {
+    try {
+      const selfMeta = await serverConnector.readSelfMeta()
+      const newMeta: MetaContextType = {
+        status: 'AUTHENTICATED',
+        selfMeta
+      }
+      setMeta((oldMeta) => {
+        return metasAreEqual(newMeta, oldMeta) ? oldMeta : newMeta
+      })
+    } catch {
+      if (serverConnector.meta.status !== 'AUTHENTICATED') {
+        const newMeta: MetaContextType = {
+          status: serverConnector.meta.status
+        }
+        setMeta((oldMeta) => {
+          return metasAreEqual(newMeta, oldMeta) ? oldMeta : newMeta
+        })
+      }
+    }
+    setInitialized(true)
+  }, [setInitialized, setMeta])
+
+  React.useEffect(() => {
+    void (async () => {
+      await updateSelfMeta()
+    })()
+  }, [updateSelfMeta])
+
+  React.useEffect(() => {
+    const subscriptionId = serverConnector.subscribeToSelfMeta(() => {
+      void updateSelfMeta()
+    }).subscriptionId
+    return () => {
+      void serverConnector.unsubscribe(subscriptionId)
+    }
+  }, [updateSelfMeta])
+
+  React.useEffect(() => {
+    const intervalId = setInterval(() => {
+      setMeta((oldMeta) => {
+        const status = serverConnector.meta.status
+        if (status !== 'AUTHENTICATED') {
+          return status !== oldMeta.status ? { status } : oldMeta
+        } else if (
+          oldMeta.status !== 'AUTHENTICATED' &&
+          serverConnector.meta.selfMeta !== null
+        ) {
+          return {
+            status: 'AUTHENTICATED',
+            selfMeta: serverConnector.meta.selfMeta
+          }
+        } else {
+          return oldMeta
+        }
+      })
+    }, POLLING_INTERVAL)
+    return () => {
+      clearInterval(intervalId)
+    }
+  }, [setMeta])
+
+  return initialized === false ? null : (
+    <MetaContext.Provider value={meta}>{children}</MetaContext.Provider>
+  )
+}

@@ -1,5 +1,8 @@
+// TODO: need to refactor
+
 // Project
 import type { SimpleObject } from '@common/simple-object'
+import type { Right } from '@common/enums'
 import type {
   SubscriptionIdWrapDto,
   SubscriptionIdNullWrapDto
@@ -773,7 +776,10 @@ import type { DtoWithoutEnums } from '@common/dto-without-enums'
 import { WEB_SOCKET_CONFIG } from '@common/web-socket-config'
 import { generateRandomInt } from '@common/utilities'
 import { log, logWithoutTime } from '../utilities'
-import type { ServerConnectorDelegate } from './delegate'
+import type {
+  ServerConnectorCredentials,
+  ServerConnectorDelegate
+} from './delegate'
 import {
   SERVER_CONNECTOR_ERROR_STATUS,
   ServerConnectorError,
@@ -940,8 +946,25 @@ interface SubscriptionBlock {
   handler?: (data: any) => void
 }
 
+interface SelfMeta {
+  id: number
+  login: string
+  rights: Right[]
+}
+
+export type ServerConnectorMeta =
+  | {
+      status: 'NOT_CONNECTED' | 'NOT_SETUP' | 'NOT_AUTHENTICATED'
+    }
+  | {
+      status: 'AUTHENTICATED'
+      selfMeta: SelfMeta
+    }
+
 export class ServerConnector {
-  private accessToken: string | null = null
+  private connectPr: Promise<void> | null = null
+  private credentials: ServerConnectorCredentials | null = null
+  // private accessToken: string | null = null
   private refreshTokensPlanId: NodeJS.Timeout | null = null
   private socket: Socket | null = null
   private lastUsedSubscriptionId = -1
@@ -953,43 +976,54 @@ export class ServerConnector {
   private subscriptionIdForServerSubscriptionId = new Map<number, number>()
   private inactiveSubscriptionIds = new Queue<number>()
   private activateSubscriptionsPlanId: NodeJS.Timeout | null = null
-  selfMeta: DtoWithoutEnums<ReadSelfMetaSuccessResultDto> | null = null
+  meta: ServerConnectorMeta = {
+    status: 'NOT_CONNECTED'
+  }
   constructor(
     private delegate: ServerConnectorDelegate,
     private host: string = ''
-  ) {}
-  // Authorize
+  ) {
+    this.credentials = delegate.getCredentials()
+  }
+  // Authenticate
   async connect() {
-    try {
-      await this.authorize()
-      const accessTokenExpirationTime =
-        this.delegate.getAccessTokenData()?.expirationTime
-      if (accessTokenExpirationTime !== undefined) {
-        this.planToRefreshTokens(accessTokenExpirationTime)
-      }
-    } catch (error) {
-      if (error instanceof ServerConnectorUnauthorizedError === false) {
-        throw error
-      }
+    if (this.connectPr !== null) {
+      return Promise.allSettled([this.connectPr])
+    } else {
+      this.connectPr = (async () => {
+        try {
+          await this.readMeta()
+          await this.authenticate()
+          const accessTokenExpirationTime =
+            this.credentials?.accessTokenExpirationTime
+          if (accessTokenExpirationTime !== undefined) {
+            this.planToRefreshTokens(accessTokenExpirationTime)
+          }
+        } catch (error) {
+          if (error instanceof ServerConnectorUnauthorizedError === false) {
+            this.connectPr = null
+            throw error
+          }
+        }
+      })()
+      await this.connectPr
     }
   }
   // Auth
-  authorized() {
-    return this.accessToken !== null
-  }
   async login(params: Params<LoginBodyDto>) {
     const result = await this.postForObject<
       DtoWithoutEnums<LoginSuccessResultDto>
-    >('/auth/login', params, false)
-    this.delegate.setRefreshTokenData(
-      result.refreshToken,
-      result.refreshTokenExpirationTime
-    )
-    this.delegate.setAccessTokenData(
-      result.accessToken,
-      result.accessTokenExpirationTime
-    )
-    this.accessToken = result.accessToken
+    >('/auth/login', params, false, false)
+    this.meta = {
+      status: 'AUTHENTICATED',
+      selfMeta: {
+        id: result.userId,
+        login: params.login,
+        rights: result.rights
+      }
+    }
+    this.credentials = result
+    this.delegate.setCredentials(result)
     this.planToRefreshTokens(result.accessTokenExpirationTime)
     this.initWebSocket()
     return {
@@ -998,37 +1032,35 @@ export class ServerConnector {
     }
   }
   async logout(params: { deactivateAllTokens: boolean }): Promise<void> {
-    const refreshToken = this.delegate.getRefreshTokenData()?.token
-    const accessToken = this.delegate.getAccessTokenData()?.token
-    if (refreshToken !== undefined) {
+    this.credentials = this.delegate.getCredentials()
+    if (this.credentials !== null) {
       await this.postForObject<object>(
         '/auth/logout',
         {
-          refreshToken: refreshToken,
-          accessToken: accessToken,
+          refreshToken: this.credentials.refreshToken,
+          accessToken: this.credentials.accessToken,
           deactivateAllTokens: params.deactivateAllTokens
         } as LogoutBodyDto,
+        false,
         false
       )
-      this.delegate.deleteRefreshTokenData()
-      this.delegate.deleteAccessTokenData()
-      this.accessToken = null
+      this.meta = {
+        status: 'NOT_AUTHENTICATED'
+      }
+      this.credentials = null
+      this.delegate.deleteCredentials()
       this.destroyWebSocket()
     }
   }
   // Auth private
-  private async authorize(): Promise<void> {
+  private async authenticate(): Promise<void> {
+    this.credentials = this.delegate.getCredentials()
     // Try to use access token
-    const accessTokenData = this.delegate.getAccessTokenData()
     if (
-      accessTokenData !== null &&
-      accessTokenData.expirationTime.getTime() > new Date().getTime()
+      this.credentials !== null &&
+      this.credentials.accessTokenExpirationTime.getTime() >
+        new Date().getTime()
     ) {
-      this.accessToken = accessTokenData.token
-    } else {
-      this.accessToken = null
-    }
-    if (this.accessToken !== null) {
       try {
         await this.check()
         this.initWebSocket()
@@ -1038,21 +1070,20 @@ export class ServerConnector {
           error instanceof ServerConnectorError &&
           error.status === SERVER_CONNECTOR_ERROR_STATUS.UNAUTHORIZED
         ) {
-          this.delegate.deleteAccessTokenData()
-          this.accessToken = null
+          //
         } else {
           throw error
         }
       }
     }
     // Try to use refresh token
-    const refreshTokenData = this.delegate.getRefreshTokenData()
     if (
-      refreshTokenData !== null &&
-      refreshTokenData.expirationTime.getTime() > new Date().getTime()
+      this.credentials !== null &&
+      this.credentials.refreshTokenExpirationTime.getTime() >
+        new Date().getTime()
     ) {
       try {
-        await this.refreshTokens(refreshTokenData.token)
+        await this.refreshTokens(this.credentials.refreshToken)
         this.initWebSocket()
         return
       } catch (error) {
@@ -1060,15 +1091,23 @@ export class ServerConnector {
           error instanceof ServerConnectorError &&
           error.status === SERVER_CONNECTOR_ERROR_STATUS.UNAUTHORIZED
         ) {
-          this.delegate.deleteRefreshTokenData()
+          this.credentials = null
+          this.delegate.deleteCredentials()
         }
         throw error
       }
     }
+    if (this.meta.status === 'AUTHENTICATED') {
+      this.meta = {
+        status: 'NOT_AUTHENTICATED'
+      }
+    }
+    this.credentials = null
+    this.delegate.deleteCredentials()
     throw new ServerConnectorUnauthorizedError()
   }
   private async check(): Promise<object> {
-    return await this.getObject<object>('/auth/check', undefined, false)
+    return await this.getObject<object>('/auth/check', undefined, true, false)
   }
   private planToRefreshTokens(accessTokenExpirationTime: Date) {
     if (this.refreshTokensPlanId !== null) {
@@ -1090,19 +1129,18 @@ export class ServerConnector {
     const refreshTimeMs = generateRandomInt(minRefreshTimeMs, maxRefreshTimeMs)
     this.refreshTokensPlanId = setTimeout(() => {
       void (async () => {
-        const refreshTokenData = this.delegate.getRefreshTokenData()
-        const accessTokenData = this.delegate.getAccessTokenData()
-        if (refreshTokenData === null) {
+        this.credentials = this.delegate.getCredentials()
+        if (this.credentials === null) {
           return
         }
         if (
-          accessTokenData !== null &&
-          accessTokenData.expirationTime.getTime() - new Date().getTime() >
-            MAX_DURATION_TO_TOKEN_EXPIRATION_TO_PLAN_REFRESH
+          this.credentials.accessTokenExpirationTime.getTime() -
+            new Date().getTime() >
+          MAX_DURATION_TO_TOKEN_EXPIRATION_TO_PLAN_REFRESH
         ) {
-          this.planToRefreshTokens(accessTokenData.expirationTime)
+          this.planToRefreshTokens(this.credentials.accessTokenExpirationTime)
         } else {
-          await this.refreshTokens(refreshTokenData.token)
+          await this.refreshTokens(this.credentials.refreshToken)
         }
       })()
     }, refreshTimeMs - currentTimeMs)
@@ -1111,29 +1149,28 @@ export class ServerConnector {
     const result = await this.postForObject<RefreshTokensSuccessResultDto>(
       '/auth/refresh-tokens',
       { refreshToken: refreshToken } as RefreshTokensBodyDto,
+      false,
       false
     )
-    this.delegate.setRefreshTokenData(
-      result.refreshToken,
-      result.refreshTokenExpirationTime
-    )
-    this.delegate.setAccessTokenData(
-      result.accessToken,
-      result.accessTokenExpirationTime
-    )
-    this.accessToken = result.accessToken
+    if (this.credentials !== null) {
+      this.credentials = {
+        ...this.credentials,
+        ...result
+      }
+      this.delegate.setCredentials(this.credentials)
+    }
     log(['Tokens refreshed'], 'default')
     this.planToRefreshTokens(result.accessTokenExpirationTime)
   }
   private initWebSocket() {
     if (
       (this.socket === null || this.socket.connected === false) &&
-      this.accessToken !== null
+      this.credentials !== null
     ) {
       try {
         this.socket = io(HOST, {
           extraHeaders: {
-            Authorization: `Bearer ${this.accessToken}`
+            Authorization: `Bearer ${this.credentials.accessToken}`
           },
           reconnection: false
         })
@@ -1204,14 +1241,47 @@ export class ServerConnector {
     this.socket = null
   }
   // Common
-  readMeta(): Result<ReadMetaSuccessResultDto> {
-    return this.getObject(`/common/meta`)
+  async readMeta(): Result<ReadMetaSuccessResultDto> {
+    const result = await (this.getObject(
+      `/common/meta`,
+      undefined,
+      false,
+      false
+    ) as Result<ReadMetaSuccessResultDto>)
+
+    if (result.setup === false) {
+      this.meta = {
+        status: 'NOT_SETUP'
+      }
+    } else if (
+      this.meta.status === 'NOT_CONNECTED' ||
+      this.meta.status === 'NOT_SETUP'
+    ) {
+      this.meta = {
+        status: 'NOT_AUTHENTICATED'
+      }
+    }
+    return result
   }
   setup(params: Params<SetupBodyDto>): Result<SetupSuccessResultDto> {
-    return this.postForObject('/common/setup', params)
+    const result: Result<SetupSuccessResultDto> = this.postForObject(
+      '/common/setup',
+      params,
+      false,
+      false
+    )
+    this.meta = {
+      status: 'NOT_AUTHENTICATED'
+    }
+    return result
   }
   async clearAll(): Promise<void> {
     await this.postForObject<object>('/common/setup')
+    this.meta = {
+      status: 'NOT_SETUP'
+    }
+    this.credentials = null
+    this.delegate.deleteCredentials()
   }
   // Logs
   readStorageErrorsLogs(): Promise<Blob> {
@@ -1346,13 +1416,19 @@ export class ServerConnector {
     return this.postForObject('/roles/actions/delete-many', params)
   }
   // Users
-  cachedSelfMeta(): DtoWithoutEnums<ReadSelfMetaSuccessResultDto> | null {
-    return this.accessToken === null ? null : this.selfMeta
-  }
   async readSelfMeta(): Result<ReadSelfMetaSuccessResultDto> {
     const selfMeta: DtoWithoutEnums<ReadSelfMetaSuccessResultDto> =
       await this.getObject('/users/self-meta')
-    this.selfMeta = selfMeta
+    this.meta = {
+      status: 'AUTHENTICATED',
+      selfMeta: selfMeta
+    }
+    if (this.credentials !== null) {
+      this.credentials.userId = selfMeta.id
+      this.credentials.login = selfMeta.login
+      this.credentials.rights = selfMeta.rights
+      this.delegate.setCredentials(this.credentials)
+    }
     return selfMeta
   }
   async readUserExistsFlag(
@@ -3523,33 +3599,38 @@ export class ServerConnector {
   private getObject<Response extends object>(
     path: string,
     params?: object,
-    withReauthorizeAttempt: boolean = true
+    withAuthentication: boolean = true,
+    withReauthenticateAttempt: boolean = true
   ): Promise<Response> {
     return this.makeRequestWithObjectResponse<Response>(
       'GET',
       path,
       params,
       undefined,
-      withReauthorizeAttempt
+      withAuthentication,
+      withReauthenticateAttempt
     )
   }
   private postForObject<Response extends object>(
     path: string,
     body?: object,
-    withReauthorizeAttempt: boolean = true
+    withAuthentication: boolean = true,
+    withReauthenticateAttempt: boolean = true
   ): Promise<Response> {
     return this.makeRequestWithObjectResponse<Response>(
       'POST',
       path,
       undefined,
       body,
-      withReauthorizeAttempt
+      withAuthentication,
+      withReauthenticateAttempt
     )
   }
   private postMultipartFormForObject<Response extends object>(
     path: string,
     form: Map<string, MultipartFormVal>,
-    withReauthorizeAttempt: boolean = true
+    withAuthentication: boolean = true,
+    withReauthenticateAttempt: boolean = true
   ): Promise<Response> {
     const formData = new FormData()
     form.forEach((val, key) => {
@@ -3566,23 +3647,26 @@ export class ServerConnector {
       path,
       undefined,
       formData,
-      withReauthorizeAttempt
+      withAuthentication,
+      withReauthenticateAttempt
     )
   }
   private async getBlob(
     path: string,
     params?: object,
-    withReauthorizeAttempt: boolean = true
+    withAuthentication: boolean = true,
+    withReauthenticateAttempt: boolean = true
   ): Promise<Blob> {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const data = await this.makeRequest(
-      'GET',
+    const data = await this.makeRequest({
+      method: 'GET',
       path,
       params,
-      undefined,
-      'blob',
-      withReauthorizeAttempt
-    )
+      body: undefined,
+      responseType: 'blob',
+      withAuthentication,
+      withReauthenticateAttempt
+    })
     if (data instanceof Blob === false) {
       const message = 'Unsuccessful converting server response to Blob'
       log(
@@ -3601,17 +3685,19 @@ export class ServerConnector {
     path: string,
     params: object | undefined,
     body: object | undefined,
-    withReauthorizeAttempt: boolean = true
+    withAuthentication: boolean = true,
+    withReauthenticateAttempt: boolean = true
   ): Promise<Response> {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const response = await this.makeRequest(
+    const response = await this.makeRequest({
       method,
       path,
       params,
       body,
-      'json',
-      withReauthorizeAttempt
-    )
+      responseType: 'json',
+      withAuthentication,
+      withReauthenticateAttempt
+    })
     if (response instanceof Object) {
       return response as Response
     } else {
@@ -3630,21 +3716,31 @@ export class ServerConnector {
       )
     }
   }
-  private async makeRequest(
-    method: 'GET' | 'POST',
-    path: string,
-    params: object | undefined,
-    body: object | undefined,
-    responseType: 'json' | 'blob',
-    withReauthorizeAttempt: boolean
-  ): Promise<any> {
+  private async makeRequest(config: {
+    method: 'GET' | 'POST'
+    path: string
+    params: object | undefined
+    body: object | undefined
+    responseType: 'json' | 'blob'
+    withAuthentication: boolean
+    withReauthenticateAttempt: boolean
+  }): Promise<any> {
+    const {
+      method,
+      path,
+      params,
+      body,
+      responseType,
+      withAuthentication,
+      withReauthenticateAttempt
+    } = config
     // eslint-disable-next-line @typescript-eslint/no-empty-object-type
     let response: AxiosResponse<any, any, {}>
     try {
       response = await axios({
         headers:
-          this.accessToken !== null
-            ? { Authorization: `Bearer ${this.accessToken}` }
+          withAuthentication && this.credentials !== null
+            ? { Authorization: `Bearer ${this.credentials.accessToken}` }
             : undefined,
         method: method === 'GET' ? 'get' : 'post',
         baseURL: this.host,
@@ -3664,6 +3760,9 @@ export class ServerConnector {
         ],
         'importantError'
       )
+      this.meta = {
+        status: 'NOT_CONNECTED'
+      }
       // if (errorData) {
       //   logWithoutTime([errorData], 'error')
       // }
@@ -3689,12 +3788,27 @@ export class ServerConnector {
       if (errorData) {
         logWithoutTime([errorData], 'error')
       }
+      if (response.status === SERVER_CONNECTOR_ERROR_STATUS.UNAUTHORIZED) {
+        if (this.meta.status !== 'NOT_SETUP') {
+          this.meta = {
+            status: 'NOT_AUTHENTICATED'
+          }
+        }
+      }
       if (
         response.status === SERVER_CONNECTOR_ERROR_STATUS.UNAUTHORIZED &&
-        withReauthorizeAttempt
+        withReauthenticateAttempt
       ) {
-        await this.authorize()
-        return this.makeRequest(method, path, params, body, responseType, false)
+        await this.authenticate()
+        return this.makeRequest({
+          method,
+          path,
+          params,
+          body,
+          responseType,
+          withAuthentication,
+          withReauthenticateAttempt: false
+        })
       }
       throw response.status === SERVER_CONNECTOR_ERROR_STATUS.UNAUTHORIZED
         ? new ServerConnectorUnauthorizedError()
@@ -3703,6 +3817,20 @@ export class ServerConnector {
             response.statusText,
             errorData
           )
+    }
+    if (
+      withAuthentication &&
+      this.credentials !== null &&
+      this.meta.status !== 'AUTHENTICATED'
+    ) {
+      this.meta = {
+        status: 'AUTHENTICATED',
+        selfMeta: {
+          id: this.credentials.userId,
+          login: this.credentials.login,
+          rights: this.credentials.rights
+        }
+      }
     }
     if (responseType === 'json') {
       this.prepareResponseObject(data)
@@ -3904,65 +4032,98 @@ export class ServerConnector {
   // }
 }
 
-const REFRESH_TOKEN_KEY = 'REFRESH_TOKEN'
-const REFRESH_TOKEN_EXPIRATION_TIME_KEY = 'REFRESH_TOKEN_EXPIRATION_TIME'
-const ACCESS_TOKEN_KEY = 'ACCESS_TOKEN'
-const ACCESS_TOKEN_EXPIRATION_TIME_KEY = 'ACCESS_TOKEN_EXPIRATION_TIME'
+const CREDENTIALS_KEY = 'CREDENTIALS'
+// const REFRESH_TOKEN_KEY = 'REFRESH_TOKEN'
+// const REFRESH_TOKEN_EXPIRATION_TIME_KEY = 'REFRESH_TOKEN_EXPIRATION_TIME'
+// const ACCESS_TOKEN_KEY = 'ACCESS_TOKEN'
+// const ACCESS_TOKEN_EXPIRATION_TIME_KEY = 'ACCESS_TOKEN_EXPIRATION_TIME'
 
 class ServerConnectorDelegateImpl implements ServerConnectorDelegate {
   // TODO: check the security of this token storage technique
-  getRefreshTokenData(): {
-    token: string
-    expirationTime: Date
-  } | null {
-    const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY)
-    const refreshTokenExpirationTimeStr = localStorage.getItem(
-      REFRESH_TOKEN_EXPIRATION_TIME_KEY
-    )
-    return refreshToken !== null
-      ? {
-          token: refreshToken,
-          expirationTime: new Date(refreshTokenExpirationTimeStr!)
-        }
-      : null
+  getCredentials(): ServerConnectorCredentials | null {
+    /* eslint-disable */
+    const credentialsSerialized = localStorage.getItem(CREDENTIALS_KEY)
+    if (credentialsSerialized !== null) {
+      const result = JSON.parse(credentialsSerialized)
+      result.accessTokenExpirationTime = new Date(
+        result.accessTokenExpirationTime
+      )
+      result.refreshTokenExpirationTime = new Date(
+        result.refreshTokenExpirationTime
+      )
+      return result as ServerConnectorCredentials
+    } else {
+      return null
+    }
+    /* eslint-enable */
   }
-  setRefreshTokenData(token: string, expirationTime: Date): void {
-    localStorage.setItem(REFRESH_TOKEN_KEY, token)
+  setCredentials(credentials: ServerConnectorCredentials): void {
     localStorage.setItem(
-      REFRESH_TOKEN_EXPIRATION_TIME_KEY,
-      expirationTime.toString()
+      CREDENTIALS_KEY,
+      JSON.stringify({
+        ...credentials,
+        accessTokenExpirationTime:
+          credentials.accessTokenExpirationTime.toString(),
+        refreshTokenExpirationTime:
+          credentials.refreshTokenExpirationTime.toString()
+      })
     )
   }
-  deleteRefreshTokenData(): void {
-    localStorage.removeItem(REFRESH_TOKEN_KEY)
-    localStorage.removeItem(REFRESH_TOKEN_EXPIRATION_TIME_KEY)
+  deleteCredentials(): void {
+    localStorage.removeItem(CREDENTIALS_KEY)
   }
-  getAccessTokenData(): {
-    token: string
-    expirationTime: Date
-  } | null {
-    const accessToken = localStorage.getItem(ACCESS_TOKEN_KEY)
-    const accessTokenExpirationTimeStr = localStorage.getItem(
-      ACCESS_TOKEN_EXPIRATION_TIME_KEY
-    )
-    return accessToken !== null
-      ? {
-          token: accessToken,
-          expirationTime: new Date(accessTokenExpirationTimeStr!)
-        }
-      : null
-  }
-  setAccessTokenData(token: string, expirationTime: Date): void {
-    localStorage.setItem(ACCESS_TOKEN_KEY, token)
-    localStorage.setItem(
-      ACCESS_TOKEN_EXPIRATION_TIME_KEY,
-      expirationTime.toString()
-    )
-  }
-  deleteAccessTokenData(): void {
-    localStorage.removeItem(ACCESS_TOKEN_KEY)
-    localStorage.removeItem(ACCESS_TOKEN_EXPIRATION_TIME_KEY)
-  }
+  // getRefreshTokenData(): {
+  //   token: string
+  //   expirationTime: Date
+  // } | null {
+  //   const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY)
+  //   const refreshTokenExpirationTimeStr = localStorage.getItem(
+  //     REFRESH_TOKEN_EXPIRATION_TIME_KEY
+  //   )
+  //   return refreshToken !== null
+  //     ? {
+  //         token: refreshToken,
+  //         expirationTime: new Date(refreshTokenExpirationTimeStr!)
+  //       }
+  //     : null
+  // }
+  // setRefreshTokenData(token: string, expirationTime: Date): void {
+  //   localStorage.setItem(REFRESH_TOKEN_KEY, token)
+  //   localStorage.setItem(
+  //     REFRESH_TOKEN_EXPIRATION_TIME_KEY,
+  //     expirationTime.toString()
+  //   )
+  // }
+  // deleteRefreshTokenData(): void {
+  //   localStorage.removeItem(REFRESH_TOKEN_KEY)
+  //   localStorage.removeItem(REFRESH_TOKEN_EXPIRATION_TIME_KEY)
+  // }
+  // getAccessTokenData(): {
+  //   token: string
+  //   expirationTime: Date
+  // } | null {
+  //   const accessToken = localStorage.getItem(ACCESS_TOKEN_KEY)
+  //   const accessTokenExpirationTimeStr = localStorage.getItem(
+  //     ACCESS_TOKEN_EXPIRATION_TIME_KEY
+  //   )
+  //   return accessToken !== null
+  //     ? {
+  //         token: accessToken,
+  //         expirationTime: new Date(accessTokenExpirationTimeStr!)
+  //       }
+  //     : null
+  // }
+  // setAccessTokenData(token: string, expirationTime: Date): void {
+  //   localStorage.setItem(ACCESS_TOKEN_KEY, token)
+  //   localStorage.setItem(
+  //     ACCESS_TOKEN_EXPIRATION_TIME_KEY,
+  //     expirationTime.toString()
+  //   )
+  // }
+  // deleteAccessTokenData(): void {
+  //   localStorage.removeItem(ACCESS_TOKEN_KEY)
+  //   localStorage.removeItem(ACCESS_TOKEN_EXPIRATION_TIME_KEY)
+  // }
 }
 
 export const serverConnector = new ServerConnector(

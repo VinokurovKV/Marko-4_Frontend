@@ -1,7 +1,5 @@
 // Project
-import { serverConnector } from './server-connector'
 import type { Route } from './+types/root'
-//import './app.css'
 // import AppTheme from './theme/AppTheme'
 // import {
 //   dataGridCustomizations,
@@ -20,10 +18,6 @@ import {
 } from 'react-router'
 // Material UI
 import CssBaseline from '@mui/material/CssBaseline'
-
-export async function clientLoader() {
-  await serverConnector.connect()
-}
 
 // eslint-disable-next-line no-empty-pattern
 export function meta({}: Route.MetaArgs) {
