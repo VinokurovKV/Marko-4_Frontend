@@ -12,10 +12,12 @@ export default [
       layout('routes/setup-guard.tsx', [
         route('login', 'routes/login.tsx'),
         layout('routes/authenticated-guard.tsx', [
-          layout('routes/layout.tsx', [index('routes/home.tsx')])
+          layout('routes/layout.tsx', [
+            index('routes/home.tsx'),
+            route('*', 'routes/not-found.tsx')
+          ])
         ])
       ])
     ])
-  ]),
-  route('*', 'routes/not-found.tsx')
+  ])
 ] satisfies RouteConfig

@@ -1,6 +1,7 @@
 // Project
-import { ToggleIconButton } from '../buttons/toggle-icon-button'
-import { ThemeSwitcher } from '../theme/theme-switcher'
+import { ToggleIconButton } from '../../buttons/toggle-icon-button'
+import { AccountMenu } from './account-menu'
+import { ThemeSwitcher } from '../../theme/theme-switcher'
 // React router
 import { Link } from 'react-router'
 // React
@@ -69,10 +70,11 @@ export function Header({ logo, menuIsOpen, onToggleMenu }: HeaderProps) {
             direction="row"
             alignItems="center"
             spacing={1}
-            sx={{ marginLeft: 'auto' }}
+            sx={{ ml: 'auto' }}
           >
-            <Stack direction="row" alignItems="center">
+            <Stack direction="row" alignItems="center" spacing={1}>
               <ThemeSwitcher />
+              <AccountMenu />
             </Stack>
           </Stack>
         </Stack>

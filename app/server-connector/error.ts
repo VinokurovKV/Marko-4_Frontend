@@ -30,9 +30,35 @@ export class ServerConnectorBadRequestError extends ServerConnectorError {
   }
 }
 
+export class ServerConnectorConflictError extends ServerConnectorError {
+  constructor(message?: string, object?: object) {
+    super(SERVER_CONNECTOR_ERROR_STATUS.CONFLICT, message ?? 'Conflict', object)
+  }
+}
+
 export class ServerConnectorForbiddenError extends ServerConnectorError {
   constructor(message?: string) {
     super(SERVER_CONNECTOR_ERROR_STATUS.FORBIDDEN, message ?? 'Forbidden')
+  }
+}
+
+export class ServerConnectorIseError extends ServerConnectorError {
+  constructor(message?: string, object?: object) {
+    super(
+      SERVER_CONNECTOR_ERROR_STATUS.ISE,
+      message ?? 'Internal server error',
+      object
+    )
+  }
+}
+
+export class ServerConnectorNotFoundError extends ServerConnectorError {
+  constructor(message?: string, object?: object) {
+    super(
+      SERVER_CONNECTOR_ERROR_STATUS.NOT_FOUND,
+      message ?? 'Not found',
+      object
+    )
   }
 }
 

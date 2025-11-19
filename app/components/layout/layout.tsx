@@ -1,7 +1,7 @@
 // Project
 import { Background } from '../containers/background'
 import { BrandLabel } from '../brand/brand-label'
-import { Header } from './header'
+import { Header } from './header/header'
 import { Sidebar } from './sidebar/sidebar'
 // React
 import * as React from 'react'

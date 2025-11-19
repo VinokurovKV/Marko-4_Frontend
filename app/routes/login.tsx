@@ -2,9 +2,7 @@
 import { serverConnector } from '~/server-connector'
 import { LoginScreen } from '~/components/screens/login'
 // React router
-import { redirect, useNavigate } from 'react-router'
-// React
-import * as React from 'react'
+import { redirect } from 'react-router'
 
 export async function clientLoader() {
   await serverConnector.connect()
@@ -15,11 +13,5 @@ export async function clientLoader() {
 }
 
 export default function LoginRoute() {
-  const navigate = useNavigate()
-
-  const handleSuccessLogin = React.useCallback(() => {
-    void navigate('/')
-  }, [navigate])
-
-  return <LoginScreen onSuccessLogin={handleSuccessLogin} />
+  return <LoginScreen />
 }

@@ -784,7 +784,10 @@ import {
   SERVER_CONNECTOR_ERROR_STATUS,
   ServerConnectorError,
   ServerConnectorBadRequestError,
+  ServerConnectorConflictError,
   ServerConnectorForbiddenError,
+  ServerConnectorIseError,
+  ServerConnectorNotFoundError,
   ServerConnectorUnauthorizedError
 } from './error'
 // Other
@@ -3820,17 +3823,26 @@ export class ServerConnector {
           withReauthenticateAttempt: false
         })
       }
-      throw response.status === SERVER_CONNECTOR_ERROR_STATUS.BAD_REQUEST
-        ? new ServerConnectorBadRequestError(undefined, errorData)
-        : response.status === SERVER_CONNECTOR_ERROR_STATUS.FORBIDDEN
-          ? new ServerConnectorForbiddenError()
-          : response.status === SERVER_CONNECTOR_ERROR_STATUS.UNAUTHORIZED
-            ? new ServerConnectorUnauthorizedError()
-            : new ServerConnectorError(
-                response.status,
-                response.statusText,
-                errorData
-              )
+      switch (response.status) {
+        case SERVER_CONNECTOR_ERROR_STATUS.BAD_REQUEST:
+          throw new ServerConnectorBadRequestError(undefined, errorData)
+        case SERVER_CONNECTOR_ERROR_STATUS.CONFLICT:
+          throw new ServerConnectorConflictError()
+        case SERVER_CONNECTOR_ERROR_STATUS.FORBIDDEN:
+          throw new ServerConnectorForbiddenError()
+        case SERVER_CONNECTOR_ERROR_STATUS.ISE:
+          throw new ServerConnectorIseError()
+        case SERVER_CONNECTOR_ERROR_STATUS.NOT_FOUND:
+          throw new ServerConnectorNotFoundError()
+        case SERVER_CONNECTOR_ERROR_STATUS.UNAUTHORIZED:
+          throw new ServerConnectorUnauthorizedError()
+        default:
+          throw new ServerConnectorError(
+            response.status,
+            response.statusText,
+            errorData
+          )
+      }
     }
     if (
       withAuthentication &&

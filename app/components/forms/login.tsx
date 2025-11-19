@@ -2,6 +2,7 @@
 import type { LoginSuccessResultDto } from '@common/dtos/server-api/auth.dto'
 import type { DtoWithoutEnums } from '@common/dto-without-enums'
 import { serverConnector } from '~/server-connector'
+import { useNotifier } from '~/providers/notifier'
 import {
   type LoginFormData,
   INITIAL_LOGIN_FORM_DATA,
@@ -10,6 +11,8 @@ import {
 import { useForm, Form } from './common/form'
 import { FormPassField } from './common/form-pass-field'
 import { FormTextField } from './common/form-text-field'
+// React router
+import { useNavigate } from 'react-router'
 // React
 import * as React from 'react'
 
@@ -18,11 +21,10 @@ type LoginSuccessResult = Pick<
   'userId' | 'rights'
 >
 
-export interface LoginFormProps {
-  onSuccessLogin?: (loginResult: LoginSuccessResult) => void
-}
+export function LoginForm() {
+  const navigate = useNavigate()
+  const notifier = useNotifier()
 
-export function LoginForm(props: LoginFormProps) {
   const submitAction = React.useCallback(
     async (validatedData: LoginFormData) => {
       return await serverConnector.login({
@@ -33,6 +35,11 @@ export function LoginForm(props: LoginFormProps) {
     []
   )
 
+  const onSuccessSubmit = React.useCallback(() => {
+    notifier.showSuccess('выполнен вход в систему')
+    void navigate('/')
+  }, [])
+
   const { formInternal, data, errors, handleTextFieldChange } = useForm<
     LoginFormData,
     LoginSuccessResult
@@ -40,7 +47,7 @@ export function LoginForm(props: LoginFormProps) {
     INITIAL_FORM_DATA: INITIAL_LOGIN_FORM_DATA,
     validator: loginFormValidator,
     submitAction: submitAction,
-    onSuccessSubmit: props.onSuccessLogin
+    onSuccessSubmit: onSuccessSubmit
   })
 
   return (

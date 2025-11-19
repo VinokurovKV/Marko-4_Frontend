@@ -47,27 +47,34 @@ export function Sidebar({
     React.useMemo(() => {
       return SIDE_NAVIGATION_CONFIG.filter((block) =>
         (block.requiredRights ?? []).every((right) => rightsSet.has(right))
-      ).map((block) => {
-        return {
-          ...block,
-          nested: block.nested
-            .filter((item) =>
-              (item.requiredRights ?? []).every((right) => rightsSet.has(right))
-            )
-            .map((item) => {
-              return 'nested' in item === false
-                ? { ...item }
-                : {
-                    ...item,
-                    nested: item.nested.filter((item) =>
-                      (item.requiredRights ?? []).every((right) =>
-                        rightsSet.has(right)
+      )
+        .map((block) => {
+          return {
+            ...block,
+            nested: block.nested
+              .filter((item) =>
+                (item.requiredRights ?? []).every((right) =>
+                  rightsSet.has(right)
+                )
+              )
+              .map((item) => {
+                return 'nested' in item === false
+                  ? { ...item }
+                  : {
+                      ...item,
+                      nested: item.nested.filter((item) =>
+                        (item.requiredRights ?? []).every((right) =>
+                          rightsSet.has(right)
+                        )
                       )
-                    )
-                  }
-            })
-        }
-      })
+                    }
+              })
+              .filter(
+                (item) => 'nested' in item === false || item.nested.length > 0
+              )
+          }
+        })
+        .filter((block) => block.nested.length > 0)
     }, [rightsSet])
 
   const theme = useTheme()
@@ -140,12 +147,11 @@ export function Sidebar({
     isOverSmViewport && (!disableCollapsibleSidebar || isOverMdViewport)
 
   const getDrawerContent = React.useCallback(
-    (viewport: 'phone' | 'tablet' | 'desktop') => (
+    () => (
       <React.Fragment>
         <Toolbar />
         <Box
           component="nav"
-          aria-label={`${viewport.charAt(0).toUpperCase()}${viewport.slice(1)}`}
           sx={{
             height: '100%',
             display: 'flex',
@@ -163,7 +169,7 @@ export function Sidebar({
           <List
             dense
             sx={{
-              padding: mini ? 0 : 0.5,
+              p: mini ? 0 : 0.5,
               mb: 4,
               width: mini ? LAYOUT_CONFIG.MINI_DRAWER_WIDTH : 'auto'
             }}
@@ -210,7 +216,7 @@ export function Sidebar({
                             <List
                               dense
                               sx={{
-                                padding: 0,
+                                p: 0,
                                 my: 1,
                                 pl: mini ? 0 : 1,
                                 minWidth: 240
@@ -316,7 +322,7 @@ export function Sidebar({
           ...getDrawerSharedSx(true)
         }}
       >
-        {getDrawerContent('phone')}
+        {getDrawerContent()}
       </Drawer>
       <Drawer
         variant="permanent"
@@ -329,7 +335,7 @@ export function Sidebar({
           ...getDrawerSharedSx(false)
         }}
       >
-        {getDrawerContent('tablet')}
+        {getDrawerContent()}
       </Drawer>
       <Drawer
         variant="permanent"
@@ -338,7 +344,7 @@ export function Sidebar({
           ...getDrawerSharedSx(false)
         }}
       >
-        {getDrawerContent('desktop')}
+        {getDrawerContent()}
       </Drawer>
     </SidebarMetaContext.Provider>
   )

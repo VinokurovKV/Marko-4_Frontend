@@ -193,7 +193,7 @@ export function Form(props: FormProps) {
             direction="row"
             spacing={2}
             justifyContent="space-around"
-            sx={{ paddingTop: 2 }}
+            sx={{ pt: 2 }}
           >
             <PrButton
               type="submit"
