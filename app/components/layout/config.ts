@@ -1,0 +1,4 @@
+export const LAYOUT_CONFIG = {
+  DRAWER_WIDTH: 250,
+  MINI_DRAWER_WIDTH: 100
+}

@@ -20,6 +20,22 @@ export class ServerConnectorError extends Error {
   }
 }
 
+export class ServerConnectorBadRequestError extends ServerConnectorError {
+  constructor(message?: string, object?: object) {
+    super(
+      SERVER_CONNECTOR_ERROR_STATUS.BAD_REQUEST,
+      message ?? 'Bad request',
+      object
+    )
+  }
+}
+
+export class ServerConnectorForbiddenError extends ServerConnectorError {
+  constructor(message?: string) {
+    super(SERVER_CONNECTOR_ERROR_STATUS.FORBIDDEN, message ?? 'Forbidden')
+  }
+}
+
 export class ServerConnectorUnauthorizedError extends ServerConnectorError {
   constructor(message?: string) {
     super(SERVER_CONNECTOR_ERROR_STATUS.UNAUTHORIZED, message ?? 'Unauthorized')

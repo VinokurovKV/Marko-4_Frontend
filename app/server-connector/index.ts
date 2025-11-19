@@ -783,6 +783,8 @@ import type {
 import {
   SERVER_CONNECTOR_ERROR_STATUS,
   ServerConnectorError,
+  ServerConnectorBadRequestError,
+  ServerConnectorForbiddenError,
   ServerConnectorUnauthorizedError
 } from './error'
 // Other
@@ -1153,6 +1155,14 @@ export class ServerConnector {
       false
     )
     if (this.credentials !== null) {
+      this.meta = {
+        status: 'AUTHENTICATED',
+        selfMeta: {
+          id: this.credentials.userId,
+          login: this.credentials.login,
+          rights: this.credentials.rights
+        }
+      }
       this.credentials = {
         ...this.credentials,
         ...result
@@ -3810,13 +3820,17 @@ export class ServerConnector {
           withReauthenticateAttempt: false
         })
       }
-      throw response.status === SERVER_CONNECTOR_ERROR_STATUS.UNAUTHORIZED
-        ? new ServerConnectorUnauthorizedError()
-        : new ServerConnectorError(
-            response.status,
-            response.statusText,
-            errorData
-          )
+      throw response.status === SERVER_CONNECTOR_ERROR_STATUS.BAD_REQUEST
+        ? new ServerConnectorBadRequestError(undefined, errorData)
+        : response.status === SERVER_CONNECTOR_ERROR_STATUS.FORBIDDEN
+          ? new ServerConnectorForbiddenError()
+          : response.status === SERVER_CONNECTOR_ERROR_STATUS.UNAUTHORIZED
+            ? new ServerConnectorUnauthorizedError()
+            : new ServerConnectorError(
+                response.status,
+                response.statusText,
+                errorData
+              )
     }
     if (
       withAuthentication &&

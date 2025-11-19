@@ -17,7 +17,9 @@ import {
   ScrollRestoration
 } from 'react-router'
 // Material UI
+import { ThemeProvider, createTheme } from '@mui/material/styles'
 import CssBaseline from '@mui/material/CssBaseline'
+// import type {} from '@mui/material/themeCssVarsAugmentation'
 
 // eslint-disable-next-line no-empty-pattern
 export function meta({}: Route.MetaArgs) {
@@ -62,17 +64,26 @@ export function Layout({ children }: { children: React.ReactNode }) {
 }
 
 // const themeComponents = {
-//   ...dataGridCustomizations,
-//   ...datePickersCustomizations,
-//   ...sidebarCustomizations,
-//   ...formInputCustomizations
+//   // ...dataGridCustomizations,
+//   // ...datePickersCustomizations,
+//   // ...sidebarCustomizations,
+//   // ...formInputCustomizations
 // }
+
+const theme = createTheme({
+  colorSchemes: {
+    light: true,
+    dark: true
+  }
+})
 
 export default function App() {
   return (
     <>
-      <CssBaseline enableColorScheme />
-      <Outlet />
+      <ThemeProvider theme={theme}>
+        <CssBaseline enableColorScheme />
+        <Outlet />
+      </ThemeProvider>
     </>
   )
 }

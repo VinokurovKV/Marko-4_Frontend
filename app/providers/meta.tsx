@@ -14,7 +14,7 @@ interface SelfMeta {
   rights: Right[]
 }
 
-export type MetaContextType =
+export type Meta =
   | {
       status: 'NOT_CONNECTED' | 'NOT_SETUP' | 'NOT_AUTHENTICATED'
     }
@@ -23,11 +23,11 @@ export type MetaContextType =
       selfMeta: SelfMeta
     }
 
-const NOT_CONNECTED_META: MetaContextType = {
+const NOT_CONNECTED_META: Meta = {
   status: 'NOT_CONNECTED'
 }
 
-function metasAreEqual(meta_1: MetaContextType, meta_2: MetaContextType) {
+function metasAreEqual(meta_1: Meta, meta_2: Meta) {
   const status_1 = meta_1.status
   const status_2 = meta_2.status
   return (
@@ -47,7 +47,7 @@ function metasAreEqual(meta_1: MetaContextType, meta_2: MetaContextType) {
   )
 }
 
-const MetaContext = React.createContext<MetaContextType>(NOT_CONNECTED_META)
+const MetaContext = React.createContext<Meta>(NOT_CONNECTED_META)
 
 export const useMeta = () => {
   return React.useContext(MetaContext)
@@ -55,12 +55,12 @@ export const useMeta = () => {
 
 export function MetaProvider({ children }: { children: React.ReactNode }) {
   const [initialized, setInitialized] = React.useState(false)
-  const [meta, setMeta] = React.useState<MetaContextType>(NOT_CONNECTED_META)
+  const [meta, setMeta] = React.useState<Meta>(NOT_CONNECTED_META)
 
   const updateSelfMeta = React.useCallback(async () => {
     try {
       const selfMeta = await serverConnector.readSelfMeta()
-      const newMeta: MetaContextType = {
+      const newMeta: Meta = {
         status: 'AUTHENTICATED',
         selfMeta
       }
@@ -69,7 +69,7 @@ export function MetaProvider({ children }: { children: React.ReactNode }) {
       })
     } catch {
       if (serverConnector.meta.status !== 'AUTHENTICATED') {
-        const newMeta: MetaContextType = {
+        const newMeta: Meta = {
           status: serverConnector.meta.status
         }
         setMeta((oldMeta) => {

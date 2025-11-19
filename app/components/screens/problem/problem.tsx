@@ -6,16 +6,18 @@ import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import CardActions from '@mui/material/CardActions'
 import Divider from '@mui/material/Divider'
+import type { OverridableComponent } from '@mui/material/OverridableComponent'
 import type { SvgIconOwnProps, SvgIconTypeMap } from '@mui/material/SvgIcon'
 import Typography from '@mui/material/Typography'
-import type { OverridableComponent } from '@mui/material/OverridableComponent'
+
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+type Icon = OverridableComponent<SvgIconTypeMap<{}, 'svg'>> & {
+  muiName: string
+}
 
 export interface ProblemScreenProps {
   icon: {
-    // eslint-disable-next-line @typescript-eslint/no-empty-object-type
-    Icon: OverridableComponent<SvgIconTypeMap<{}, 'svg'>> & {
-      muiName: string
-    }
+    Icon: Icon
     color: SvgIconOwnProps['color']
   }
   text: string
