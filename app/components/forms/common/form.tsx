@@ -7,7 +7,7 @@ import type {
   FormValidatorErrorsJoined,
   FormValidator
 } from '~/validation/form-validator'
-import { PrButton } from '~/components/buttons/button'
+import { ProjButton } from '~/components/buttons/button'
 // React
 import * as React from 'react'
 // Material UI
@@ -195,13 +195,13 @@ export function Form(props: FormProps) {
             justifyContent="space-around"
             sx={{ pt: 2 }}
           >
-            <PrButton
+            <ProjButton
               type="submit"
               variant="contained"
               loading={props.formInternal.isSubmitting}
             >
               {props.submitButtonLabel}
-            </PrButton>
+            </ProjButton>
           </Stack>
         </Stack>
       </Stack>

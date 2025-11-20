@@ -8,10 +8,11 @@ import * as React from 'react'
 
 const POLLING_INTERVAL = 200
 
-interface SelfMeta {
+interface SelfMetaExtended {
   id: number
   login: string
   rights: Right[]
+  rightsSet: Set<Right>
 }
 
 export type Meta =
@@ -20,7 +21,7 @@ export type Meta =
     }
   | {
       status: 'AUTHENTICATED'
-      selfMeta: SelfMeta
+      selfMeta: SelfMetaExtended
     }
 
 const NOT_CONNECTED_META: Meta = {
@@ -62,7 +63,10 @@ export function MetaProvider({ children }: { children: React.ReactNode }) {
       const selfMeta = await serverConnector.readSelfMeta()
       const newMeta: Meta = {
         status: 'AUTHENTICATED',
-        selfMeta
+        selfMeta: {
+          ...selfMeta,
+          rightsSet: new Set(selfMeta.rights)
+        }
       }
       setMeta((oldMeta) => {
         return metasAreEqual(newMeta, oldMeta) ? oldMeta : newMeta
@@ -105,9 +109,13 @@ export function MetaProvider({ children }: { children: React.ReactNode }) {
           oldMeta.status !== 'AUTHENTICATED' &&
           serverConnector.meta.selfMeta !== null
         ) {
+          const selfMeta = serverConnector.meta.selfMeta
           return {
             status: 'AUTHENTICATED',
-            selfMeta: serverConnector.meta.selfMeta
+            selfMeta: {
+              ...selfMeta,
+              rightsSet: new Set(selfMeta.rights)
+            }
           }
         } else {
           return oldMeta

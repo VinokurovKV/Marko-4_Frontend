@@ -3463,7 +3463,8 @@ export class ServerConnector {
     })
     return { subscriptionId: subscriptionId }
   }
-  async unsubscribe(subscriptionId: number) {
+  unsubscribe(subscriptionId: number) {
+    console.log(`UNSUBSCRIBE: ${subscriptionId}`)
     this.subscriptionBlockForSubscriptionId.delete(subscriptionId)
     const serverSubscriptionId =
       this.serverSubscriptionIdForSubscriptionId.get(subscriptionId)
@@ -3474,19 +3475,19 @@ export class ServerConnector {
         const params: UnsubscribeOneParamsDto = {
           subscriptionId: subscriptionId
         }
-        try {
-          await this.socket.emitWithAck(
-            WEB_SOCKET_CONFIG.MESSAGE_TYPE.UNSUBSCRIBE_ONE,
-            params
-          )
-          console.log('WS: UNSUBSCRIBE:', serverSubscriptionId)
-        } catch {
-          //
-        }
+        this.socket
+          .emitWithAck(WEB_SOCKET_CONFIG.MESSAGE_TYPE.UNSUBSCRIBE_ONE, params)
+          .then(() => {
+            console.log('WS: UNSUBSCRIBE:', serverSubscriptionId)
+          })
+          .catch(() => {
+            //
+          })
       }
     }
   }
-  async unsubscribeMany(subscriptionIds: number[]) {
+  unsubscribeMany(subscriptionIds: number[]) {
+    console.log(`UNSUBSCRIBE MANY: ${subscriptionIds.toString()}`)
     for (const subscriptionId of subscriptionIds) {
       this.subscriptionBlockForSubscriptionId.delete(subscriptionId)
       const serverSubscriptionId =
@@ -3500,36 +3501,37 @@ export class ServerConnector {
       const params: UnsubscribeManyParamsDto = {
         subscriptionIds: subscriptionIds
       }
-      try {
-        await this.socket.emitWithAck(
-          WEB_SOCKET_CONFIG.MESSAGE_TYPE.UNSUBSCRIBE_MANY,
-          params
-        )
-        console.log('WS: UNSUBSCRIBE:', subscriptionIds)
-      } catch {
-        //
-      }
+      this.socket
+        .emitWithAck(WEB_SOCKET_CONFIG.MESSAGE_TYPE.UNSUBSCRIBE_MANY, params)
+        .then(() => {
+          console.log('WS: UNSUBSCRIBE:', subscriptionIds)
+        })
+        .catch(() => {
+          //
+        })
     }
   }
-  async unsubscribeAll() {
+  unsubscribeAll() {
+    console.log('UNSUBSCRIBE ALL')
     this.subscriptionBlockForSubscriptionId.clear()
     this.serverSubscriptionIdForSubscriptionId.clear()
     this.subscriptionIdForServerSubscriptionId.clear()
     this.inactiveSubscriptionIds.clear()
     if (this.socket !== null) {
-      try {
-        await this.socket.emitWithAck(
-          WEB_SOCKET_CONFIG.MESSAGE_TYPE.UNSUBSCRIBE_ALL
-        )
-        console.log('WS: UNSUBSCRIBE ALL')
-      } catch {
-        //
-      }
+      this.socket
+        .emitWithAck(WEB_SOCKET_CONFIG.MESSAGE_TYPE.UNSUBSCRIBE_ALL)
+        .then(() => {
+          console.log('WS: UNSUBSCRIBE ALL')
+        })
+        .catch(() => {
+          //
+        })
     }
   }
   private addSubscriptionBlock(block: SubscriptionBlock) {
     this.subscriptionBlockForSubscriptionId.set(block.subscriptionId, block)
     this.inactiveSubscriptionIds.enqueue(block.subscriptionId)
+    console.log(`SUBSCRIBE: ${block.subscriptionId}`)
     void this.activateSubscriptions()
   }
   private async activateSubscriptions(): Promise<void> {

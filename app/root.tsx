@@ -20,6 +20,7 @@ import {
 // Material UI
 import { ThemeProvider, createTheme } from '@mui/material/styles'
 import CssBaseline from '@mui/material/CssBaseline'
+import { ruRU } from '@mui/x-data-grid/locales'
 // import type {} from '@mui/material/themeCssVarsAugmentation'
 
 // eslint-disable-next-line no-empty-pattern
@@ -71,12 +72,15 @@ export function Layout({ children }: { children: React.ReactNode }) {
 //   // ...formInputCustomizations
 // }
 
-const theme = createTheme({
-  colorSchemes: {
-    light: true,
-    dark: true
-  }
-})
+const theme = createTheme(
+  {
+    colorSchemes: {
+      light: true,
+      dark: true
+    }
+  },
+  ruRU
+)
 
 export default function App() {
   return (

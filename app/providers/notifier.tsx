@@ -25,7 +25,7 @@ import useSlotProps from '@mui/utils/useSlotProps'
 import capitalize from 'capitalize'
 
 const SHORT_DURATION = 5 * 1000
-const MIDDLE_DURATION = 15 * 1000
+const MIDDLE_DURATION = 20 * 1000
 const LONG_DURATION = 60 * 1000
 
 interface ShowNotificationOptions {
@@ -39,6 +39,8 @@ interface ShowNotificationOptions {
 interface Notifier {
   show: (message: React.ReactNode, options?: ShowNotificationOptions) => string
   showSuccess: (message: string) => void
+  showInfo: (message: string) => void
+  showWarning: (message: string) => void
   showError: (error: any) => void
   close: (notificationKey: string) => void
 }
@@ -226,36 +228,62 @@ export function NotifierProvider(props: NotifierProviderProps) {
     [show]
   )
 
+  const showInfo = React.useCallback<Notifier['showInfo']>(
+    (message) => {
+      show(message, {
+        severity: 'info',
+        autoHideDuration: 'MIDDLE'
+      })
+    },
+    [show]
+  )
+
+  const showWarning = React.useCallback<Notifier['showWarning']>(
+    (message) => {
+      show(message, {
+        severity: 'warning',
+        autoHideDuration: 'MIDDLE'
+      })
+    },
+    [show]
+  )
+
   const showError = React.useCallback<Notifier['showError']>(
     (error) => {
-      const message = (() => {
-        if (error instanceof ServerConnectorError) {
-          if (error instanceof ServerConnectorBadRequestError) {
-            return 'некорректный запрос'
-          }
-          if (error instanceof ServerConnectorConflictError) {
-            return 'конфликт на сервере'
-          }
-          if (error instanceof ServerConnectorForbiddenError) {
-            return 'недостаточно прав для выполнения действия'
-          }
-          if (error instanceof ServerConnectorIseError) {
-            return 'внутренняя ошибка сервера'
-          }
-          if (error instanceof ServerConnectorNotFoundError) {
-            return 'запрашиваемый ресурс не найден'
-          }
-          if (error instanceof ServerConnectorUnauthorizedError) {
-            return 'пользователь не авторизован'
-          }
-          return 'ошибка при запросе на сервер'
-        }
-        return 'ошибка'
-      })()
+      const message =
+        typeof error === 'string'
+          ? error
+          : (() => {
+              if (error instanceof ServerConnectorError) {
+                if (error instanceof ServerConnectorBadRequestError) {
+                  return 'некорректный запрос'
+                }
+                if (error instanceof ServerConnectorConflictError) {
+                  return 'конфликт на сервере'
+                }
+                if (error instanceof ServerConnectorForbiddenError) {
+                  return 'недостаточно прав для выполнения действия'
+                }
+                if (error instanceof ServerConnectorIseError) {
+                  return 'внутренняя ошибка сервера'
+                }
+                if (error instanceof ServerConnectorNotFoundError) {
+                  return 'запрашиваемый ресурс не найден'
+                }
+                if (error instanceof ServerConnectorUnauthorizedError) {
+                  return 'пользователь не авторизован'
+                }
+                return 'ошибка при запросе на сервер'
+              }
+              return 'ошибка'
+            })()
       show(message, {
         severity: 'error'
       })
-      if (error instanceof ServerConnectorError === false) {
+      if (
+        typeof error !== 'string' &&
+        error instanceof ServerConnectorError === false
+      ) {
         throw error
       }
     },
@@ -270,8 +298,8 @@ export function NotifierProvider(props: NotifierProviderProps) {
   }, [])
 
   const contextValue = React.useMemo(
-    () => ({ show, showSuccess, showError, close }),
-    [show, showSuccess, showError, close]
+    () => ({ show, showSuccess, showInfo, showWarning, showError, close }),
+    [show, showSuccess, showInfo, showWarning, showError, close]
   )
 
   return (

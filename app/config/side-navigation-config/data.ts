@@ -123,18 +123,18 @@ export const SIDE_NAVIGATION_CONFIG: SideNavigationConfig = [
     title: 'сетевая функциональность',
     nested: [
       {
-        id: 'documents',
-        title: 'документы',
-        Icon: DescriptionIcon,
-        href: '/documents',
-        requiredRights: ['READ_DOCUMENT', 'READ_FRAGMENT']
-      },
-      {
         id: 'requirements',
         title: 'требования',
         Icon: FormatListNumberedRtlIcon,
         href: '/requirements',
         requiredRights: ['READ_REQUIREMENT']
+      },
+      {
+        id: 'documents',
+        title: 'документы',
+        Icon: DescriptionIcon,
+        href: '/documents',
+        requiredRights: ['READ_DOCUMENT', 'READ_FRAGMENT']
       }
     ]
   },

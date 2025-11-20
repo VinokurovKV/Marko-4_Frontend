@@ -29,7 +29,6 @@ export interface SidebarPageItemProps {
   icon?: React.ReactNode
   href: string
   action?: React.ReactNode
-  defaultExpanded?: boolean
   expanded?: boolean
   selected?: boolean
   disabled?: boolean
@@ -42,8 +41,7 @@ export function SidebarPageItem({
   icon,
   href,
   action,
-  defaultExpanded = false,
-  expanded = defaultExpanded,
+  expanded = false,
   selected = false,
   disabled = false,
   nestedNavigation

@@ -1,0 +1,7 @@
+export * from './email'
+export * from './forename'
+export * from './login'
+export * from './patronymic'
+export * from './phone'
+export * from './role'
+export * from './surname'

@@ -11,6 +11,15 @@ import useMediaQuery from '@mui/material/useMediaQuery'
 import Box from '@mui/material/Box'
 import Toolbar from '@mui/material/Toolbar'
 
+const IS_DESKTOP_NAVIGATION_EXPANDED_DEFAULT = true
+const IS_MOBILE_NAVIGATION_EXPANDED_DEFAULT = false
+const IS_DESKTOP_NAVIGATION_EXPANDED_LS_KEY =
+  'LAYOUT_IS_DESKTOP_NAVIGATION_EXPANDED'
+const IS_MOBILE_NAVIGATION_EXPANDED_LS_KEY =
+  'LAYOUT_IS_MOBILE_NAVIGATION_EXPANDED'
+const TRUE = 'TRUE'
+const FALSE = 'FALSE'
+
 export interface LayoutProps {
   children: React.ReactNode
 }
@@ -19,9 +28,31 @@ export function Layout(props: LayoutProps) {
   const theme = useTheme()
 
   const [isDesktopNavigationExpanded, setIsDesktopNavigationExpanded] =
-    React.useState(true)
+    React.useState(
+      (() => {
+        const lsVal = localStorage?.getItem(
+          IS_DESKTOP_NAVIGATION_EXPANDED_LS_KEY
+        )
+        return lsVal === TRUE
+          ? true
+          : lsVal === FALSE
+            ? false
+            : IS_DESKTOP_NAVIGATION_EXPANDED_DEFAULT
+      })()
+    )
   const [isMobileNavigationExpanded, setIsMobileNavigationExpanded] =
-    React.useState(false)
+    React.useState(
+      (() => {
+        const lsVal = localStorage?.getItem(
+          IS_MOBILE_NAVIGATION_EXPANDED_LS_KEY
+        )
+        return lsVal === TRUE
+          ? true
+          : lsVal === FALSE
+            ? false
+            : IS_MOBILE_NAVIGATION_EXPANDED_DEFAULT
+      })()
+    )
 
   const isOverMdViewport = useMediaQuery(theme.breakpoints.up('md'))
 
@@ -33,9 +64,19 @@ export function Layout(props: LayoutProps) {
     (newExpanded: boolean) => {
       if (isOverMdViewport) {
         setIsDesktopNavigationExpanded(newExpanded)
+        localStorage.setItem(
+          IS_DESKTOP_NAVIGATION_EXPANDED_LS_KEY,
+          newExpanded ? TRUE : FALSE
+        )
       } else {
         setIsMobileNavigationExpanded(newExpanded)
       }
+      localStorage.setItem(
+        isOverMdViewport
+          ? IS_DESKTOP_NAVIGATION_EXPANDED_LS_KEY
+          : IS_MOBILE_NAVIGATION_EXPANDED_LS_KEY,
+        newExpanded ? TRUE : FALSE
+      )
     },
     [
       isOverMdViewport,

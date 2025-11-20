@@ -39,9 +39,8 @@ export function Sidebar({
   container
 }: SidebarProps) {
   const meta = useMeta()
-  const rightsSet = React.useMemo(() => {
-    return new Set(meta.status !== 'AUTHENTICATED' ? [] : meta.selfMeta.rights)
-  }, [meta])
+  const rightsSet =
+    meta.status !== 'AUTHENTICATED' ? new Set([]) : meta.selfMeta.rightsSet
 
   const restrictedSideNavigationConfig: SideNavigationConfig =
     React.useMemo(() => {
@@ -202,13 +201,10 @@ export function Sidebar({
                         selected={
                           'href' in item
                             ? !!matchPath(`${item.href}/*`, pathname)
-                            : false
-                        }
-                        defaultExpanded={
-                          'nested' in item &&
-                          item.nested.some(
-                            (item) => !!matchPath(`${item.href}/*`, pathname)
-                          )
+                            : item.nested.some(
+                                (item) =>
+                                  !!matchPath(`${item.href}/*`, pathname)
+                              )
                         }
                         expanded={expandedItemIds.includes(item.id)}
                         nestedNavigation={
