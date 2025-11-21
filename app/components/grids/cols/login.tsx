@@ -10,6 +10,7 @@ export function useLoginCol(userIdField: string, header: boolean) {
     () => ({
       field: 'login',
       headerName: 'Логин',
+      hideable: !header,
       renderCell: (params: GridRenderCellParams<any, string>) => (
         <GridRefCell
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access

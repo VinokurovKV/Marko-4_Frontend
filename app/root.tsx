@@ -1,5 +1,6 @@
 // Project
 import { NotifierProvider } from './providers/notifier'
+import { DialogsProvider } from './providers/dialogs'
 import type { Route } from './+types/root'
 // import AppTheme from './theme/AppTheme'
 // import {
@@ -88,7 +89,9 @@ export default function App() {
       <ThemeProvider theme={theme}>
         <CssBaseline enableColorScheme />
         <NotifierProvider>
-          <Outlet />
+          <DialogsProvider>
+            <Outlet />
+          </DialogsProvider>{' '}
         </NotifierProvider>
       </ThemeProvider>
     </>

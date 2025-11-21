@@ -36,7 +36,11 @@ export function Header({ logo, menuIsOpen, onToggleMenu }: HeaderProps) {
   }, [menuIsOpen, onToggleMenu])
 
   return (
-    <AppBar color="inherit" position="absolute" sx={{ displayPrint: 'none' }}>
+    <AppBar
+      color="inherit"
+      position="absolute"
+      sx={{ displayPrint: 'none', overflow: 'clip' }}
+    >
       <Toolbar sx={{ backgroundColor: 'inherit', mx: { xs: -0.75, sm: -1 } }}>
         <Stack
           direction="row"

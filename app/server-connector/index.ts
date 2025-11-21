@@ -1,4 +1,5 @@
 // TODO: need to refactor
+// TODO: problem with several simultaneous refresh-token requests
 
 // Project
 import type { SimpleObject } from '@common/simple-object'

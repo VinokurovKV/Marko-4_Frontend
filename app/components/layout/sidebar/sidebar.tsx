@@ -215,7 +215,7 @@ export function Sidebar({
                                 p: 0,
                                 my: 1,
                                 pl: mini ? 0 : 1,
-                                minWidth: 240
+                                minWidth: LAYOUT_CONFIG.DRAWER_WIDTH
                               }}
                             >
                               <React.Fragment>

@@ -4,6 +4,7 @@ import type { ReadUsersWithUpToSecondaryPropsSuccessResultItemDto } from '@commo
 import type { DtoWithoutEnums } from '@common/dto-without-enums'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
+import { useMeta } from '~/providers/meta'
 import { Grid } from '../grid'
 import {
   useLoginCol,
@@ -12,7 +13,9 @@ import {
   usePatronymicCol,
   useEmailCol,
   usePhoneCol,
-  useRoleCol
+  useRoleCol,
+  type ActionsColProps,
+  useActionsCol
 } from '../cols'
 // React
 import * as React from 'react'
@@ -29,8 +32,16 @@ export interface UsersGridProps {
 
 export function UsersGrid(props: UsersGridProps) {
   const notifier = useNotifier()
+  const meta = useMeta()
+  const rightsSet =
+    meta.status !== 'AUTHENTICATED' ? new Set([]) : meta.selfMeta.rightsSet
 
   const [users, setUsers] = React.useState<User[]>(props.initialUsers)
+
+  const userLoginForId = React.useMemo(
+    () => new Map(users.map((user) => [user.id, user.login])),
+    [users]
+  )
 
   React.useEffect(() => {
     const subscriptionId = serverConnector.subscribeToResources(
@@ -62,7 +73,7 @@ export function UsersGrid(props: UsersGridProps) {
 
   const rows: GridValidRowModel[] = users
 
-  const cols: GridColDef[] = [
+  const readCols = [
     useLoginCol('id', true),
     useSurnameCol(),
     useForenameCol(),
@@ -71,6 +82,40 @@ export function UsersGrid(props: UsersGridProps) {
     usePhoneCol(),
     useRoleCol(props.initialRoles)
   ]
+
+  const actionsColProps: ActionsColProps = React.useMemo(
+    () => ({
+      delete: {
+        prepareConfirmMessage: (rowId) =>
+          `удалить пользователя '${userLoginForId.get(rowId) ?? ''}'?`,
+        action: async (rowId) => {
+          try {
+            await serverConnector.deleteUser({
+              id: rowId
+            })
+            notifier.showSuccess(
+              `пользователь '${userLoginForId.get(rowId) ?? ''}' удален`
+            )
+          } catch (error) {
+            notifier.showError(error)
+          }
+        }
+      }
+    }),
+    [userLoginForId]
+  )
+
+  const actionsCol = useActionsCol(actionsColProps)
+
+  const cols: GridColDef[] = React.useMemo(
+    () => [
+      ...readCols,
+      ...(rightsSet.has('UPDATE_USER') || rightsSet.has('DELETE_USER')
+        ? [actionsCol]
+        : [])
+    ],
+    [rightsSet, readCols, actionsCol]
+  )
 
   return <Grid localSaveKey="USERS" cols={cols} rows={rows} />
 }
