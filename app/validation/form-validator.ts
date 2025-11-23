@@ -12,6 +12,12 @@ type FormValidatorOneFieldRule =
   | 'NAME'
   | 'LOGIN'
   | 'PASS'
+  | 'SURNAME'
+  | 'FORENAME'
+  | 'PATRONYMIC'
+  | 'PHONE'
+  | 'EMAIL'
+  | 'TEXT'
 
 type FormValidatorManyFieldsRule =
   | 'DISTINCT_NAMES'
@@ -105,6 +111,42 @@ export class FormValidator<Data extends FormData> {
           ;(() => {
             const { minLength, maxLength } = restrictionConfig.common.pass
             props.push(`${minLength}-${maxLength} символов`)
+          })()
+          break
+        case 'SURNAME':
+          ;(() => {
+            const { minLength, maxLength } = restrictionConfig.common.surname
+            props.push(`${minLength}-${maxLength} символов`)
+          })()
+          break
+        case 'FORENAME':
+          ;(() => {
+            const { minLength, maxLength } = restrictionConfig.common.forename
+            props.push(`${minLength}-${maxLength} символов`)
+          })()
+          break
+        case 'PATRONYMIC':
+          ;(() => {
+            const { minLength, maxLength } = restrictionConfig.common.patronymic
+            props.push(`${minLength}-${maxLength} символов`)
+          })()
+          break
+        case 'PHONE':
+          ;(() => {
+            const { maxLength } = restrictionConfig.common.phone
+            props.push(`не более ${maxLength} символов`)
+          })()
+          break
+        case 'EMAIL':
+          ;(() => {
+            const { maxLength } = restrictionConfig.common.email
+            props.push(`не более ${maxLength} символов`)
+          })()
+          break
+        case 'TEXT':
+          ;(() => {
+            const { maxLength } = restrictionConfig.common.text
+            props.push(`не более ${maxLength} символов`)
           })()
           break
       }
@@ -371,7 +413,90 @@ export class FormValidator<Data extends FormData> {
               errors.push(...passErrors)
             }
           })()
-
+          break
+        case 'SURNAME':
+          ;(() => {
+            const surnameErrors = this.getStringErrors(
+              val,
+              restrictionConfig.common.surname.minLength,
+              restrictionConfig.common.surname.maxLength,
+              true,
+              true
+            )
+            if (surnameErrors !== null) {
+              errors.push(...surnameErrors)
+            }
+          })()
+          break
+        case 'FORENAME':
+          ;(() => {
+            const forenameErrors = this.getStringErrors(
+              val,
+              restrictionConfig.common.forename.minLength,
+              restrictionConfig.common.forename.maxLength,
+              true,
+              true
+            )
+            if (forenameErrors !== null) {
+              errors.push(...forenameErrors)
+            }
+          })()
+          break
+        case 'PATRONYMIC':
+          ;(() => {
+            const patronymicErrors = this.getStringErrors(
+              val,
+              restrictionConfig.common.patronymic.minLength,
+              restrictionConfig.common.patronymic.maxLength,
+              true,
+              true
+            )
+            if (patronymicErrors !== null) {
+              errors.push(...patronymicErrors)
+            }
+          })()
+          break
+        case 'PHONE':
+          ;(() => {
+            const phoneErrors = this.getStringErrors(
+              val,
+              undefined,
+              restrictionConfig.common.phone.maxLength,
+              true,
+              true
+            )
+            if (phoneErrors !== null) {
+              errors.push(...phoneErrors)
+            }
+          })()
+          break
+        case 'EMAIL':
+          ;(() => {
+            const emailErrors = this.getStringErrors(
+              val,
+              undefined,
+              restrictionConfig.common.email.maxLength,
+              true,
+              true
+            )
+            if (emailErrors !== null) {
+              errors.push(...emailErrors)
+            }
+          })()
+          break
+        case 'TEXT':
+          ;(() => {
+            const textErrors = this.getStringErrors(
+              val,
+              undefined,
+              restrictionConfig.common.text.maxLength,
+              true,
+              true
+            )
+            if (textErrors !== null) {
+              errors.push(...textErrors)
+            }
+          })()
           break
       }
     })

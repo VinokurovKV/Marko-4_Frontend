@@ -1,5 +1,13 @@
 // Project
-import { ServerConnectorUnauthorizedError } from '~/server-connector/error'
+import {
+  ServerConnectorBadRequestError,
+  ServerConnectorConflictError,
+  ServerConnectorForbiddenError,
+  ServerConnectorIseError,
+  ServerConnectorNotFoundError,
+  ServerConnectorUnauthorizedError,
+  ServerConnectorError
+} from '~/server-connector/error'
 import type {
   FormData,
   FormKey,
@@ -14,6 +22,8 @@ import * as React from 'react'
 import Box from '@mui/material/Box'
 import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
+// Other
+import capitalize from 'capitalize'
 
 type Field<Data extends FormData> = FormKey<Data>
 type Val<Data extends FormData> = FormVal<Data>
@@ -87,8 +97,20 @@ export function useForm<Data extends FormData, SubmitActionResult>(
 
   const prepareTextForSubmitActionError = React.useCallback(
     (error: any): string | null => {
-      if (error instanceof ServerConnectorUnauthorizedError) {
-        return 'Не удалось авторизоваться, проверьте вводимые данные'
+      if (error instanceof ServerConnectorBadRequestError) {
+        return 'некорректный запрос, проверьте вводимые данные'
+      } else if (error instanceof ServerConnectorConflictError) {
+        return 'возник конфликт на сервере при выполнении действия'
+      } else if (error instanceof ServerConnectorForbiddenError) {
+        return 'недостаточно прав для выполнения действия'
+      } else if (error instanceof ServerConnectorIseError) {
+        return 'произошла внутренняя ошибка сервера при выполнении действия'
+      } else if (error instanceof ServerConnectorNotFoundError) {
+        return 'обращение к несуществующему ресурсу при выполнении действия'
+      } else if (error instanceof ServerConnectorUnauthorizedError) {
+        return 'не удалось авторизоваться, проверьте вводимые данные'
+      } else if (error instanceof ServerConnectorError) {
+        return 'произошла ошибка при выполнении действия'
       } else {
         return null
       }
@@ -112,7 +134,7 @@ export function useForm<Data extends FormData, SubmitActionResult>(
         } catch (error) {
           const errorText = prepareTextForSubmitActionError(error)
           if (errorText !== null) {
-            setSubmitActionError(errorText)
+            setSubmitActionError(capitalize(errorText))
           } else {
             // TODO: unsuccessful request
             throw error
