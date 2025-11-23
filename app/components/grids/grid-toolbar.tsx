@@ -1,7 +1,9 @@
 // React
 import * as React from 'react'
 // Material UI
+import AddIcon from '@mui/icons-material/Add'
 import CancelIcon from '@mui/icons-material/Cancel'
+import DeleteIcon from '@mui/icons-material/Delete'
 import FileDownloadIcon from '@mui/icons-material/FileDownload'
 import FilterListIcon from '@mui/icons-material/FilterList'
 import SearchIcon from '@mui/icons-material/Search'
@@ -58,7 +60,24 @@ const StyledTextField = styled(TextField)<{
   transition: theme.transitions.create(['width', 'opacity'])
 }))
 
-export function ProjGridToolbar() {
+function GridToolbarDivider() {
+  return (
+    <Divider orientation="vertical" variant="inset" flexItem sx={{ mx: 0.5 }} />
+  )
+}
+
+export interface ProjGridToolbarProps {
+  createButton?: {
+    active: boolean
+    onClick: () => void
+  }
+  deleteManyButton?: {
+    active: boolean
+    onClick: () => void
+  }
+}
+
+export function ProjGridToolbar(props: ProjGridToolbarProps) {
   const [exportMenuOpen, setExportMenuOpen] = React.useState(false)
   const exportMenuTriggerRef = React.useRef<HTMLButtonElement>(null)
 
@@ -67,6 +86,24 @@ export function ProjGridToolbar() {
       {/* <Typography fontWeight="medium" sx={{ flex: 1, mx: 0.5 }}>
         Toolbar
       </Typography> */}
+
+      {props.createButton ? (
+        <>
+          <Tooltip
+            title={
+              props.createButton.active ? 'Отменить добавление' : 'Добавить'
+            }
+          >
+            <ToolbarButton onClick={props.createButton.onClick}>
+              <AddIcon
+                fontSize="small"
+                color={props.createButton.active ? 'primary' : undefined}
+              />
+            </ToolbarButton>
+          </Tooltip>
+          <GridToolbarDivider />
+        </>
+      ) : null}
 
       <Tooltip title="Столбцы">
         <ColumnsPanelTrigger render={<ToolbarButton />}>
@@ -90,12 +127,7 @@ export function ProjGridToolbar() {
         />
       </Tooltip>
 
-      <Divider
-        orientation="vertical"
-        variant="inset"
-        flexItem
-        sx={{ mx: 0.5 }}
-      />
+      <GridToolbarDivider />
 
       <Tooltip title="Экспорт">
         <ToolbarButton
@@ -177,6 +209,26 @@ export function ProjGridToolbar() {
           )}
         />
       </StyledQuickFilter>
+
+      {props.deleteManyButton ? (
+        <>
+          <GridToolbarDivider />
+          <Tooltip
+            title={
+              props.deleteManyButton.active
+                ? 'Выключить режим удаления'
+                : 'Включить режим удаления'
+            }
+          >
+            <ToolbarButton onClick={props.deleteManyButton.onClick}>
+              <DeleteIcon
+                fontSize="small"
+                color={props.deleteManyButton.active ? 'primary' : undefined}
+              />
+            </ToolbarButton>
+          </Tooltip>
+        </>
+      ) : null}
     </Toolbar>
   )
 }

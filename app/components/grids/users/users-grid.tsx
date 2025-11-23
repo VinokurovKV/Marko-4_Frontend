@@ -5,7 +5,7 @@ import type { DtoWithoutEnums } from '@common/dto-without-enums'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
 import { useMeta } from '~/providers/meta'
-import { Grid } from '../grid'
+import { type GridProps, Grid } from '../grid'
 import {
   useLoginCol,
   useSurnameCol,
@@ -21,6 +21,8 @@ import {
 import * as React from 'react'
 // Material UI
 import { type GridColDef, type GridValidRowModel } from '@mui/x-data-grid'
+
+const MAX_USERS_IN_MESSAGES = 3
 
 type Role = DtoWithoutEnums<ReadRolesWithPrimaryPropsSuccessResultItemDto>
 type User = DtoWithoutEnums<ReadUsersWithUpToSecondaryPropsSuccessResultItemDto>
@@ -98,6 +100,7 @@ export function UsersGrid(props: UsersGridProps) {
             )
           } catch (error) {
             notifier.showError(error)
+            throw error
           }
         }
       }
@@ -117,5 +120,50 @@ export function UsersGrid(props: UsersGridProps) {
     [rightsSet, readCols, actionsCol]
   )
 
-  return <Grid localSaveKey="USERS" cols={cols} rows={rows} />
+  const defaultHiddenFields = React.useMemo(
+    () => ['phone'] as (keyof User)[],
+    []
+  )
+
+  const deleteManyProps: GridProps['deleteMany'] = React.useMemo(
+    () =>
+      rightsSet.has('DELETE_USER')
+        ? {
+            prepareConfirmMessage: (rowIds) => {
+              const displayedUserLogins = rowIds
+                .slice(0, MAX_USERS_IN_MESSAGES)
+                .map((rowId) => userLoginForId.get(rowId) ?? '')
+              return `удалить пользовател${rowIds.length === 1 ? 'я' : 'ей'}${displayedUserLogins.map((login) => ` '${login}'`).join()}${rowIds.length > displayedUserLogins.length ? ` и еще ${rowIds.length - displayedUserLogins.length}` : ''}?`
+            },
+            action: async (rowIds) => {
+              const displayedUserLogins = rowIds
+                .slice(0, MAX_USERS_IN_MESSAGES)
+                .map((rowId) => userLoginForId.get(rowId) ?? '')
+              try {
+                await serverConnector.deleteUsers({
+                  ids: rowIds
+                })
+                notifier.showSuccess(
+                  `пользователи${displayedUserLogins.map((login) => ` '${login}'`).join()}${rowIds.length > displayedUserLogins.length ? ` и еще ${rowIds.length - displayedUserLogins.length}` : ''} удалены`
+                )
+              } catch (error) {
+                notifier.showError(error)
+                throw error
+              }
+            }
+          }
+        : undefined,
+    [rightsSet, userLoginForId]
+  )
+
+  return (
+    <Grid
+      localSaveKey="USERS"
+      cols={cols}
+      rows={rows}
+      defaultHiddenFields={defaultHiddenFields}
+      create={{}}
+      deleteMany={deleteManyProps}
+    />
+  )
 }

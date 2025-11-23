@@ -33,7 +33,7 @@ export function GridRefCell(props: GridRefCellProps) {
       onClick={handleClick}
       sx={{
         justifyContent: 'start',
-        textTransform: props.disableCapitalize ? 'none' : undefined,
+        textTransform: 'none',
         fontWeight: props.header ? 'bold' : undefined,
         color: props.header ? theme.palette.text.primary : undefined
       }}

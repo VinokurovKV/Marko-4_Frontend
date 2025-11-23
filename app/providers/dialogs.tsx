@@ -1,7 +1,8 @@
+// Project
+import { ProjButton } from '~/components/buttons/button'
 // React
 import * as React from 'react'
 // Material UI
-import Button from '@mui/material/Button'
 import Dialog from '@mui/material/Dialog'
 import DialogActions from '@mui/material/DialogActions'
 import DialogContent from '@mui/material/DialogContent'
@@ -206,14 +207,9 @@ export function AlertDialog({ open, payload, onClose }: AlertDialogProps) {
       ) : null}
       <DialogContent>{payload.msg}</DialogContent>
       <DialogActions>
-        <Button
-          variant="contained"
-          size="small"
-          disabled={!open}
-          {...okButtonProps}
-        >
+        <ProjButton variant="contained" disabled={!open} {...okButtonProps}>
           {payload.okText ?? 'Ок'}
-        </Button>
+        </ProjButton>
       </DialogActions>
     </Dialog>
   )
@@ -239,24 +235,22 @@ export function ConfirmDialog({ open, payload, onClose }: ConfirmDialogProps) {
       ) : null}
       <DialogContent>{payload.msg}</DialogContent>
       <DialogActions>
-        <Button
+        <ProjButton
           variant="contained"
-          size="small"
           autoFocus
           disabled={!open}
           {...cancelButtonProps}
         >
           {payload.cancelText ?? 'Отменить'}
-        </Button>
-        <Button
+        </ProjButton>
+        <ProjButton
           variant="contained"
-          size="small"
           color={payload.severity}
           disabled={!open}
           {...okButtonProps}
         >
           {payload.okText ?? 'Ок'}
-        </Button>
+        </ProjButton>
       </DialogActions>
     </Dialog>
   )
@@ -326,23 +320,17 @@ export function PromptDialog({ open, payload, onClose }: PromptDialogProps) {
         />
       </DialogContent>
       <DialogActions>
-        <Button
-          variant="contained"
-          size="small"
-          disabled={!open}
-          {...cancelButtonProps}
-        >
+        <ProjButton variant="contained" disabled={!open} {...cancelButtonProps}>
           {payload.cancelText ?? 'Отменить'}
-        </Button>
-        <Button
+        </ProjButton>
+        <ProjButton
           variant="contained"
-          size="small"
           disabled={!open}
           loading={loading}
           type="submit"
         >
           {payload.okText ?? 'Ок'}
-        </Button>
+        </ProjButton>
       </DialogActions>
     </Dialog>
   )
