@@ -5,6 +5,7 @@ import type { DtoWithoutEnums } from '@common/dto-without-enums'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
 import { useMeta } from '~/providers/meta'
+import { CreateUserFormDialog } from '~/components/forms/create-user'
 import { type GridProps, Grid } from '../grid'
 import {
   useLoginCol,
@@ -38,12 +39,43 @@ export function UsersGrid(props: UsersGridProps) {
   const rightsSet =
     meta.status !== 'AUTHENTICATED' ? new Set([]) : meta.selfMeta.rightsSet
 
+  const [createModeIsActive, setCreateModeIsActive] = React.useState(false)
+
+  const [roles, setRoles] = React.useState<Role[] | null>(props.initialRoles)
   const [users, setUsers] = React.useState<User[]>(props.initialUsers)
 
   const userLoginForId = React.useMemo(
     () => new Map(users.map((user) => [user.id, user.login])),
     [users]
   )
+
+  React.useEffect(() => {
+    const subscriptionId = serverConnector.subscribeToResources(
+      {
+        type: 'ROLE'
+      },
+      (data) => {
+        void (async () => {
+          const scope = data.updateScope
+          if (scope.primaryProps) {
+            try {
+              const roles = await serverConnector.readRoles({
+                scope: 'PRIMARY_PROPS'
+              })
+              setRoles(roles)
+            } catch {
+              notifier.showWarning(
+                'не удалось загрузить актуальный список ролей'
+              )
+            }
+          }
+        })()
+      }
+    ).subscriptionId
+    return () => {
+      serverConnector.unsubscribe(subscriptionId)
+    }
+  }, [setRoles])
 
   React.useEffect(() => {
     const subscriptionId = serverConnector.subscribeToResources(
@@ -82,7 +114,7 @@ export function UsersGrid(props: UsersGridProps) {
     usePatronymicCol(),
     useEmailCol(),
     usePhoneCol(),
-    useRoleCol(props.initialRoles)
+    useRoleCol(roles)
   ]
 
   const actionsColProps: ActionsColProps = React.useMemo(
@@ -125,6 +157,17 @@ export function UsersGrid(props: UsersGridProps) {
     []
   )
 
+  const createProps: GridProps['create'] = React.useMemo(
+    () =>
+      rightsSet.has('CREATE_USER')
+        ? {
+            createModeIsActive: createModeIsActive,
+            setCreateModeIsActive: setCreateModeIsActive
+          }
+        : undefined,
+    [rightsSet, createModeIsActive, setCreateModeIsActive]
+  )
+
   const deleteManyProps: GridProps['deleteMany'] = React.useMemo(
     () =>
       rightsSet.has('DELETE_USER')
@@ -156,14 +199,27 @@ export function UsersGrid(props: UsersGridProps) {
     [rightsSet, userLoginForId]
   )
 
+  const cancelCreateForm = React.useCallback(() => {
+    setCreateModeIsActive(false)
+  }, [setCreateModeIsActive])
+
   return (
-    <Grid
-      localSaveKey="USERS"
-      cols={cols}
-      rows={rows}
-      defaultHiddenFields={defaultHiddenFields}
-      create={{}}
-      deleteMany={deleteManyProps}
-    />
+    <>
+      <Grid
+        localSaveKey="USERS"
+        cols={cols}
+        rows={rows}
+        defaultHiddenFields={defaultHiddenFields}
+        create={createProps}
+        deleteMany={deleteManyProps}
+      />
+      <CreateUserFormDialog
+        roles={roles}
+        createModeIsActive={createModeIsActive}
+        setCreateModeIsActive={setCreateModeIsActive}
+        onSuccessCreateUser={cancelCreateForm}
+        onCancelClick={cancelCreateForm}
+      />
+    </>
   )
 }

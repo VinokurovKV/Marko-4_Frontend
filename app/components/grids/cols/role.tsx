@@ -1,8 +1,6 @@
 // Project
 import type { ReadRolesWithPrimaryPropsSuccessResultItemDto } from '@common/dtos/server-api/roles.dto'
 import type { DtoWithoutEnums } from '@common/dto-without-enums'
-import { serverConnector } from '~/server-connector'
-import { useNotifier } from '~/providers/notifier'
 import { GridRefCell } from '../cells/grid-ref-cell'
 // React
 import * as React from 'react'
@@ -13,39 +11,7 @@ import capitalize from 'capitalize'
 
 type Role = DtoWithoutEnums<ReadRolesWithPrimaryPropsSuccessResultItemDto>
 
-export function useRoleCol(initialRoles: Role[] | null) {
-  const notifier = useNotifier()
-
-  const [roles, setRoles] = React.useState<Role[] | null>(initialRoles)
-
-  React.useEffect(() => {
-    const subscriptionId = serverConnector.subscribeToResources(
-      {
-        type: 'ROLE'
-      },
-      (data) => {
-        void (async () => {
-          const scope = data.updateScope
-          if (scope.primaryProps) {
-            try {
-              const roles = await serverConnector.readRoles({
-                scope: 'PRIMARY_PROPS'
-              })
-              setRoles(roles)
-            } catch {
-              notifier.showWarning(
-                'не удалось загрузить актуальный список ролей'
-              )
-            }
-          }
-        })()
-      }
-    ).subscriptionId
-    return () => {
-      serverConnector.unsubscribe(subscriptionId)
-    }
-  }, [setRoles])
-
+export function useRoleCol(roles: Role[] | null) {
   const roleNameForId = React.useMemo(
     () => new Map(roles?.map((role) => [role.id, capitalize(role.name)]) ?? []),
     [roles]

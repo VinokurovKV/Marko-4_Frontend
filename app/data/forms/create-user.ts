@@ -61,27 +61,28 @@ export const createUserFormValidator = new FormValidator<CreateUserFormData>({
       rules: ['NOT_UNDEFINED']
     },
     surname: {
-      transforms: ['TRIM'],
-      rules: ['SURNAME']
+      transforms: ['TRIM', 'EMPTY_STR_TO_UNDEFINED'],
+      rules: ['ALLOW_UNDEFINED', 'SURNAME']
     },
     forename: {
-      transforms: ['TRIM'],
-      rules: ['FORENAME']
+      transforms: ['TRIM', 'EMPTY_STR_TO_UNDEFINED'],
+      rules: ['ALLOW_UNDEFINED', 'FORENAME']
     },
     patronymic: {
-      transforms: ['TRIM'],
-      rules: ['PATRONYMIC']
+      transforms: ['TRIM', 'EMPTY_STR_TO_UNDEFINED'],
+      rules: ['ALLOW_UNDEFINED', 'PATRONYMIC']
     },
     phone: {
-      transforms: ['TRIM'],
-      rules: ['PHONE']
+      transforms: ['TRIM', 'EMPTY_STR_TO_UNDEFINED'],
+      rules: ['ALLOW_UNDEFINED', 'PHONE']
     },
     email: {
-      transforms: ['TRIM'],
-      rules: ['EMAIL']
+      transforms: ['TRIM', 'EMPTY_STR_TO_UNDEFINED'],
+      rules: ['ALLOW_UNDEFINED', 'EMAIL']
     },
     descriptionText: {
-      rules: ['TEXT']
+      transforms: ['TRIM', 'EMPTY_STR_TO_UNDEFINED'],
+      rules: ['ALLOW_UNDEFINED', 'TEXT']
     }
   },
   manyFields: [['EQUAL_PASSES', 'pass', 'passConfirm']]

@@ -359,11 +359,11 @@ export class FormValidator<Data extends FormData> {
     const errors: string[] = []
     const rules = this.config.oneField?.[field]?.rules ?? []
     const val = this.getTransformedField(data, field)
-    rules.forEach((rule) => {
+    for (const rule of rules) {
       switch (rule) {
         case 'ALLOW_UNDEFINED':
           if (val === undefined) {
-            return []
+            return null
           }
           break
         case 'NOT_UNDEFINED':
@@ -419,9 +419,7 @@ export class FormValidator<Data extends FormData> {
             const surnameErrors = this.getStringErrors(
               val,
               restrictionConfig.common.surname.minLength,
-              restrictionConfig.common.surname.maxLength,
-              true,
-              true
+              restrictionConfig.common.surname.maxLength
             )
             if (surnameErrors !== null) {
               errors.push(...surnameErrors)
@@ -433,9 +431,7 @@ export class FormValidator<Data extends FormData> {
             const forenameErrors = this.getStringErrors(
               val,
               restrictionConfig.common.forename.minLength,
-              restrictionConfig.common.forename.maxLength,
-              true,
-              true
+              restrictionConfig.common.forename.maxLength
             )
             if (forenameErrors !== null) {
               errors.push(...forenameErrors)
@@ -447,9 +443,7 @@ export class FormValidator<Data extends FormData> {
             const patronymicErrors = this.getStringErrors(
               val,
               restrictionConfig.common.patronymic.minLength,
-              restrictionConfig.common.patronymic.maxLength,
-              true,
-              true
+              restrictionConfig.common.patronymic.maxLength
             )
             if (patronymicErrors !== null) {
               errors.push(...patronymicErrors)
@@ -462,7 +456,7 @@ export class FormValidator<Data extends FormData> {
               val,
               undefined,
               restrictionConfig.common.phone.maxLength,
-              true,
+              false,
               true
             )
             if (phoneErrors !== null) {
@@ -476,7 +470,7 @@ export class FormValidator<Data extends FormData> {
               val,
               undefined,
               restrictionConfig.common.email.maxLength,
-              true,
+              false,
               true
             )
             if (emailErrors !== null) {
@@ -489,9 +483,7 @@ export class FormValidator<Data extends FormData> {
             const textErrors = this.getStringErrors(
               val,
               undefined,
-              restrictionConfig.common.text.maxLength,
-              true,
-              true
+              restrictionConfig.common.text.maxLength
             )
             if (textErrors !== null) {
               errors.push(...textErrors)
@@ -499,7 +491,7 @@ export class FormValidator<Data extends FormData> {
           })()
           break
       }
-    })
+    }
     return errors.length > 0 ? errors : null
   }
 

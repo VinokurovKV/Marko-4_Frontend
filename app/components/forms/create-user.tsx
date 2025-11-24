@@ -1,93 +1,220 @@
-// // Project
-// import type { CreateUserSuccessResultDto } from '@common/dtos/server-api/users.dto'
-// import { serverConnector } from '~/server-connector'
-// import {
-//   type CreateUserFormData,
-//   INITIAL_CREATE_USER_FORM_DATA,
-//   createUserFormValidator
-// } from '~/data/forms/create-user'
-// import { useForm, Form } from './common/form'
-// import { FormBlock } from './common/form-block'
-// import { FormEmailField } from './common/form-email-field'
-// import { FormMultilineTextField } from './common/form-multiline-text-field'
-// import { FormPassField } from './common/form-pass-field'
-// import { FormSelect } from './common/form-select'
-// import { FormTextField } from './common/form-text-field'
-// // React
-// import * as React from 'react'
+// Project
+import type { ReadRolesWithPrimaryPropsSuccessResultItemDto } from '@common/dtos/server-api/roles.dto'
+import type { CreateUserSuccessResultDto } from '@common/dtos/server-api/users.dto'
+import type { DtoWithoutEnums } from '@common/dto-without-enums'
+import { serverConnector } from '~/server-connector'
+import { useNotifier } from '~/providers/notifier'
+import {
+  type CreateUserFormData,
+  INITIAL_CREATE_USER_FORM_DATA,
+  createUserFormValidator
+} from '~/data/forms/create-user'
+import { useForm, FormDialog } from './common/form'
+import { FormBlock } from './common/form-block'
+import { FormEmailField } from './common/form-email-field'
+import { FormMultilineTextField } from './common/form-multiline-text-field'
+import { FormPassField } from './common/form-pass-field'
+import { type FormSelectProps, FormSelect } from './common/form-select'
+import { FormTelField } from './common/form-tel-field'
+import { FormTextField } from './common/form-text-field'
+// React
+import * as React from 'react'
 
-// const CREATE_USER_FORM_PROPS_JOINED = createUserFormValidator.getPromptsJoined()
+type Role = DtoWithoutEnums<ReadRolesWithPrimaryPropsSuccessResultItemDto>
 
-// export interface CreateUserFormProps {
-//   onSuccessCreateUser?: (createUserResult: CreateUserSuccessResultDto) => void
-// }
+const CREATE_USER_FORM_PROPS_JOINED = createUserFormValidator.getPromptsJoined()
 
-// export function CreateUserForm(props: CreateUserFormProps) {
-//   const submitAction = React.useCallback(
-//     async (validatedData: CreateUserFormData) => {
-//       return await serverConnector.createUser({
-//         ownerLogin: validatedData.ownerLogin,
-//         ownerPass: validatedData.ownerPass
-//       })
-//     },
-//     []
-//   )
+export interface CreateUserFormDialogProps {
+  roles: Role[] | null
+  createModeIsActive: boolean
+  setCreateModeIsActive: React.Dispatch<React.SetStateAction<boolean>>
+  onSuccessCreateUser?: (createUserResult: CreateUserSuccessResultDto) => void
+  onCancelClick?: () => void
+}
 
-//   const { formInternal, data, errors, handleTextFieldChange } = useForm<
-//     CreateUserFormData,
-//     CreateUserSuccessResultDto
-//   >({
-//     INITIAL_FORM_DATA: INITIAL_CREATE_USER_FORM_DATA,
-//     validator: createUserFormValidator,
-//     submitAction: submitAction,
-//     onSuccessSubmit: props.onSuccessCreateUser
-//   })
+export function CreateUserFormDialog(props: CreateUserFormDialogProps) {
+  const notifier = useNotifier()
 
-//   return (
-//     <Form
-//       formInternal={formInternal}
-//       title="инициализация системы"
-//       submitButtonLabel="инициализировать"
-//     >
-//       <FormBlock title="владелец">
-//         <FormTextField
-//           required
-//           name="ownerLogin"
-//           label="логин"
-//           value={data.ownerLogin}
-//           helperText={
-//             errors?.ownerLogin ??
-//             CREATE_USER_FORM_PROPS_JOINED.ownerLogin ??
-//             ' '
-//           }
-//           error={!!errors?.ownerLogin}
-//           onChange={handleTextFieldChange}
-//         />
-//         <FormPassField
-//           required
-//           name="ownerPass"
-//           label="пароль"
-//           value={data.ownerPass}
-//           helperText={
-//             errors?.ownerPass ?? CREATE_USER_FORM_PROPS_JOINED.ownerPass ?? ' '
-//           }
-//           error={!!errors?.ownerPass}
-//           onChange={handleTextFieldChange}
-//         />
-//         <FormPassField
-//           required
-//           name="ownerPassConfirm"
-//           label="подтверждение пароля"
-//           value={data.ownerPassConfirm}
-//           helperText={
-//             errors?.ownerPassConfirm ??
-//             CREATE_USER_FORM_PROPS_JOINED.ownerPassConfirm ??
-//             ' '
-//           }
-//           error={!!errors?.ownerPassConfirm}
-//           onChange={handleTextFieldChange}
-//         />
-//       </FormBlock>
-//     </Form>
-//   )
-// }
+  const submitAction = React.useCallback(
+    async (validatedData: CreateUserFormData) => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { passConfirm, descriptionText, ...truncatedData } = validatedData
+      return await serverConnector.createUser({
+        ...truncatedData,
+        roleId: truncatedData.roleId!,
+        description:
+          descriptionText !== undefined
+            ? {
+                format: 'PLAIN',
+                text: descriptionText
+              }
+            : undefined
+      })
+    },
+    []
+  )
+
+  const onSuccessSubmit = React.useCallback(
+    (
+      data: CreateUserFormData,
+      createUserResult: CreateUserSuccessResultDto
+    ) => {
+      notifier.showSuccess(`пользователь '${data.login}' создан`)
+      props.onSuccessCreateUser?.(createUserResult)
+    },
+    [props.onSuccessCreateUser]
+  )
+
+  const {
+    formInternal,
+    data,
+    errors,
+    handleTextFieldChange,
+    handleSelectChange
+  } = useForm<CreateUserFormData, CreateUserSuccessResultDto>({
+    INITIAL_FORM_DATA: INITIAL_CREATE_USER_FORM_DATA,
+    validator: createUserFormValidator,
+    submitAction: submitAction,
+    onSuccessSubmit: onSuccessSubmit
+  })
+
+  const roleSelectItems: FormSelectProps['items'] = React.useMemo(
+    () =>
+      props.roles?.map((role) => ({
+        value: role.id,
+        title: role.name
+      })) ?? [],
+    [props.roles]
+  )
+
+  return (
+    <FormDialog
+      formInternal={formInternal}
+      title="создать пользователя"
+      submitButtonLabel="создать"
+      cancelButton={{
+        title: 'отменить',
+        onClick: props.onCancelClick
+      }}
+      clearButton={{
+        title: 'очистить'
+      }}
+      createModeIsActive={props.createModeIsActive}
+      setCreateModeIsActive={props.setCreateModeIsActive}
+    >
+      <FormBlock title="основная информация">
+        <FormTextField
+          required
+          name="login"
+          label="логин"
+          value={data.login}
+          helperText={
+            errors?.login ?? CREATE_USER_FORM_PROPS_JOINED.login ?? ' '
+          }
+          error={!!errors?.login}
+          onChange={handleTextFieldChange}
+        />
+        <FormPassField
+          required
+          name="pass"
+          label="пароль"
+          value={data.pass}
+          helperText={errors?.pass ?? CREATE_USER_FORM_PROPS_JOINED.pass ?? ' '}
+          error={!!errors?.pass}
+          onChange={handleTextFieldChange}
+        />
+        <FormPassField
+          required
+          name="passConfirm"
+          label="подтверждение пароля"
+          value={data.passConfirm}
+          helperText={
+            errors?.passConfirm ??
+            CREATE_USER_FORM_PROPS_JOINED.passConfirm ??
+            ' '
+          }
+          error={!!errors?.passConfirm}
+          onChange={handleTextFieldChange}
+        />
+        <FormSelect
+          required
+          name="roleId"
+          label="роль"
+          items={roleSelectItems}
+          value={data.roleId ?? ''}
+          helperText={
+            errors?.roleId ?? CREATE_USER_FORM_PROPS_JOINED.roleId ?? ' '
+          }
+          error={!!errors?.roleId}
+          onChange={handleSelectChange}
+        />
+      </FormBlock>
+      <FormBlock title="дополнительная информация">
+        <FormTextField
+          name="surname"
+          label="фамилия"
+          value={data.surname ?? ''}
+          helperText={
+            errors?.surname ?? CREATE_USER_FORM_PROPS_JOINED.surname ?? ' '
+          }
+          error={!!errors?.surname}
+          onChange={handleTextFieldChange}
+        />
+        <FormTextField
+          name="forename"
+          label="имя"
+          value={data.forename ?? ''}
+          helperText={
+            errors?.forename ?? CREATE_USER_FORM_PROPS_JOINED.forename ?? ' '
+          }
+          error={!!errors?.forename}
+          onChange={handleTextFieldChange}
+        />
+        <FormTextField
+          name="patronymic"
+          label="отчество"
+          value={data.patronymic ?? ''}
+          helperText={
+            errors?.patronymic ??
+            CREATE_USER_FORM_PROPS_JOINED.patronymic ??
+            ' '
+          }
+          error={!!errors?.patronymic}
+          onChange={handleTextFieldChange}
+        />
+        <FormTelField
+          name="phone"
+          label="телефон"
+          value={data.phone ?? ''}
+          helperText={
+            errors?.phone ?? CREATE_USER_FORM_PROPS_JOINED.phone ?? ' '
+          }
+          error={!!errors?.phone}
+          onChange={handleTextFieldChange}
+        />
+        <FormEmailField
+          name="email"
+          label="e-mail"
+          value={data.email ?? ''}
+          helperText={
+            errors?.email ?? CREATE_USER_FORM_PROPS_JOINED.email ?? ' '
+          }
+          error={!!errors?.email}
+          onChange={handleTextFieldChange}
+        />
+        <FormMultilineTextField
+          name="descriptionText"
+          label="описание"
+          value={data.descriptionText ?? ''}
+          helperText={
+            errors?.descriptionText ??
+            CREATE_USER_FORM_PROPS_JOINED.descriptionText ??
+            ' '
+          }
+          error={!!errors?.descriptionText}
+          onChange={handleTextFieldChange}
+        />
+      </FormBlock>
+    </FormDialog>
+  )
+}

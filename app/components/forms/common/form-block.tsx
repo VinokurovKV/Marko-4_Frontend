@@ -1,5 +1,7 @@
 // Material UI
 import Divider from '@mui/material/Divider'
+// Other
+import capitalize from 'capitalize'
 
 export interface FormProps {
   title: string
@@ -9,7 +11,7 @@ export interface FormProps {
 export function FormBlock(props: FormProps) {
   return (
     <>
-      <Divider sx={{ textTransform: 'capitalize' }}>{props.title}</Divider>
+      <Divider>{capitalize(props.title)}</Divider>
       {props.children}
     </>
   )

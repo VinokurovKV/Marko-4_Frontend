@@ -60,8 +60,11 @@ export interface GridProps {
   cols: GridColDef<GridValidRowModel>[]
   rows: GridValidRowModel[]
   defaultHiddenFields?: string[]
-  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
-  create?: {}
+
+  create?: {
+    createModeIsActive: boolean
+    setCreateModeIsActive: React.Dispatch<React.SetStateAction<boolean>>
+  }
   deleteMany?: {
     prepareConfirmMessage?: (rowIds: number[]) => string
     /* Method must throws if action is unsuccessful */
@@ -83,7 +86,6 @@ export function Grid(props: GridProps) {
 
   const [initialState, setInitialState] = React.useState<GridInitialState>()
 
-  const [createModeIsActive, setCreateModeIsActive] = React.useState(false)
   const [deleteModeIsActive, setDeleteModeIsActive] = React.useState(false)
 
   const [rowSelectionModel, setRowSelectionModel] =
@@ -152,9 +154,12 @@ export function Grid(props: GridProps) {
   }, [props.defaultHiddenFields, saveSnapshot])
 
   const handleCreateClick = React.useCallback(() => {
-    const newCreateModeIsActive = !createModeIsActive
-    setCreateModeIsActive(newCreateModeIsActive)
-  }, [createModeIsActive, setCreateModeIsActive])
+    if (props.create) {
+      const { createModeIsActive, setCreateModeIsActive } = props.create
+      const newCreateModeIsActive = !createModeIsActive
+      setCreateModeIsActive(newCreateModeIsActive)
+    }
+  }, [props.create?.createModeIsActive, props.create?.setCreateModeIsActive])
 
   const handleDeleteManyClick = React.useCallback(() => {
     const newDeleteModeIsActive = !deleteModeIsActive
@@ -224,7 +229,7 @@ export function Grid(props: GridProps) {
           toolbar: {
             createButton: props.create
               ? {
-                  active: createModeIsActive,
+                  active: props.create.createModeIsActive,
                   onClick: handleCreateClick
                 }
               : undefined,

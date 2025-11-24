@@ -90,9 +90,7 @@ export function ProjGridToolbar(props: ProjGridToolbarProps) {
       {props.createButton ? (
         <>
           <Tooltip
-            title={
-              props.createButton.active ? 'Отменить добавление' : 'Добавить'
-            }
+            title={props.createButton.active ? 'Отменить создание' : 'Создать'}
           >
             <ToolbarButton onClick={props.createButton.onClick}>
               <AddIcon

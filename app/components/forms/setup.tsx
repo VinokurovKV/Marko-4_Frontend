@@ -1,6 +1,7 @@
 // Project
 import type { SetupSuccessResultDto } from '@common/dtos/server-api/common.dto'
 import { serverConnector } from '~/server-connector'
+import { useNotifier } from '~/providers/notifier'
 import {
   type SetupFormData,
   INITIAL_SETUP_FORM_DATA,
@@ -10,16 +11,17 @@ import { useForm, Form } from './common/form'
 import { FormBlock } from './common/form-block'
 import { FormPassField } from './common/form-pass-field'
 import { FormTextField } from './common/form-text-field'
+// React router
+import { useNavigate } from 'react-router'
 // React
 import * as React from 'react'
 
 const SETUP_FORM_PROPS_JOINED = setupFormValidator.getPromptsJoined()
 
-export interface SetupFormProps {
-  onSuccessSetup?: (setupResult: SetupSuccessResultDto) => void
-}
+export function SetupForm() {
+  const navigate = useNavigate()
+  const notifier = useNotifier()
 
-export function SetupForm(props: SetupFormProps) {
   const submitAction = React.useCallback(
     async (validatedData: SetupFormData) => {
       return await serverConnector.setup({
@@ -30,6 +32,11 @@ export function SetupForm(props: SetupFormProps) {
     []
   )
 
+  const onSuccessSubmit = React.useCallback(() => {
+    notifier.showSuccess('система инициализирована')
+    void navigate('/login')
+  }, [])
+
   const { formInternal, data, errors, handleTextFieldChange } = useForm<
     SetupFormData,
     SetupSuccessResultDto
@@ -37,7 +44,7 @@ export function SetupForm(props: SetupFormProps) {
     INITIAL_FORM_DATA: INITIAL_SETUP_FORM_DATA,
     validator: setupFormValidator,
     submitAction: submitAction,
-    onSuccessSubmit: props.onSuccessSetup
+    onSuccessSubmit: onSuccessSubmit
   })
 
   return (

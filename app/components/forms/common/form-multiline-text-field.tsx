@@ -6,5 +6,5 @@ export interface FormMultilineTextFieldProps
   extends Omit<FormTextFieldProps, 'multiline'> {}
 
 export function FormMultilineTextField(props: FormMultilineTextFieldProps) {
-  return <FormTextField {...props} multiline />
+  return <FormTextField {...props} multiline maxRows={10} />
 }
