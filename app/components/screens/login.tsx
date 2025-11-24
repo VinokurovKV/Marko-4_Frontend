@@ -1,14 +1,14 @@
 // Project
 import { LoginForm } from '../forms/login'
 import { ScreenCard } from '../cards/screen-card'
-import { ScreenContainer } from '../containers/screen-container'
+import { IsolatedScreenContainer } from '../containers/isolated-screen-container'
 
 export function LoginScreen() {
   return (
-    <ScreenContainer>
+    <IsolatedScreenContainer>
       <ScreenCard>
         <LoginForm />
       </ScreenCard>
-    </ScreenContainer>
+    </IsolatedScreenContainer>
   )
 }

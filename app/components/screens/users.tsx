@@ -1,25 +1,31 @@
 // Project
+import { type ProjBreadcrumbsProps } from '../breadcrumbs'
+import { LayoutScreenContainer } from '../containers/layout-screen-container'
 import { type UsersGridProps, UsersGrid } from '../grids/users/users-grid'
+// React
+import * as React from 'react'
 // Material UI
-import Stack from '@mui/material/Stack'
-import Typography from '@mui/material/Typography'
-// Other
-import capitalize from 'capitalize'
+import PersonIcon from '@mui/icons-material/Person'
 
 export type UsersScreenProps = UsersGridProps
 
 export function UsersScreen(props: UsersScreenProps) {
+  const breadcrumbsItems: ProjBreadcrumbsProps['items'] = React.useMemo(
+    () => [
+      {
+        title: 'пользователи',
+        href: '/users',
+        Icon: PersonIcon
+      }
+    ],
+    []
+  )
   return (
-    <Stack spacing={2} p={4} sx={{ height: '100%' }}>
-      <Typography
-        variant="h5"
-        sx={{
-          fontWeight: 'bold'
-        }}
-      >
-        {capitalize('пользователи')}
-      </Typography>
+    <LayoutScreenContainer
+      title="пользователи"
+      breadcrumbsItems={breadcrumbsItems}
+    >
       <UsersGrid {...props} />
-    </Stack>
+    </LayoutScreenContainer>
   )
 }

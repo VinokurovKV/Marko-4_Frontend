@@ -1,6 +1,6 @@
 // Project
 import { ScreenCard } from '../../cards/screen-card'
-import { ScreenContainer } from '../../containers/screen-container'
+import { IsolatedScreenContainer } from '../../containers/isolated-screen-container'
 // Material UI
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
@@ -33,7 +33,7 @@ export function ProblemScreen({
   actionButton
 }: ProblemScreenProps) {
   return (
-    <ScreenContainer>
+    <IsolatedScreenContainer>
       <ScreenCard>
         <Box sx={{ p: 2, textAlign: 'center' }}>
           <icon.Icon fontSize="large" color={icon.color} />
@@ -52,7 +52,7 @@ export function ProblemScreen({
           ) : null}
         </CardActions>
       </ScreenCard>
-    </ScreenContainer>
+    </IsolatedScreenContainer>
   )
 }
 
