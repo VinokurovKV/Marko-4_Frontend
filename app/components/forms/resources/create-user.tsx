@@ -8,19 +8,15 @@ import {
   type CreateUserFormData,
   INITIAL_CREATE_USER_FORM_DATA,
   createUserFormValidator
-} from '~/data/forms/create-user'
-import { useForm, FormDialog } from './common/form'
-// import {
-//   type FormAutocompleteSelectProps,
-//   FormAutocompleteSelect
-// } from './common/form-autocomplete-select'
-import { FormBlock } from './common/form-block'
-import { FormEmailField } from './common/form-email-field'
-import { FormMultilineTextField } from './common/form-multiline-text-field'
-import { FormPassField } from './common/form-pass-field'
-import { type FormSelectProps, FormSelect } from './common/form-select'
-import { FormTelField } from './common/form-tel-field'
-import { FormTextField } from './common/form-text-field'
+} from '~/data/forms/resources/create-user'
+import { useForm, FormDialog } from '../common/form'
+import { FormBlock } from '../common/form-block'
+import { FormEmailField } from '../common/form-email-field'
+import { FormMultilineTextField } from '../common/form-multiline-text-field'
+import { FormPassField } from '../common/form-pass-field'
+import { type FormSelectProps, FormSelect } from '../common/form-select'
+import { FormTelField } from '../common/form-tel-field'
+import { FormTextField } from '../common/form-text-field'
 // React
 import * as React from 'react'
 
@@ -152,18 +148,6 @@ export function CreateUserFormDialog(props: CreateUserFormDialogProps) {
           error={!!errors?.roleId}
           onChange={handleSelectChange}
         />
-        {/* <FormAutocompleteSelect
-          required
-          name="roleId"
-          label="роль"
-          items={roleSelectItems}
-          value={data.roleId ?? ''}
-          helperText={
-            errors?.roleId ?? CREATE_USER_FORM_PROPS_JOINED.roleId ?? ' '
-          }
-          error={!!errors?.roleId}
-          onChange={handleSelectChange}
-        /> */}
       </FormBlock>
       <FormBlock title="дополнительная информация">
         <FormTextField

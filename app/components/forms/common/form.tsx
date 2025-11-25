@@ -18,6 +18,8 @@ import type {
 import { useChangeDetector } from '~/hooks/change-detector'
 import { ProjButton } from '~/components/buttons/button'
 import { FormContainer } from '~/components/containers/form-container'
+import type { FormAutocompleteSingleSelectProps } from './form-autocomplete-single-select'
+import type { FormAutocompleteMultipleSelectProps } from './form-autocomplete-multiple-select'
 // React
 import * as React from 'react'
 // Material UI
@@ -120,6 +122,27 @@ export function useForm<Data extends FormData, SubmitActionResult>(
     [handleFieldChange]
   )
 
+  const handleAutocompleteSingleSelectChange: FormAutocompleteSingleSelectProps<
+    number | string
+  >['onChange'] = React.useCallback(
+    ({ name, value }) => {
+      handleFieldChange(name, (value === null ? undefined : value) as Val<Data>)
+    },
+    [handleFieldChange]
+  )
+
+  const handleAutocompleteMultipleSelectChange: FormAutocompleteMultipleSelectProps<
+    number | string
+  >['onChange'] = React.useCallback(
+    ({ name, values }) => {
+      handleFieldChange(
+        name,
+        (values === null ? undefined : values) as Val<Data>
+      )
+    },
+    [handleFieldChange]
+  )
+
   const prepareTextForSubmitActionError = React.useCallback(
     (error: any): string | null => {
       if (error instanceof ServerConnectorBadRequestError) {
@@ -151,7 +174,9 @@ export function useForm<Data extends FormData, SubmitActionResult>(
               .map((item) => {
                 return (
                   {
-                    NON_UNIQUE_LOGIN: 'указанный логин занят'
+                    NON_UNIQUE_LOGIN: 'указанный логин занят',
+                    NON_UNIQUE_NAME: 'указанное название занято',
+                    NON_UNIQUE_CODE: 'указанный код занят'
                   }[item] ?? item
                 )
               })
@@ -194,7 +219,7 @@ export function useForm<Data extends FormData, SubmitActionResult>(
         } catch (error) {
           const errorText = prepareTextForSubmitActionError(error)
           if (errorText !== null) {
-            setSubmitActionError(capitalize(errorText))
+            setSubmitActionError(capitalize(errorText, true))
           } else {
             // TODO: unsuccessful request
             throw error
@@ -226,7 +251,9 @@ export function useForm<Data extends FormData, SubmitActionResult>(
     data,
     errors,
     handleTextFieldChange,
-    handleSelectChange
+    handleSelectChange,
+    handleAutocompleteSingleSelectChange,
+    handleAutocompleteMultipleSelectChange
   }
 }
 
@@ -270,7 +297,7 @@ export function Form(props: FormProps) {
               textAlign: 'center'
             }}
           >
-            {capitalize(props.title)}
+            {capitalize(props.title, true)}
           </Typography>
         ) : null}
         {props.children}
@@ -343,7 +370,7 @@ function useFormSeparated(props: FormProps) {
           textAlign: 'center'
         }}
       >
-        {capitalize(props.title)}
+        {capitalize(props.title, true)}
       </Typography>
     ) : null
   const ContentElem = (

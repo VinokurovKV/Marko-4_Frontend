@@ -63,11 +63,11 @@ export function ProjBreadcrumbs(props: ProjBreadcrumbsProps) {
                 fontSize="inherit"
               />
             ) : null}
-            {capitalize(item.title)}
+            {capitalize(item.title, true)}
           </MuiLink>
         ) : (
           <Typography sx={{ color: 'text.primary' }}>
-            {capitalize(item.title)}
+            {capitalize(item.title, true)}
           </Typography>
         )
       )}

@@ -132,7 +132,7 @@ export function AccountMenu() {
             <ListItemIcon>
               <item.Icon fontSize="small" />
             </ListItemIcon>
-            {capitalize(item.title)}
+            {capitalize(item.title, true)}
           </MenuItem>
         ))}
         <MenuItem onClick={handleLogoutClick}>

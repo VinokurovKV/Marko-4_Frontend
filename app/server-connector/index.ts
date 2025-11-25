@@ -137,7 +137,7 @@ import type {
   UpdateTagSuccessResultDto
 } from '@common/dtos/server-api/tags.dto'
 import type {
-  CreateDocumentBodyMainWrapDto,
+  CreateDocumentBodyMainDto,
   CreateDocumentSuccessResultDto,
   DeleteDocumentBodyDto,
   DeleteDocumentSuccessResultDto,
@@ -335,7 +335,7 @@ import type {
   UpdateTopologySuccessResultDto
 } from '@common/dtos/server-api/topologies.dto'
 import type {
-  CreateDsefBodyMainWrapDto,
+  CreateDsefBodyMainDto,
   CreateDsefSuccessResultDto,
   DeleteDsefBodyDto,
   DeleteDsefSuccessResultDto,
@@ -366,11 +366,11 @@ import type {
   ReadDsefsQueryDto,
   ReadDsefsWithPrimaryPropsSuccessResultItemDto,
   ReadDsefsWithUpToSecondaryPropsSuccessResultItemDto,
-  UpdateDsefBodyMainWrapDto,
+  UpdateDsefBodyMainDto,
   UpdateDsefSuccessResultDto
 } from '@common/dtos/server-api/dsefs.dto'
 import type {
-  CreateDbcBodyMainWrapDto,
+  CreateDbcBodyMainDto,
   CreateDbcSuccessResultDto,
   DeleteDbcBodyDto,
   DeleteDbcSuccessResultDto,
@@ -401,11 +401,11 @@ import type {
   ReadDbcsQueryDto,
   ReadDbcsWithPrimaryPropsSuccessResultItemDto,
   ReadDbcsWithUpToSecondaryPropsSuccessResultItemDto,
-  UpdateDbcBodyMainWrapDto,
+  UpdateDbcBodyMainDto,
   UpdateDbcSuccessResultDto
 } from '@common/dtos/server-api/dbcs.dto'
 import type {
-  CreateTestTemplateBodyMainWrapDto,
+  CreateTestTemplateBodyMainDto,
   CreateTestTemplateSuccessResultDto,
   DeleteTestTemplateBodyDto,
   DeleteTestTemplateSuccessResultDto,
@@ -434,11 +434,11 @@ import type {
   ReadTestTemplatesQueryDto,
   ReadTestTemplatesWithPrimaryPropsSuccessResultItemDto,
   ReadTestTemplatesWithUpToSecondaryPropsSuccessResultItemDto,
-  UpdateTestTemplateBodyMainWrapDto,
+  UpdateTestTemplateBodyMainDto,
   UpdateTestTemplateSuccessResultDto
 } from '@common/dtos/server-api/test-templates.dto'
 import type {
-  CreateTestBodyMainWrapDto,
+  CreateTestBodyMainDto,
   CreateTestSuccessResultDto,
   DeleteTestBodyDto,
   DeleteTestSuccessResultDto,
@@ -471,7 +471,7 @@ import type {
   ReadTestsQueryDto,
   ReadTestsWithPrimaryPropsSuccessResultItemDto,
   ReadTestsWithUpToSecondaryPropsSuccessResultItemDto,
-  UpdateTestBodyMainWrapDto,
+  UpdateTestBodyMainDto,
   UpdateTestSuccessResultDto
 } from '@common/dtos/server-api/tests.dto'
 import type {
@@ -537,7 +537,7 @@ import type {
   UpdateGroupSuccessResultDto
 } from '@common/dtos/server-api/groups.dto'
 import type {
-  CreateDeviceBodyMainWrapDto,
+  CreateDeviceBodyMainDto,
   CreateDeviceSuccessResultDto,
   DeleteDeviceBodyDto,
   DeleteDeviceSuccessResultDto,
@@ -574,7 +574,7 @@ import type {
   ReadDevicesQueryDto,
   ReadDevicesWithPrimaryPropsSuccessResultItemDto,
   ReadDevicesWithUpToSecondaryPropsSuccessResultItemDto,
-  UpdateDeviceBodyMainWrapDto,
+  UpdateDeviceBodyMainDto,
   UpdateDeviceSuccessResultDto
 } from '@common/dtos/server-api/devices.dto'
 import type {
@@ -650,9 +650,9 @@ import type {
   UpdateTaskTemplateSuccessResultDto
 } from '@common/dtos/server-api/task-templates.dto'
 import type {
-  CreateTestReportItemBodyMainWrapDto,
+  CreateTestReportItemBodyMainDto,
   CreateTestReportItemSuccessResultDto,
-  CreateTestReportItemsBodyMainWrapDto,
+  CreateTestReportItemsBodyMainDto,
   CreateTestReportItemsSuccessResultDto,
   CreateTestReportMessageBodyDto,
   CreateTestReportMessageSuccessResultDto,
@@ -1664,7 +1664,7 @@ export class ServerConnector {
     return this.getObject('/documents', params)
   }
   createDocument(
-    main: Params<CreateDocumentBodyMainWrapDto>,
+    main: Params<CreateDocumentBodyMainDto>,
     config: File
   ): Result<CreateDocumentSuccessResultDto> {
     return this.postMultipartFormForObject(
@@ -2188,7 +2188,7 @@ export class ServerConnector {
     return this.getObject('/dsefs', params)
   }
   createDsef(
-    main: Params<CreateDsefBodyMainWrapDto>,
+    main: Params<CreateDsefBodyMainDto>,
     adapter: File | undefined,
     noAdapterConfig: File | undefined
   ): Result<CreateDsefSuccessResultDto> {
@@ -2202,7 +2202,7 @@ export class ServerConnector {
     return this.postMultipartFormForObject('/dsefs/actions/create', form)
   }
   updateDsef(
-    main: Params<UpdateDsefBodyMainWrapDto>,
+    main: Params<UpdateDsefBodyMainDto>,
     adapter: File | undefined,
     noAdapterConfig: File | undefined
   ): Result<UpdateDsefSuccessResultDto> {
@@ -2298,7 +2298,7 @@ export class ServerConnector {
     return this.getObject('/dbcs', params)
   }
   createDbc(
-    main: Params<CreateDbcBodyMainWrapDto>,
+    main: Params<CreateDbcBodyMainDto>,
     config: File | undefined,
     dsefConfigs: File[] | undefined
   ): Result<CreateDbcSuccessResultDto> {
@@ -2312,7 +2312,7 @@ export class ServerConnector {
     return this.postMultipartFormForObject('/dbcs/actions/create', form)
   }
   updateDbc(
-    main: Params<UpdateDbcBodyMainWrapDto>,
+    main: Params<UpdateDbcBodyMainDto>,
     config: File | undefined,
     dsefConfigs: File[] | undefined
   ): Result<UpdateDbcSuccessResultDto> {
@@ -2407,7 +2407,7 @@ export class ServerConnector {
     return this.getObject('/test-templates', params)
   }
   createTestTemplate(
-    main: Params<CreateTestTemplateBodyMainWrapDto>,
+    main: Params<CreateTestTemplateBodyMainDto>,
     config: File | undefined
   ): Result<CreateTestTemplateSuccessResultDto> {
     const form = new Map<string, MultipartFormVal>([['main', main]])
@@ -2420,7 +2420,7 @@ export class ServerConnector {
     )
   }
   updateTestTemplate(
-    main: Params<UpdateTestTemplateBodyMainWrapDto>,
+    main: Params<UpdateTestTemplateBodyMainDto>,
     config: File | undefined
   ): Result<UpdateTestTemplateSuccessResultDto> {
     const form = new Map<string, MultipartFormVal>([['main', main]])
@@ -2533,7 +2533,7 @@ export class ServerConnector {
     return this.getObject('/tests', params)
   }
   createTest(
-    main: Params<CreateTestBodyMainWrapDto>,
+    main: Params<CreateTestBodyMainDto>,
     config: File | undefined,
     deltas: File[] | undefined,
     dsefConfigs: File[] | undefined
@@ -2551,7 +2551,7 @@ export class ServerConnector {
     return this.postMultipartFormForObject('/tests/actions/create', form)
   }
   updateTest(
-    main: Params<UpdateTestBodyMainWrapDto>,
+    main: Params<UpdateTestBodyMainDto>,
     config: File | undefined,
     deltas: File[] | undefined,
     dsefConfigs: File[] | undefined
@@ -2849,7 +2849,7 @@ export class ServerConnector {
     return this.getObject('/devices', params)
   }
   createDevice(
-    main: Params<CreateDeviceBodyMainWrapDto>,
+    main: Params<CreateDeviceBodyMainDto>,
     config: File | undefined,
     clearConfig: File | undefined,
     accessConfig: File | undefined,
@@ -2875,7 +2875,7 @@ export class ServerConnector {
     return this.postMultipartFormForObject('/devices/actions/create', form)
   }
   updateDevice(
-    main: Params<UpdateDeviceBodyMainWrapDto>,
+    main: Params<UpdateDeviceBodyMainDto>,
     config: File | undefined,
     clearConfig: File | undefined,
     accessConfig: File | undefined,
@@ -3174,7 +3174,7 @@ export class ServerConnector {
     return this.postForObject('/test-reports/actions/create-messages', params)
   }
   createTestReportItem(
-    main: Params<CreateTestReportItemBodyMainWrapDto>,
+    main: Params<CreateTestReportItemBodyMainDto>,
     itemData: File
   ): Result<CreateTestReportItemSuccessResultDto> {
     return this.postMultipartFormForObject(
@@ -3186,7 +3186,7 @@ export class ServerConnector {
     )
   }
   createTestReportItems(
-    main: Params<CreateTestReportItemsBodyMainWrapDto>,
+    main: Params<CreateTestReportItemsBodyMainDto>,
     itemDatas: File[]
   ): Result<CreateTestReportItemsSuccessResultDto> {
     return this.postMultipartFormForObject(

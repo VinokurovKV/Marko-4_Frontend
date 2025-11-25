@@ -96,7 +96,7 @@ function Notification({
       {onAction ? (
         <Button color="inherit" size="small" onClick={onAction}>
           {(typeof actionText === 'string'
-            ? capitalize(actionText)
+            ? capitalize(actionText, true)
             : actionText) ?? 'Выполнить'}
         </Button>
       ) : null}
@@ -207,7 +207,7 @@ export function NotifierProvider(props: NotifierProviderProps) {
           ...prev.queue,
           {
             message:
-              typeof message === 'string' ? capitalize(message) : message,
+              typeof message === 'string' ? capitalize(message, true) : message,
             options,
             notificationKey,
             open: true

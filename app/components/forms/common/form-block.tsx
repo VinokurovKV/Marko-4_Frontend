@@ -11,7 +11,7 @@ export interface FormProps {
 export function FormBlock(props: FormProps) {
   return (
     <>
-      <Divider>{capitalize(props.title)}</Divider>
+      <Divider>{capitalize(props.title, true)}</Divider>
       {props.children}
     </>
   )

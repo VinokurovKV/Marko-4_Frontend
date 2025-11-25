@@ -5,7 +5,7 @@ import type { DtoWithoutEnums } from '@common/dto-without-enums'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
 import { useMeta } from '~/providers/meta'
-import { CreateUserFormDialog } from '~/components/forms/create-user'
+import { CreateUserFormDialog } from '~/components/forms/resources/create-user'
 import { type GridProps, Grid } from '../grid'
 import {
   useLoginCol,
@@ -168,26 +168,30 @@ export function UsersGrid(props: UsersGridProps) {
     [rightsSet, createModeIsActive, setCreateModeIsActive]
   )
 
+  const getDisplayedUserLogins = React.useCallback((ids: number[]) => {
+    return ids
+      .slice(0, MAX_USERS_IN_MESSAGES)
+      .map((id) => userLoginForId.get(id) ?? '')
+  }, [])
+
   const deleteManyProps: GridProps['deleteMany'] = React.useMemo(
     () =>
       rightsSet.has('DELETE_USER')
         ? {
             prepareConfirmMessage: (rowIds) => {
-              const displayedUserLogins = rowIds
-                .slice(0, MAX_USERS_IN_MESSAGES)
-                .map((rowId) => userLoginForId.get(rowId) ?? '')
-              return `удалить пользовател${rowIds.length === 1 ? 'я' : 'ей'}${displayedUserLogins.map((login) => ` '${login}'`).join()}${rowIds.length > displayedUserLogins.length ? ` и еще ${rowIds.length - displayedUserLogins.length}` : ''}?`
+              const displayedUserLogins = getDisplayedUserLogins(rowIds)
+              const hiddenCount = rowIds.length - displayedUserLogins.length
+              return `удалить пользовател${rowIds.length === 1 ? 'я' : 'ей'}${displayedUserLogins.map((login) => ` '${login}'`).join()}${hiddenCount > 0 ? ` и еще ${hiddenCount}` : ''}?`
             },
             action: async (rowIds) => {
-              const displayedUserLogins = rowIds
-                .slice(0, MAX_USERS_IN_MESSAGES)
-                .map((rowId) => userLoginForId.get(rowId) ?? '')
+              const displayedUserLogins = getDisplayedUserLogins(rowIds)
               try {
                 await serverConnector.deleteUsers({
                   ids: rowIds
                 })
+                const hiddenCount = rowIds.length - displayedUserLogins.length
                 notifier.showSuccess(
-                  `пользователи${displayedUserLogins.map((login) => ` '${login}'`).join()}${rowIds.length > displayedUserLogins.length ? ` и еще ${rowIds.length - displayedUserLogins.length}` : ''} удалены`
+                  `пользователи${displayedUserLogins.map((login) => ` '${login}'`).join()}${hiddenCount > 0 ? ` и еще ${hiddenCount}` : ''} удалены`
                 )
               } catch (error) {
                 notifier.showError(error)
@@ -196,7 +200,7 @@ export function UsersGrid(props: UsersGridProps) {
             }
           }
         : undefined,
-    [rightsSet, userLoginForId]
+    [rightsSet, userLoginForId, getDisplayedUserLogins]
   )
 
   const cancelCreateForm = React.useCallback(() => {

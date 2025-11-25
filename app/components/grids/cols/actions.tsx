@@ -25,7 +25,7 @@ export function useActionsCol(props: ActionsColProps) {
     async (rowId: number) => {
       const confirmText =
         props.delete?.prepareConfirmMessage?.(rowId) ?? 'удалить?'
-      const confirmed = await dialogs.confirm(capitalize(confirmText), {
+      const confirmed = await dialogs.confirm(capitalize(confirmText, true), {
         severity: 'error',
         okText: 'Удалить',
         cancelText: 'Отменить'

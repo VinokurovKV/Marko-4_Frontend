@@ -1,8 +1,9 @@
+// Project
+import { FormHelperTextStyled } from './form-helper-text'
 // React
 import * as React from 'react'
 // Material UI
 import { styled, useTheme } from '@mui/material/styles'
-import FormHelperText from '@mui/material/FormHelperText'
 import FormControl from '@mui/material/FormControl'
 import InputLabel from '@mui/material/InputLabel'
 import MenuItem from '@mui/material/MenuItem'
@@ -39,19 +40,12 @@ export const InputLabelStyled = styled(InputLabel)({
 export const SelectStyled = styled(Select<number>)({
   '& .MuiSelect-select': {
     height: '1.4375em !important',
-    paddingTop: '8.0px !important',
-    paddingBottom: '8.0px !important',
+    paddingTop: '7.0px !important',
+    paddingBottom: '9.0px !important',
     fontSize: '0.85rem !important'
   },
   '& legend': {
     fontSize: '0.65rem !important'
-  }
-})
-
-export const FormHelperTextStyled = styled(FormHelperText)({
-  '&': {
-    fontSize: '0.55rem !important',
-    transform: 'translate(0, -4px) !important'
   }
 })
 
@@ -83,7 +77,7 @@ export function FormSelect({
         color={props.error ? 'error' : undefined}
       >
         {items.map((item) => (
-          <MenuItem value={item.value}>{capitalize(item.title)}</MenuItem>
+          <MenuItem value={item.value}>{capitalize(item.title, true)}</MenuItem>
         ))}
       </SelectStyled>
       <FormHelperTextStyled

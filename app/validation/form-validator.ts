@@ -3,7 +3,10 @@ import { restrictionConfig } from '@common/restriction-config'
 // Other
 import equal from 'fast-deep-equal'
 
-type FormValidatorFieldTransform = 'TRIM' | 'EMPTY_STR_TO_UNDEFINED'
+type FormValidatorFieldTransform =
+  | 'TRIM'
+  | 'EMPTY_STR_TO_UNDEFINED'
+  | 'EMPTY_ARR_TO_UNDEFINED'
 
 type FormValidatorOneFieldRule =
   | 'ALLOW_UNDEFINED'
@@ -181,6 +184,11 @@ export class FormValidator<Data extends FormData> {
           break
         case 'EMPTY_STR_TO_UNDEFINED':
           if (val === '') {
+            ;(val as string | undefined) = undefined
+          }
+          break
+        case 'EMPTY_ARR_TO_UNDEFINED':
+          if ((val as any) instanceof Array && val.length === 0) {
             ;(val as string | undefined) = undefined
           }
           break

@@ -1,7 +1,7 @@
 // Project
 import { type ProjBreadcrumbsProps } from '../breadcrumbs'
 import { LayoutScreenContainer } from '../containers/layout-screen-container'
-import { type UsersGridProps, UsersGrid } from '../grids/users/users-grid'
+import { type UsersGridProps, UsersGrid } from '../grids/resources/users'
 // React
 import * as React from 'react'
 // Material UI

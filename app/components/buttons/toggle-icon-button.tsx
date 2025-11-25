@@ -69,7 +69,11 @@ export function ToggleIconButton({
 }: ToggleIconButtonProps) {
   return (
     <Tooltip
-      title={active ? capitalize(activePrompt) : capitalize(inactivePrompt)}
+      title={
+        active
+          ? capitalize(activePrompt, true)
+          : capitalize(inactivePrompt, true)
+      }
       enterDelay={ENTER_DELAY}
     >
       <ToggleIconButtonWithoutTooltip active={active} {...props} />

@@ -13,7 +13,10 @@ type Role = DtoWithoutEnums<ReadRolesWithPrimaryPropsSuccessResultItemDto>
 
 export function useRoleCol(roles: Role[] | null) {
   const roleNameForId = React.useMemo(
-    () => new Map(roles?.map((role) => [role.id, capitalize(role.name)]) ?? []),
+    () =>
+      new Map(
+        roles?.map((role) => [role.id, capitalize(role.name, true)]) ?? []
+      ),
     [roles]
   )
 

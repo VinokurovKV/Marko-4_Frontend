@@ -183,7 +183,7 @@ export function Sidebar({
                 <React.Fragment key={block.title}>
                   {blockIndex !== 0 ? <SidebarDividerItem /> : null}
                   <SidebarHeaderItem>
-                    {capitalize(block.title)}
+                    {capitalize(block.title, true)}
                   </SidebarHeaderItem>
                   {block.nested
                     .filter((item) =>
@@ -195,7 +195,7 @@ export function Sidebar({
                       <SidebarPageItem
                         key={item.id}
                         id={item.id}
-                        title={capitalize(item.title)}
+                        title={capitalize(item.title, true)}
                         icon={<item.Icon />}
                         href={'href' in item ? item.href : ''}
                         selected={
@@ -229,7 +229,7 @@ export function Sidebar({
                                     <SidebarPageItem
                                       key={item.id}
                                       id={item.id}
-                                      title={capitalize(item.title)}
+                                      title={capitalize(item.title, true)}
                                       icon={<item.Icon />}
                                       href={item.href}
                                       selected={

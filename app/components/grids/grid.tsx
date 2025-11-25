@@ -179,11 +179,14 @@ export function Grid(props: GridProps) {
           const ids = Array.from(rowSelectionModel.ids) as number[]
           const confirmText =
             props.deleteMany?.prepareConfirmMessage?.(ids) ?? 'удалить?'
-          const confirmed = await dialogs.confirm(capitalize(confirmText), {
-            severity: 'error',
-            okText: 'Удалить',
-            cancelText: 'Отменить'
-          })
+          const confirmed = await dialogs.confirm(
+            capitalize(confirmText, true),
+            {
+              severity: 'error',
+              okText: 'Удалить',
+              cancelText: 'Отменить'
+            }
+          )
           if (confirmed) {
             if (props.deleteMany?.action !== undefined) {
               try {

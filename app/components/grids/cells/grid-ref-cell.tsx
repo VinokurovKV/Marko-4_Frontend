@@ -38,7 +38,7 @@ export function GridRefCell(props: GridRefCellProps) {
         color: props.header ? theme.palette.text.primary : undefined
       }}
     >
-      {props.disableCapitalize ? props.text : capitalize(props.text)}
+      {props.disableCapitalize ? props.text : capitalize(props.text, true)}
     </Button>
   ) : null
 }

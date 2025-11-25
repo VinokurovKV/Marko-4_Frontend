@@ -24,7 +24,7 @@ export function LayoutScreenContainer(props: LayoutScreenContainerProps) {
           fontWeight: 'bold'
         }}
       >
-        {capitalize(props.title)}
+        {capitalize(props.title, true)}
       </Typography>
       {props.children}
     </Stack>
