@@ -41,7 +41,7 @@ interface Notifier {
   showSuccess: (message: string) => void
   showInfo: (message: string) => void
   showWarning: (message: string) => void
-  showError: (error: any, prefix: string | undefined) => void
+  showError: (error: any, prefix?: string) => void
   close: (notificationKey: string) => void
 }
 

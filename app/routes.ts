@@ -17,6 +17,7 @@ export default [
             route('roles', 'routes/roles.tsx'),
             route('users', 'routes/users.tsx'),
             route('documents', 'routes/documents.tsx'),
+            route('devices', 'routes/devices.tsx'),
             index('routes/home.tsx'),
             route('*', 'routes/not-found.tsx')
           ])
