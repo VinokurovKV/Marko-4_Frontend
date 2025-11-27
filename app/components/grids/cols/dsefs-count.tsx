@@ -7,7 +7,7 @@ export function useDsefsCountCol() {
   const col: GridColDef = React.useMemo(
     () => ({
       field: 'dsefsCount',
-      headerName: 'Число доп. форматов',
+      headerName: 'Доп. форматы',
       type: 'number',
       minWidth: 150,
       flex: 1

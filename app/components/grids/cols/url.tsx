@@ -9,7 +9,7 @@ export function useUrlCol() {
   const col: GridColDef = React.useMemo(
     () => ({
       field: 'url',
-      headerName: 'Ссылка на источник',
+      headerName: 'Источник',
       renderCell: (params: GridRenderCellParams<any, string>) => (
         <GridExternalRefCell
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access

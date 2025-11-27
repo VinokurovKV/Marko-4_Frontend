@@ -7,7 +7,7 @@ export function useFragmentsCountCol() {
   const col: GridColDef = React.useMemo(
     () => ({
       field: 'fragmentsCount',
-      headerName: 'Число фрагментов',
+      headerName: 'Фрагменты',
       type: 'number',
       minWidth: 150,
       flex: 1
