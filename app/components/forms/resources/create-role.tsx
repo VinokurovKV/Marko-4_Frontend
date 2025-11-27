@@ -1,5 +1,5 @@
 // Project
-import { allRights as allRightEnums } from '@common/enums'
+import { type Right, allRights } from '@common/enums'
 import type { CreateRoleSuccessResultDto } from '@common/dtos/server-api/roles.dto'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
@@ -9,15 +9,18 @@ import {
   INITIAL_CREATE_ROLE_FORM_DATA,
   createRoleFormValidator
 } from '~/data/forms/resources/create-role'
-import { useForm, FormDialog } from '../common/form'
-import { FormAutocompleteMultipleSelect } from '../common/form-autocomplete-multiple-select'
-import { FormBlock } from '../common/form-block'
-import { FormMultilineTextField } from '../common/form-multiline-text-field'
-import { FormTextField } from '../common/form-text-field'
+import {
+  useForm,
+  FormAutocompleteMultipleSelect,
+  FormBlock,
+  FormDialog,
+  FormMultilineTextField,
+  FormTextField
+} from '../common'
 // React
 import * as React from 'react'
 
-const allRights = allRightEnums
+const EMPTY_RIGHTS_ARR: Right[] = []
 
 const CREATE_ROLE_FORM_PROPS_JOINED = createRoleFormValidator.getPromptsJoined()
 
@@ -101,7 +104,7 @@ export function CreateRoleFormDialog(props: CreateRoleFormDialogProps) {
           name="rights"
           label="права"
           possibleValues={allRights}
-          values={data.rights ?? []}
+          values={data.rights ?? EMPTY_RIGHTS_ARR}
           helperText={
             errors?.rights ?? CREATE_ROLE_FORM_PROPS_JOINED.rights ?? ' '
           }

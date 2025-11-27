@@ -797,6 +797,7 @@ import axios from 'axios'
 // import type { ClassConstructor } from 'class-transformer'
 // import { plainToClass } from 'class-transformer'
 // import { validateOrReject } from 'class-validator'
+import { isEqual } from 'lodash'
 import type { Socket } from 'socket.io-client'
 import { io } from 'socket.io-client'
 import Queue from 'yocto-queue'
@@ -811,6 +812,7 @@ const MIN_DURATION_FROM_NOW_TO_PLAN_TOKEN_REFRESH = 1 * SECS
 const MAX_DURATION_FROM_NOW_TO_PLAN_TOKEN_REFRESH = 5 * SECS
 const WEB_SOCKET_RECONNECTION_DELAY = 2000
 const WEB_SOCKET_RESUBSCRIBE_DELAY = 1000
+const NOTIFICATIONS_BUFFER_PROCESS_INTERVAL = 200
 
 interface PrimaryPropsScopeWrap {
   scope: 'PRIMARY_PROPS'
@@ -982,6 +984,7 @@ export class ServerConnector {
   private subscriptionIdForServerSubscriptionId = new Map<number, number>()
   private inactiveSubscriptionIds = new Queue<number>()
   private activateSubscriptionsPlanId: NodeJS.Timeout | null = null
+  private notificationDatasForSubscriptionId = new Map<number, any[]>()
   meta: ServerConnectorMeta = {
     status: 'NOT_CONNECTED'
   }
@@ -990,6 +993,7 @@ export class ServerConnector {
     private host: string = ''
   ) {
     this.credentials = delegate.getCredentials()
+    this.launchNotificationsBufferProcess()
   }
   // Authenticate
   async connect() {
@@ -1204,9 +1208,10 @@ export class ServerConnector {
           notification.subscriptionId
         )
         if (subscriptionId !== undefined) {
-          this.subscriptionBlockForSubscriptionId
-            .get(subscriptionId)
-            ?.handler?.(notification.data)
+          this.addNotificationToBuffer(subscriptionId, notification.data)
+          // this.subscriptionBlockForSubscriptionId
+          //   .get(subscriptionId)
+          //   ?.handler?.(notification.data)
         }
       }
       socket.on(
@@ -1253,6 +1258,31 @@ export class ServerConnector {
       this.socket.disconnect()
     }
     this.socket = null
+  }
+  private addNotificationToBuffer(subscriptionId: number, data: any) {
+    if (this.notificationDatasForSubscriptionId.has(subscriptionId) === false) {
+      this.notificationDatasForSubscriptionId.set(subscriptionId, [])
+    }
+    const bufferDatas =
+      this.notificationDatasForSubscriptionId.get(subscriptionId)!
+    if (
+      bufferDatas.every((bufferData) => isEqual(data, bufferData) === false)
+    ) {
+      bufferDatas.push(data)
+    }
+  }
+  private launchNotificationsBufferProcess() {
+    setInterval(() => {
+      const buffer = this.notificationDatasForSubscriptionId
+      this.notificationDatasForSubscriptionId = new Map<number, any[]>()
+      for (const [subscriptionId, datas] of buffer) {
+        for (const data of datas) {
+          this.subscriptionBlockForSubscriptionId
+            .get(subscriptionId)
+            ?.handler?.(data)
+        }
+      }
+    }, NOTIFICATIONS_BUFFER_PROCESS_INTERVAL)
   }
   // Common
   async readMeta(): Result<ReadMetaSuccessResultDto> {
@@ -3879,7 +3909,7 @@ export class ServerConnector {
       } else if (obj instanceof Object) {
         for (const key of Object.keys(obj)) {
           if (
-            (key.endsWith('time') || key.endsWith('Time')) &&
+            (key === 'date' || key.endsWith('time') || key.endsWith('Time')) &&
             typeof obj[key] === 'string'
           ) {
             obj[key] = new Date(obj[key])

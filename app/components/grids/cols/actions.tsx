@@ -4,6 +4,7 @@ import { useDialogs } from '~/providers/dialogs'
 import * as React from 'react'
 // Material UI
 import DeleteIcon from '@mui/icons-material/Delete'
+import DownloadIcon from '@mui/icons-material/Download'
 import Tooltip from '@mui/material/Tooltip'
 import type { GridColDef } from '@mui/x-data-grid'
 import { GridActionsCellItem } from '@mui/x-data-grid'
@@ -11,15 +12,26 @@ import { GridActionsCellItem } from '@mui/x-data-grid'
 import capitalize from 'capitalize'
 
 export interface ActionsColProps {
+  export?: {
+    action: (rowId: number) => Promise<void>
+  }
   delete?: {
     prepareConfirmMessage?: (rowId: number) => string
-    /* Method must throws if action is unsuccessful */
     action: (rowId: number) => Promise<void>
   }
 }
 
 export function useActionsCol(props: ActionsColProps) {
   const dialogs = useDialogs()
+
+  const handleExportClick = React.useCallback(
+    async (rowId: number) => {
+      if (props.export?.action !== undefined) {
+        await props.export.action(rowId)
+      }
+    },
+    [props.export]
+  )
 
   const handleDeleteClick = React.useCallback(
     async (rowId: number) => {
@@ -32,11 +44,7 @@ export function useActionsCol(props: ActionsColProps) {
       })
       if (confirmed) {
         if (props.delete?.action !== undefined) {
-          try {
-            await props.delete.action(rowId)
-          } catch {
-            //
-          }
+          await props.delete.action(rowId)
         }
       }
     },
@@ -51,6 +59,20 @@ export function useActionsCol(props: ActionsColProps) {
       hideable: false,
       disableColumnMenu: true,
       getActions: ({ row }) => [
+        ...(props.export !== undefined
+          ? [
+              <Tooltip title="Скачать">
+                <GridActionsCellItem
+                  icon={<DownloadIcon />}
+                  label="Скачать"
+                  onClick={() => {
+                    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access
+                    void handleExportClick(row.id)
+                  }}
+                />
+              </Tooltip>
+            ]
+          : []),
         ...(props.delete !== undefined
           ? [
               <Tooltip title="Удалить">
@@ -69,7 +91,7 @@ export function useActionsCol(props: ActionsColProps) {
       minWidth: 100,
       flex: 0.01
     }),
-    [handleDeleteClick]
+    [props.export, props.delete, handleExportClick, handleDeleteClick]
   )
   return col
 }

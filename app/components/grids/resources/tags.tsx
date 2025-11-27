@@ -1,26 +1,26 @@
 // Project
-import type { ReadRolesWithUpToSecondaryPropsSuccessResultItemDto } from '@common/dtos/server-api/roles.dto'
+import type { ReadTagsWithUpToSecondaryPropsSuccessResultItemDto } from '@common/dtos/server-api/tags.dto'
 import type { DtoWithoutEnums } from '@common/dto-without-enums'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
 import { useMeta } from '~/providers/meta'
-import { CreateRoleFormDialog } from '~/components/forms/resources/create-role'
+import { CreateTagFormDialog } from '~/components/forms/resources/create-tag'
 import { type GridProps, Grid } from '../grid'
-import { useRoleNameCol, type ActionsColProps, useActionsCol } from '../cols'
+import { useCodeCol, type ActionsColProps, useActionsCol } from '../cols'
 // React
 import * as React from 'react'
 // Material UI
 import { type GridColDef, type GridValidRowModel } from '@mui/x-data-grid'
 
-const MAX_ROLES_IN_MESSAGES = 3
+const MAX_TAGS_IN_MESSAGES = 3
 
-type Role = DtoWithoutEnums<ReadRolesWithUpToSecondaryPropsSuccessResultItemDto>
+type Tag = DtoWithoutEnums<ReadTagsWithUpToSecondaryPropsSuccessResultItemDto>
 
-export interface RolesGridProps {
-  initialRoles: Role[]
+export interface TagsGridProps {
+  initialTags: Tag[]
 }
 
-export function RolesGrid(props: RolesGridProps) {
+export function TagsGrid(props: TagsGridProps) {
   const notifier = useNotifier()
   const meta = useMeta()
   const rightsSet =
@@ -28,30 +28,30 @@ export function RolesGrid(props: RolesGridProps) {
 
   const [createModeIsActive, setCreateModeIsActive] = React.useState(false)
 
-  const [roles, setRoles] = React.useState<Role[]>(props.initialRoles)
+  const [tags, setTags] = React.useState<Tag[]>(props.initialTags)
 
-  const roleNameForId = React.useMemo(
-    () => new Map(roles.map((role) => [role.id, role.name])),
-    [roles]
+  const tagCodeForId = React.useMemo(
+    () => new Map(tags.map((tag) => [tag.id, tag.code])),
+    [tags]
   )
 
   React.useEffect(() => {
     const subscriptionId = serverConnector.subscribeToResources(
       {
-        type: 'ROLE'
+        type: 'TAG'
       },
       (data) => {
         void (async () => {
           const scope = data.updateScope
           if (scope.primaryProps || scope.secondaryProps) {
             try {
-              const roles = await serverConnector.readRoles({
+              const tags = await serverConnector.readTags({
                 scope: 'UP_TO_SECONDARY_PROPS'
               })
-              setRoles(roles)
+              setTags(tags)
             } catch {
               notifier.showWarning(
-                'не удалось загрузить актуальный список ролей'
+                'не удалось загрузить актуальный список тегов'
               )
             }
           }
@@ -61,24 +61,24 @@ export function RolesGrid(props: RolesGridProps) {
     return () => {
       serverConnector.unsubscribe(subscriptionId)
     }
-  }, [setRoles])
+  }, [setTags])
 
-  const rows: GridValidRowModel[] = roles
+  const rows: GridValidRowModel[] = tags
 
-  const readCols = [useRoleNameCol('id', true)]
+  const readCols = [useCodeCol('id', true, '/tags')]
 
   const actionsColProps: ActionsColProps = React.useMemo(
     () => ({
       delete: {
         prepareConfirmMessage: (rowId) =>
-          `удалить роль '${roleNameForId.get(rowId) ?? ''}'?`,
+          `удалить тег '${tagCodeForId.get(rowId) ?? ''}'?`,
         action: async (rowId) => {
           try {
-            await serverConnector.deleteRole({
+            await serverConnector.deleteTag({
               id: rowId
             })
             notifier.showSuccess(
-              `роль '${roleNameForId.get(rowId) ?? ''}' удалена`
+              `тег '${tagCodeForId.get(rowId) ?? ''}' удален`
             )
           } catch (error) {
             notifier.showError(error)
@@ -86,7 +86,7 @@ export function RolesGrid(props: RolesGridProps) {
         }
       }
     }),
-    [roleNameForId]
+    [tagCodeForId]
   )
 
   const actionsCol = useActionsCol(actionsColProps)
@@ -94,18 +94,18 @@ export function RolesGrid(props: RolesGridProps) {
   const cols: GridColDef[] = React.useMemo(
     () => [
       ...readCols,
-      ...(rightsSet.has('UPDATE_ROLE') || rightsSet.has('DELETE_ROLE')
+      ...(rightsSet.has('UPDATE_TAG') || rightsSet.has('DELETE_TAG')
         ? [actionsCol]
         : [])
     ],
     [rightsSet, readCols, actionsCol]
   )
 
-  const defaultHiddenFields = React.useMemo(() => [] as (keyof Role)[], [])
+  const defaultHiddenFields = React.useMemo(() => [] as (keyof Tag)[], [])
 
   const createProps: GridProps['create'] = React.useMemo(
     () =>
-      rightsSet.has('CREATE_ROLE')
+      rightsSet.has('CREATE_TAG')
         ? {
             createModeIsActive: createModeIsActive,
             setCreateModeIsActive: setCreateModeIsActive
@@ -114,35 +114,35 @@ export function RolesGrid(props: RolesGridProps) {
     [rightsSet, createModeIsActive, setCreateModeIsActive]
   )
 
-  const getDisplayedRoleNames = React.useCallback(
+  const getDisplayedTagCodes = React.useCallback(
     (ids: number[]) => {
       return ids
-        .slice(0, MAX_ROLES_IN_MESSAGES)
-        .map((id) => roleNameForId.get(id) ?? '')
+        .slice(0, MAX_TAGS_IN_MESSAGES)
+        .map((id) => tagCodeForId.get(id) ?? '')
     },
-    [roleNameForId]
+    [tagCodeForId]
   )
 
   const deleteManyProps: GridProps['deleteMany'] = React.useMemo(
     () =>
-      rightsSet.has('DELETE_ROLE')
+      rightsSet.has('DELETE_TAG')
         ? {
             prepareConfirmMessage: (rowIds) => {
-              const displayedRoleNames = getDisplayedRoleNames(rowIds)
+              const displayedTagCodes = getDisplayedTagCodes(rowIds)
               const count = rowIds.length
-              const hiddenCount = count - displayedRoleNames.length
-              return `удалить рол${count === 1 ? 'ь' : 'и'}${displayedRoleNames.map((name) => ` '${name}'`).join()}${hiddenCount > 0 ? ` и еще ${hiddenCount}` : ''}?`
+              const hiddenCount = count - displayedTagCodes.length
+              return `удалить тег${count === 1 ? '' : 'и'}${displayedTagCodes.map((code) => ` '${code}'`).join()}${hiddenCount > 0 ? ` и еще ${hiddenCount}` : ''}?`
             },
             action: async (rowIds) => {
-              const displayedRoleNames = getDisplayedRoleNames(rowIds)
+              const displayedTagCodes = getDisplayedTagCodes(rowIds)
               try {
-                await serverConnector.deleteRoles({
+                await serverConnector.deleteTags({
                   ids: rowIds
                 })
                 const count = rowIds.length
-                const hiddenCount = count - displayedRoleNames.length
+                const hiddenCount = count - displayedTagCodes.length
                 notifier.showSuccess(
-                  `рол${count === 1 ? 'ь' : 'и'}${displayedRoleNames.map((name) => ` '${name}'`).join()}${hiddenCount > 0 ? ` и еще ${hiddenCount}` : ''} удален${count === 1 ? 'а' : 'ы'}`
+                  `тег${count === 1 ? '' : 'и'}${displayedTagCodes.map((code) => ` '${code}'`).join()}${hiddenCount > 0 ? ` и еще ${hiddenCount}` : ''} удален${count === 1 ? '' : 'ы'}`
                 )
               } catch (error) {
                 notifier.showError(error)
@@ -151,7 +151,7 @@ export function RolesGrid(props: RolesGridProps) {
             }
           }
         : undefined,
-    [rightsSet, getDisplayedRoleNames]
+    [rightsSet, getDisplayedTagCodes]
   )
 
   const cancelCreateForm = React.useCallback(() => {
@@ -161,17 +161,17 @@ export function RolesGrid(props: RolesGridProps) {
   return (
     <>
       <Grid
-        localSaveKey="ROLES"
+        localSaveKey="TAGS"
         cols={cols}
         rows={rows}
         defaultHiddenFields={defaultHiddenFields}
         create={createProps}
         deleteMany={deleteManyProps}
       />
-      <CreateRoleFormDialog
+      <CreateTagFormDialog
         createModeIsActive={createModeIsActive}
         setCreateModeIsActive={setCreateModeIsActive}
-        onSuccessCreateRole={cancelCreateForm}
+        onSuccessCreateTag={cancelCreateForm}
         onCancelClick={cancelCreateForm}
       />
     </>

@@ -21,8 +21,13 @@ import {
 // Material UI
 import { ThemeProvider, createTheme } from '@mui/material/styles'
 import CssBaseline from '@mui/material/CssBaseline'
-import { ruRU } from '@mui/x-data-grid/locales'
+import { ruRU as ruRuDataGrid } from '@mui/x-data-grid/locales'
+import { ruRU as ruRuDatePickers } from '@mui/x-date-pickers/locales'
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'
 // import type {} from '@mui/material/themeCssVarsAugmentation'
+// Other
+import 'dayjs/locale/ru'
 
 // eslint-disable-next-line no-empty-pattern
 export function meta({}: Route.MetaArgs) {
@@ -80,20 +85,23 @@ const theme = createTheme(
       dark: true
     }
   },
-  ruRU
+  ruRuDataGrid,
+  ruRuDatePickers
 )
 
 export default function App() {
   return (
     <>
-      <ThemeProvider theme={theme}>
-        <CssBaseline enableColorScheme />
-        <NotifierProvider>
-          <DialogsProvider>
-            <Outlet />
-          </DialogsProvider>{' '}
-        </NotifierProvider>
-      </ThemeProvider>
+      <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale={'ru'}>
+        <ThemeProvider theme={theme}>
+          <CssBaseline enableColorScheme />
+          <NotifierProvider>
+            <DialogsProvider>
+              <Outlet />
+            </DialogsProvider>{' '}
+          </NotifierProvider>
+        </ThemeProvider>
+      </LocalizationProvider>
     </>
   )
 }

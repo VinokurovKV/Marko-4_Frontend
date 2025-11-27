@@ -11,21 +11,21 @@ import Select, { type SelectProps } from '@mui/material/Select'
 // Other
 import capitalize from 'capitalize'
 
-export interface FormSelectProps
+export interface FormSelectProps<Value extends number | string>
   extends Omit<
-    SelectProps<number>,
+    SelectProps<Value>,
     'variant' | 'size' | 'name' | 'labelId' | 'label' | 'helperText'
   > {
   name: string
   label: string
   items: {
-    value: number
+    value: Value
     title: string
   }[]
   helperText?: string
 }
 
-export const InputLabelStyled = styled(InputLabel)({
+const InputLabelStyled = styled(InputLabel)({
   '&': {
     transform: 'translate(14px, 8.5px) scale(0.85)'
   },
@@ -37,27 +37,34 @@ export const InputLabelStyled = styled(InputLabel)({
   }
 })
 
-export const SelectStyled = styled(Select<number>)({
-  '& .MuiSelect-select': {
-    height: '1.4375em !important',
-    paddingTop: '7.0px !important',
-    paddingBottom: '9.0px !important',
-    fontSize: '0.85rem !important'
-  },
-  '& legend': {
-    fontSize: '0.65rem !important'
-  }
-})
-
-export function FormSelect({
+export function FormSelect<Value extends number | string>({
   required,
   helperText,
   items,
   ...props
-}: FormSelectProps) {
+}: FormSelectProps<Value>) {
   const theme = useTheme()
+
+  const SelectStyled = React.useMemo(
+    () =>
+      styled(Select<Value>)({
+        '& .MuiSelect-select': {
+          height: '1.4375em !important',
+          paddingTop: '7.0px !important',
+          paddingBottom: '9.0px !important',
+          fontSize: '0.85rem !important'
+        },
+        '& legend': {
+          fontSize: '0.65rem !important'
+        }
+      }),
+    []
+  )
+
   const labelId = React.useMemo(() => Math.random().toString(), [props.name])
+
   const label = `${props.label}${required ? '\u2009*' : ''}`
+
   return (
     <FormControl size="small" sx={{ m: 1, minWidth: 120 }}>
       <InputLabelStyled

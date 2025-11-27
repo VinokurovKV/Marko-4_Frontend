@@ -4,28 +4,33 @@ import { restrictionConfig } from '@common/restriction-config'
 import equal from 'fast-deep-equal'
 
 type FormValidatorFieldTransform =
-  | 'TRIM'
-  | 'EMPTY_STR_TO_UNDEFINED'
   | 'EMPTY_ARR_TO_UNDEFINED'
+  | 'EMPTY_STR_TO_UNDEFINED'
+  | 'TRIM'
 
 type FormValidatorOneFieldRule =
   | 'ALLOW_UNDEFINED'
-  | 'NOT_UNDEFINED'
-  | 'NOT_EMPTY_STR'
-  | 'NAME'
-  | 'LOGIN'
-  | 'PASS'
-  | 'SURNAME'
-  | 'FORENAME'
-  | 'PATRONYMIC'
-  | 'PHONE'
+  | 'CODE'
   | 'EMAIL'
+  | 'FORENAME'
+  | 'LOGIN'
+  | 'NAME'
+  | 'NOT_EMPTY_STR'
+  | 'NOT_UNDEFINED'
+  | 'PASS'
+  | 'PATRONYMIC'
+  | 'PDF_EXT'
+  | 'PHONE'
+  | 'PUBLIC_VERSION'
+  | 'SURNAME'
   | 'TEXT'
+  | 'URL'
+  | 'ZIP_EXT'
 
 type FormValidatorManyFieldsRule =
-  | 'DISTINCT_NAMES'
-  | 'DISTINCT_LOGINS'
   | 'EQUAL_PASSES'
+  | 'DISTINCT_LOGINS'
+  | 'DISTINCT_NAMES'
 
 export type FormData = { [index: string]: any }
 
@@ -90,15 +95,23 @@ export class FormValidator<Data extends FormData> {
         case 'ALLOW_UNDEFINED':
           // props.push('необязательное поле')
           break
-        case 'NOT_UNDEFINED':
-          // props.push('обязательное поле')
-          break
-        case 'NOT_EMPTY_STR':
-          // props.push('обязательное поле')
-          break
-        case 'NAME':
+        case 'CODE':
           ;(() => {
-            const { minLength, maxLength } = restrictionConfig.common.name
+            const { minLength, maxLength } = restrictionConfig.common.code
+            props.push('ASCII-строка')
+            props.push('без пробелов')
+            props.push(`${minLength}-${maxLength} символов`)
+          })()
+          break
+        case 'EMAIL':
+          ;(() => {
+            const { maxLength } = restrictionConfig.common.email
+            props.push(`не более ${maxLength} символов`)
+          })()
+          break
+        case 'FORENAME':
+          ;(() => {
+            const { minLength, maxLength } = restrictionConfig.common.forename
             props.push(`${minLength}-${maxLength} символов`)
           })()
           break
@@ -110,21 +123,21 @@ export class FormValidator<Data extends FormData> {
             props.push(`${minLength}-${maxLength} символов`)
           })()
           break
+        case 'NAME':
+          ;(() => {
+            const { minLength, maxLength } = restrictionConfig.common.name
+            props.push(`${minLength}-${maxLength} символов`)
+          })()
+          break
+        case 'NOT_EMPTY_STR':
+          // props.push('обязательное поле')
+          break
+        case 'NOT_UNDEFINED':
+          // props.push('обязательное поле')
+          break
         case 'PASS':
           ;(() => {
             const { minLength, maxLength } = restrictionConfig.common.pass
-            props.push(`${minLength}-${maxLength} символов`)
-          })()
-          break
-        case 'SURNAME':
-          ;(() => {
-            const { minLength, maxLength } = restrictionConfig.common.surname
-            props.push(`${minLength}-${maxLength} символов`)
-          })()
-          break
-        case 'FORENAME':
-          ;(() => {
-            const { minLength, maxLength } = restrictionConfig.common.forename
             props.push(`${minLength}-${maxLength} символов`)
           })()
           break
@@ -134,22 +147,44 @@ export class FormValidator<Data extends FormData> {
             props.push(`${minLength}-${maxLength} символов`)
           })()
           break
+        case 'PDF_EXT':
+          ;(() => {
+            props.push(`допустимые  расширения: '.pdf'`)
+          })()
+          break
         case 'PHONE':
           ;(() => {
             const { maxLength } = restrictionConfig.common.phone
             props.push(`не более ${maxLength} символов`)
           })()
           break
-        case 'EMAIL':
+        case 'PUBLIC_VERSION':
           ;(() => {
-            const { maxLength } = restrictionConfig.common.email
+            const { maxLength } = restrictionConfig.common.publicVersion
             props.push(`не более ${maxLength} символов`)
+          })()
+          break
+        case 'SURNAME':
+          ;(() => {
+            const { minLength, maxLength } = restrictionConfig.common.surname
+            props.push(`${minLength}-${maxLength} символов`)
           })()
           break
         case 'TEXT':
           ;(() => {
             const { maxLength } = restrictionConfig.common.text
             props.push(`не более ${maxLength} символов`)
+          })()
+          break
+        case 'URL':
+          ;(() => {
+            const { maxLength } = restrictionConfig.common.url
+            props.push(`не более ${maxLength} символов`)
+          })()
+          break
+        case 'ZIP_EXT':
+          ;(() => {
+            props.push(`допустимые  расширения: '.zip'`)
           })()
           break
       }
@@ -177,9 +212,9 @@ export class FormValidator<Data extends FormData> {
     const transforms = this.config.oneField?.[field]?.transforms ?? []
     transforms.forEach((transform) => {
       switch (transform) {
-        case 'TRIM':
-          if (typeof val === 'string') {
-            ;(val as string) = (val as string).trim()
+        case 'EMPTY_ARR_TO_UNDEFINED':
+          if ((val as any) instanceof Array && val.length === 0) {
+            ;(val as string | undefined) = undefined
           }
           break
         case 'EMPTY_STR_TO_UNDEFINED':
@@ -187,9 +222,9 @@ export class FormValidator<Data extends FormData> {
             ;(val as string | undefined) = undefined
           }
           break
-        case 'EMPTY_ARR_TO_UNDEFINED':
-          if ((val as any) instanceof Array && val.length === 0) {
-            ;(val as string | undefined) = undefined
+        case 'TRIM':
+          if (typeof val === 'string') {
+            ;(val as string) = (val as string).trim()
           }
           break
       }
@@ -367,108 +402,28 @@ export class FormValidator<Data extends FormData> {
     const errors: string[] = []
     const rules = this.config.oneField?.[field]?.rules ?? []
     const val = this.getTransformedField(data, field)
+    let interrupt = false
     for (const rule of rules) {
+      if (interrupt) {
+        break
+      }
       switch (rule) {
         case 'ALLOW_UNDEFINED':
           if (val === undefined) {
-            return null
+            interrupt = true
           }
           break
-        case 'NOT_UNDEFINED':
-          if (val === undefined) {
-            errors.push('поле обязательно для заполнения')
-          }
-          break
-        case 'NOT_EMPTY_STR':
-          if (val === '') {
-            errors.push('поле обязательно для заполнения')
-          }
-          break
-        case 'NAME':
+        case 'CODE':
           ;(() => {
-            const nameErrors = this.getStringErrors(
+            const codeErrors = this.getStringErrors(
               val,
-              restrictionConfig.common.name.minLength,
-              restrictionConfig.common.name.maxLength
-            )
-            if (nameErrors !== null) {
-              errors.push(...nameErrors)
-            }
-          })()
-          break
-        case 'LOGIN':
-          ;(() => {
-            const loginErrors = this.getStringErrors(
-              val,
-              restrictionConfig.common.login.minLength,
-              restrictionConfig.common.login.maxLength,
+              restrictionConfig.common.code.minLength,
+              restrictionConfig.common.code.maxLength,
               true,
               true
             )
-            if (loginErrors !== null) {
-              errors.push(...loginErrors)
-            }
-          })()
-          break
-        case 'PASS':
-          ;(() => {
-            const passErrors = this.getStringErrors(
-              val,
-              restrictionConfig.common.pass.minLength,
-              restrictionConfig.common.pass.maxLength
-            )
-            if (passErrors !== null) {
-              errors.push(...passErrors)
-            }
-          })()
-          break
-        case 'SURNAME':
-          ;(() => {
-            const surnameErrors = this.getStringErrors(
-              val,
-              restrictionConfig.common.surname.minLength,
-              restrictionConfig.common.surname.maxLength
-            )
-            if (surnameErrors !== null) {
-              errors.push(...surnameErrors)
-            }
-          })()
-          break
-        case 'FORENAME':
-          ;(() => {
-            const forenameErrors = this.getStringErrors(
-              val,
-              restrictionConfig.common.forename.minLength,
-              restrictionConfig.common.forename.maxLength
-            )
-            if (forenameErrors !== null) {
-              errors.push(...forenameErrors)
-            }
-          })()
-          break
-        case 'PATRONYMIC':
-          ;(() => {
-            const patronymicErrors = this.getStringErrors(
-              val,
-              restrictionConfig.common.patronymic.minLength,
-              restrictionConfig.common.patronymic.maxLength
-            )
-            if (patronymicErrors !== null) {
-              errors.push(...patronymicErrors)
-            }
-          })()
-          break
-        case 'PHONE':
-          ;(() => {
-            const phoneErrors = this.getStringErrors(
-              val,
-              undefined,
-              restrictionConfig.common.phone.maxLength,
-              false,
-              true
-            )
-            if (phoneErrors !== null) {
-              errors.push(...phoneErrors)
+            if (codeErrors !== null) {
+              errors.push(...codeErrors)
             }
           })()
           break
@@ -486,6 +441,126 @@ export class FormValidator<Data extends FormData> {
             }
           })()
           break
+        case 'FORENAME':
+          ;(() => {
+            const forenameErrors = this.getStringErrors(
+              val,
+              restrictionConfig.common.forename.minLength,
+              restrictionConfig.common.forename.maxLength
+            )
+            if (forenameErrors !== null) {
+              errors.push(...forenameErrors)
+            }
+          })()
+          break
+        case 'LOGIN':
+          ;(() => {
+            const loginErrors = this.getStringErrors(
+              val,
+              restrictionConfig.common.login.minLength,
+              restrictionConfig.common.login.maxLength,
+              true,
+              true
+            )
+            if (loginErrors !== null) {
+              errors.push(...loginErrors)
+            }
+          })()
+          break
+        case 'NAME':
+          ;(() => {
+            const nameErrors = this.getStringErrors(
+              val,
+              restrictionConfig.common.name.minLength,
+              restrictionConfig.common.name.maxLength
+            )
+            if (nameErrors !== null) {
+              errors.push(...nameErrors)
+            }
+          })()
+          break
+        case 'NOT_EMPTY_STR':
+          if (val === '') {
+            errors.push('поле обязательно для заполнения')
+            interrupt = true
+          }
+          break
+        case 'NOT_UNDEFINED':
+          if (val === undefined) {
+            errors.push('поле обязательно для заполнения')
+            interrupt = true
+          }
+          break
+        case 'PASS':
+          ;(() => {
+            const passErrors = this.getStringErrors(
+              val,
+              restrictionConfig.common.pass.minLength,
+              restrictionConfig.common.pass.maxLength
+            )
+            if (passErrors !== null) {
+              errors.push(...passErrors)
+            }
+          })()
+          break
+        case 'PATRONYMIC':
+          ;(() => {
+            const patronymicErrors = this.getStringErrors(
+              val,
+              restrictionConfig.common.patronymic.minLength,
+              restrictionConfig.common.patronymic.maxLength
+            )
+            if (patronymicErrors !== null) {
+              errors.push(...patronymicErrors)
+            }
+          })()
+          break
+        case 'PDF_EXT':
+          ;(() => {
+            const fileErrors = this.getFileErrors(val, ['pdf'])
+            if (fileErrors !== null) {
+              errors.push(...fileErrors)
+            }
+          })()
+          break
+        case 'PHONE':
+          ;(() => {
+            const phoneErrors = this.getStringErrors(
+              val,
+              undefined,
+              restrictionConfig.common.phone.maxLength,
+              false,
+              true
+            )
+            if (phoneErrors !== null) {
+              errors.push(...phoneErrors)
+            }
+          })()
+          break
+        case 'PUBLIC_VERSION':
+          ;(() => {
+            const publicVersionErrors = this.getStringErrors(
+              val,
+              undefined,
+              restrictionConfig.common.publicVersion.maxLength
+            )
+            if (publicVersionErrors !== null) {
+              errors.push(...publicVersionErrors)
+            }
+          })()
+          break
+        case 'SURNAME':
+          ;(() => {
+            const surnameErrors = this.getStringErrors(
+              val,
+              restrictionConfig.common.surname.minLength,
+              restrictionConfig.common.surname.maxLength
+            )
+            if (surnameErrors !== null) {
+              errors.push(...surnameErrors)
+            }
+          })()
+          break
         case 'TEXT':
           ;(() => {
             const textErrors = this.getStringErrors(
@@ -495,6 +570,26 @@ export class FormValidator<Data extends FormData> {
             )
             if (textErrors !== null) {
               errors.push(...textErrors)
+            }
+          })()
+          break
+        case 'URL':
+          ;(() => {
+            const urlErrors = this.getStringErrors(
+              val,
+              undefined,
+              restrictionConfig.common.url.maxLength
+            )
+            if (urlErrors !== null) {
+              errors.push(...urlErrors)
+            }
+          })()
+          break
+        case 'ZIP_EXT':
+          ;(() => {
+            const fileErrors = this.getFileErrors(val, ['zip'])
+            if (fileErrors !== null) {
+              errors.push(...fileErrors)
             }
           })()
           break
@@ -530,10 +625,12 @@ export class FormValidator<Data extends FormData> {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-return
         const vals = ruleFields.map((field) => valForField.get(field))
         switch (rule) {
-          case 'DISTINCT_NAMES':
-            if (this.isDistinct(vals) === false) {
-              ruleFields.forEach((field) => {
-                addError(field, 'неуникальное название')
+          case 'EQUAL_PASSES':
+            if (this.isEqual(vals) === false) {
+              ruleFields.forEach((field, fieldIndex) => {
+                if (fieldIndex !== 0) {
+                  addError(field, 'пароли должны совпадать')
+                }
               })
             }
             break
@@ -544,12 +641,10 @@ export class FormValidator<Data extends FormData> {
               })
             }
             break
-          case 'EQUAL_PASSES':
-            if (this.isEqual(vals) === false) {
-              ruleFields.forEach((field, fieldIndex) => {
-                if (fieldIndex !== 0) {
-                  addError(field, 'пароли должны совпадать')
-                }
+          case 'DISTINCT_NAMES':
+            if (this.isDistinct(vals) === false) {
+              ruleFields.forEach((field) => {
+                addError(field, 'неуникальное название')
               })
             }
             break
@@ -619,5 +714,23 @@ export class FormValidator<Data extends FormData> {
 
   private isEqual(vals: any[]): boolean {
     return vals.length === 0 || new Set(vals).size === 1
+  }
+
+  private getFileErrors(
+    val: any,
+    allowedExtensions: string[]
+  ): string[] | null {
+    const errors: string[] = []
+    if (val instanceof File === false) {
+      errors.push('значение должно быть файлом')
+    } else {
+      const extension = val.name.split('.').slice(-1)[0]
+      if (allowedExtensions.includes(extension) === false) {
+        errors.push(
+          `некорректное расширение (${extension}), допустимые  расширения: ${allowedExtensions.map((extension) => `.${extension}`).join(', ')}`
+        )
+      }
+    }
+    return errors.length > 0 ? errors : null
   }
 }

@@ -11,7 +11,7 @@ import capitalize from 'capitalize'
 
 type Role = DtoWithoutEnums<ReadRolesWithPrimaryPropsSuccessResultItemDto>
 
-export function useRoleCol(roles: Role[] | null) {
+export function useRoleCol(roles: Role[] | null | undefined) {
   const roleNameForId = React.useMemo(
     () =>
       new Map(

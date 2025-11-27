@@ -17,8 +17,8 @@ export interface FormAutocompleteMultipleSelectProps<
   label: string
   possibleValues: Value[]
   titleForValue?: Map<Value, string>
-  values?: Value[]
-  onChange: (event: { name: string; values: Value[] | null }) => void
+  values: Value[]
+  onChange: (event: { name: string; values: Value[] | undefined }) => void
   required?: boolean
   helperText?: string
   localizationForTitle?: Map<string, string>
@@ -47,10 +47,10 @@ export function FormAutocompleteMultipleSelect<Value extends number | string>(
     (event: React.SyntheticEvent, values: Value[] | null) => {
       props.onChange({
         name: props.name,
-        values: values
+        values: values === null ? undefined : values
       })
     },
-    [props.onChange]
+    [props.name, props.onChange]
   )
 
   const preparedLabel = `${props.label}${props.required ? '\u2009*' : ''}`

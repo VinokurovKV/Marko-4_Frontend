@@ -9,14 +9,18 @@ import {
   INITIAL_CREATE_USER_FORM_DATA,
   createUserFormValidator
 } from '~/data/forms/resources/create-user'
-import { useForm, FormDialog } from '../common/form'
-import { FormBlock } from '../common/form-block'
-import { FormEmailField } from '../common/form-email-field'
-import { FormMultilineTextField } from '../common/form-multiline-text-field'
-import { FormPassField } from '../common/form-pass-field'
-import { type FormSelectProps, FormSelect } from '../common/form-select'
-import { FormTelField } from '../common/form-tel-field'
-import { FormTextField } from '../common/form-text-field'
+import type { FormSelectProps } from '../common'
+import {
+  useForm,
+  FormBlock,
+  FormDialog,
+  FormEmailField,
+  FormMultilineTextField,
+  FormPassField,
+  FormSelect,
+  FormTelField,
+  FormTextField
+} from '../common'
 // React
 import * as React from 'react'
 
@@ -70,7 +74,7 @@ export function CreateUserFormDialog(props: CreateUserFormDialogProps) {
     data,
     errors,
     handleTextFieldChange,
-    handleSelectChange
+    handleNumSelectChange
   } = useForm<CreateUserFormData, CreateUserSuccessResultDto>({
     INITIAL_FORM_DATA: INITIAL_CREATE_USER_FORM_DATA,
     validator: createUserFormValidator,
@@ -78,7 +82,7 @@ export function CreateUserFormDialog(props: CreateUserFormDialogProps) {
     onSuccessSubmit: onSuccessSubmit
   })
 
-  const roleSelectItems: FormSelectProps['items'] = React.useMemo(
+  const roleSelectItems: FormSelectProps<number>['items'] = React.useMemo(
     () =>
       props.roles?.map((role) => ({
         value: role.id,
@@ -146,7 +150,7 @@ export function CreateUserFormDialog(props: CreateUserFormDialogProps) {
             errors?.roleId ?? CREATE_USER_FORM_PROPS_JOINED.roleId ?? ' '
           }
           error={!!errors?.roleId}
-          onChange={handleSelectChange}
+          onChange={handleNumSelectChange}
         />
       </FormBlock>
       <FormBlock title="дополнительная информация">

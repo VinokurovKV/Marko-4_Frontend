@@ -20,6 +20,10 @@ import { ProjButton } from '~/components/buttons/button'
 import { FormContainer } from '~/components/containers/form-container'
 import type { FormAutocompleteSingleSelectProps } from './form-autocomplete-single-select'
 import type { FormAutocompleteMultipleSelectProps } from './form-autocomplete-multiple-select'
+import type { FormAutocompleteFreeItemsMultipleSelectProps } from './form-autocomplete-free-items-multiple-select'
+import type { FormDateTimeProps } from './form-date-time'
+import type { FormDateProps } from './form-date'
+import type { FormFileUploadProps } from './form-file-upload'
 // React
 import * as React from 'react'
 // Material UI
@@ -87,21 +91,23 @@ export function useForm<Data extends FormData, SubmitActionResult>(
 
   const handleFieldChange = React.useCallback(
     (field: Field<Data>, newValue: Val<Data>) => {
-      const newData = {
-        ...data,
-        [field]: newValue
-      }
-      const revalidateResult = withSubmitAttempts
-        ? props.validator.revalidateJoined(newData, errors, [field])
-        : null
-      setState({
-        data: newData,
-        errors: revalidateResult?.errorsChanged
-          ? revalidateResult.newErrorsJoined
-          : errors
+      setState((oldState) => {
+        const newData = {
+          ...oldState.data,
+          [field]: newValue
+        }
+        const revalidateResult = withSubmitAttempts
+          ? props.validator.revalidateJoined(newData, errors, [field])
+          : null
+        return {
+          data: newData,
+          errors: revalidateResult?.errorsChanged
+            ? revalidateResult.newErrorsJoined
+            : errors
+        }
       })
     },
-    [data, errors, withSubmitAttempts, setState]
+    [errors, withSubmitAttempts, setState]
   )
 
   const handleTextFieldChange = React.useCallback(
@@ -112,21 +118,33 @@ export function useForm<Data extends FormData, SubmitActionResult>(
     [handleFieldChange]
   )
 
-  const handleSelectChange: SelectProps<number>['onChange'] = React.useCallback(
-    (event: SelectChangeEvent<number>) => {
-      handleFieldChange(
-        event.target.name as Field<Data>,
-        Number(event.target.value) as Val<Data>
-      )
-    },
-    [handleFieldChange]
-  )
+  const handleNumSelectChange: SelectProps<number>['onChange'] =
+    React.useCallback(
+      (event: SelectChangeEvent<number | string>) => {
+        handleFieldChange(
+          event.target.name as Field<Data>,
+          Number(event.target.value) as Val<Data>
+        )
+      },
+      [handleFieldChange]
+    )
+
+  const handleStrSelectChange: SelectProps<string>['onChange'] =
+    React.useCallback(
+      (event: SelectChangeEvent<string>) => {
+        handleFieldChange(
+          event.target.name as Field<Data>,
+          event.target.value as Val<Data>
+        )
+      },
+      [handleFieldChange]
+    )
 
   const handleAutocompleteSingleSelectChange: FormAutocompleteSingleSelectProps<
     number | string
   >['onChange'] = React.useCallback(
     ({ name, value }) => {
-      handleFieldChange(name, (value === null ? undefined : value) as Val<Data>)
+      handleFieldChange(name, value as Val<Data>)
     },
     [handleFieldChange]
   )
@@ -135,13 +153,41 @@ export function useForm<Data extends FormData, SubmitActionResult>(
     number | string
   >['onChange'] = React.useCallback(
     ({ name, values }) => {
-      handleFieldChange(
-        name,
-        (values === null ? undefined : values) as Val<Data>
-      )
+      handleFieldChange(name, values as Val<Data>)
     },
     [handleFieldChange]
   )
+
+  const handleAutocompleteMultipleSelectFreeItemsChange: FormAutocompleteFreeItemsMultipleSelectProps<
+    number | string
+  >['onChangeFreeItems'] = React.useCallback(
+    ({ name, items }) => {
+      handleFieldChange(name, items as Val<Data>)
+    },
+    [handleFieldChange]
+  )
+
+  const handleDateTimeChange: FormDateTimeProps['onChange'] = React.useCallback(
+    ({ name, value }) => {
+      handleFieldChange(name, value as Val<Data>)
+    },
+    [handleFieldChange]
+  )
+
+  const handleDateChange: FormDateProps['onChange'] = React.useCallback(
+    ({ name, value }) => {
+      handleFieldChange(name, value as Val<Data>)
+    },
+    [handleFieldChange]
+  )
+
+  const handleFileUploadChange: FormFileUploadProps['onChange'] =
+    React.useCallback(
+      ({ name, value }) => {
+        handleFieldChange(name, value as Val<Data>)
+      },
+      [handleFieldChange]
+    )
 
   const prepareTextForSubmitActionError = React.useCallback(
     (error: any): string | null => {
@@ -214,8 +260,9 @@ export function useForm<Data extends FormData, SubmitActionResult>(
         try {
           setIsSubmitting(true)
           setSubmitActionError(null)
-          const submitActionResult = await props.submitAction(data)
-          props.onSuccessSubmit?.(data, submitActionResult)
+          const transformedData = props.validator.getTransformed(data)
+          const submitActionResult = await props.submitAction(transformedData)
+          props.onSuccessSubmit?.(transformedData, submitActionResult)
         } catch (error) {
           const errorText = prepareTextForSubmitActionError(error)
           if (errorText !== null) {
@@ -230,6 +277,7 @@ export function useForm<Data extends FormData, SubmitActionResult>(
       }
     },
     [
+      props.validator,
       props.submitAction,
       props.onSuccessSubmit,
       data,
@@ -251,9 +299,14 @@ export function useForm<Data extends FormData, SubmitActionResult>(
     data,
     errors,
     handleTextFieldChange,
-    handleSelectChange,
+    handleNumSelectChange,
+    handleStrSelectChange,
     handleAutocompleteSingleSelectChange,
-    handleAutocompleteMultipleSelectChange
+    handleAutocompleteMultipleSelectChange,
+    handleAutocompleteMultipleSelectFreeItemsChange,
+    handleDateTimeChange,
+    handleDateChange,
+    handleFileUploadChange
   }
 }
 

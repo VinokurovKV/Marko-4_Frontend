@@ -17,8 +17,8 @@ export interface FormAutocompleteSingleSelectProps<
   label: string
   possibleValues: Value[]
   titleForValue?: Map<Value, string>
-  value?: Value
-  onChange: (event: { name: string; value: Value | null }) => void
+  value: Value | null
+  onChange: (event: { name: string; value: Value | undefined }) => void
   required?: boolean
   helperText?: string
   localizationForTitle?: Map<string, string>
@@ -44,10 +44,10 @@ export function FormAutocompleteSingleSelect<Value extends number | string>(
     (event: React.SyntheticEvent, value: Value | null) => {
       props.onChange({
         name: props.name,
-        value: value
+        value: value === null ? undefined : value
       })
     },
-    [props.onChange]
+    [props.name, props.onChange]
   )
 
   const preparedLabel = `${props.label}${props.required ? '\u2009*' : ''}`

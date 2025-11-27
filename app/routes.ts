@@ -13,8 +13,10 @@ export default [
         route('login', 'routes/login.tsx'),
         layout('routes/authenticated-guard.tsx', [
           layout('routes/layout.tsx', [
+            route('tags', 'routes/tags.tsx'),
             route('roles', 'routes/roles.tsx'),
             route('users', 'routes/users.tsx'),
+            route('documents', 'routes/documents.tsx'),
             index('routes/home.tsx'),
             route('*', 'routes/not-found.tsx')
           ])

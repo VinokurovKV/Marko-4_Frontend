@@ -27,7 +27,7 @@ import RuleIcon from '@mui/icons-material/Rule'
 // import SettingsIcon from '@mui/icons-material/Settings'
 // import SettingsAccessibilityIcon from '@mui/icons-material/SettingsAccessibility'
 import StorageIcon from '@mui/icons-material/Storage'
-// import TagIcon from '@mui/icons-material/Tag'
+import TagIcon from '@mui/icons-material/Tag'
 import TaskIcon from '@mui/icons-material/Task'
 import TheaterComedyIcon from '@mui/icons-material/TheaterComedy'
 // import VerifiedIcon from '@mui/icons-material/Verified'
@@ -43,6 +43,13 @@ export const SIDE_NAVIGATION_CONFIG: SideNavigationConfig = [
         Icon: HistoryIcon,
         href: '/events',
         requiredRights: ['READ_EVENT']
+      },
+      {
+        id: 'tags',
+        title: 'теги',
+        Icon: TagIcon,
+        href: '/tags',
+        requiredRights: ['READ_TAG']
       }
     ]
   },
@@ -138,18 +145,6 @@ export const SIDE_NAVIGATION_CONFIG: SideNavigationConfig = [
       }
     ]
   },
-  // {
-  //   title: 'теги',
-  //   nested: [
-  //     {
-  //       id: 'tags',
-  //       title: 'теги',
-  //       Icon: TagIcon,
-  //       href: '/tags',
-  //       requiredRights: ['READ_TAG']
-  //     }
-  //   ]
-  // },
   {
     title: 'администрирование',
     nested: [

@@ -41,7 +41,7 @@ interface Notifier {
   showSuccess: (message: string) => void
   showInfo: (message: string) => void
   showWarning: (message: string) => void
-  showError: (error: any) => void
+  showError: (error: any, prefix: string | undefined) => void
   close: (notificationKey: string) => void
 }
 
@@ -249,7 +249,7 @@ export function NotifierProvider(props: NotifierProviderProps) {
   )
 
   const showError = React.useCallback<Notifier['showError']>(
-    (error) => {
+    (error, prefix) => {
       const message =
         typeof error === 'string'
           ? error
@@ -277,7 +277,7 @@ export function NotifierProvider(props: NotifierProviderProps) {
               }
               return 'ошибка'
             })()
-      show(message, {
+      show((prefix ? `${prefix}: ` : '') + message, {
         severity: 'error'
       })
       if (

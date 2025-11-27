@@ -58,6 +58,7 @@ export const createUserFormValidator = new FormValidator<CreateUserFormData>({
       rules: ['NOT_EMPTY_STR']
     },
     roleId: {
+      transforms: ['EMPTY_STR_TO_UNDEFINED'],
       rules: ['NOT_UNDEFINED']
     },
     surname: {
