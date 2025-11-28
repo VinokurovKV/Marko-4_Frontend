@@ -10,6 +10,8 @@ type FormValidatorFieldTransform =
 
 type FormValidatorOneFieldRule =
   | 'ALLOW_UNDEFINED'
+  | 'BIG_CODE'
+  | 'BIG_NAME'
   | 'CODE'
   | 'EMAIL'
   | 'FORENAME'
@@ -94,6 +96,20 @@ export class FormValidator<Data extends FormData> {
       switch (rule) {
         case 'ALLOW_UNDEFINED':
           // props.push('необязательное поле')
+          break
+        case 'BIG_CODE':
+          ;(() => {
+            const { minLength, maxLength } = restrictionConfig.common.bigCode
+            props.push('ASCII-строка')
+            props.push('без пробелов')
+            props.push(`${minLength}-${maxLength} символов`)
+          })()
+          break
+        case 'BIG_NAME':
+          ;(() => {
+            const { minLength, maxLength } = restrictionConfig.common.bigName
+            props.push(`${minLength}-${maxLength} символов`)
+          })()
           break
         case 'CODE':
           ;(() => {
@@ -412,6 +428,32 @@ export class FormValidator<Data extends FormData> {
           if (val === undefined) {
             interrupt = true
           }
+          break
+        case 'BIG_CODE':
+          ;(() => {
+            const codeErrors = this.getStringErrors(
+              val,
+              restrictionConfig.common.bigCode.minLength,
+              restrictionConfig.common.bigCode.maxLength,
+              true,
+              true
+            )
+            if (codeErrors !== null) {
+              errors.push(...codeErrors)
+            }
+          })()
+          break
+        case 'BIG_NAME':
+          ;(() => {
+            const nameErrors = this.getStringErrors(
+              val,
+              restrictionConfig.common.bigName.minLength,
+              restrictionConfig.common.bigName.maxLength
+            )
+            if (nameErrors !== null) {
+              errors.push(...nameErrors)
+            }
+          })()
           break
         case 'CODE':
           ;(() => {

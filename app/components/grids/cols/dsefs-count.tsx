@@ -9,8 +9,8 @@ export function useDsefsCountCol() {
       field: 'dsefsCount',
       headerName: 'Доп. форматы',
       type: 'number',
-      minWidth: 150,
-      flex: 1
+      minWidth: 120,
+      flex: 0.01
     }),
     []
   )

@@ -212,7 +212,6 @@ export function CreateDeviceFormDialog(props: CreateDeviceFormDialogProps) {
           onChange={handleTextFieldChange}
         />
         <FormFileUpload
-          required
           name="config"
           label="основная конфигурация"
           extensions={['zip']}
@@ -224,7 +223,6 @@ export function CreateDeviceFormDialog(props: CreateDeviceFormDialogProps) {
           onChange={handleFileUploadChange}
         />
         <FormFileUpload
-          required
           name="accessConfig"
           label="конфигурация доступа"
           extensions={['zip']}
@@ -238,7 +236,6 @@ export function CreateDeviceFormDialog(props: CreateDeviceFormDialogProps) {
           onChange={handleFileUploadChange}
         />
         <FormFileUpload
-          required
           name="clearConfig"
           label="конфигурация очищения"
           extensions={['zip']}

@@ -9,8 +9,8 @@ export function useFragmentsCountCol() {
       field: 'fragmentsCount',
       headerName: 'Фрагменты',
       type: 'number',
-      minWidth: 150,
-      flex: 1
+      minWidth: 120,
+      flex: 0.01
     }),
     []
   )

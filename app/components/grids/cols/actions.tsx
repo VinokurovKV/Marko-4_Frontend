@@ -48,6 +48,7 @@ export function ExportMenu(props: ExportMenuProps) {
       >
         {props.items.map((item) => (
           <MenuItem
+            key={item.title}
             onClick={() => {
               void item.action(props.rowId)
             }}

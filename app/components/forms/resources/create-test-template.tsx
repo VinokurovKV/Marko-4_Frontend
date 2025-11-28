@@ -181,9 +181,8 @@ export function CreateTestTemplateFormDialog(
           onChange={handleTextFieldChange}
         />
         <FormFileUpload
-          required
           name="config"
-          label="файл"
+          label="конфигурация"
           extensions={['zip']}
           value={data.config}
           helperText={

@@ -17,7 +17,7 @@ export function TestTemplatesScreen(props: TestTemplatesScreenProps) {
     () => [
       {
         title: 'шаблоны тестов',
-        href: '/testTemplates',
+        href: '/test-templates',
         Icon: FoundationIcon
       }
     ],
