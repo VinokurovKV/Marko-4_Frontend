@@ -1,24 +1,28 @@
 // Project
-import { allDeviceTypes } from '@common/enums'
+import { allCoverageTypes } from '@common/enums'
 import type { ReadTagsWithPrimaryPropsSuccessResultItemDto } from '@common/dtos/server-api/tags.dto'
-import type { CreateDeviceSuccessResultDto } from '@common/dtos/server-api/devices.dto'
+import type { ReadRequirementsWithPrimaryPropsSuccessResultItemDto } from '@common/dtos/server-api/requirements.dto'
+import type { CreateCoverageSuccessResultDto } from '@common/dtos/server-api/coverages.dto'
+import type { ReadTestsWithPrimaryPropsSuccessResultItemDto } from '@common/dtos/server-api/tests.dto'
 import type { DtoWithoutEnums } from '@common/dto-without-enums'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
-import { localizationForDeviceType } from '~/localization'
+import { localizationForCoverageType } from '~/localization'
 import {
-  type CreateDeviceFormData,
-  INITIAL_CREATE_DEVICE_FORM_DATA,
-  createDeviceFormValidator
-} from '~/data/forms/resources/create-device'
+  type CreateCoverageFormData,
+  INITIAL_CREATE_COVERAGE_FORM_DATA,
+  createCoverageFormValidator
+} from '~/data/forms/resources/create-coverage'
 import type { FormSelectProps } from '../common/form-select'
 import {
   useForm,
   FormAutocompleteFreeItemsMultipleSelect,
+  FormAutocompleteMultipleSelect,
+  FormAutocompleteSingleSelect,
   FormBlock,
   FormDialog,
-  FormFileUpload,
   FormMultilineTextField,
+  FormNumField,
   FormSelect,
   FormTextField
 } from '../common'
@@ -27,33 +31,36 @@ import * as React from 'react'
 
 const EMPTY_TAG_IDS_ARR: number[] = []
 const EMPTY_TAG_CODES_ARR: string[] = []
+const EMPTY_TEST_IDS_ARR: number[] = []
 
 type Tag = DtoWithoutEnums<ReadTagsWithPrimaryPropsSuccessResultItemDto>
+type Requirement =
+  DtoWithoutEnums<ReadRequirementsWithPrimaryPropsSuccessResultItemDto>
+type Test = DtoWithoutEnums<ReadTestsWithPrimaryPropsSuccessResultItemDto>
 
-const CREATE_DEVICE_FORM_PROPS_JOINED =
-  createDeviceFormValidator.getPromptsJoined()
+const CREATE_COVERAGE_FORM_PROPS_JOINED =
+  createCoverageFormValidator.getPromptsJoined()
 
-export interface CreateDeviceFormDialogProps {
+export interface CreateCoverageFormDialogProps {
   tags: Tag[] | null
+  requirements: Requirement[] | null
+  tests: Test[] | null
   createModeIsActive: boolean
   setCreateModeIsActive: React.Dispatch<React.SetStateAction<boolean>>
-  onSuccessCreateDevice?: (
-    createDeviceResult: CreateDeviceSuccessResultDto
+  onSuccessCreateCoverage?: (
+    createCoverageResult: CreateCoverageSuccessResultDto
   ) => void
   onCancelClick?: () => void
 }
 
-export function CreateDeviceFormDialog(props: CreateDeviceFormDialogProps) {
+export function CreateCoverageFormDialog(props: CreateCoverageFormDialogProps) {
   const notifier = useNotifier()
 
   const submitAction = React.useCallback(
-    async (validatedData: CreateDeviceFormData) => {
+    async (validatedData: CreateCoverageFormData) => {
       const {
         descriptionText,
         remarkText,
-        config,
-        clearConfig,
-        accessConfig,
         tagIds,
         tagCodesToCreate,
         ...truncatedData
@@ -83,48 +90,56 @@ export function CreateDeviceFormDialog(props: CreateDeviceFormDialogProps) {
         .map((result) => (result.status === 'fulfilled' ? result.value : null))
         .filter((result) => result !== null)
 
-      return await serverConnector.createDevice(
-        {
-          ...truncatedData,
-          type: truncatedData.type!,
-          description:
-            descriptionText !== undefined
-              ? {
-                  format: 'PLAIN',
-                  text: descriptionText
-                }
-              : undefined,
-          remark:
-            remarkText !== undefined
-              ? {
-                  format: 'PLAIN',
-                  text: remarkText
-                }
-              : undefined,
-          tagIds:
-            (tagIds ?? []).length + createdTagIds.length > 0
-              ? [...(tagIds ?? []), ...createdTagIds]
-              : undefined
-        },
-        config,
-        clearConfig,
-        accessConfig,
-        undefined,
-        undefined
-      )
+      return await serverConnector.createCoverage({
+        ...truncatedData,
+        requirementId: truncatedData.requirementId!,
+        type: truncatedData.type!,
+        coveragePercent: truncatedData.coveragePercent!,
+        description:
+          descriptionText !== undefined
+            ? {
+                format: 'PLAIN',
+                text: descriptionText
+              }
+            : undefined,
+        remark:
+          remarkText !== undefined
+            ? {
+                format: 'PLAIN',
+                text: remarkText
+              }
+            : undefined,
+        tagIds:
+          (tagIds ?? []).length + createdTagIds.length > 0
+            ? [...(tagIds ?? []), ...createdTagIds]
+            : undefined
+      })
     },
     []
   )
 
+  const requirementCodeForId = React.useMemo(
+    () =>
+      new Map(
+        (props.requirements ?? []).map((requirement) => [
+          requirement.id,
+          requirement.code
+        ])
+      ),
+    [props.requirements]
+  )
+
   const onSuccessSubmit = React.useCallback(
     (
-      data: CreateDeviceFormData,
-      createDeviceResult: CreateDeviceSuccessResultDto
+      data: CreateCoverageFormData,
+      createCoverageResult: CreateCoverageSuccessResultDto
     ) => {
-      notifier.showSuccess(`устройство '${data.code}' создано`)
-      props.onSuccessCreateDevice?.(createDeviceResult)
+      notifier.showSuccess(
+        `покрытие '${data.code}' требования '${requirementCodeForId.get(data.requirementId!) ?? ''}' создано`
+      )
+      props.onSuccessCreateCoverage?.(createCoverageResult)
     },
-    [props.onSuccessCreateDevice]
+    [props.onSuccessCreateCoverage, requirementCodeForId]
   )
 
   const {
@@ -133,21 +148,21 @@ export function CreateDeviceFormDialog(props: CreateDeviceFormDialogProps) {
     errors,
     handleTextFieldChange,
     handleStrSelectChange,
+    handleAutocompleteSingleSelectChange,
     handleAutocompleteMultipleSelectChange,
-    handleAutocompleteMultipleSelectFreeItemsChange,
-    handleFileUploadChange
-  } = useForm<CreateDeviceFormData, CreateDeviceSuccessResultDto>({
-    INITIAL_FORM_DATA: INITIAL_CREATE_DEVICE_FORM_DATA,
-    validator: createDeviceFormValidator,
+    handleAutocompleteMultipleSelectFreeItemsChange
+  } = useForm<CreateCoverageFormData, CreateCoverageSuccessResultDto>({
+    INITIAL_FORM_DATA: INITIAL_CREATE_COVERAGE_FORM_DATA,
+    validator: createCoverageFormValidator,
     submitAction: submitAction,
     onSuccessSubmit: onSuccessSubmit
   })
 
   const typeSelectItems: FormSelectProps<string>['items'] = React.useMemo(
     () =>
-      allDeviceTypes.map((type) => ({
+      allCoverageTypes.map((type) => ({
         value: type,
-        title: localizationForDeviceType.get(type) ?? type
+        title: localizationForCoverageType.get(type) ?? type
       })),
     []
   )
@@ -162,10 +177,25 @@ export function CreateDeviceFormDialog(props: CreateDeviceFormDialogProps) {
     [props.tags]
   )
 
+  const requirementIds = React.useMemo(
+    () => props.requirements?.map((requirement) => requirement.id) ?? [],
+    [props.requirements]
+  )
+
+  const testIds = React.useMemo(
+    () => props.tests?.map((test) => test.id) ?? [],
+    [props.tests]
+  )
+
+  const testCodeForId = React.useMemo(
+    () => new Map((props.tests ?? []).map((test) => [test.id, test.code])),
+    [props.tests]
+  )
+
   return (
     <FormDialog
       formInternal={formInternal}
-      title="создать устройство"
+      title="создать покрытие требования"
       submitButtonLabel="создать"
       cancelButton={{
         title: 'отменить',
@@ -184,7 +214,7 @@ export function CreateDeviceFormDialog(props: CreateDeviceFormDialogProps) {
           label="код"
           value={data.code}
           helperText={
-            errors?.code ?? CREATE_DEVICE_FORM_PROPS_JOINED.code ?? ' '
+            errors?.code ?? CREATE_COVERAGE_FORM_PROPS_JOINED.code ?? ' '
           }
           error={!!errors?.code}
           onChange={handleTextFieldChange}
@@ -194,10 +224,25 @@ export function CreateDeviceFormDialog(props: CreateDeviceFormDialogProps) {
           label="название"
           value={data.name ?? ''}
           helperText={
-            errors?.name ?? CREATE_DEVICE_FORM_PROPS_JOINED.name ?? ' '
+            errors?.name ?? CREATE_COVERAGE_FORM_PROPS_JOINED.name ?? ' '
           }
           error={!!errors?.name}
           onChange={handleTextFieldChange}
+        />
+        <FormAutocompleteSingleSelect
+          required
+          name="requirementId"
+          label="требование"
+          possibleValues={requirementIds}
+          titleForValue={requirementCodeForId}
+          value={data.requirementId ?? null}
+          helperText={
+            errors?.requirementId ??
+            CREATE_COVERAGE_FORM_PROPS_JOINED.requirementId ??
+            ' '
+          }
+          error={!!errors?.requirementId}
+          onChange={handleAutocompleteSingleSelectChange}
         />
         <FormSelect
           required
@@ -206,47 +251,35 @@ export function CreateDeviceFormDialog(props: CreateDeviceFormDialogProps) {
           items={typeSelectItems}
           value={data.type ?? ''}
           helperText={
-            errors?.type ?? CREATE_DEVICE_FORM_PROPS_JOINED.type ?? ' '
+            errors?.type ?? CREATE_COVERAGE_FORM_PROPS_JOINED.type ?? ' '
           }
           error={!!errors?.type}
           onChange={handleStrSelectChange}
         />
-        <FormFileUpload
-          name="config"
-          label="основная конфигурация"
-          extensions={['zip']}
-          value={data.config}
+        <FormAutocompleteMultipleSelect
+          name="testIds"
+          label="тесты"
+          possibleValues={testIds}
+          titleForValue={testCodeForId}
+          values={data.testIds ?? EMPTY_TEST_IDS_ARR}
           helperText={
-            errors?.config ?? CREATE_DEVICE_FORM_PROPS_JOINED.config ?? ' '
+            errors?.testIds ?? CREATE_COVERAGE_FORM_PROPS_JOINED.testIds ?? ' '
           }
-          error={!!errors?.config}
-          onChange={handleFileUploadChange}
+          error={!!errors?.testIds}
+          onChange={handleAutocompleteMultipleSelectChange}
         />
-        <FormFileUpload
-          name="accessConfig"
-          label="конфигурация доступа"
-          extensions={['zip']}
-          value={data.accessConfig}
+        <FormNumField
+          required
+          name="coveragePercent"
+          label="процент покрытия"
+          value={data.coveragePercent ?? ''}
           helperText={
-            errors?.accessConfig ??
-            CREATE_DEVICE_FORM_PROPS_JOINED.accessConfig ??
+            errors?.coveragePercent ??
+            CREATE_COVERAGE_FORM_PROPS_JOINED.coveragePercent ??
             ' '
           }
-          error={!!errors?.accessConfig}
-          onChange={handleFileUploadChange}
-        />
-        <FormFileUpload
-          name="clearConfig"
-          label="конфигурация очищения"
-          extensions={['zip']}
-          value={data.clearConfig}
-          helperText={
-            errors?.clearConfig ??
-            CREATE_DEVICE_FORM_PROPS_JOINED.clearConfig ??
-            ' '
-          }
-          error={!!errors?.clearConfig}
-          onChange={handleFileUploadChange}
+          error={!!errors?.coveragePercent}
+          onChange={handleTextFieldChange}
         />
       </FormBlock>
       <FormBlock title="дополнительная информация">
@@ -256,7 +289,7 @@ export function CreateDeviceFormDialog(props: CreateDeviceFormDialogProps) {
           value={data.descriptionText ?? ''}
           helperText={
             errors?.descriptionText ??
-            CREATE_DEVICE_FORM_PROPS_JOINED.descriptionText ??
+            CREATE_COVERAGE_FORM_PROPS_JOINED.descriptionText ??
             ' '
           }
           error={!!errors?.descriptionText}
@@ -281,8 +314,8 @@ export function CreateDeviceFormDialog(props: CreateDeviceFormDialogProps) {
               addMes(errors?.tagIds)
               addMes(errors?.tagCodesToCreate)
             } else {
-              addMes(CREATE_DEVICE_FORM_PROPS_JOINED.tagIds)
-              addMes(CREATE_DEVICE_FORM_PROPS_JOINED.tagCodesToCreate)
+              addMes(CREATE_COVERAGE_FORM_PROPS_JOINED.tagIds)
+              addMes(CREATE_COVERAGE_FORM_PROPS_JOINED.tagCodesToCreate)
             }
             return result.length > 0 ? result.join(', ') : ' '
           })()}
@@ -296,7 +329,7 @@ export function CreateDeviceFormDialog(props: CreateDeviceFormDialogProps) {
           value={data.remarkText ?? ''}
           helperText={
             errors?.remarkText ??
-            CREATE_DEVICE_FORM_PROPS_JOINED.remarkText ??
+            CREATE_COVERAGE_FORM_PROPS_JOINED.remarkText ??
             ' '
           }
           error={!!errors?.remarkText}

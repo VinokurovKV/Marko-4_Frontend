@@ -1,14 +1,14 @@
 // Project
 import type {
-  CodeWrapDto,
-  DateUndefinedWrapDto,
+  BigCodeWrapDto,
+  BigNameUndefinedWrapDto,
+  CoveragePercentUndefinedWrapDto,
+  CoverageTypeUndefinedWrapDto,
   DescriptionTextUndefinedWrapDto,
-  DocumentTypeUndefinedWrapDto,
-  NameUndefinedWrapDto,
-  PublicVersionUndefinedWrapDto,
   RemarkTextUndefinedWrapDto,
+  RequirementIdUndefinedWrapDto,
   TagIdsUndefinedWrapDto,
-  UrlUndefinedWrapDto
+  TestIdsUndefinedWrapDto
 } from '@common/dtos'
 import {
   type FormKey,
@@ -18,34 +18,33 @@ import {
   FormValidator
 } from '~/validation/form-validator'
 
-export type CreateDocumentFormData = CodeWrapDto &
-  NameUndefinedWrapDto &
-  DocumentTypeUndefinedWrapDto & {
-    config?: File
-  } & PublicVersionUndefinedWrapDto &
+export type CreateCoverageFormData = BigCodeWrapDto &
+  BigNameUndefinedWrapDto &
+  RequirementIdUndefinedWrapDto &
+  CoverageTypeUndefinedWrapDto &
+  TestIdsUndefinedWrapDto &
+  CoveragePercentUndefinedWrapDto &
   DescriptionTextUndefinedWrapDto &
-  DateUndefinedWrapDto &
-  UrlUndefinedWrapDto &
   TagIdsUndefinedWrapDto & {
     tagCodesToCreate?: string[]
   } & RemarkTextUndefinedWrapDto
 
-export type CreateDocumentFormKey = FormKey<CreateDocumentFormData>
+export type CreateCoverageFormKey = FormKey<CreateCoverageFormData>
 
-export type CreateDocumentFormVal = FormVal<CreateDocumentFormData>
+export type CreateCoverageFormVal = FormVal<CreateCoverageFormData>
 
-export const INITIAL_CREATE_DOCUMENT_FORM_DATA: CreateDocumentFormData = {
+export const INITIAL_CREATE_COVERAGE_FORM_DATA: CreateCoverageFormData = {
   code: ''
 }
 
-export type CreateDocumentFormErrors =
-  FormValidatorErrors<CreateDocumentFormData>
+export type CreateCoverageFormErrors =
+  FormValidatorErrors<CreateCoverageFormData>
 
-export type CreateDocumentFormErrorsJoined =
-  FormValidatorErrorsJoined<CreateDocumentFormData>
+export type CreateCoverageFormErrorsJoined =
+  FormValidatorErrorsJoined<CreateCoverageFormData>
 
-export const createDocumentFormValidator =
-  new FormValidator<CreateDocumentFormData>({
+export const createCoverageFormValidator =
+  new FormValidator<CreateCoverageFormData>({
     oneField: {
       code: {
         transforms: ['TRIM'],
@@ -55,24 +54,24 @@ export const createDocumentFormValidator =
         transforms: ['TRIM', 'EMPTY_STR_TO_UNDEFINED'],
         rules: ['ALLOW_UNDEFINED', 'NAME']
       },
+      requirementId: {
+        transforms: ['EMPTY_STR_TO_UNDEFINED'],
+        rules: ['NOT_UNDEFINED']
+      },
       type: {
         transforms: ['EMPTY_STR_TO_UNDEFINED'],
         rules: ['NOT_UNDEFINED']
       },
-      config: {
-        rules: ['NOT_UNDEFINED', 'PDF_EXT']
+      testIds: {
+        transforms: ['EMPTY_ARR_TO_UNDEFINED']
       },
-      publicVersion: {
-        transforms: ['TRIM', 'EMPTY_STR_TO_UNDEFINED'],
-        rules: ['ALLOW_UNDEFINED', 'PUBLIC_VERSION']
+      coveragePercent: {
+        transforms: ['TRIM', 'EMPTY_STR_TO_UNDEFINED', 'STR_TO_NUM'],
+        rules: ['NOT_UNDEFINED', 'PERCENT']
       },
       descriptionText: {
         transforms: ['TRIM', 'EMPTY_STR_TO_UNDEFINED'],
         rules: ['ALLOW_UNDEFINED', 'TEXT']
-      },
-      url: {
-        transforms: ['TRIM', 'EMPTY_STR_TO_UNDEFINED'],
-        rules: ['ALLOW_UNDEFINED', 'URL']
       },
       tagIds: {
         transforms: ['EMPTY_ARR_TO_UNDEFINED']

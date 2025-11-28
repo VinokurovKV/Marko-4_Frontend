@@ -14,16 +14,16 @@ import {
 import { CreateDocumentFormDialog } from '~/components/forms/resources/create-document'
 import { type GridProps, Grid } from '../grid'
 import {
+  type ActionsColProps,
+  useActionsCol,
   useCodeCol,
+  useDocumentDateCol,
   useDocumentTypeCol,
-  useNameCol,
   useFormatCol,
   useFragmentsCountCol,
+  useNameCol,
   usePublicVersionCol,
-  useDocumentDateCol,
-  useUrlCol,
-  type ActionsColProps,
-  useActionsCol
+  useUrlCol
 } from '../cols'
 // React
 import * as React from 'react'
@@ -62,40 +62,12 @@ export function DocumentsGrid(props: DocumentsGridProps) {
     [documents]
   )
 
-  React.useEffect(() => {
-    const subscriptionId = serverConnector.subscribeToResources(
-      {
-        type: 'DOCUMENT'
-      },
-      (data) => {
-        void (async () => {
-          const scope = data.updateScope
-          if (scope.primaryProps || scope.secondaryProps) {
-            try {
-              const documents = await serverConnector.readDocuments({
-                scope: 'UP_TO_SECONDARY_PROPS'
-              })
-              setDocuments(documents)
-            } catch {
-              notifier.showWarning(
-                'не удалось загрузить актуальный список документов'
-              )
-            }
-          }
-        })()
-      }
-    ).subscriptionId
-    return () => {
-      serverConnector.unsubscribe(subscriptionId)
-    }
-  }, [setDocuments])
-
   const rows: GridValidRowModel[] = documents
 
   const readCols = [
     useCodeCol('id', true, '/documents'),
-    useDocumentTypeCol(),
     useNameCol(),
+    useDocumentTypeCol(),
     useFormatCol(['PDF']),
     useFragmentsCountCol(),
     usePublicVersionCol(),

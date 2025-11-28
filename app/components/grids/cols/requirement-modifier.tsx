@@ -16,9 +16,10 @@ import type { GridColDef, GridRenderCellParams } from '@mui/x-data-grid'
 // Other
 import capitalize from 'capitalize'
 
-function getValue(type: any) {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-  return capitalize(localizationForRequirementModifier.get(type) ?? type ?? '')
+function getValue(modifier: RequirementModifier) {
+  return capitalize(
+    localizationForRequirementModifier.get(modifier) ?? modifier ?? ''
+  )
 }
 
 interface RequirementModifierIconProps {

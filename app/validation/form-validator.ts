@@ -6,6 +6,7 @@ import equal from 'fast-deep-equal'
 type FormValidatorFieldTransform =
   | 'EMPTY_ARR_TO_UNDEFINED'
   | 'EMPTY_STR_TO_UNDEFINED'
+  | 'STR_TO_NUM'
   | 'TRIM'
 
 type FormValidatorOneFieldRule =
@@ -21,6 +22,7 @@ type FormValidatorOneFieldRule =
   | 'NOT_UNDEFINED'
   | 'PASS'
   | 'PATRONYMIC'
+  | 'PERCENT'
   | 'PDF_EXT'
   | 'PHONE'
   | 'PUBLIC_VERSION'
@@ -163,6 +165,11 @@ export class FormValidator<Data extends FormData> {
             props.push(`${minLength}-${maxLength} символов`)
           })()
           break
+        case 'PERCENT':
+          ;(() => {
+            props.push('число от 0 до 100')
+          })()
+          break
         case 'PDF_EXT':
           ;(() => {
             props.push(`допустимые  расширения: '.pdf'`)
@@ -236,6 +243,14 @@ export class FormValidator<Data extends FormData> {
         case 'EMPTY_STR_TO_UNDEFINED':
           if (val === '') {
             ;(val as string | undefined) = undefined
+          }
+          break
+        case 'STR_TO_NUM':
+          if (typeof val === 'string') {
+            const num = parseFloat(val)
+            if (num.toString() === val) {
+              ;(val as number) = num
+            }
           }
           break
         case 'TRIM':
@@ -554,6 +569,15 @@ export class FormValidator<Data extends FormData> {
             )
             if (patronymicErrors !== null) {
               errors.push(...patronymicErrors)
+            }
+          })()
+          break
+        case 'PERCENT':
+          ;(() => {
+            if (typeof val !== 'number') {
+              errors.push('значение должно быть числом')
+            } else if (val < 0 || val > 100) {
+              errors.push('значение должно принадлежать промежутку от 0 до 100')
             }
           })()
           break

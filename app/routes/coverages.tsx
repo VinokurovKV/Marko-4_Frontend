@@ -1,0 +1,86 @@
+// Project
+import { serverConnector } from '~/server-connector'
+import { useNotifier } from '~/providers/notifier'
+import { useMeta } from '~/providers/meta'
+import { ForbiddenScreen } from '~/components/screens/problem/forbidden'
+import { CoveragesScreen } from '~/components/screens/coverages'
+// React router
+import type { Route } from './+types/coverages'
+// React
+import * as React from 'react'
+
+export async function clientLoader() {
+  await serverConnector.connect()
+  const [tags, requirements, coverages, tests] = await (async () => {
+    if (serverConnector.meta.status !== 'AUTHENTICATED') {
+      return [null, null, null, null]
+    } else {
+      const rights = serverConnector.meta.selfMeta.rights
+      return await Promise.all([
+        rights.includes('READ_TAG')
+          ? serverConnector
+              .readTags({
+                scope: 'PRIMARY_PROPS'
+              })
+              .catch(() => null)
+          : Promise.resolve(null),
+        rights.includes('READ_REQUIREMENT')
+          ? serverConnector
+              .readRequirements({
+                scope: 'PRIMARY_PROPS'
+              })
+              .catch(() => null)
+          : Promise.resolve(null),
+        rights.includes('READ_COVERAGE')
+          ? serverConnector
+              .readCoverages({
+                scope: 'UP_TO_SECONDARY_PROPS'
+              })
+              .catch(() => null)
+          : Promise.resolve(null),
+        rights.includes('READ_TEST')
+          ? serverConnector
+              .readTests({
+                scope: 'PRIMARY_PROPS'
+              })
+              .catch(() => null)
+          : Promise.resolve(null)
+      ])
+    }
+  })()
+  return {
+    tags,
+    requirements,
+    coverages,
+    tests
+  }
+}
+
+export default function MetaRoute({
+  loaderData: { tags, requirements, coverages, tests }
+}: Route.ComponentProps) {
+  const notifier = useNotifier()
+  const meta = useMeta()
+
+  React.useEffect(() => {
+    if (
+      coverages === null &&
+      serverConnector.meta.status === 'AUTHENTICATED' &&
+      serverConnector.meta.selfMeta.rights.includes('READ_COVERAGE')
+    ) {
+      notifier.showError('не удалось загрузить список покрытий требований')
+    }
+  }, [coverages])
+
+  return meta.status === 'AUTHENTICATED' &&
+    meta.selfMeta.rights.includes('READ_COVERAGE') === false ? (
+    <ForbiddenScreen />
+  ) : (
+    <CoveragesScreen
+      initialTags={tags}
+      initialRequirements={requirements}
+      initialCoverages={coverages ?? []}
+      initialTests={tests}
+    />
+  )
+}

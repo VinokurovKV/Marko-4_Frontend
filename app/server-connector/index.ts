@@ -1955,7 +1955,7 @@ export class ServerConnector {
   createCoverage(
     params: Params<CreateCoverageBodyDto>
   ): Result<CreateCoverageSuccessResultDto> {
-    return this.getObject('/coverages/actions/create', params)
+    return this.postForObject('/coverages/actions/create', params)
   }
   updateCoverage(
     params: Params<UpdateCoverageBodyDto>

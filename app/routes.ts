@@ -18,6 +18,7 @@ export default [
             route('users', 'routes/users.tsx'),
             route('documents', 'routes/documents.tsx'),
             route('requirements', 'routes/requirements.tsx'),
+            route('coverages', 'routes/coverages.tsx'),
             route('test-templates', 'routes/test-templates.tsx'),
             route('devices', 'routes/devices.tsx'),
             index('routes/home.tsx'),

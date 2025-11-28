@@ -14,13 +14,13 @@ import {
 import { CreateDeviceFormDialog } from '~/components/forms/resources/create-device'
 import { type GridProps, Grid } from '../grid'
 import {
+  type ActionsColProps,
+  useActionsCol,
   useCodeCol,
   useDeviceTypeCol,
   useDsefsCountCol,
   useNameCol,
-  usePrepatedCol,
-  type ActionsColProps,
-  useActionsCol
+  usePrepatedCol
 } from '../cols'
 // React
 import * as React from 'react'
@@ -57,40 +57,12 @@ export function DevicesGrid(props: DevicesGridProps) {
     [devices]
   )
 
-  React.useEffect(() => {
-    const subscriptionId = serverConnector.subscribeToResources(
-      {
-        type: 'DEVICE'
-      },
-      (data) => {
-        void (async () => {
-          const scope = data.updateScope
-          if (scope.primaryProps || scope.secondaryProps) {
-            try {
-              const devices = await serverConnector.readDevices({
-                scope: 'UP_TO_SECONDARY_PROPS'
-              })
-              setDevices(devices)
-            } catch {
-              notifier.showWarning(
-                'не удалось загрузить актуальный список устройств'
-              )
-            }
-          }
-        })()
-      }
-    ).subscriptionId
-    return () => {
-      serverConnector.unsubscribe(subscriptionId)
-    }
-  }, [setDevices])
-
   const rows: GridValidRowModel[] = devices
 
   const readCols = [
     useCodeCol('id', true, '/devices'),
-    useDeviceTypeCol(),
     useNameCol(),
+    useDeviceTypeCol(),
     usePrepatedCol(
       'MIDDLE',
       undefined,

@@ -186,6 +186,16 @@ export function CreateDocumentFormDialog(props: CreateDocumentFormDialogProps) {
           error={!!errors?.code}
           onChange={handleTextFieldChange}
         />
+        <FormTextField
+          name="name"
+          label="название"
+          value={data.name ?? ''}
+          helperText={
+            errors?.name ?? CREATE_DOCUMENT_FORM_PROPS_JOINED.name ?? ' '
+          }
+          error={!!errors?.name}
+          onChange={handleTextFieldChange}
+        />
         <FormSelect
           required
           name="type"
@@ -197,16 +207,6 @@ export function CreateDocumentFormDialog(props: CreateDocumentFormDialogProps) {
           }
           error={!!errors?.type}
           onChange={handleStrSelectChange}
-        />
-        <FormTextField
-          name="name"
-          label="название"
-          value={data.name ?? ''}
-          helperText={
-            errors?.name ?? CREATE_DOCUMENT_FORM_PROPS_JOINED.name ?? ' '
-          }
-          error={!!errors?.name}
-          onChange={handleTextFieldChange}
         />
         <FormFileUpload
           required

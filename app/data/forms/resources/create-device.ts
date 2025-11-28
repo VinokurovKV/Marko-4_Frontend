@@ -16,8 +16,8 @@ import {
 } from '~/validation/form-validator'
 
 export type CreateDeviceFormData = CodeWrapDto &
-  DeviceTypeUndefinedWrapDto &
-  NameUndefinedWrapDto & {
+  NameUndefinedWrapDto &
+  DeviceTypeUndefinedWrapDto & {
     config?: File
   } & {
     clearConfig?: File
@@ -48,13 +48,13 @@ export const createDeviceFormValidator =
         transforms: ['TRIM'],
         rules: ['NOT_EMPTY_STR', 'CODE']
       },
-      type: {
-        transforms: ['EMPTY_STR_TO_UNDEFINED'],
-        rules: ['NOT_UNDEFINED']
-      },
       name: {
         transforms: ['TRIM', 'EMPTY_STR_TO_UNDEFINED'],
         rules: ['ALLOW_UNDEFINED', 'NAME']
+      },
+      type: {
+        transforms: ['EMPTY_STR_TO_UNDEFINED'],
+        rules: ['NOT_UNDEFINED']
       },
       config: {
         rules: ['ALLOW_UNDEFINED', 'ZIP_EXT']

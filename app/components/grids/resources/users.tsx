@@ -12,15 +12,15 @@ import {
 import { CreateUserFormDialog } from '~/components/forms/resources/create-user'
 import { type GridProps, Grid } from '../grid'
 import {
-  useLoginCol,
-  useSurnameCol,
-  useForenameCol,
-  usePatronymicCol,
+  type ActionsColProps,
+  useActionsCol,
   useEmailCol,
+  useForenameCol,
+  useLoginCol,
+  usePatronymicCol,
   usePhoneCol,
   useRoleCol,
-  type ActionsColProps,
-  useActionsCol
+  useSurnameCol
 } from '../cols'
 // React
 import * as React from 'react'
