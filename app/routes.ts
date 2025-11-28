@@ -17,6 +17,7 @@ export default [
             route('roles', 'routes/roles.tsx'),
             route('users', 'routes/users.tsx'),
             route('documents', 'routes/documents.tsx'),
+            route('requirements', 'routes/requirements.tsx'),
             route('test-templates', 'routes/test-templates.tsx'),
             route('devices', 'routes/devices.tsx'),
             index('routes/home.tsx'),

@@ -48,7 +48,7 @@ export function useFormatCol(formats: Format[]) {
       renderCell: (params: GridRenderCellParams<any, string>) => (
         <FormatIcon format={params.value as Format | undefined | null} />
       ),
-      minWidth: 120,
+      minWidth: 80,
       flex: 0.01,
       headerAlign: 'center',
       align: 'center'

@@ -4,6 +4,7 @@ import type { DtoWithoutEnums } from '@common/dto-without-enums'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
 import { useMeta } from '~/providers/meta'
+import { useTagsSubscription } from '~/hooks/subscriptions'
 import { CreateTagFormDialog } from '~/components/forms/resources/create-tag'
 import { type GridProps, Grid } from '../grid'
 import { useCodeCol, type ActionsColProps, useActionsCol } from '../cols'
@@ -30,38 +31,12 @@ export function TagsGrid(props: TagsGridProps) {
 
   const [tags, setTags] = React.useState<Tag[]>(props.initialTags)
 
+  useTagsSubscription('UP_TO_SECONDARY_PROPS', setTags)
+
   const tagCodeForId = React.useMemo(
     () => new Map(tags.map((tag) => [tag.id, tag.code])),
     [tags]
   )
-
-  React.useEffect(() => {
-    const subscriptionId = serverConnector.subscribeToResources(
-      {
-        type: 'TAG'
-      },
-      (data) => {
-        void (async () => {
-          const scope = data.updateScope
-          if (scope.primaryProps || scope.secondaryProps) {
-            try {
-              const tags = await serverConnector.readTags({
-                scope: 'UP_TO_SECONDARY_PROPS'
-              })
-              setTags(tags)
-            } catch {
-              notifier.showWarning(
-                'не удалось загрузить актуальный список тегов'
-              )
-            }
-          }
-        })()
-      }
-    ).subscriptionId
-    return () => {
-      serverConnector.unsubscribe(subscriptionId)
-    }
-  }, [setTags])
 
   const rows: GridValidRowModel[] = tags
 
@@ -69,24 +44,26 @@ export function TagsGrid(props: TagsGridProps) {
 
   const actionsColProps: ActionsColProps = React.useMemo(
     () => ({
-      delete: {
-        prepareConfirmMessage: (rowId) =>
-          `удалить тег '${tagCodeForId.get(rowId) ?? ''}'?`,
-        action: async (rowId) => {
-          try {
-            await serverConnector.deleteTag({
-              id: rowId
-            })
-            notifier.showSuccess(
-              `тег '${tagCodeForId.get(rowId) ?? ''}' удален`
-            )
-          } catch (error) {
-            notifier.showError(error)
+      delete: rightsSet.has('DELETE_TAG')
+        ? {
+            prepareConfirmMessage: (rowId) =>
+              `удалить тег '${tagCodeForId.get(rowId) ?? ''}'?`,
+            action: async (rowId) => {
+              try {
+                await serverConnector.deleteTag({
+                  id: rowId
+                })
+                notifier.showSuccess(
+                  `тег '${tagCodeForId.get(rowId) ?? ''}' удален`
+                )
+              } catch (error) {
+                notifier.showError(error)
+              }
+            }
           }
-        }
-      }
+        : undefined
     }),
-    [tagCodeForId]
+    [rightsSet, tagCodeForId]
   )
 
   const actionsCol = useActionsCol(actionsColProps)

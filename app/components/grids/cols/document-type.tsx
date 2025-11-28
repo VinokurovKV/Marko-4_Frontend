@@ -1,6 +1,6 @@
 // Project
 import { allDocumentTypes } from '@common/enums'
-import { localizationForDocumentType } from '~/localization/document-type'
+import { localizationForDocumentType } from '~/localization'
 // React
 import * as React from 'react'
 // Material UI

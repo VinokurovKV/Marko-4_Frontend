@@ -7,6 +7,10 @@ import { downloadFileFromBlob } from '~/utilities/download-file'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
 import { useMeta } from '~/providers/meta'
+import {
+  useDevicesSubscription,
+  useTagsSubscription
+} from '~/hooks/subscriptions'
 import { CreateDeviceFormDialog } from '~/components/forms/resources/create-device'
 import { type GridProps, Grid } from '../grid'
 import {
@@ -45,38 +49,13 @@ export function DevicesGrid(props: DevicesGridProps) {
   const [tags, setTags] = React.useState<Tag[] | null>(props.initialTags)
   const [devices, setDevices] = React.useState<Device[]>(props.initialDevices)
 
+  useTagsSubscription('PRIMARY_PROPS', setTags)
+  useDevicesSubscription('UP_TO_SECONDARY_PROPS', setDevices)
+
   const deviceCodeForId = React.useMemo(
     () => new Map(devices.map((device) => [device.id, device.code])),
     [devices]
   )
-
-  React.useEffect(() => {
-    const subscriptionId = serverConnector.subscribeToResources(
-      {
-        type: 'TAG'
-      },
-      (data) => {
-        void (async () => {
-          const scope = data.updateScope
-          if (scope.primaryProps) {
-            try {
-              const tags = await serverConnector.readTags({
-                scope: 'PRIMARY_PROPS'
-              })
-              setTags(tags)
-            } catch {
-              notifier.showWarning(
-                'не удалось загрузить актуальный список тегов'
-              )
-            }
-          }
-        })()
-      }
-    ).subscriptionId
-    return () => {
-      serverConnector.unsubscribe(subscriptionId)
-    }
-  }, [setTags])
 
   React.useEffect(() => {
     const subscriptionId = serverConnector.subscribeToResources(
@@ -172,36 +151,33 @@ export function DevicesGrid(props: DevicesGridProps) {
           }
         }
       ],
-      delete: {
-        prepareConfirmMessage: (rowId) =>
-          `удалить устройство '${deviceCodeForId.get(rowId) ?? ''}'?`,
-        action: async (rowId) => {
-          try {
-            await serverConnector.deleteDevice({
-              id: rowId
-            })
-            notifier.showSuccess(
-              `устройство '${deviceCodeForId.get(rowId) ?? ''}' удалено`
-            )
-          } catch (error) {
-            notifier.showError(error)
+      delete: rightsSet.has('DELETE_DEVICE')
+        ? {
+            prepareConfirmMessage: (rowId) =>
+              `удалить устройство '${deviceCodeForId.get(rowId) ?? ''}'?`,
+            action: async (rowId) => {
+              try {
+                await serverConnector.deleteDevice({
+                  id: rowId
+                })
+                notifier.showSuccess(
+                  `устройство '${deviceCodeForId.get(rowId) ?? ''}' удалено`
+                )
+              } catch (error) {
+                notifier.showError(error)
+              }
+            }
           }
-        }
-      }
+        : undefined
     }),
-    [deviceCodeForId]
+    [rightsSet, deviceCodeForId]
   )
 
   const actionsCol = useActionsCol(actionsColProps)
 
   const cols: GridColDef[] = React.useMemo(
-    () => [
-      ...readCols,
-      ...(rightsSet.has('UPDATE_DEVICE') || rightsSet.has('DELETE_DEVICE')
-        ? [actionsCol]
-        : [])
-    ],
-    [rightsSet, readCols, actionsCol]
+    () => [...readCols, actionsCol],
+    [readCols, actionsCol]
   )
 
   const defaultHiddenFields = React.useMemo(() => [] as (keyof Device)[], [])

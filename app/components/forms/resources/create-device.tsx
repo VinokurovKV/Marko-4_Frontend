@@ -5,7 +5,7 @@ import type { CreateDeviceSuccessResultDto } from '@common/dtos/server-api/devic
 import type { DtoWithoutEnums } from '@common/dto-without-enums'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
-import { localizationForDeviceType } from '~/localization/device-type'
+import { localizationForDeviceType } from '~/localization'
 import {
   type CreateDeviceFormData,
   INITIAL_CREATE_DEVICE_FORM_DATA,
@@ -248,6 +248,8 @@ export function CreateDeviceFormDialog(props: CreateDeviceFormDialogProps) {
           error={!!errors?.clearConfig}
           onChange={handleFileUploadChange}
         />
+      </FormBlock>
+      <FormBlock title="дополнительная информация">
         <FormMultilineTextField
           name="descriptionText"
           label="описание"
@@ -260,8 +262,6 @@ export function CreateDeviceFormDialog(props: CreateDeviceFormDialogProps) {
           error={!!errors?.descriptionText}
           onChange={handleTextFieldChange}
         />
-      </FormBlock>
-      <FormBlock title="дополнительная информация">
         <FormAutocompleteFreeItemsMultipleSelect
           name="tagIds"
           freeItemsFieldName="tagCodesToCreate"

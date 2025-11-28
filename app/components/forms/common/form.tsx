@@ -220,6 +220,8 @@ export function useForm<Data extends FormData, SubmitActionResult>(
               .map((item) => {
                 return (
                   {
+                    CIRCULAR_DEPENDENCY_FOR_REQUIREMENTS:
+                      'нарушение ацикличности графа требований',
                     NON_UNIQUE_LOGIN: 'указанный логин занят',
                     NON_UNIQUE_NAME: 'указанное название занято',
                     NON_UNIQUE_CODE: 'указанный код занят'

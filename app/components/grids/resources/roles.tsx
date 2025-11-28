@@ -4,6 +4,7 @@ import type { DtoWithoutEnums } from '@common/dto-without-enums'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
 import { useMeta } from '~/providers/meta'
+import { useRolesSubscription } from '~/hooks/subscriptions'
 import { CreateRoleFormDialog } from '~/components/forms/resources/create-role'
 import { type GridProps, Grid } from '../grid'
 import { useRoleNameCol, type ActionsColProps, useActionsCol } from '../cols'
@@ -30,38 +31,12 @@ export function RolesGrid(props: RolesGridProps) {
 
   const [roles, setRoles] = React.useState<Role[]>(props.initialRoles)
 
+  useRolesSubscription('UP_TO_SECONDARY_PROPS', setRoles)
+
   const roleNameForId = React.useMemo(
     () => new Map(roles.map((role) => [role.id, role.name])),
     [roles]
   )
-
-  React.useEffect(() => {
-    const subscriptionId = serverConnector.subscribeToResources(
-      {
-        type: 'ROLE'
-      },
-      (data) => {
-        void (async () => {
-          const scope = data.updateScope
-          if (scope.primaryProps || scope.secondaryProps) {
-            try {
-              const roles = await serverConnector.readRoles({
-                scope: 'UP_TO_SECONDARY_PROPS'
-              })
-              setRoles(roles)
-            } catch {
-              notifier.showWarning(
-                'не удалось загрузить актуальный список ролей'
-              )
-            }
-          }
-        })()
-      }
-    ).subscriptionId
-    return () => {
-      serverConnector.unsubscribe(subscriptionId)
-    }
-  }, [setRoles])
 
   const rows: GridValidRowModel[] = roles
 
@@ -69,24 +44,26 @@ export function RolesGrid(props: RolesGridProps) {
 
   const actionsColProps: ActionsColProps = React.useMemo(
     () => ({
-      delete: {
-        prepareConfirmMessage: (rowId) =>
-          `удалить роль '${roleNameForId.get(rowId) ?? ''}'?`,
-        action: async (rowId) => {
-          try {
-            await serverConnector.deleteRole({
-              id: rowId
-            })
-            notifier.showSuccess(
-              `роль '${roleNameForId.get(rowId) ?? ''}' удалена`
-            )
-          } catch (error) {
-            notifier.showError(error)
+      delete: rightsSet.has('DELETE_ROLE')
+        ? {
+            prepareConfirmMessage: (rowId) =>
+              `удалить роль '${roleNameForId.get(rowId) ?? ''}'?`,
+            action: async (rowId) => {
+              try {
+                await serverConnector.deleteRole({
+                  id: rowId
+                })
+                notifier.showSuccess(
+                  `роль '${roleNameForId.get(rowId) ?? ''}' удалена`
+                )
+              } catch (error) {
+                notifier.showError(error)
+              }
+            }
           }
-        }
-      }
+        : undefined
     }),
-    [roleNameForId]
+    [rightsSet, roleNameForId]
   )
 
   const actionsCol = useActionsCol(actionsColProps)

@@ -814,45 +814,45 @@ const WEB_SOCKET_RECONNECTION_DELAY = 2000
 const WEB_SOCKET_RESUBSCRIBE_DELAY = 1000
 const NOTIFICATIONS_BUFFER_PROCESS_INTERVAL = 200
 
-interface PrimaryPropsScopeWrap {
+export interface PrimaryPropsScopeWrap {
   scope: 'PRIMARY_PROPS'
 }
 
-interface UpToSecondaryPropsScopeWrap {
+export interface UpToSecondaryPropsScopeWrap {
   scope: 'UP_TO_SECONDARY_PROPS'
 }
 
-interface UpToTertiaryPropsScopeWrap {
+export interface UpToTertiaryPropsScopeWrap {
   scope: 'UP_TO_TERTIARY_PROPS'
 }
 
-interface AllPropsScopeWrap {
+export interface AllPropsScopeWrap {
   scope: 'ALL_PROPS'
 }
 
-interface ChangeablePrimaryPropsScopeWrap {
+export interface ChangeablePrimaryPropsScopeWrap {
   scope: 'CHANGEABLE_PRIMARY_PROPS'
 }
 
-interface ChangeableUpToSecondaryPropsScopeWrap {
+export interface ChangeableUpToSecondaryPropsScopeWrap {
   scope: 'CHANGEABLE_UP_TO_SECONDARY_PROPS'
 }
 
-interface ChangeableUpToTertiaryPropsScopeWrap {
+export interface ChangeableUpToTertiaryPropsScopeWrap {
   scope: 'CHANGEABLE_UP_TO_TERTIARY_PROPS'
 }
 
-interface ChangeableAllPropsScopeWrap {
+export interface ChangeableAllPropsScopeWrap {
   scope: 'CHANGEABLE_ALL_PROPS'
 }
 
-type ReadOneScopeWrap =
+export type ReadOneScopeWrap =
   | PrimaryPropsScopeWrap
   | UpToSecondaryPropsScopeWrap
   | UpToTertiaryPropsScopeWrap
   | AllPropsScopeWrap
 
-type ReadOneChangeableScopeWrap =
+export type ReadOneChangeableScopeWrap =
   | PrimaryPropsScopeWrap
   | UpToSecondaryPropsScopeWrap
   | UpToTertiaryPropsScopeWrap
@@ -862,7 +862,9 @@ type ReadOneChangeableScopeWrap =
   | ChangeableUpToTertiaryPropsScopeWrap
   | ChangeableAllPropsScopeWrap
 
-type ReadManyScopeWrap = PrimaryPropsScopeWrap | UpToSecondaryPropsScopeWrap
+export type ReadManyScopeWrap =
+  | PrimaryPropsScopeWrap
+  | UpToSecondaryPropsScopeWrap
 
 type ReadOneExtra<
   ScopeWrap extends ReadOneScopeWrap,

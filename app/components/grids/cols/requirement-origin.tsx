@@ -1,6 +1,6 @@
 // Project
-import { allDeviceTypes } from '@common/enums'
-import { localizationForDeviceType } from '~/localization'
+import { allRequirementOrigins } from '@common/enums'
+import { localizationForRequirementOrigin } from '~/localization'
 // React
 import * as React from 'react'
 // Material UI
@@ -10,19 +10,19 @@ import capitalize from 'capitalize'
 
 function getValue(type: any) {
   // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-  return capitalize(localizationForDeviceType.get(type) ?? type ?? '')
+  return capitalize(localizationForRequirementOrigin.get(type) ?? type ?? '')
 }
 
-export function useDeviceTypeCol() {
+export function useRequirementOriginCol() {
   const col: GridColDef = React.useMemo(
     () => ({
-      field: 'type',
-      headerName: 'Тип',
+      field: 'origin',
+      headerName: 'Происхождение',
       type: 'singleSelect',
-      valueOptions: allDeviceTypes.map(getValue),
+      valueOptions: allRequirementOrigins.map(getValue),
       valueGetter: getValue,
       minWidth: 150,
-      flex: 1
+      flex: 0.01
     }),
     []
   )

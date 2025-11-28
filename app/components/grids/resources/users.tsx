@@ -5,6 +5,10 @@ import type { DtoWithoutEnums } from '@common/dto-without-enums'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
 import { useMeta } from '~/providers/meta'
+import {
+  useRolesSubscription,
+  useUsersSubscription
+} from '~/hooks/subscriptions'
 import { CreateUserFormDialog } from '~/components/forms/resources/create-user'
 import { type GridProps, Grid } from '../grid'
 import {
@@ -44,66 +48,13 @@ export function UsersGrid(props: UsersGridProps) {
   const [roles, setRoles] = React.useState<Role[] | null>(props.initialRoles)
   const [users, setUsers] = React.useState<User[]>(props.initialUsers)
 
+  useRolesSubscription('PRIMARY_PROPS', setRoles)
+  useUsersSubscription('UP_TO_SECONDARY_PROPS', setUsers)
+
   const userLoginForId = React.useMemo(
     () => new Map(users.map((user) => [user.id, user.login])),
     [users]
   )
-
-  React.useEffect(() => {
-    const subscriptionId = serverConnector.subscribeToResources(
-      {
-        type: 'ROLE'
-      },
-      (data) => {
-        void (async () => {
-          const scope = data.updateScope
-          if (scope.primaryProps) {
-            try {
-              const roles = await serverConnector.readRoles({
-                scope: 'PRIMARY_PROPS'
-              })
-              setRoles(roles)
-            } catch {
-              notifier.showWarning(
-                'не удалось загрузить актуальный список ролей'
-              )
-            }
-          }
-        })()
-      }
-    ).subscriptionId
-    return () => {
-      serverConnector.unsubscribe(subscriptionId)
-    }
-  }, [setRoles])
-
-  React.useEffect(() => {
-    const subscriptionId = serverConnector.subscribeToResources(
-      {
-        type: 'USER'
-      },
-      (data) => {
-        void (async () => {
-          const scope = data.updateScope
-          if (scope.primaryProps || scope.secondaryProps) {
-            try {
-              const users = await serverConnector.readUsers({
-                scope: 'UP_TO_SECONDARY_PROPS'
-              })
-              setUsers(users)
-            } catch {
-              notifier.showWarning(
-                'не удалось загрузить актуальный список пользователей'
-              )
-            }
-          }
-        })()
-      }
-    ).subscriptionId
-    return () => {
-      serverConnector.unsubscribe(subscriptionId)
-    }
-  }, [setUsers])
 
   const rows: GridValidRowModel[] = users
 
@@ -119,24 +70,26 @@ export function UsersGrid(props: UsersGridProps) {
 
   const actionsColProps: ActionsColProps = React.useMemo(
     () => ({
-      delete: {
-        prepareConfirmMessage: (rowId) =>
-          `удалить пользователя '${userLoginForId.get(rowId) ?? ''}'?`,
-        action: async (rowId) => {
-          try {
-            await serverConnector.deleteUser({
-              id: rowId
-            })
-            notifier.showSuccess(
-              `пользователь '${userLoginForId.get(rowId) ?? ''}' удален`
-            )
-          } catch (error) {
-            notifier.showError(error)
+      delete: rightsSet.has('DELETE_USER')
+        ? {
+            prepareConfirmMessage: (rowId) =>
+              `удалить пользователя '${userLoginForId.get(rowId) ?? ''}'?`,
+            action: async (rowId) => {
+              try {
+                await serverConnector.deleteUser({
+                  id: rowId
+                })
+                notifier.showSuccess(
+                  `пользователь '${userLoginForId.get(rowId) ?? ''}' удален`
+                )
+              } catch (error) {
+                notifier.showError(error)
+              }
+            }
           }
-        }
-      }
+        : undefined
     }),
-    [userLoginForId]
+    [rightsSet, userLoginForId]
   )
 
   const actionsCol = useActionsCol(actionsColProps)

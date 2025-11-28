@@ -1,5 +1,5 @@
 // Project
-import { convertFileFormatToExtension } from '@common/formats'
+import { convertMediaTypeToFileExtension } from '@common/formats'
 import type { ReadTagsWithPrimaryPropsSuccessResultItemDto } from '@common/dtos/server-api/tags.dto'
 import type { ReadDocumentsWithUpToSecondaryPropsSuccessResultItemDto } from '@common/dtos/server-api/documents.dto'
 import type { DtoWithoutEnums } from '@common/dto-without-enums'
@@ -7,6 +7,10 @@ import { downloadFileFromBlob } from '~/utilities/download-file'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
 import { useMeta } from '~/providers/meta'
+import {
+  useDocumentsSubscription,
+  useTagsSubscription
+} from '~/hooks/subscriptions'
 import { CreateDocumentFormDialog } from '~/components/forms/resources/create-document'
 import { type GridProps, Grid } from '../grid'
 import {
@@ -50,43 +54,13 @@ export function DocumentsGrid(props: DocumentsGridProps) {
     props.initialDocuments
   )
 
+  useTagsSubscription('PRIMARY_PROPS', setTags)
+  useDocumentsSubscription('UP_TO_SECONDARY_PROPS', setDocuments)
+
   const documentCodeForId = React.useMemo(
     () => new Map(documents.map((document) => [document.id, document.code])),
     [documents]
   )
-
-  const documentFormatForId = React.useMemo(
-    () => new Map(documents.map((document) => [document.id, document.format])),
-    [documents]
-  )
-
-  React.useEffect(() => {
-    const subscriptionId = serverConnector.subscribeToResources(
-      {
-        type: 'TAG'
-      },
-      (data) => {
-        void (async () => {
-          const scope = data.updateScope
-          if (scope.primaryProps) {
-            try {
-              const tags = await serverConnector.readTags({
-                scope: 'PRIMARY_PROPS'
-              })
-              setTags(tags)
-            } catch {
-              notifier.showWarning(
-                'не удалось загрузить актуальный список тегов'
-              )
-            }
-          }
-        })()
-      }
-    ).subscriptionId
-    return () => {
-      serverConnector.unsubscribe(subscriptionId)
-    }
-  }, [setTags])
 
   React.useEffect(() => {
     const subscriptionId = serverConnector.subscribeToResources(
@@ -138,9 +112,7 @@ export function DocumentsGrid(props: DocumentsGridProps) {
               id: rowId
             })
             const code = documentCodeForId.get(rowId) ?? ''
-            const format = documentFormatForId.get(rowId)
-            const ext =
-              format !== undefined ? convertFileFormatToExtension(format) : ''
+            const ext = convertMediaTypeToFileExtension(config.type) ?? ''
             const fileName = `${code}.${ext}`
             downloadFileFromBlob(config, fileName)
           } catch (error) {
@@ -148,36 +120,33 @@ export function DocumentsGrid(props: DocumentsGridProps) {
           }
         }
       },
-      delete: {
-        prepareConfirmMessage: (rowId) =>
-          `удалить документ '${documentCodeForId.get(rowId) ?? ''}'?`,
-        action: async (rowId) => {
-          try {
-            await serverConnector.deleteDocument({
-              id: rowId
-            })
-            notifier.showSuccess(
-              `документ '${documentCodeForId.get(rowId) ?? ''}' удален`
-            )
-          } catch (error) {
-            notifier.showError(error)
+      delete: rightsSet.has('DELETE_DOCUMENT')
+        ? {
+            prepareConfirmMessage: (rowId) =>
+              `удалить документ '${documentCodeForId.get(rowId) ?? ''}'?`,
+            action: async (rowId) => {
+              try {
+                await serverConnector.deleteDocument({
+                  id: rowId
+                })
+                notifier.showSuccess(
+                  `документ '${documentCodeForId.get(rowId) ?? ''}' удален`
+                )
+              } catch (error) {
+                notifier.showError(error)
+              }
+            }
           }
-        }
-      }
+        : undefined
     }),
-    [documentCodeForId, documentFormatForId]
+    [rightsSet, documentCodeForId]
   )
 
   const actionsCol = useActionsCol(actionsColProps)
 
   const cols: GridColDef[] = React.useMemo(
-    () => [
-      ...readCols,
-      ...(rightsSet.has('UPDATE_DOCUMENT') || rightsSet.has('DELETE_DOCUMENT')
-        ? [actionsCol]
-        : [])
-    ],
-    [rightsSet, readCols, actionsCol]
+    () => [...readCols, actionsCol],
+    [readCols, actionsCol]
   )
 
   const defaultHiddenFields = React.useMemo(

@@ -5,7 +5,7 @@ import type { CreateDocumentSuccessResultDto } from '@common/dtos/server-api/doc
 import type { DtoWithoutEnums } from '@common/dto-without-enums'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
-import { localizationForDocumentType } from '~/localization/document-type'
+import { localizationForDocumentType } from '~/localization'
 import {
   type CreateDocumentFormData,
   INITIAL_CREATE_DOCUMENT_FORM_DATA,
@@ -232,6 +232,8 @@ export function CreateDocumentFormDialog(props: CreateDocumentFormDialogProps) {
           error={!!errors?.publicVersion}
           onChange={handleTextFieldChange}
         />
+      </FormBlock>
+      <FormBlock title="дополнительная информация">
         <FormMultilineTextField
           name="descriptionText"
           label="описание"
@@ -244,8 +246,6 @@ export function CreateDocumentFormDialog(props: CreateDocumentFormDialogProps) {
           error={!!errors?.descriptionText}
           onChange={handleTextFieldChange}
         />
-      </FormBlock>
-      <FormBlock title="дополнительная информация">
         <FormDate
           name="date"
           label="дата публикации"

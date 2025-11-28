@@ -3,7 +3,7 @@ import { type Right, allRights } from '@common/enums'
 import type { CreateRoleSuccessResultDto } from '@common/dtos/server-api/roles.dto'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
-import { localizationForRight } from '~/localization/right'
+import { localizationForRight } from '~/localization'
 import {
   type CreateRoleFormData,
   INITIAL_CREATE_ROLE_FORM_DATA,
