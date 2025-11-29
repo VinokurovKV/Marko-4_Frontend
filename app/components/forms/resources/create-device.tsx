@@ -1,10 +1,9 @@
 // Project
 import { allDeviceTypes } from '@common/enums'
-import type { ReadTagsWithPrimaryPropsSuccessResultItemDto } from '@common/dtos/server-api/tags.dto'
 import type { CreateDeviceSuccessResultDto } from '@common/dtos/server-api/devices.dto'
-import type { DtoWithoutEnums } from '@common/dto-without-enums'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
+import { useTags } from '~/hooks/resources'
 import { localizationForDeviceType } from '~/localization'
 import {
   type CreateDeviceFormData,
@@ -28,13 +27,10 @@ import * as React from 'react'
 const EMPTY_TAG_IDS_ARR: number[] = []
 const EMPTY_TAG_CODES_ARR: string[] = []
 
-type Tag = DtoWithoutEnums<ReadTagsWithPrimaryPropsSuccessResultItemDto>
-
 const CREATE_DEVICE_FORM_PROPS_JOINED =
   createDeviceFormValidator.getPromptsJoined()
 
 export interface CreateDeviceFormDialogProps {
-  tags: Tag[] | null
   createModeIsActive: boolean
   setCreateModeIsActive: React.Dispatch<React.SetStateAction<boolean>>
   onSuccessCreateDevice?: (
@@ -45,6 +41,8 @@ export interface CreateDeviceFormDialogProps {
 
 export function CreateDeviceFormDialog(props: CreateDeviceFormDialogProps) {
   const notifier = useNotifier()
+
+  const tags = useTags('PRIMARY_PROPS', false, props.createModeIsActive)
 
   const submitAction = React.useCallback(
     async (validatedData: CreateDeviceFormData) => {
@@ -152,14 +150,11 @@ export function CreateDeviceFormDialog(props: CreateDeviceFormDialogProps) {
     []
   )
 
-  const tagIds = React.useMemo(
-    () => props.tags?.map((tag) => tag.id) ?? [],
-    [props.tags]
-  )
+  const tagIds = React.useMemo(() => tags?.map((tag) => tag.id) ?? [], [tags])
 
   const tagCodeForId = React.useMemo(
-    () => new Map((props.tags ?? []).map((tag) => [tag.id, tag.code])),
-    [props.tags]
+    () => new Map((tags ?? []).map((tag) => [tag.id, tag.code])),
+    [tags]
   )
 
   return (

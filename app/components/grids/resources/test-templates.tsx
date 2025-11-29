@@ -1,16 +1,12 @@
 // Project
 import { convertMediaTypeToFileExtension } from '@common/formats'
-import type { ReadTagsWithPrimaryPropsSuccessResultItemDto } from '@common/dtos/server-api/tags.dto'
 import type { ReadTestTemplatesWithUpToSecondaryPropsSuccessResultItemDto } from '@common/dtos/server-api/test-templates.dto'
 import type { DtoWithoutEnums } from '@common/dto-without-enums'
 import { downloadFileFromBlob } from '~/utilities/download-file'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
 import { useMeta } from '~/providers/meta'
-import {
-  useTagsSubscription,
-  useTestTemplatesSubscription
-} from '~/hooks/subscriptions'
+import { useTestTemplatesSubscription } from '~/hooks/resources'
 import { CreateTestTemplateFormDialog } from '~/components/forms/resources/create-test-template'
 import { type GridProps, Grid } from '../grid'
 import {
@@ -27,12 +23,10 @@ import { type GridColDef, type GridValidRowModel } from '@mui/x-data-grid'
 
 const MAX_TEST_TEMPLATES_IN_MESSAGES = 3
 
-type Tag = DtoWithoutEnums<ReadTagsWithPrimaryPropsSuccessResultItemDto>
 type TestTemplate =
   DtoWithoutEnums<ReadTestTemplatesWithUpToSecondaryPropsSuccessResultItemDto>
 
 export interface TestTemplatesGridProps {
-  initialTags: Tag[] | null
   initialTestTemplates: TestTemplate[]
 }
 
@@ -44,12 +38,10 @@ export function TestTemplatesGrid(props: TestTemplatesGridProps) {
 
   const [createModeIsActive, setCreateModeIsActive] = React.useState(false)
 
-  const [tags, setTags] = React.useState<Tag[] | null>(props.initialTags)
   const [testTemplates, setTestTemplates] = React.useState<TestTemplate[]>(
     props.initialTestTemplates
   )
 
-  useTagsSubscription('PRIMARY_PROPS', setTags)
   useTestTemplatesSubscription('UP_TO_SECONDARY_PROPS', setTestTemplates)
 
   const testTemplateCodeForId = React.useMemo(
@@ -190,7 +182,6 @@ export function TestTemplatesGrid(props: TestTemplatesGridProps) {
         deleteMany={deleteManyProps}
       />
       <CreateTestTemplateFormDialog
-        tags={tags}
         createModeIsActive={createModeIsActive}
         setCreateModeIsActive={setCreateModeIsActive}
         onSuccessCreateTestTemplate={cancelCreateForm}

@@ -5,10 +5,7 @@ import type { DtoWithoutEnums } from '@common/dto-without-enums'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
 import { useMeta } from '~/providers/meta'
-import {
-  useRolesSubscription,
-  useUsersSubscription
-} from '~/hooks/subscriptions'
+import { useRolesSubscription, useUsersSubscription } from '~/hooks/resources'
 import { CreateUserFormDialog } from '~/components/forms/resources/create-user'
 import { type GridProps, Grid } from '../grid'
 import {

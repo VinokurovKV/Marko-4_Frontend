@@ -11,33 +11,12 @@ import * as React from 'react'
 
 export async function clientLoader() {
   await serverConnector.connect()
-  const [tags, documents, fragments, requirements] = await (async () => {
+  const [requirements] = await (async () => {
     if (serverConnector.meta.status !== 'AUTHENTICATED') {
-      return [null, null, null, null]
+      return [null]
     } else {
       const rights = serverConnector.meta.selfMeta.rights
       return await Promise.all([
-        rights.includes('READ_TAG')
-          ? serverConnector
-              .readTags({
-                scope: 'PRIMARY_PROPS'
-              })
-              .catch(() => null)
-          : Promise.resolve(null),
-        rights.includes('READ_DOCUMENT')
-          ? serverConnector
-              .readDocuments({
-                scope: 'PRIMARY_PROPS'
-              })
-              .catch(() => null)
-          : Promise.resolve(null),
-        rights.includes('READ_FRAGMENT')
-          ? serverConnector
-              .readFragments({
-                scope: 'PRIMARY_PROPS'
-              })
-              .catch(() => null)
-          : Promise.resolve(null),
         rights.includes('READ_REQUIREMENT')
           ? serverConnector
               .readRequirements({
@@ -49,15 +28,12 @@ export async function clientLoader() {
     }
   })()
   return {
-    tags,
-    documents,
-    fragments,
     requirements
   }
 }
 
 export default function MetaRoute({
-  loaderData: { tags, documents, fragments, requirements }
+  loaderData: { requirements }
 }: Route.ComponentProps) {
   const notifier = useNotifier()
   const meta = useMeta()
@@ -76,11 +52,6 @@ export default function MetaRoute({
     meta.selfMeta.rights.includes('READ_REQUIREMENT') === false ? (
     <ForbiddenScreen />
   ) : (
-    <RequirementsScreen
-      initialTags={tags}
-      initialDocuments={documents}
-      initialFragments={fragments}
-      initialRequirements={requirements ?? []}
-    />
+    <RequirementsScreen initialRequirements={requirements ?? []} />
   )
 }

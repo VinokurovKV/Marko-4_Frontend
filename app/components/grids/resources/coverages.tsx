@@ -1,18 +1,14 @@
 // Project
-import type { ReadTagsWithPrimaryPropsSuccessResultItemDto } from '@common/dtos/server-api/tags.dto'
 import type { ReadRequirementsWithPrimaryPropsSuccessResultItemDto } from '@common/dtos/server-api/requirements.dto'
 import type { ReadCoveragesWithUpToSecondaryPropsSuccessResultItemDto } from '@common/dtos/server-api/coverages.dto'
-import type { ReadTestsWithPrimaryPropsSuccessResultItemDto } from '@common/dtos/server-api/tests.dto'
 import type { DtoWithoutEnums } from '@common/dto-without-enums'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
 import { useMeta } from '~/providers/meta'
 import {
   useCoveragesSubscription,
-  useRequirementsSubscription,
-  useTagsSubscription,
-  useTestsSubscription
-} from '~/hooks/subscriptions'
+  useRequirementsSubscription
+} from '~/hooks/resources'
 import { CreateCoverageFormDialog } from '~/components/forms/resources/create-coverage'
 import { type GridProps, Grid } from '../grid'
 import {
@@ -32,18 +28,14 @@ import { type GridColDef, type GridValidRowModel } from '@mui/x-data-grid'
 
 const MAX_COVERAGES_IN_MESSAGES = 3
 
-type Tag = DtoWithoutEnums<ReadTagsWithPrimaryPropsSuccessResultItemDto>
 type Requirement =
   DtoWithoutEnums<ReadRequirementsWithPrimaryPropsSuccessResultItemDto>
 type Coverage =
   DtoWithoutEnums<ReadCoveragesWithUpToSecondaryPropsSuccessResultItemDto>
-type Test = DtoWithoutEnums<ReadTestsWithPrimaryPropsSuccessResultItemDto>
 
 export interface CoveragesGridProps {
-  initialTags: Tag[] | null
   initialRequirements: Requirement[] | null
   initialCoverages: Coverage[]
-  initialTests: Test[] | null
 }
 
 export function CoveragesGrid(props: CoveragesGridProps) {
@@ -54,19 +46,15 @@ export function CoveragesGrid(props: CoveragesGridProps) {
 
   const [createModeIsActive, setCreateModeIsActive] = React.useState(false)
 
-  const [tags, setTags] = React.useState<Tag[] | null>(props.initialTags)
   const [requirements, setRequirements] = React.useState<Requirement[] | null>(
     props.initialRequirements
   )
   const [coverages, setCoverages] = React.useState<Coverage[]>(
     props.initialCoverages
   )
-  const [tests, setTests] = React.useState<Test[] | null>(props.initialTests)
 
-  useTagsSubscription('PRIMARY_PROPS', setTags)
   useRequirementsSubscription('PRIMARY_PROPS', setRequirements)
   useCoveragesSubscription('UP_TO_SECONDARY_PROPS', setCoverages)
-  useTestsSubscription('PRIMARY_PROPS', setTests)
 
   const requirementCodeForId = React.useMemo(
     () =>
@@ -219,9 +207,7 @@ export function CoveragesGrid(props: CoveragesGridProps) {
         deleteMany={deleteManyProps}
       />
       <CreateCoverageFormDialog
-        tags={tags}
         requirements={requirements}
-        tests={tests}
         createModeIsActive={createModeIsActive}
         setCreateModeIsActive={setCreateModeIsActive}
         onSuccessCreateCoverage={cancelCreateForm}

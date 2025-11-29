@@ -1,13 +1,11 @@
 // Project
 import { allRequirementModifiers, allRequirementOrigins } from '@common/enums'
-import type { ReadTagsWithPrimaryPropsSuccessResultItemDto } from '@common/dtos/server-api/tags.dto'
-import type { ReadDocumentsWithPrimaryPropsSuccessResultItemDto } from '@common/dtos/server-api/documents.dto'
-import type { ReadFragmentsWithPrimaryPropsSuccessResultItemDto } from '@common/dtos/server-api/fragments.dto'
 import type { ReadRequirementsWithPrimaryPropsSuccessResultItemDto } from '@common/dtos/server-api/requirements.dto'
 import type { CreateRequirementSuccessResultDto } from '@common/dtos/server-api/requirements.dto'
 import type { DtoWithoutEnums } from '@common/dto-without-enums'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
+import { useTags, useDocuments, useFragments } from '~/hooks/resources'
 import {
   localizationForRequirementModifier,
   localizationForRequirementOrigin
@@ -36,11 +34,6 @@ const EMPTY_TAG_CODES_ARR: string[] = []
 const EMPTY_FRAGMENT_IDS_ARR: number[] = []
 const EMPTY_REQUIREMENT_IDS_ARR: number[] = []
 
-type Tag = DtoWithoutEnums<ReadTagsWithPrimaryPropsSuccessResultItemDto>
-type Document =
-  DtoWithoutEnums<ReadDocumentsWithPrimaryPropsSuccessResultItemDto>
-type Fragment =
-  DtoWithoutEnums<ReadFragmentsWithPrimaryPropsSuccessResultItemDto>
 type Requirement =
   DtoWithoutEnums<ReadRequirementsWithPrimaryPropsSuccessResultItemDto>
 
@@ -48,9 +41,6 @@ const CREATE_REQUIREMENT_FORM_PROPS_JOINED =
   createRequirementFormValidator.getPromptsJoined()
 
 export interface CreateRequirementFormDialogProps {
-  tags: Tag[] | null
-  documents: Document[] | null
-  fragments: Fragment[] | null
   requirements: Requirement[] | null
   createModeIsActive: boolean
   setCreateModeIsActive: React.Dispatch<React.SetStateAction<boolean>>
@@ -64,6 +54,18 @@ export function CreateRequirementFormDialog(
   props: CreateRequirementFormDialogProps
 ) {
   const notifier = useNotifier()
+
+  const tags = useTags('PRIMARY_PROPS', false, props.createModeIsActive)
+  const documents = useDocuments(
+    'PRIMARY_PROPS',
+    false,
+    props.createModeIsActive
+  )
+  const fragments = useFragments(
+    'PRIMARY_PROPS',
+    false,
+    props.createModeIsActive
+  )
 
   const submitAction = React.useCallback(
     async (validatedData: CreateRequirementFormData) => {
@@ -170,38 +172,35 @@ export function CreateRequirementFormDialog(
     []
   )
 
-  const tagIds = React.useMemo(
-    () => props.tags?.map((tag) => tag.id) ?? [],
-    [props.tags]
-  )
+  const tagIds = React.useMemo(() => tags?.map((tag) => tag.id) ?? [], [tags])
 
   const tagCodeForId = React.useMemo(
-    () => new Map((props.tags ?? []).map((tag) => [tag.id, tag.code])),
-    [props.tags]
+    () => new Map((tags ?? []).map((tag) => [tag.id, tag.code])),
+    [tags]
   )
 
   const documentCodeForId = React.useMemo(
     () =>
       new Map(
-        (props.documents ?? []).map((document) => [document.id, document.code])
+        (documents ?? []).map((document) => [document.id, document.code])
       ),
-    [props.documents]
+    [documents]
   )
 
   const fragmentIds = React.useMemo(
-    () => props.fragments?.map((fragment) => fragment.id) ?? [],
-    [props.fragments]
+    () => fragments?.map((fragment) => fragment.id) ?? [],
+    [fragments]
   )
 
   const fragmentTitleForId = React.useMemo(
     () =>
       new Map(
-        (props.fragments ?? []).map((fragment) => [
+        (fragments ?? []).map((fragment) => [
           fragment.id,
           `${documentCodeForId.get(fragment.documentId) ?? '?'} - ${fragment.innerCode}`
         ])
       ),
-    [documentCodeForId, props.fragments]
+    [documentCodeForId, fragments]
   )
 
   const requirementIds = React.useMemo(

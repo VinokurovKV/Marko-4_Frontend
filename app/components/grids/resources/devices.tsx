@@ -1,16 +1,12 @@
 // Project
 import { convertMediaTypeToFileExtension } from '@common/formats'
-import type { ReadTagsWithPrimaryPropsSuccessResultItemDto } from '@common/dtos/server-api/tags.dto'
 import type { ReadDevicesWithUpToSecondaryPropsSuccessResultItemDto } from '@common/dtos/server-api/devices.dto'
 import type { DtoWithoutEnums } from '@common/dto-without-enums'
 import { downloadFileFromBlob } from '~/utilities/download-file'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
 import { useMeta } from '~/providers/meta'
-import {
-  useDevicesSubscription,
-  useTagsSubscription
-} from '~/hooks/subscriptions'
+import { useDevicesSubscription } from '~/hooks/resources'
 import { CreateDeviceFormDialog } from '~/components/forms/resources/create-device'
 import { type GridProps, Grid } from '../grid'
 import {
@@ -29,12 +25,10 @@ import { type GridColDef, type GridValidRowModel } from '@mui/x-data-grid'
 
 const MAX_DEVICES_IN_MESSAGES = 3
 
-type Tag = DtoWithoutEnums<ReadTagsWithPrimaryPropsSuccessResultItemDto>
 type Device =
   DtoWithoutEnums<ReadDevicesWithUpToSecondaryPropsSuccessResultItemDto>
 
 export interface DevicesGridProps {
-  initialTags: Tag[] | null
   initialDevices: Device[]
 }
 
@@ -46,10 +40,8 @@ export function DevicesGrid(props: DevicesGridProps) {
 
   const [createModeIsActive, setCreateModeIsActive] = React.useState(false)
 
-  const [tags, setTags] = React.useState<Tag[] | null>(props.initialTags)
   const [devices, setDevices] = React.useState<Device[]>(props.initialDevices)
 
-  useTagsSubscription('PRIMARY_PROPS', setTags)
   useDevicesSubscription('UP_TO_SECONDARY_PROPS', setDevices)
 
   const deviceCodeForId = React.useMemo(
@@ -220,7 +212,6 @@ export function DevicesGrid(props: DevicesGridProps) {
         deleteMany={deleteManyProps}
       />
       <CreateDeviceFormDialog
-        tags={tags}
         createModeIsActive={createModeIsActive}
         setCreateModeIsActive={setCreateModeIsActive}
         onSuccessCreateDevice={cancelCreateForm}

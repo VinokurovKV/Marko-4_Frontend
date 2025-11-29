@@ -1,9 +1,8 @@
 // Project
-import type { ReadTagsWithPrimaryPropsSuccessResultItemDto } from '@common/dtos/server-api/tags.dto'
 import type { CreateTestTemplateSuccessResultDto } from '@common/dtos/server-api/test-templates.dto'
-import type { DtoWithoutEnums } from '@common/dto-without-enums'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
+import { useTags } from '~/hooks/resources'
 import {
   type CreateTestTemplateFormData,
   INITIAL_CREATE_TEST_TEMPLATE_FORM_DATA,
@@ -24,13 +23,10 @@ import * as React from 'react'
 const EMPTY_TAG_IDS_ARR: number[] = []
 const EMPTY_TAG_CODES_ARR: string[] = []
 
-type Tag = DtoWithoutEnums<ReadTagsWithPrimaryPropsSuccessResultItemDto>
-
 const CREATE_TEST_TEMPLATE_FORM_PROPS_JOINED =
   createTestTemplateFormValidator.getPromptsJoined()
 
 export interface CreateTestTemplateFormDialogProps {
-  tags: Tag[] | null
   createModeIsActive: boolean
   setCreateModeIsActive: React.Dispatch<React.SetStateAction<boolean>>
   onSuccessCreateTestTemplate?: (
@@ -43,6 +39,8 @@ export function CreateTestTemplateFormDialog(
   props: CreateTestTemplateFormDialogProps
 ) {
   const notifier = useNotifier()
+
+  const tags = useTags('PRIMARY_PROPS', false, props.createModeIsActive)
 
   const submitAction = React.useCallback(
     async (validatedData: CreateTestTemplateFormData) => {
@@ -133,14 +131,11 @@ export function CreateTestTemplateFormDialog(
     onSuccessSubmit: onSuccessSubmit
   })
 
-  const tagIds = React.useMemo(
-    () => props.tags?.map((tag) => tag.id) ?? [],
-    [props.tags]
-  )
+  const tagIds = React.useMemo(() => tags?.map((tag) => tag.id) ?? [], [tags])
 
   const tagCodeForId = React.useMemo(
-    () => new Map((props.tags ?? []).map((tag) => [tag.id, tag.code])),
-    [props.tags]
+    () => new Map((tags ?? []).map((tag) => [tag.id, tag.code])),
+    [tags]
   )
 
   return (

@@ -11,19 +11,12 @@ import * as React from 'react'
 
 export async function clientLoader() {
   await serverConnector.connect()
-  const [tags, documents] = await (async () => {
+  const [documents] = await (async () => {
     if (serverConnector.meta.status !== 'AUTHENTICATED') {
-      return [null, null]
+      return [null]
     } else {
       const rights = serverConnector.meta.selfMeta.rights
       return await Promise.all([
-        rights.includes('READ_TAG')
-          ? serverConnector
-              .readTags({
-                scope: 'PRIMARY_PROPS'
-              })
-              .catch(() => null)
-          : Promise.resolve(null),
         rights.includes('READ_DOCUMENT')
           ? serverConnector
               .readDocuments({
@@ -35,13 +28,12 @@ export async function clientLoader() {
     }
   })()
   return {
-    tags,
     documents
   }
 }
 
 export default function MetaRoute({
-  loaderData: { tags, documents }
+  loaderData: { documents }
 }: Route.ComponentProps) {
   const notifier = useNotifier()
   const meta = useMeta()
@@ -60,6 +52,6 @@ export default function MetaRoute({
     meta.selfMeta.rights.includes('READ_DOCUMENT') === false ? (
     <ForbiddenScreen />
   ) : (
-    <DocumentsScreen initialTags={tags} initialDocuments={documents ?? []} />
+    <DocumentsScreen initialDocuments={documents ?? []} />
   )
 }

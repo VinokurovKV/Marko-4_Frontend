@@ -1,16 +1,12 @@
 // Project
 import { convertMediaTypeToFileExtension } from '@common/formats'
-import type { ReadTagsWithPrimaryPropsSuccessResultItemDto } from '@common/dtos/server-api/tags.dto'
 import type { ReadDocumentsWithUpToSecondaryPropsSuccessResultItemDto } from '@common/dtos/server-api/documents.dto'
 import type { DtoWithoutEnums } from '@common/dto-without-enums'
 import { downloadFileFromBlob } from '~/utilities/download-file'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
 import { useMeta } from '~/providers/meta'
-import {
-  useDocumentsSubscription,
-  useTagsSubscription
-} from '~/hooks/subscriptions'
+import { useDocumentsSubscription } from '~/hooks/resources'
 import { CreateDocumentFormDialog } from '~/components/forms/resources/create-document'
 import { type GridProps, Grid } from '../grid'
 import {
@@ -32,12 +28,10 @@ import { type GridColDef, type GridValidRowModel } from '@mui/x-data-grid'
 
 const MAX_DOCUMENTS_IN_MESSAGES = 3
 
-type Tag = DtoWithoutEnums<ReadTagsWithPrimaryPropsSuccessResultItemDto>
 type Document =
   DtoWithoutEnums<ReadDocumentsWithUpToSecondaryPropsSuccessResultItemDto>
 
 export interface DocumentsGridProps {
-  initialTags: Tag[] | null
   initialDocuments: Document[]
 }
 
@@ -49,12 +43,10 @@ export function DocumentsGrid(props: DocumentsGridProps) {
 
   const [createModeIsActive, setCreateModeIsActive] = React.useState(false)
 
-  const [tags, setTags] = React.useState<Tag[] | null>(props.initialTags)
   const [documents, setDocuments] = React.useState<Document[]>(
     props.initialDocuments
   )
 
-  useTagsSubscription('PRIMARY_PROPS', setTags)
   useDocumentsSubscription('UP_TO_SECONDARY_PROPS', setDocuments)
 
   const documentCodeForId = React.useMemo(
@@ -192,7 +184,6 @@ export function DocumentsGrid(props: DocumentsGridProps) {
         deleteMany={deleteManyProps}
       />
       <CreateDocumentFormDialog
-        tags={tags}
         createModeIsActive={createModeIsActive}
         setCreateModeIsActive={setCreateModeIsActive}
         onSuccessCreateDocument={cancelCreateForm}

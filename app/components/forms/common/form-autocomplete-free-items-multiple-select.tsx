@@ -134,7 +134,7 @@ export function FormAutocompleteFreeItemsMultipleSelect<
       <AutocompleteStyled
         multiple
         freeSolo
-        autoSelect
+        /* autoSelect */
         options={props.possibleValues}
         getOptionLabel={(value) => {
           const title =

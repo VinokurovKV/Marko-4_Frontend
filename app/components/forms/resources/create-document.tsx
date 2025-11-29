@@ -1,10 +1,9 @@
 // Project
 import { allDocumentTypes } from '@common/enums'
-import type { ReadTagsWithPrimaryPropsSuccessResultItemDto } from '@common/dtos/server-api/tags.dto'
 import type { CreateDocumentSuccessResultDto } from '@common/dtos/server-api/documents.dto'
-import type { DtoWithoutEnums } from '@common/dto-without-enums'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
+import { useTags } from '~/hooks/resources'
 import { localizationForDocumentType } from '~/localization'
 import {
   type CreateDocumentFormData,
@@ -30,13 +29,10 @@ import * as React from 'react'
 const EMPTY_TAG_IDS_ARR: number[] = []
 const EMPTY_TAG_CODES_ARR: string[] = []
 
-type Tag = DtoWithoutEnums<ReadTagsWithPrimaryPropsSuccessResultItemDto>
-
 const CREATE_DOCUMENT_FORM_PROPS_JOINED =
   createDocumentFormValidator.getPromptsJoined()
 
 export interface CreateDocumentFormDialogProps {
-  tags: Tag[] | null
   createModeIsActive: boolean
   setCreateModeIsActive: React.Dispatch<React.SetStateAction<boolean>>
   onSuccessCreateDocument?: (
@@ -47,6 +43,8 @@ export interface CreateDocumentFormDialogProps {
 
 export function CreateDocumentFormDialog(props: CreateDocumentFormDialogProps) {
   const notifier = useNotifier()
+
+  const tags = useTags('PRIMARY_PROPS', false, props.createModeIsActive)
 
   const submitAction = React.useCallback(
     async (validatedData: CreateDocumentFormData) => {
@@ -149,14 +147,11 @@ export function CreateDocumentFormDialog(props: CreateDocumentFormDialogProps) {
     []
   )
 
-  const tagIds = React.useMemo(
-    () => props.tags?.map((tag) => tag.id) ?? [],
-    [props.tags]
-  )
+  const tagIds = React.useMemo(() => tags?.map((tag) => tag.id) ?? [], [tags])
 
   const tagCodeForId = React.useMemo(
-    () => new Map((props.tags ?? []).map((tag) => [tag.id, tag.code])),
-    [props.tags]
+    () => new Map((tags ?? []).map((tag) => [tag.id, tag.code])),
+    [tags]
   )
 
   return (

@@ -11,19 +11,12 @@ import * as React from 'react'
 
 export async function clientLoader() {
   await serverConnector.connect()
-  const [tags, requirements, coverages, tests] = await (async () => {
+  const [requirements, coverages] = await (async () => {
     if (serverConnector.meta.status !== 'AUTHENTICATED') {
-      return [null, null, null, null]
+      return [null, null]
     } else {
       const rights = serverConnector.meta.selfMeta.rights
       return await Promise.all([
-        rights.includes('READ_TAG')
-          ? serverConnector
-              .readTags({
-                scope: 'PRIMARY_PROPS'
-              })
-              .catch(() => null)
-          : Promise.resolve(null),
         rights.includes('READ_REQUIREMENT')
           ? serverConnector
               .readRequirements({
@@ -37,27 +30,18 @@ export async function clientLoader() {
                 scope: 'UP_TO_SECONDARY_PROPS'
               })
               .catch(() => null)
-          : Promise.resolve(null),
-        rights.includes('READ_TEST')
-          ? serverConnector
-              .readTests({
-                scope: 'PRIMARY_PROPS'
-              })
-              .catch(() => null)
           : Promise.resolve(null)
       ])
     }
   })()
   return {
-    tags,
     requirements,
-    coverages,
-    tests
+    coverages
   }
 }
 
 export default function MetaRoute({
-  loaderData: { tags, requirements, coverages, tests }
+  loaderData: { requirements, coverages }
 }: Route.ComponentProps) {
   const notifier = useNotifier()
   const meta = useMeta()
@@ -77,10 +61,8 @@ export default function MetaRoute({
     <ForbiddenScreen />
   ) : (
     <CoveragesScreen
-      initialTags={tags}
       initialRequirements={requirements}
       initialCoverages={coverages ?? []}
-      initialTests={tests}
     />
   )
 }

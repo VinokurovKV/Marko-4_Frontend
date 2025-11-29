@@ -1,18 +1,10 @@
 // Project
-import type { ReadTagsWithPrimaryPropsSuccessResultItemDto } from '@common/dtos/server-api/tags.dto'
-import type { ReadDocumentsWithPrimaryPropsSuccessResultItemDto } from '@common/dtos/server-api/documents.dto'
-import type { ReadFragmentsWithPrimaryPropsSuccessResultItemDto } from '@common/dtos/server-api/fragments.dto'
 import type { ReadRequirementsWithUpToSecondaryPropsSuccessResultItemDto } from '@common/dtos/server-api/requirements.dto'
 import type { DtoWithoutEnums } from '@common/dto-without-enums'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
 import { useMeta } from '~/providers/meta'
-import {
-  useDocumentsSubscription,
-  useFragmentsSubscription,
-  useRequirementsSubscription,
-  useTagsSubscription
-} from '~/hooks/subscriptions'
+import { useRequirementsSubscription } from '~/hooks/resources'
 import { CreateRequirementFormDialog } from '~/components/forms/resources/create-requirement'
 import { type GridProps, Grid } from '../grid'
 import {
@@ -34,18 +26,10 @@ import { type GridColDef, type GridValidRowModel } from '@mui/x-data-grid'
 
 const MAX_REQUIREMENTS_IN_MESSAGES = 3
 
-type Tag = DtoWithoutEnums<ReadTagsWithPrimaryPropsSuccessResultItemDto>
-type Document =
-  DtoWithoutEnums<ReadDocumentsWithPrimaryPropsSuccessResultItemDto>
-type Fragment =
-  DtoWithoutEnums<ReadFragmentsWithPrimaryPropsSuccessResultItemDto>
 type Requirement =
   DtoWithoutEnums<ReadRequirementsWithUpToSecondaryPropsSuccessResultItemDto>
 
 export interface RequirementsGridProps {
-  initialTags: Tag[] | null
-  initialDocuments: Document[] | null
-  initialFragments: Fragment[] | null
   initialRequirements: Requirement[]
 }
 
@@ -57,20 +41,10 @@ export function RequirementsGrid(props: RequirementsGridProps) {
 
   const [createModeIsActive, setCreateModeIsActive] = React.useState(false)
 
-  const [tags, setTags] = React.useState<Tag[] | null>(props.initialTags)
-  const [documents, setDocuments] = React.useState<Document[] | null>(
-    props.initialDocuments
-  )
-  const [fragments, setFragments] = React.useState<Fragment[] | null>(
-    props.initialFragments
-  )
   const [requirements, setRequirements] = React.useState<Requirement[]>(
     props.initialRequirements
   )
 
-  useTagsSubscription('PRIMARY_PROPS', setTags)
-  useDocumentsSubscription('PRIMARY_PROPS', setDocuments)
-  useFragmentsSubscription('PRIMARY_PROPS', setFragments)
   useRequirementsSubscription('UP_TO_SECONDARY_PROPS', setRequirements)
 
   const requirementCodeForId = React.useMemo(
@@ -204,9 +178,6 @@ export function RequirementsGrid(props: RequirementsGridProps) {
         deleteMany={deleteManyProps}
       />
       <CreateRequirementFormDialog
-        tags={tags}
-        documents={documents}
-        fragments={fragments}
         requirements={requirements}
         createModeIsActive={createModeIsActive}
         setCreateModeIsActive={setCreateModeIsActive}

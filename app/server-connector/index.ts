@@ -3506,7 +3506,7 @@ export class ServerConnector {
       this.subscriptionIdForServerSubscriptionId.delete(serverSubscriptionId)
       if (this.socket !== null) {
         const params: UnsubscribeOneParamsDto = {
-          subscriptionId: subscriptionId
+          subscriptionId: serverSubscriptionId
         }
         this.socket
           .emitWithAck(WEB_SOCKET_CONFIG.MESSAGE_TYPE.UNSUBSCRIBE_ONE, params)
@@ -3521,23 +3521,25 @@ export class ServerConnector {
   }
   unsubscribeMany(subscriptionIds: number[]) {
     console.log(`UNSUBSCRIBE MANY: ${subscriptionIds.toString()}`)
+    const serverSubscriptionIds: number[] = []
     for (const subscriptionId of subscriptionIds) {
       this.subscriptionBlockForSubscriptionId.delete(subscriptionId)
       const serverSubscriptionId =
         this.serverSubscriptionIdForSubscriptionId.get(subscriptionId)
       this.serverSubscriptionIdForSubscriptionId.delete(subscriptionId)
       if (serverSubscriptionId !== undefined) {
+        serverSubscriptionIds.push(serverSubscriptionId)
         this.subscriptionIdForServerSubscriptionId.delete(serverSubscriptionId)
       }
     }
     if (this.socket !== null) {
       const params: UnsubscribeManyParamsDto = {
-        subscriptionIds: subscriptionIds
+        subscriptionIds: serverSubscriptionIds
       }
       this.socket
         .emitWithAck(WEB_SOCKET_CONFIG.MESSAGE_TYPE.UNSUBSCRIBE_MANY, params)
         .then(() => {
-          console.log('WS: UNSUBSCRIBE:', subscriptionIds)
+          console.log('WS: UNSUBSCRIBE:', serverSubscriptionIds)
         })
         .catch(() => {
           //

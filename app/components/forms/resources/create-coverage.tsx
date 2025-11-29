@@ -1,12 +1,11 @@
 // Project
 import { allCoverageTypes } from '@common/enums'
-import type { ReadTagsWithPrimaryPropsSuccessResultItemDto } from '@common/dtos/server-api/tags.dto'
 import type { ReadRequirementsWithPrimaryPropsSuccessResultItemDto } from '@common/dtos/server-api/requirements.dto'
 import type { CreateCoverageSuccessResultDto } from '@common/dtos/server-api/coverages.dto'
-import type { ReadTestsWithPrimaryPropsSuccessResultItemDto } from '@common/dtos/server-api/tests.dto'
 import type { DtoWithoutEnums } from '@common/dto-without-enums'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
+import { useTags, useTests } from '~/hooks/resources'
 import { localizationForCoverageType } from '~/localization'
 import {
   type CreateCoverageFormData,
@@ -33,18 +32,14 @@ const EMPTY_TAG_IDS_ARR: number[] = []
 const EMPTY_TAG_CODES_ARR: string[] = []
 const EMPTY_TEST_IDS_ARR: number[] = []
 
-type Tag = DtoWithoutEnums<ReadTagsWithPrimaryPropsSuccessResultItemDto>
 type Requirement =
   DtoWithoutEnums<ReadRequirementsWithPrimaryPropsSuccessResultItemDto>
-type Test = DtoWithoutEnums<ReadTestsWithPrimaryPropsSuccessResultItemDto>
 
 const CREATE_COVERAGE_FORM_PROPS_JOINED =
   createCoverageFormValidator.getPromptsJoined()
 
 export interface CreateCoverageFormDialogProps {
-  tags: Tag[] | null
   requirements: Requirement[] | null
-  tests: Test[] | null
   createModeIsActive: boolean
   setCreateModeIsActive: React.Dispatch<React.SetStateAction<boolean>>
   onSuccessCreateCoverage?: (
@@ -55,6 +50,9 @@ export interface CreateCoverageFormDialogProps {
 
 export function CreateCoverageFormDialog(props: CreateCoverageFormDialogProps) {
   const notifier = useNotifier()
+
+  const tags = useTags('PRIMARY_PROPS', false, props.createModeIsActive)
+  const tests = useTests('PRIMARY_PROPS', false, props.createModeIsActive)
 
   const submitAction = React.useCallback(
     async (validatedData: CreateCoverageFormData) => {
@@ -167,14 +165,11 @@ export function CreateCoverageFormDialog(props: CreateCoverageFormDialogProps) {
     []
   )
 
-  const tagIds = React.useMemo(
-    () => props.tags?.map((tag) => tag.id) ?? [],
-    [props.tags]
-  )
+  const tagIds = React.useMemo(() => tags?.map((tag) => tag.id) ?? [], [tags])
 
   const tagCodeForId = React.useMemo(
-    () => new Map((props.tags ?? []).map((tag) => [tag.id, tag.code])),
-    [props.tags]
+    () => new Map((tags ?? []).map((tag) => [tag.id, tag.code])),
+    [tags]
   )
 
   const requirementIds = React.useMemo(
@@ -183,13 +178,13 @@ export function CreateCoverageFormDialog(props: CreateCoverageFormDialogProps) {
   )
 
   const testIds = React.useMemo(
-    () => props.tests?.map((test) => test.id) ?? [],
-    [props.tests]
+    () => tests?.map((test) => test.id) ?? [],
+    [tests]
   )
 
   const testCodeForId = React.useMemo(
-    () => new Map((props.tests ?? []).map((test) => [test.id, test.code])),
-    [props.tests]
+    () => new Map((tests ?? []).map((test) => [test.id, test.code])),
+    [tests]
   )
 
   return (
