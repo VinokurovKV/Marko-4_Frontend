@@ -19,6 +19,7 @@ export default [
             route('documents', 'routes/documents.tsx'),
             route('requirements', 'routes/requirements.tsx'),
             route('coverages', 'routes/coverages.tsx'),
+            route('dbcs', 'routes/dbcs.tsx'),
             route('test-templates', 'routes/test-templates.tsx'),
             route('tests', 'routes/tests.tsx'),
             route('devices', 'routes/devices.tsx'),
