@@ -50,7 +50,7 @@ export function CreateTagFormDialog(props: CreateTagFormDialogProps) {
       notifier.showSuccess(`тег '${data.code}' создан`)
       props.onSuccessCreateTag?.(createTagResult)
     },
-    [props.onSuccessCreateTag]
+    [props.onSuccessCreateTag, notifier]
   )
 
   const { formInternal, data, errors, handleTextFieldChange } = useForm<

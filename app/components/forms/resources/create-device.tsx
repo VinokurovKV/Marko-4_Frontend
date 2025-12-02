@@ -111,7 +111,7 @@ export function CreateDeviceFormDialog(props: CreateDeviceFormDialogProps) {
         undefined
       )
     },
-    []
+    [notifier]
   )
 
   const onSuccessSubmit = React.useCallback(
@@ -122,7 +122,7 @@ export function CreateDeviceFormDialog(props: CreateDeviceFormDialogProps) {
       notifier.showSuccess(`устройство '${data.code}' создано`)
       props.onSuccessCreateDevice?.(createDeviceResult)
     },
-    [props.onSuccessCreateDevice]
+    [props.onSuccessCreateDevice, notifier]
   )
 
   const {

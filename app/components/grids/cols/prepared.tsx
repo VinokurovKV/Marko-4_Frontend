@@ -19,7 +19,7 @@ function PreparedIcon({ flag }: PreparedIconProps) {
   return flag ? <DoneIcon color="success" /> : <CloseIcon color="error" />
 }
 
-export function usePrepatedCol(
+export function usePreparedCol(
   gender: Gender,
   truePrompt?: string,
   falsePrompt?: string
@@ -41,8 +41,8 @@ export function usePrepatedCol(
           </Stack>
         </Tooltip>
       ),
-      minWidth: 150,
-      flex: 1
+      minWidth: 120,
+      flex: 0.01
     }),
     []
   )

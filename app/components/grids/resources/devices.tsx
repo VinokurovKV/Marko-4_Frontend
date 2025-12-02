@@ -16,7 +16,7 @@ import {
   useDeviceTypeCol,
   useDsefsCountCol,
   useNameCol,
-  usePrepatedCol
+  usePreparedCol
 } from '../cols'
 // React
 import * as React from 'react'
@@ -55,7 +55,7 @@ export function DevicesGrid(props: DevicesGridProps) {
     useCodeCol('id', true, '/devices'),
     useNameCol(),
     useDeviceTypeCol(),
-    usePrepatedCol(
+    usePreparedCol(
       'MIDDLE',
       undefined,
       'не все необходимые конфигурации загружены'
@@ -134,7 +134,7 @@ export function DevicesGrid(props: DevicesGridProps) {
           }
         : undefined
     }),
-    [rightsSet, deviceCodeForId]
+    [notifier, rightsSet, deviceCodeForId]
   )
 
   const actionsCol = useActionsCol(actionsColProps)
@@ -194,7 +194,7 @@ export function DevicesGrid(props: DevicesGridProps) {
             }
           }
         : undefined,
-    [rightsSet, getDisplayedDeviceCodes]
+    [notifier, rightsSet, getDisplayedDeviceCodes]
   )
 
   const cancelCreateForm = React.useCallback(() => {

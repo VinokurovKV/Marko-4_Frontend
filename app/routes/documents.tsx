@@ -46,7 +46,7 @@ export default function MetaRoute({
     ) {
       notifier.showError('не удалось загрузить список документов')
     }
-  }, [documents])
+  }, [documents, notifier])
 
   return meta.status === 'AUTHENTICATED' &&
     meta.selfMeta.rights.includes('READ_DOCUMENT') === false ? (

@@ -34,18 +34,24 @@ type ReadManyCoverage<Scope extends ReadManyResourceScope> = DtoWithoutEnums<
 export function useCoverageSubscription<Scope extends ReadOneResourceScope>(
   scope: Scope,
   coverageId: number | null,
-  setCoverage:
-    | React.Dispatch<React.SetStateAction<ReadOneCoverage<Scope>>>
-    | React.Dispatch<React.SetStateAction<ReadOneCoverage<Scope> | null>>,
+  setCoverage: React.Dispatch<
+    React.SetStateAction<ReadOneCoverage<Scope> | null>
+  >,
   withInitialLoad: boolean = false,
   notifyAboutInitialLoadProblems: boolean = false,
   active: boolean = true
 ) {
   const notifier = useNotifier()
 
+  const [initialized, setInitialized] = React.useState(false)
+
   const load = React.useCallback(
     async (notifyAboutProblems: boolean) => {
-      if (coverageId === null || active === false) {
+      if (active === false) {
+        return
+      }
+      if (coverageId === null) {
+        setCoverage(null as ReadOneCoverage<Scope>)
         return
       }
       try {
@@ -64,16 +70,23 @@ export function useCoverageSubscription<Scope extends ReadOneResourceScope>(
         }
       }
     },
-    [scope, coverageId, setCoverage, active]
+    [scope, coverageId, setCoverage, active, notifier]
   )
 
-  // Initial load
   React.useEffect(() => {
-    if (withInitialLoad === false) {
+    setInitialized(true)
+    if (withInitialLoad === false && initialized === false) {
       return
     }
     void load(notifyAboutInitialLoadProblems)
-  }, [scope, withInitialLoad, notifyAboutInitialLoadProblems, load])
+  }, [
+    scope,
+    withInitialLoad,
+    notifyAboutInitialLoadProblems,
+    initialized,
+    setInitialized,
+    load
+  ])
 
   // Subscribe
   React.useEffect(() => {
@@ -159,7 +172,7 @@ export function useCoveragesSubscription<Scope extends ReadManyResourceScope>(
         }
       }
     },
-    [scope, setCoverages, active]
+    [scope, setCoverages, active, notifier]
   )
 
   // Initial load

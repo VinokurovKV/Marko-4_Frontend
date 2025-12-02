@@ -124,7 +124,7 @@ export function CoveragesGrid(props: CoveragesGridProps) {
           }
         : undefined
     }),
-    [rightsSet, coverageCodeForId, getRequirementCodeForCoverageId]
+    [notifier, rightsSet, coverageCodeForId, getRequirementCodeForCoverageId]
   )
 
   const actionsCol = useActionsCol(actionsColProps)
@@ -189,7 +189,7 @@ export function CoveragesGrid(props: CoveragesGridProps) {
             }
           }
         : undefined,
-    [rightsSet, getDisplayedCoverageCodes]
+    [notifier, rightsSet, getDisplayedCoverageCodes]
   )
 
   const cancelCreateForm = React.useCallback(() => {

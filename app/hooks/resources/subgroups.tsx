@@ -1,41 +1,41 @@
 // Project
 import type { ReadOneResourceScope, ReadManyResourceScope } from '@common/enums'
 import type {
-  ReadFragmentWithPrimaryPropsSuccessResultDto,
-  ReadFragmentWithUpToSecondaryPropsSuccessResultDto,
-  ReadFragmentWithUpToTertiaryPropsSuccessResultDto,
-  ReadFragmentWithAllPropsSuccessResultDto,
-  ReadFragmentsWithPrimaryPropsSuccessResultItemDto,
-  ReadFragmentsWithUpToSecondaryPropsSuccessResultItemDto
-} from '@common/dtos/server-api/fragments.dto'
+  ReadSubgroupWithPrimaryPropsSuccessResultDto,
+  ReadSubgroupWithUpToSecondaryPropsSuccessResultDto,
+  ReadSubgroupWithUpToTertiaryPropsSuccessResultDto,
+  ReadSubgroupWithAllPropsSuccessResultDto,
+  ReadSubgroupsWithPrimaryPropsSuccessResultItemDto,
+  ReadSubgroupsWithUpToSecondaryPropsSuccessResultItemDto
+} from '@common/dtos/server-api/subgroups.dto'
 import type { DtoWithoutEnums } from '@common/dto-without-enums'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
 // React
 import * as React from 'react'
 
-type ReadOneFragment<Scope extends ReadOneResourceScope> = DtoWithoutEnums<
+type ReadOneSubgroup<Scope extends ReadOneResourceScope> = DtoWithoutEnums<
   Scope extends 'PRIMARY_PROPS'
-    ? ReadFragmentWithPrimaryPropsSuccessResultDto
+    ? ReadSubgroupWithPrimaryPropsSuccessResultDto
     : Scope extends 'UP_TO_SECONDARY_PROPS'
-      ? ReadFragmentWithUpToSecondaryPropsSuccessResultDto
+      ? ReadSubgroupWithUpToSecondaryPropsSuccessResultDto
       : Scope extends 'UP_TO_TERTIARY_PROPS'
-        ? ReadFragmentWithUpToTertiaryPropsSuccessResultDto
-        : ReadFragmentWithAllPropsSuccessResultDto
+        ? ReadSubgroupWithUpToTertiaryPropsSuccessResultDto
+        : ReadSubgroupWithAllPropsSuccessResultDto
 >
 
-type ReadManyFragment<Scope extends ReadManyResourceScope> = DtoWithoutEnums<
+type ReadManySubgroup<Scope extends ReadManyResourceScope> = DtoWithoutEnums<
   Scope extends 'PRIMARY_PROPS'
-    ? ReadFragmentsWithPrimaryPropsSuccessResultItemDto
-    : ReadFragmentsWithUpToSecondaryPropsSuccessResultItemDto
+    ? ReadSubgroupsWithPrimaryPropsSuccessResultItemDto
+    : ReadSubgroupsWithUpToSecondaryPropsSuccessResultItemDto
 >
 
-/** Subscribe to fragment updates for existing fragment state */
-export function useFragmentSubscription<Scope extends ReadOneResourceScope>(
+/** Subscribe to subgroup updates for existing subgroup state */
+export function useSubgroupSubscription<Scope extends ReadOneResourceScope>(
   scope: Scope,
-  fragmentId: number | null,
-  setFragment: React.Dispatch<
-    React.SetStateAction<ReadOneFragment<Scope> | null>
+  subgroupId: number | null,
+  setSubgroup: React.Dispatch<
+    React.SetStateAction<ReadOneSubgroup<Scope> | null>
   >,
   withInitialLoad: boolean = false,
   notifyAboutInitialLoadProblems: boolean = false,
@@ -50,27 +50,27 @@ export function useFragmentSubscription<Scope extends ReadOneResourceScope>(
       if (active === false) {
         return
       }
-      if (fragmentId === null) {
-        setFragment(null as ReadOneFragment<Scope>)
+      if (subgroupId === null) {
+        setSubgroup(null as ReadOneSubgroup<Scope>)
         return
       }
       try {
-        const fragment = (await serverConnector.readFragment(
-          { id: fragmentId },
+        const subgroup = (await serverConnector.readSubgroup(
+          { id: subgroupId },
           {
             scope: scope
           }
-        )) as ReadOneFragment<Scope>
-        setFragment(fragment)
+        )) as ReadOneSubgroup<Scope>
+        setSubgroup(subgroup)
       } catch {
         if (notifyAboutProblems) {
           notifier.showWarning(
-            `не удалось загрузить фрагмент документа с идентификатором ${fragmentId}`
+            `не удалось загрузить подгруппу тестов с идентификатором ${subgroupId}`
           )
         }
       }
     },
-    [scope, fragmentId, setFragment, active, notifier]
+    [scope, subgroupId, setSubgroup, active, notifier]
   )
 
   React.useEffect(() => {
@@ -90,14 +90,14 @@ export function useFragmentSubscription<Scope extends ReadOneResourceScope>(
 
   // Subscribe
   React.useEffect(() => {
-    if (fragmentId === null) {
+    if (subgroupId === null) {
       return
     }
     const subscriptionId = serverConnector.subscribeToResource(
       {
-        type: 'FRAGMENT',
+        type: 'SUBGROUP',
         resourceConfig: {
-          id: fragmentId
+          id: subgroupId
         }
       },
       (data) => {
@@ -118,36 +118,36 @@ export function useFragmentSubscription<Scope extends ReadOneResourceScope>(
     return () => {
       serverConnector.unsubscribe(subscriptionId)
     }
-  }, [scope, fragmentId, load])
+  }, [scope, subgroupId, load])
 }
 
-/** Subscribe to fragment updates with initial load */
-export function useFragment<Scope extends ReadOneResourceScope>(
+/** Subscribe to subgroup updates with initial load */
+export function useSubgroup<Scope extends ReadOneResourceScope>(
   scope: Scope,
-  fragmentId: number | null,
+  subgroupId: number | null,
   notifyAboutInitialLoadProblems: boolean = false,
   active: boolean = true
 ) {
-  const [fragment, setFragment] = React.useState<ReadOneFragment<Scope> | null>(
+  const [subgroup, setSubgroup] = React.useState<ReadOneSubgroup<Scope> | null>(
     null
   )
-  useFragmentSubscription(
+  useSubgroupSubscription(
     scope,
-    fragmentId,
-    setFragment,
+    subgroupId,
+    setSubgroup,
     true,
     notifyAboutInitialLoadProblems,
     active
   )
-  return fragment
+  return subgroup
 }
 
-/** Subscribe to fragments updates for existing fragments state */
-export function useFragmentsSubscription<Scope extends ReadManyResourceScope>(
+/** Subscribe to subgroups updates for existing subgroups state */
+export function useSubgroupsSubscription<Scope extends ReadManyResourceScope>(
   scope: Scope,
-  setFragments:
-    | React.Dispatch<React.SetStateAction<ReadManyFragment<Scope>[]>>
-    | React.Dispatch<React.SetStateAction<ReadManyFragment<Scope>[] | null>>,
+  setSubgroups:
+    | React.Dispatch<React.SetStateAction<ReadManySubgroup<Scope>[]>>
+    | React.Dispatch<React.SetStateAction<ReadManySubgroup<Scope>[] | null>>,
   withInitialLoad: boolean = false,
   notifyAboutInitialLoadProblems: boolean = false,
   active: boolean = true
@@ -160,19 +160,19 @@ export function useFragmentsSubscription<Scope extends ReadManyResourceScope>(
         if (active === false) {
           return
         }
-        const fragments = (await serverConnector.readFragments({
+        const subgroups = (await serverConnector.readSubgroups({
           scope: scope
-        })) as ReadManyFragment<Scope>[]
-        setFragments(fragments)
+        })) as ReadManySubgroup<Scope>[]
+        setSubgroups(subgroups)
       } catch {
         if (notifyAboutProblems) {
           notifier.showWarning(
-            'не удалось загрузить актуальный список фрагментов документов'
+            'не удалось загрузить актуальный список подгрупп тестов'
           )
         }
       }
     },
-    [scope, setFragments, active, notifier]
+    [scope, setSubgroups, active, notifier]
   )
 
   // Initial load
@@ -187,7 +187,7 @@ export function useFragmentsSubscription<Scope extends ReadManyResourceScope>(
   React.useEffect(() => {
     const subscriptionId = serverConnector.subscribeToResources(
       {
-        type: 'FRAGMENT'
+        type: 'SUBGROUP'
       },
       (data) => {
         ;(() => {
@@ -207,21 +207,21 @@ export function useFragmentsSubscription<Scope extends ReadManyResourceScope>(
   }, [scope, load])
 }
 
-/** Subscribe to fragments updates with initial load */
-export function useFragments<Scope extends ReadManyResourceScope>(
+/** Subscribe to subgroups updates with initial load */
+export function useSubgroups<Scope extends ReadManyResourceScope>(
   scope: Scope,
   notifyAboutInitialLoadProblems: boolean = false,
   active: boolean = true
 ) {
-  const [fragments, setFragments] = React.useState<
-    ReadManyFragment<Scope>[] | null
+  const [subgroups, setSubgroups] = React.useState<
+    ReadManySubgroup<Scope>[] | null
   >(null)
-  useFragmentsSubscription(
+  useSubgroupsSubscription(
     scope,
-    setFragments,
+    setSubgroups,
     true,
     notifyAboutInitialLoadProblems,
     active
   )
-  return fragments
+  return subgroups
 }

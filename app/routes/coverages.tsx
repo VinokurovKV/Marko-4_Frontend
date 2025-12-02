@@ -54,7 +54,7 @@ export default function MetaRoute({
     ) {
       notifier.showError('не удалось загрузить список покрытий требований')
     }
-  }, [coverages])
+  }, [coverages, notifier])
 
   return meta.status === 'AUTHENTICATED' &&
     meta.selfMeta.rights.includes('READ_COVERAGE') === false ? (

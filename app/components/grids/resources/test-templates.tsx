@@ -14,7 +14,7 @@ import {
   useActionsCol,
   useCodeCol,
   useNameCol,
-  usePrepatedCol
+  usePreparedCol
 } from '../cols'
 // React
 import * as React from 'react'
@@ -60,7 +60,7 @@ export function TestTemplatesGrid(props: TestTemplatesGridProps) {
   const readCols = [
     useCodeCol('id', true, '/test-templates'),
     useNameCol(),
-    usePrepatedCol('MIDDLE', undefined, 'конфигурация не загружена')
+    usePreparedCol('MALE', undefined, 'конфигурация не загружена')
   ]
 
   const actionsColProps: ActionsColProps = React.useMemo(
@@ -99,7 +99,7 @@ export function TestTemplatesGrid(props: TestTemplatesGridProps) {
           }
         : undefined
     }),
-    [rightsSet, testTemplateCodeForId]
+    [notifier, rightsSet, testTemplateCodeForId]
   )
 
   const actionsCol = useActionsCol(actionsColProps)
@@ -164,7 +164,7 @@ export function TestTemplatesGrid(props: TestTemplatesGridProps) {
             }
           }
         : undefined,
-    [rightsSet, getDisplayedTestTemplateCodes]
+    [notifier, rightsSet, getDisplayedTestTemplateCodes]
   )
 
   const cancelCreateForm = React.useCallback(() => {

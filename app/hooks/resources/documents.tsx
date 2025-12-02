@@ -34,18 +34,24 @@ type ReadManyDocument<Scope extends ReadManyResourceScope> = DtoWithoutEnums<
 export function useDocumentSubscription<Scope extends ReadOneResourceScope>(
   scope: Scope,
   documentId: number | null,
-  setDocument:
-    | React.Dispatch<React.SetStateAction<ReadOneDocument<Scope>>>
-    | React.Dispatch<React.SetStateAction<ReadOneDocument<Scope> | null>>,
+  setDocument: React.Dispatch<
+    React.SetStateAction<ReadOneDocument<Scope> | null>
+  >,
   withInitialLoad: boolean = false,
   notifyAboutInitialLoadProblems: boolean = false,
   active: boolean = true
 ) {
   const notifier = useNotifier()
 
+  const [initialized, setInitialized] = React.useState(false)
+
   const load = React.useCallback(
     async (notifyAboutProblems: boolean) => {
-      if (documentId === null || active === false) {
+      if (active === false) {
+        return
+      }
+      if (documentId === null) {
+        setDocument(null as ReadOneDocument<Scope>)
         return
       }
       try {
@@ -64,16 +70,23 @@ export function useDocumentSubscription<Scope extends ReadOneResourceScope>(
         }
       }
     },
-    [scope, documentId, setDocument, active]
+    [scope, documentId, setDocument, active, notifier]
   )
 
-  // Initial load
   React.useEffect(() => {
-    if (withInitialLoad === false) {
+    setInitialized(true)
+    if (withInitialLoad === false && initialized === false) {
       return
     }
     void load(notifyAboutInitialLoadProblems)
-  }, [scope, withInitialLoad, notifyAboutInitialLoadProblems, load])
+  }, [
+    scope,
+    withInitialLoad,
+    notifyAboutInitialLoadProblems,
+    initialized,
+    setInitialized,
+    load
+  ])
 
   // Subscribe
   React.useEffect(() => {
@@ -159,7 +172,7 @@ export function useDocumentsSubscription<Scope extends ReadManyResourceScope>(
         }
       }
     },
-    [scope, setDocuments, active]
+    [scope, setDocuments, active, notifier]
   )
 
   // Initial load

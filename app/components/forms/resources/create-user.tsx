@@ -66,7 +66,7 @@ export function CreateUserFormDialog(props: CreateUserFormDialogProps) {
       notifier.showSuccess(`пользователь '${data.login}' создан`)
       props.onSuccessCreateUser?.(createUserResult)
     },
-    [props.onSuccessCreateUser]
+    [props.onSuccessCreateUser, notifier]
   )
 
   const {

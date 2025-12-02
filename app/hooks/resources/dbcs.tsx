@@ -1,42 +1,40 @@
 // Project
 import type { ReadOneResourceScope, ReadManyResourceScope } from '@common/enums'
 import type {
-  ReadFragmentWithPrimaryPropsSuccessResultDto,
-  ReadFragmentWithUpToSecondaryPropsSuccessResultDto,
-  ReadFragmentWithUpToTertiaryPropsSuccessResultDto,
-  ReadFragmentWithAllPropsSuccessResultDto,
-  ReadFragmentsWithPrimaryPropsSuccessResultItemDto,
-  ReadFragmentsWithUpToSecondaryPropsSuccessResultItemDto
-} from '@common/dtos/server-api/fragments.dto'
+  ReadDbcWithPrimaryPropsSuccessResultDto,
+  ReadDbcWithUpToSecondaryPropsSuccessResultDto,
+  ReadDbcWithUpToTertiaryPropsSuccessResultDto,
+  ReadDbcWithAllPropsSuccessResultDto,
+  ReadDbcsWithPrimaryPropsSuccessResultItemDto,
+  ReadDbcsWithUpToSecondaryPropsSuccessResultItemDto
+} from '@common/dtos/server-api/dbcs.dto'
 import type { DtoWithoutEnums } from '@common/dto-without-enums'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
 // React
 import * as React from 'react'
 
-type ReadOneFragment<Scope extends ReadOneResourceScope> = DtoWithoutEnums<
+type ReadOneDbc<Scope extends ReadOneResourceScope> = DtoWithoutEnums<
   Scope extends 'PRIMARY_PROPS'
-    ? ReadFragmentWithPrimaryPropsSuccessResultDto
+    ? ReadDbcWithPrimaryPropsSuccessResultDto
     : Scope extends 'UP_TO_SECONDARY_PROPS'
-      ? ReadFragmentWithUpToSecondaryPropsSuccessResultDto
+      ? ReadDbcWithUpToSecondaryPropsSuccessResultDto
       : Scope extends 'UP_TO_TERTIARY_PROPS'
-        ? ReadFragmentWithUpToTertiaryPropsSuccessResultDto
-        : ReadFragmentWithAllPropsSuccessResultDto
+        ? ReadDbcWithUpToTertiaryPropsSuccessResultDto
+        : ReadDbcWithAllPropsSuccessResultDto
 >
 
-type ReadManyFragment<Scope extends ReadManyResourceScope> = DtoWithoutEnums<
+type ReadManyDbc<Scope extends ReadManyResourceScope> = DtoWithoutEnums<
   Scope extends 'PRIMARY_PROPS'
-    ? ReadFragmentsWithPrimaryPropsSuccessResultItemDto
-    : ReadFragmentsWithUpToSecondaryPropsSuccessResultItemDto
+    ? ReadDbcsWithPrimaryPropsSuccessResultItemDto
+    : ReadDbcsWithUpToSecondaryPropsSuccessResultItemDto
 >
 
-/** Subscribe to fragment updates for existing fragment state */
-export function useFragmentSubscription<Scope extends ReadOneResourceScope>(
+/** Subscribe to dbc updates for existing dbc state */
+export function useDbcSubscription<Scope extends ReadOneResourceScope>(
   scope: Scope,
-  fragmentId: number | null,
-  setFragment: React.Dispatch<
-    React.SetStateAction<ReadOneFragment<Scope> | null>
-  >,
+  dbcId: number | null,
+  setDbc: React.Dispatch<React.SetStateAction<ReadOneDbc<Scope> | null>>,
   withInitialLoad: boolean = false,
   notifyAboutInitialLoadProblems: boolean = false,
   active: boolean = true
@@ -50,27 +48,27 @@ export function useFragmentSubscription<Scope extends ReadOneResourceScope>(
       if (active === false) {
         return
       }
-      if (fragmentId === null) {
-        setFragment(null as ReadOneFragment<Scope>)
+      if (dbcId === null) {
+        setDbc(null as ReadOneDbc<Scope>)
         return
       }
       try {
-        const fragment = (await serverConnector.readFragment(
-          { id: fragmentId },
+        const dbc = (await serverConnector.readDbc(
+          { id: dbcId },
           {
             scope: scope
           }
-        )) as ReadOneFragment<Scope>
-        setFragment(fragment)
+        )) as ReadOneDbc<Scope>
+        setDbc(dbc)
       } catch {
         if (notifyAboutProblems) {
           notifier.showWarning(
-            `не удалось загрузить фрагмент документа с идентификатором ${fragmentId}`
+            `не удалось загрузить базовую конфигурацию с идентификатором ${dbcId}`
           )
         }
       }
     },
-    [scope, fragmentId, setFragment, active, notifier]
+    [scope, dbcId, setDbc, active, notifier]
   )
 
   React.useEffect(() => {
@@ -90,14 +88,14 @@ export function useFragmentSubscription<Scope extends ReadOneResourceScope>(
 
   // Subscribe
   React.useEffect(() => {
-    if (fragmentId === null) {
+    if (dbcId === null) {
       return
     }
     const subscriptionId = serverConnector.subscribeToResource(
       {
-        type: 'FRAGMENT',
+        type: 'DBC',
         resourceConfig: {
-          id: fragmentId
+          id: dbcId
         }
       },
       (data) => {
@@ -118,36 +116,34 @@ export function useFragmentSubscription<Scope extends ReadOneResourceScope>(
     return () => {
       serverConnector.unsubscribe(subscriptionId)
     }
-  }, [scope, fragmentId, load])
+  }, [scope, dbcId, load])
 }
 
-/** Subscribe to fragment updates with initial load */
-export function useFragment<Scope extends ReadOneResourceScope>(
+/** Subscribe to dbc updates with initial load */
+export function useDbc<Scope extends ReadOneResourceScope>(
   scope: Scope,
-  fragmentId: number | null,
+  dbcId: number | null,
   notifyAboutInitialLoadProblems: boolean = false,
   active: boolean = true
 ) {
-  const [fragment, setFragment] = React.useState<ReadOneFragment<Scope> | null>(
-    null
-  )
-  useFragmentSubscription(
+  const [dbc, setDbc] = React.useState<ReadOneDbc<Scope> | null>(null)
+  useDbcSubscription(
     scope,
-    fragmentId,
-    setFragment,
+    dbcId,
+    setDbc,
     true,
     notifyAboutInitialLoadProblems,
     active
   )
-  return fragment
+  return dbc
 }
 
-/** Subscribe to fragments updates for existing fragments state */
-export function useFragmentsSubscription<Scope extends ReadManyResourceScope>(
+/** Subscribe to dbcs updates for existing dbcs state */
+export function useDbcsSubscription<Scope extends ReadManyResourceScope>(
   scope: Scope,
-  setFragments:
-    | React.Dispatch<React.SetStateAction<ReadManyFragment<Scope>[]>>
-    | React.Dispatch<React.SetStateAction<ReadManyFragment<Scope>[] | null>>,
+  setDbcs:
+    | React.Dispatch<React.SetStateAction<ReadManyDbc<Scope>[]>>
+    | React.Dispatch<React.SetStateAction<ReadManyDbc<Scope>[] | null>>,
   withInitialLoad: boolean = false,
   notifyAboutInitialLoadProblems: boolean = false,
   active: boolean = true
@@ -160,19 +156,19 @@ export function useFragmentsSubscription<Scope extends ReadManyResourceScope>(
         if (active === false) {
           return
         }
-        const fragments = (await serverConnector.readFragments({
+        const dbcs = (await serverConnector.readDbcs({
           scope: scope
-        })) as ReadManyFragment<Scope>[]
-        setFragments(fragments)
+        })) as ReadManyDbc<Scope>[]
+        setDbcs(dbcs)
       } catch {
         if (notifyAboutProblems) {
           notifier.showWarning(
-            'не удалось загрузить актуальный список фрагментов документов'
+            'не удалось загрузить актуальный список базовых конфигураций'
           )
         }
       }
     },
-    [scope, setFragments, active, notifier]
+    [scope, setDbcs, active, notifier]
   )
 
   // Initial load
@@ -187,7 +183,7 @@ export function useFragmentsSubscription<Scope extends ReadManyResourceScope>(
   React.useEffect(() => {
     const subscriptionId = serverConnector.subscribeToResources(
       {
-        type: 'FRAGMENT'
+        type: 'DBC'
       },
       (data) => {
         ;(() => {
@@ -207,21 +203,19 @@ export function useFragmentsSubscription<Scope extends ReadManyResourceScope>(
   }, [scope, load])
 }
 
-/** Subscribe to fragments updates with initial load */
-export function useFragments<Scope extends ReadManyResourceScope>(
+/** Subscribe to dbcs updates with initial load */
+export function useDbcs<Scope extends ReadManyResourceScope>(
   scope: Scope,
   notifyAboutInitialLoadProblems: boolean = false,
   active: boolean = true
 ) {
-  const [fragments, setFragments] = React.useState<
-    ReadManyFragment<Scope>[] | null
-  >(null)
-  useFragmentsSubscription(
+  const [dbcs, setDbcs] = React.useState<ReadManyDbc<Scope>[] | null>(null)
+  useDbcsSubscription(
     scope,
-    setFragments,
+    setDbcs,
     true,
     notifyAboutInitialLoadProblems,
     active
   )
-  return fragments
+  return dbcs
 }

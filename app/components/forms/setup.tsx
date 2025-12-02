@@ -29,13 +29,13 @@ export function SetupForm() {
         ownerPass: validatedData.ownerPass
       })
     },
-    []
+    [navigate]
   )
 
   const onSuccessSubmit = React.useCallback(() => {
     notifier.showSuccess('система инициализирована')
     void navigate('/login')
-  }, [])
+  }, [navigate, notifier])
 
   const { formInternal, data, errors, handleTextFieldChange } = useForm<
     SetupFormData,

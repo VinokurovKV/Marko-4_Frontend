@@ -107,7 +107,7 @@ export function CreateDocumentFormDialog(props: CreateDocumentFormDialogProps) {
         config!
       )
     },
-    []
+    [notifier]
   )
 
   const onSuccessSubmit = React.useCallback(
@@ -118,7 +118,7 @@ export function CreateDocumentFormDialog(props: CreateDocumentFormDialogProps) {
       notifier.showSuccess(`документ '${data.code}' создан`)
       props.onSuccessCreateDocument?.(createDocumentResult)
     },
-    [props.onSuccessCreateDocument]
+    [props.onSuccessCreateDocument, notifier]
   )
 
   const {

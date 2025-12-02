@@ -2339,7 +2339,7 @@ export class ServerConnector {
       form.set('config', config)
     }
     if (dsefConfigs) {
-      form.set('dsefConfigs[]', dsefConfigs)
+      form.set('dsefConfigs', dsefConfigs)
     }
     return this.postMultipartFormForObject('/dbcs/actions/create', form)
   }
@@ -2353,7 +2353,7 @@ export class ServerConnector {
       form.set('config', config)
     }
     if (dsefConfigs) {
-      form.set('dsefConfigs[]', dsefConfigs)
+      form.set('dsefConfigs', dsefConfigs)
     }
     return this.postMultipartFormForObject('/dbcs/actions/update', form)
   }
@@ -2575,10 +2575,10 @@ export class ServerConnector {
       form.set('config', config)
     }
     if (deltas) {
-      form.set('deltas[]', deltas)
+      form.set('deltas', deltas)
     }
     if (dsefConfigs) {
-      form.set('dsefConfigs[]', dsefConfigs)
+      form.set('dsefConfigs', dsefConfigs)
     }
     return this.postMultipartFormForObject('/tests/actions/create', form)
   }
@@ -2593,10 +2593,10 @@ export class ServerConnector {
       form.set('config', config)
     }
     if (deltas) {
-      form.set('deltas[]', deltas)
+      form.set('deltas', deltas)
     }
     if (dsefConfigs) {
-      form.set('dsefConfigs[]', dsefConfigs)
+      form.set('dsefConfigs', dsefConfigs)
     }
     return this.postMultipartFormForObject('/tests/actions/update', form)
   }
@@ -2899,10 +2899,10 @@ export class ServerConnector {
       form.set('accessConfig', accessConfig)
     }
     if (dsefClearConfigs) {
-      form.set('dsefClearConfigs[]', dsefClearConfigs)
+      form.set('dsefClearConfigs', dsefClearConfigs)
     }
     if (dsefAccessConfigs) {
-      form.set('dsefAccessConfigs[]', dsefAccessConfigs)
+      form.set('dsefAccessConfigs', dsefAccessConfigs)
     }
     return this.postMultipartFormForObject('/devices/actions/create', form)
   }
@@ -2925,10 +2925,10 @@ export class ServerConnector {
       form.set('accessConfig', accessConfig)
     }
     if (dsefClearConfigs) {
-      form.set('dsefClearConfigs[]', dsefClearConfigs)
+      form.set('dsefClearConfigs', dsefClearConfigs)
     }
     if (dsefAccessConfigs) {
-      form.set('dsefAccessConfigs[]', dsefAccessConfigs)
+      form.set('dsefAccessConfigs', dsefAccessConfigs)
     }
     return this.postMultipartFormForObject('/devices/actions/update', form)
   }
@@ -3225,7 +3225,7 @@ export class ServerConnector {
       '/test-reports/actions/create-items',
       new Map<string, MultipartFormVal>([
         ['main', main],
-        ['itemDatas[]', itemDatas]
+        ['itemDatas', itemDatas]
       ])
     )
   }

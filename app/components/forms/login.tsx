@@ -32,13 +32,13 @@ export function LoginForm() {
         pass: validatedData.pass
       })
     },
-    []
+    [navigate]
   )
 
   const onSuccessSubmit = React.useCallback(() => {
     notifier.showSuccess('выполнен вход в систему')
     void navigate('/')
-  }, [])
+  }, [navigate])
 
   const { formInternal, data, errors, handleTextFieldChange } = useForm<
     LoginFormData,

@@ -112,7 +112,7 @@ export function FormFileUpload(props: FormFileUploadProps) {
         })
       }
     },
-    [props.name, props.onChange, setDragOver]
+    [props.name, props.onChange, notifier, setDragOver]
   )
 
   const handleChange: React.ChangeEventHandler<HTMLInputElement> =

@@ -34,18 +34,24 @@ type ReadManyRequirement<Scope extends ReadManyResourceScope> = DtoWithoutEnums<
 export function useRequirementSubscription<Scope extends ReadOneResourceScope>(
   scope: Scope,
   requirementId: number | null,
-  setRequirement:
-    | React.Dispatch<React.SetStateAction<ReadOneRequirement<Scope>>>
-    | React.Dispatch<React.SetStateAction<ReadOneRequirement<Scope> | null>>,
+  setRequirement: React.Dispatch<
+    React.SetStateAction<ReadOneRequirement<Scope> | null>
+  >,
   withInitialLoad: boolean = false,
   notifyAboutInitialLoadProblems: boolean = false,
   active: boolean = true
 ) {
   const notifier = useNotifier()
 
+  const [initialized, setInitialized] = React.useState(false)
+
   const load = React.useCallback(
     async (notifyAboutProblems: boolean) => {
-      if (requirementId === null || active === false) {
+      if (active === false) {
+        return
+      }
+      if (requirementId === null) {
+        setRequirement(null as ReadOneRequirement<Scope>)
         return
       }
       try {
@@ -64,16 +70,23 @@ export function useRequirementSubscription<Scope extends ReadOneResourceScope>(
         }
       }
     },
-    [scope, requirementId, setRequirement, active]
+    [scope, requirementId, setRequirement, active, notifier]
   )
 
-  // Initial load
   React.useEffect(() => {
-    if (withInitialLoad === false) {
+    setInitialized(true)
+    if (withInitialLoad === false && initialized === false) {
       return
     }
     void load(notifyAboutInitialLoadProblems)
-  }, [scope, withInitialLoad, notifyAboutInitialLoadProblems, load])
+  }, [
+    scope,
+    withInitialLoad,
+    notifyAboutInitialLoadProblems,
+    initialized,
+    setInitialized,
+    load
+  ])
 
   // Subscribe
   React.useEffect(() => {
@@ -160,7 +173,7 @@ export function useRequirementsSubscription<
         }
       }
     },
-    [scope, setRequirements, active]
+    [scope, setRequirements, active, notifier]
   )
 
   // Initial load

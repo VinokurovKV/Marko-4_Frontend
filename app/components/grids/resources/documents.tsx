@@ -103,7 +103,7 @@ export function DocumentsGrid(props: DocumentsGridProps) {
           }
         : undefined
     }),
-    [rightsSet, documentCodeForId]
+    [notifier, rightsSet, documentCodeForId]
   )
 
   const actionsCol = useActionsCol(actionsColProps)
@@ -166,7 +166,7 @@ export function DocumentsGrid(props: DocumentsGridProps) {
             }
           }
         : undefined,
-    [rightsSet, getDisplayedDocumentCodes]
+    [notifier, rightsSet, getDisplayedDocumentCodes]
   )
 
   const cancelCreateForm = React.useCallback(() => {

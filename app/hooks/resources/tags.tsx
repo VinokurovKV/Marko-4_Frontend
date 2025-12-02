@@ -34,18 +34,22 @@ type ReadManyTag<Scope extends ReadManyResourceScope> = DtoWithoutEnums<
 export function useTagSubscription<Scope extends ReadOneResourceScope>(
   scope: Scope,
   tagId: number | null,
-  setTag:
-    | React.Dispatch<React.SetStateAction<ReadOneTag<Scope>>>
-    | React.Dispatch<React.SetStateAction<ReadOneTag<Scope> | null>>,
+  setTag: React.Dispatch<React.SetStateAction<ReadOneTag<Scope> | null>>,
   withInitialLoad: boolean = false,
   notifyAboutInitialLoadProblems: boolean = false,
   active: boolean = true
 ) {
   const notifier = useNotifier()
 
+  const [initialized, setInitialized] = React.useState(false)
+
   const load = React.useCallback(
     async (notifyAboutProblems: boolean) => {
-      if (tagId === null || active === false) {
+      if (active === false) {
+        return
+      }
+      if (tagId === null) {
+        setTag(null as ReadOneTag<Scope>)
         return
       }
       try {
@@ -64,16 +68,23 @@ export function useTagSubscription<Scope extends ReadOneResourceScope>(
         }
       }
     },
-    [scope, tagId, setTag, active]
+    [scope, tagId, setTag, active, notifier]
   )
 
-  // Initial load
   React.useEffect(() => {
-    if (withInitialLoad === false) {
+    setInitialized(true)
+    if (withInitialLoad === false && initialized === false) {
       return
     }
     void load(notifyAboutInitialLoadProblems)
-  }, [scope, withInitialLoad, notifyAboutInitialLoadProblems, load])
+  }, [
+    scope,
+    withInitialLoad,
+    notifyAboutInitialLoadProblems,
+    initialized,
+    setInitialized,
+    load
+  ])
 
   // Subscribe
   React.useEffect(() => {
@@ -155,7 +166,7 @@ export function useTagsSubscription<Scope extends ReadManyResourceScope>(
         }
       }
     },
-    [scope, setTags, active]
+    [scope, setTags, active, notifier]
   )
 
   // Initial load

@@ -34,18 +34,22 @@ type ReadManyRole<Scope extends ReadManyResourceScope> = DtoWithoutEnums<
 export function useRoleSubscription<Scope extends ReadOneResourceScope>(
   scope: Scope,
   roleId: number | null,
-  setRole:
-    | React.Dispatch<React.SetStateAction<ReadOneRole<Scope>>>
-    | React.Dispatch<React.SetStateAction<ReadOneRole<Scope> | null>>,
+  setRole: React.Dispatch<React.SetStateAction<ReadOneRole<Scope> | null>>,
   withInitialLoad: boolean = false,
   notifyAboutInitialLoadProblems: boolean = false,
   active: boolean = true
 ) {
   const notifier = useNotifier()
 
+  const [initialized, setInitialized] = React.useState(false)
+
   const load = React.useCallback(
     async (notifyAboutProblems: boolean) => {
-      if (roleId === null || active === false) {
+      if (active === false) {
+        return
+      }
+      if (roleId === null) {
+        setRole(null as ReadOneRole<Scope>)
         return
       }
       try {
@@ -64,16 +68,23 @@ export function useRoleSubscription<Scope extends ReadOneResourceScope>(
         }
       }
     },
-    [scope, roleId, setRole, active]
+    [scope, roleId, setRole, active, notifier]
   )
 
-  // Initial load
   React.useEffect(() => {
-    if (withInitialLoad === false) {
+    setInitialized(true)
+    if (withInitialLoad === false && initialized === false) {
       return
     }
     void load(notifyAboutInitialLoadProblems)
-  }, [scope, withInitialLoad, notifyAboutInitialLoadProblems, load])
+  }, [
+    scope,
+    withInitialLoad,
+    notifyAboutInitialLoadProblems,
+    initialized,
+    setInitialized,
+    load
+  ])
 
   // Subscribe
   React.useEffect(() => {
@@ -155,7 +166,7 @@ export function useRolesSubscription<Scope extends ReadManyResourceScope>(
         }
       }
     },
-    [scope, setRoles, active]
+    [scope, setRoles, active, notifier]
   )
 
   // Initial load

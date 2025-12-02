@@ -63,7 +63,7 @@ export function RolesGrid(props: RolesGridProps) {
           }
         : undefined
     }),
-    [rightsSet, roleNameForId]
+    [notifier, rightsSet, roleNameForId]
   )
 
   const actionsCol = useActionsCol(actionsColProps)
@@ -128,7 +128,7 @@ export function RolesGrid(props: RolesGridProps) {
             }
           }
         : undefined,
-    [rightsSet, getDisplayedRoleNames]
+    [notifier, rightsSet, getDisplayedRoleNames]
   )
 
   const cancelCreateForm = React.useCallback(() => {

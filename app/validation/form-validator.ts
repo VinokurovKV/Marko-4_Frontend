@@ -16,6 +16,7 @@ type FormValidatorOneFieldRule =
   | 'CODE'
   | 'EMAIL'
   | 'FORENAME'
+  | 'INT_NON_NEGATIVE'
   | 'LOGIN'
   | 'NAME'
   | 'NOT_EMPTY_STR'
@@ -42,7 +43,7 @@ export type FormKey<Data extends FormData> = keyof Data & string
 
 export type FormVal<Data extends FormData> = Data[FormKey<Data>]
 
-interface FormValidatorConfig<Data extends FormData> {
+export interface FormValidatorConfig<Data extends FormData> {
   oneField?: {
     [property in keyof Data]?: {
       transforms?: FormValidatorFieldTransform[]
@@ -131,6 +132,11 @@ export class FormValidator<Data extends FormData> {
           ;(() => {
             const { minLength, maxLength } = restrictionConfig.common.forename
             props.push(`${minLength}-${maxLength} символов`)
+          })()
+          break
+        case 'INT_NON_NEGATIVE':
+          ;(() => {
+            props.push('целое неотрицательное число')
           })()
           break
         case 'LOGIN':
@@ -507,6 +513,15 @@ export class FormValidator<Data extends FormData> {
             )
             if (forenameErrors !== null) {
               errors.push(...forenameErrors)
+            }
+          })()
+          break
+        case 'INT_NON_NEGATIVE':
+          ;(() => {
+            if (typeof val !== 'number' || Number.isInteger(val) === false) {
+              errors.push('значение должно быть целым числом')
+            } else if (val < 0) {
+              errors.push('значение должно быть не меньше 0')
             }
           })()
           break

@@ -89,7 +89,7 @@ export function RequirementsGrid(props: RequirementsGridProps) {
           }
         : undefined
     }),
-    [rightsSet, requirementCodeForId]
+    [notifier, rightsSet, requirementCodeForId]
   )
 
   const actionsCol = useActionsCol(actionsColProps)
@@ -160,7 +160,7 @@ export function RequirementsGrid(props: RequirementsGridProps) {
             }
           }
         : undefined,
-    [rightsSet, getDisplayedRequirementCodes]
+    [notifier, rightsSet, getDisplayedRequirementCodes]
   )
 
   const cancelCreateForm = React.useCallback(() => {

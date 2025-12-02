@@ -1,0 +1,121 @@
+{
+  "code": "COM_TOP_!",
+  "name": "Common topology - 1",
+  "config": {
+    "vertexes": [
+      {
+        "isGenerator": false,
+        "name": "B1",
+        "ifaces": [
+          {
+            "name": "iface-1"
+          },
+          {
+            "name": "iface-2"
+          }
+        ]
+      },
+      {
+        "isGenerator": false,
+        "name": "B2",
+        "ifaces": [
+          {
+            "name": "iface-1"
+          },
+          {
+            "name": "iface-2"
+          }
+        ]
+      },
+      {
+        "isGenerator": false,
+        "name": "B3",
+        "ifaces": [
+          {
+            "name": "iface-1"
+          },
+          {
+            "name": "iface-2"
+          }
+        ]
+      },
+      {
+        "isGenerator": false,
+        "name": "DUT",
+        "ifaces": [
+          {
+            "name": "iface-1"
+          },
+          {
+            "name": "iface-2"
+          },
+          {
+            "name": "iface-3"
+          }
+        ]
+      },
+      {
+        "isGenerator": true,
+        "name": "Xinertel",
+        "ifaces": [
+          {
+            "name": "iface-1"
+          }
+        ]
+      }
+    ],
+    "links": [
+      {
+        "start": {
+          "vertexName": "B1",
+          "ifaceName": "iface-2"
+        },
+        "end": {
+          "vertexName": "B2",
+          "ifaceName": "iface-2"
+        }
+      },
+      {
+        "start": {
+          "vertexName": "B1",
+          "ifaceName": "iface-1"
+        },
+        "end": {
+          "vertexName": "B3",
+          "ifaceName": "iface-1"
+        }
+      },
+      {
+        "start": {
+          "vertexName": "B2",
+          "ifaceName": "iface-1"
+        },
+        "end": {
+          "vertexName": "DUT",
+          "ifaceName": "iface-1"
+        }
+      },
+      {
+        "start": {
+          "vertexName": "B3",
+          "ifaceName": "iface-2"
+        },
+        "end": {
+          "vertexName": "DUT",
+          "ifaceName": "iface-2"
+        }
+      },
+      {
+        "start": {
+          "vertexName": "DUT",
+          "ifaceName": "iface-3"
+        },
+        "end": {
+          "vertexName": "Xinertel",
+          "ifaceName": "iface-1"
+        }
+      }
+    ]
+  },
+  "num": 0
+}

@@ -125,7 +125,7 @@ export function CreateRequirementFormDialog(
             : undefined
       })
     },
-    []
+    [notifier]
   )
 
   const onSuccessSubmit = React.useCallback(
@@ -136,7 +136,7 @@ export function CreateRequirementFormDialog(
       notifier.showSuccess(`требование '${data.code}' создано`)
       props.onSuccessCreateRequirement?.(createRequirementResult)
     },
-    [props.onSuccessCreateRequirement]
+    [props.onSuccessCreateRequirement, notifier]
   )
 
   const {

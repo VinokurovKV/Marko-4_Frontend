@@ -63,7 +63,7 @@ export function TagsGrid(props: TagsGridProps) {
           }
         : undefined
     }),
-    [rightsSet, tagCodeForId]
+    [notifier, rightsSet, tagCodeForId]
   )
 
   const actionsCol = useActionsCol(actionsColProps)
@@ -128,7 +128,7 @@ export function TagsGrid(props: TagsGridProps) {
             }
           }
         : undefined,
-    [rightsSet, getDisplayedTagCodes]
+    [notifier, rightsSet, getDisplayedTagCodes]
   )
 
   const cancelCreateForm = React.useCallback(() => {

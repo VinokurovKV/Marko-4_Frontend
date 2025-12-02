@@ -9,6 +9,6 @@ export const FormContainer = styled(Container)(({ theme }) => ({
   },
   width: '80vw',
   [theme.breakpoints.up('sm')]: {
-    width: '500px'
+    width: '700px'
   }
 }))

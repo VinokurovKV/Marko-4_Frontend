@@ -113,7 +113,7 @@ export function CreateCoverageFormDialog(props: CreateCoverageFormDialogProps) {
             : undefined
       })
     },
-    []
+    [notifier]
   )
 
   const requirementCodeForId = React.useMemo(
@@ -137,7 +137,7 @@ export function CreateCoverageFormDialog(props: CreateCoverageFormDialogProps) {
       )
       props.onSuccessCreateCoverage?.(createCoverageResult)
     },
-    [props.onSuccessCreateCoverage, requirementCodeForId]
+    [props.onSuccessCreateCoverage, notifier, requirementCodeForId]
   )
 
   const {

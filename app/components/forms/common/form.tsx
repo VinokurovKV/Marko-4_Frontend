@@ -516,7 +516,12 @@ export function FormDialog({
   })
 
   return (
-    <Dialog scroll="paper" onClose={cancelCreateForm} open={createModeIsActive}>
+    <Dialog
+      scroll="paper"
+      onClose={cancelCreateForm}
+      open={createModeIsActive}
+      maxWidth={'md'}
+    >
       {TitleElem !== null ? <DialogTitle>{TitleElem}</DialogTitle> : null}
       <DialogContent dividers={true}>
         <FormContainer>{ContentElem}</FormContainer>

@@ -34,18 +34,24 @@ type ReadManyTopology<Scope extends ReadManyResourceScope> = DtoWithoutEnums<
 export function useTopologySubscription<Scope extends ReadOneResourceScope>(
   scope: Scope,
   topologyId: number | null,
-  setTopology:
-    | React.Dispatch<React.SetStateAction<ReadOneTopology<Scope>>>
-    | React.Dispatch<React.SetStateAction<ReadOneTopology<Scope> | null>>,
+  setTopology: React.Dispatch<
+    React.SetStateAction<ReadOneTopology<Scope> | null>
+  >,
   withInitialLoad: boolean = false,
   notifyAboutInitialLoadProblems: boolean = false,
   active: boolean = true
 ) {
   const notifier = useNotifier()
 
+  const [initialized, setInitialized] = React.useState(false)
+
   const load = React.useCallback(
     async (notifyAboutProblems: boolean) => {
-      if (topologyId === null || active === false) {
+      if (active === false) {
+        return
+      }
+      if (topologyId === null) {
+        setTopology(null as ReadOneTopology<Scope>)
         return
       }
       try {
@@ -64,16 +70,23 @@ export function useTopologySubscription<Scope extends ReadOneResourceScope>(
         }
       }
     },
-    [scope, topologyId, setTopology, active]
+    [scope, topologyId, setTopology, active, notifier]
   )
 
-  // Initial load
   React.useEffect(() => {
-    if (withInitialLoad === false) {
+    setInitialized(true)
+    if (withInitialLoad === false && initialized === false) {
       return
     }
     void load(notifyAboutInitialLoadProblems)
-  }, [scope, withInitialLoad, notifyAboutInitialLoadProblems, load])
+  }, [
+    scope,
+    withInitialLoad,
+    notifyAboutInitialLoadProblems,
+    initialized,
+    setInitialized,
+    load
+  ])
 
   // Subscribe
   React.useEffect(() => {
@@ -159,7 +172,7 @@ export function useTopologiesSubscription<Scope extends ReadManyResourceScope>(
         }
       }
     },
-    [scope, setTopologies, active]
+    [scope, setTopologies, active, notifier]
   )
 
   // Initial load

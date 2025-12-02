@@ -59,7 +59,7 @@ export function CreateRoleFormDialog(props: CreateRoleFormDialogProps) {
       notifier.showSuccess(`роль '${data.name}' создана`)
       props.onSuccessCreateRole?.(createRoleResult)
     },
-    [props.onSuccessCreateRole]
+    [props.onSuccessCreateRole, notifier]
   )
 
   const {

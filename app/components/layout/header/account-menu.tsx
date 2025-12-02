@@ -62,7 +62,7 @@ export function AccountMenu() {
         notifier.showError(error)
       }
     })()
-  }, [])
+  }, [navigate, notifier])
 
   return (
     <React.Fragment>

@@ -38,18 +38,24 @@ export function useCommonTopologySubscription<
 >(
   scope: Scope,
   commonTopologyId: number | null,
-  setCommonTopology:
-    | React.Dispatch<React.SetStateAction<ReadOneCommonTopology<Scope>>>
-    | React.Dispatch<React.SetStateAction<ReadOneCommonTopology<Scope> | null>>,
+  setCommonTopology: React.Dispatch<
+    React.SetStateAction<ReadOneCommonTopology<Scope> | null>
+  >,
   withInitialLoad: boolean = false,
   notifyAboutInitialLoadProblems: boolean = false,
   active: boolean = true
 ) {
   const notifier = useNotifier()
 
+  const [initialized, setInitialized] = React.useState(false)
+
   const load = React.useCallback(
     async (notifyAboutProblems: boolean) => {
-      if (commonTopologyId === null || active === false) {
+      if (active === false) {
+        return
+      }
+      if (commonTopologyId === null) {
+        setCommonTopology(null as ReadOneCommonTopology<Scope>)
         return
       }
       try {
@@ -68,16 +74,24 @@ export function useCommonTopologySubscription<
         }
       }
     },
-    [scope, commonTopologyId, setCommonTopology, active]
+    [scope, commonTopologyId, setCommonTopology, active, notifier]
   )
 
   // Initial load
   React.useEffect(() => {
-    if (withInitialLoad === false) {
+    setInitialized(true)
+    if (withInitialLoad === false && initialized === false) {
       return
     }
     void load(notifyAboutInitialLoadProblems)
-  }, [scope, withInitialLoad, notifyAboutInitialLoadProblems, load])
+  }, [
+    scope,
+    withInitialLoad,
+    notifyAboutInitialLoadProblems,
+    initialized,
+    setInitialized,
+    load
+  ])
 
   // Subscribe
   React.useEffect(() => {
@@ -166,7 +180,7 @@ export function useCommonTopologiesSubscription<
         }
       }
     },
-    [scope, setCommonTopologies, active]
+    [scope, setCommonTopologies, active, notifier]
   )
 
   // Initial load

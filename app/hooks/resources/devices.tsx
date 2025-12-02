@@ -34,18 +34,22 @@ type ReadManyDevice<Scope extends ReadManyResourceScope> = DtoWithoutEnums<
 export function useDeviceSubscription<Scope extends ReadOneResourceScope>(
   scope: Scope,
   deviceId: number | null,
-  setDevice:
-    | React.Dispatch<React.SetStateAction<ReadOneDevice<Scope>>>
-    | React.Dispatch<React.SetStateAction<ReadOneDevice<Scope> | null>>,
+  setDevice: React.Dispatch<React.SetStateAction<ReadOneDevice<Scope> | null>>,
   withInitialLoad: boolean = false,
   notifyAboutInitialLoadProblems: boolean = false,
   active: boolean = true
 ) {
   const notifier = useNotifier()
 
+  const [initialized, setInitialized] = React.useState(false)
+
   const load = React.useCallback(
     async (notifyAboutProblems: boolean) => {
-      if (deviceId === null || active === false) {
+      if (active === false) {
+        return
+      }
+      if (deviceId === null) {
+        setDevice(null as ReadOneDevice<Scope>)
         return
       }
       try {
@@ -64,16 +68,23 @@ export function useDeviceSubscription<Scope extends ReadOneResourceScope>(
         }
       }
     },
-    [scope, deviceId, setDevice, active]
+    [scope, deviceId, setDevice, active, notifier]
   )
 
-  // Initial load
   React.useEffect(() => {
-    if (withInitialLoad === false) {
+    setInitialized(true)
+    if (withInitialLoad === false && initialized === false) {
       return
     }
     void load(notifyAboutInitialLoadProblems)
-  }, [scope, withInitialLoad, notifyAboutInitialLoadProblems, load])
+  }, [
+    scope,
+    withInitialLoad,
+    notifyAboutInitialLoadProblems,
+    initialized,
+    setInitialized,
+    load
+  ])
 
   // Subscribe
   React.useEffect(() => {
@@ -157,7 +168,7 @@ export function useDevicesSubscription<Scope extends ReadManyResourceScope>(
         }
       }
     },
-    [scope, setDevices, active]
+    [scope, setDevices, active, notifier]
   )
 
   // Initial load

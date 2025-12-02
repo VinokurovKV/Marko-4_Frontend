@@ -86,7 +86,7 @@ export function UsersGrid(props: UsersGridProps) {
           }
         : undefined
     }),
-    [rightsSet, userLoginForId]
+    [notifier, rightsSet, userLoginForId]
   )
 
   const actionsCol = useActionsCol(actionsColProps)
@@ -154,7 +154,7 @@ export function UsersGrid(props: UsersGridProps) {
             }
           }
         : undefined,
-    [rightsSet, getDisplayedUserLogins]
+    [notifier, rightsSet, getDisplayedUserLogins]
   )
 
   const cancelCreateForm = React.useCallback(() => {

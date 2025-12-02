@@ -102,7 +102,7 @@ export function CreateTestTemplateFormDialog(
         config
       )
     },
-    []
+    [notifier]
   )
 
   const onSuccessSubmit = React.useCallback(
@@ -113,7 +113,7 @@ export function CreateTestTemplateFormDialog(
       notifier.showSuccess(`шаблон теста '${data.code}' создан`)
       props.onSuccessCreateTestTemplate?.(createTestTemplateResult)
     },
-    [props.onSuccessCreateTestTemplate]
+    [props.onSuccessCreateTestTemplate, notifier]
   )
 
   const {
