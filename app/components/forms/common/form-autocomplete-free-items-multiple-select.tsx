@@ -108,7 +108,8 @@ export function FormAutocompleteFreeItemsMultipleSelect<
       })
       props.onChangeFreeItems({
         name: props.freeItemsFieldName,
-        items: newItems.length > 0 ? newItems : undefined
+        items:
+          newItems.length > 0 ? newItems.map((item) => item.trim()) : undefined
       })
     },
     [

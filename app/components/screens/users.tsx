@@ -10,10 +10,11 @@ import PersonIcon from '@mui/icons-material/Person'
 export type UsersScreenProps = UsersGridProps
 
 export function UsersScreen(props: UsersScreenProps) {
+  const title = 'пользователи'
   const breadcrumbsItems: ProjBreadcrumbsProps['items'] = React.useMemo(
     () => [
       {
-        title: 'пользователи',
+        title: title,
         href: '/users',
         Icon: PersonIcon
       }
@@ -21,10 +22,7 @@ export function UsersScreen(props: UsersScreenProps) {
     []
   )
   return (
-    <LayoutScreenContainer
-      title="пользователи"
-      breadcrumbsItems={breadcrumbsItems}
-    >
+    <LayoutScreenContainer title={title} breadcrumbsItems={breadcrumbsItems}>
       <UsersGrid {...props} />
     </LayoutScreenContainer>
   )

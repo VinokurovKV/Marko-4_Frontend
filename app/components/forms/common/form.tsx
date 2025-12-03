@@ -39,7 +39,7 @@ import Typography from '@mui/material/Typography'
 // Other
 import capitalize from 'capitalize'
 
-type Field<Data extends FormData> = FormKey<Data>
+export type Field<Data extends FormData> = FormKey<Data>
 type Val<Data extends FormData> = FormVal<Data>
 type Errors<Data extends FormData> = FormValidatorErrorsJoined<Data>
 type State<Data extends FormData> = {
@@ -50,6 +50,7 @@ type State<Data extends FormData> = {
 export interface UseFormProps<Data extends FormData, SubmitActionResult> {
   INITIAL_FORM_DATA: Data
   validator: FormValidator<Data>
+  fieldsWithNotIgnoredErrorsBeforeSubmit?: Field<Data>[] | null
   // Method must throws if action is unsuccessful
   submitAction: (validatedData: Data) => Promise<SubmitActionResult>
   onSuccessSubmit?: (data: Data, submitActionResult: SubmitActionResult) => void
@@ -89,6 +90,58 @@ export function useForm<Data extends FormData, SubmitActionResult>(
     [setState]
   )
 
+  const clearFields = React.useCallback(
+    (fields: Field<Data>[], withoutRevalidate: boolean | undefined = false) => {
+      setState((oldState) => {
+        const newData = {
+          ...oldState.data
+        }
+        for (const field of fields) {
+          ;(newData[field] as any) = undefined
+        }
+        const revalidateResult =
+          withSubmitAttempts && withoutRevalidate !== true
+            ? props.validator.revalidateJoined(newData, errors, fields)
+            : null
+        return {
+          data: newData,
+          errors: revalidateResult?.errorsChanged
+            ? revalidateResult.newErrorsJoined
+            : errors
+        }
+      })
+    },
+    [errors, withSubmitAttempts, setState]
+  )
+
+  const moveFields = React.useCallback(
+    (movements: { oldField: Field<Data>; newField: Field<Data> }[]) => {
+      setState((oldState) => {
+        const newState = {
+          data: {
+            ...oldState.data
+          },
+          errors:
+            oldState.errors !== null
+              ? {
+                  ...oldState.errors
+                }
+              : null
+        }
+        for (const { oldField, newField } of movements) {
+          newState.data[newField] = newState.data[oldField]
+          //;(newState.data[oldField] as any) = undefined
+          if (newState.errors !== null) {
+            newState.errors[newField] = newState.errors[oldField]
+            //newState.errors[oldField] = undefined
+          }
+        }
+        return newState
+      })
+    },
+    [setState]
+  )
+
   const handleFieldChange = React.useCallback(
     (field: Field<Data>, newValue: Val<Data>) => {
       setState((oldState) => {
@@ -108,6 +161,14 @@ export function useForm<Data extends FormData, SubmitActionResult>(
       })
     },
     [errors, withSubmitAttempts, setState]
+  )
+
+  const handleCheckboxChange = React.useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const { name, checked } = event.target
+      handleFieldChange(name as Field<Data>, checked as Val<Data>)
+    },
+    [handleFieldChange]
   )
 
   const handleTextFieldChange = React.useCallback(
@@ -202,8 +263,21 @@ export function useForm<Data extends FormData, SubmitActionResult>(
           // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
           errorReasons.every((reason) => typeof reason?.type === 'string')
         ) {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access
-          items.push(...errorReasons.map((reason) => reason.type))
+          items.push(
+            ...errorReasons.map(
+              (reason) =>
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+                reason.type +
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+                (reason.errorReasons?.every?.(
+                  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+                  (innerReason: any) => typeof innerReason?.type === 'string'
+                )
+                  ? // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+                    ` (${reason.errorReasons.map((innerReason: any) => JSON.stringify(innerReason)).join(', ')})`
+                  : '')
+            )
+          )
         }
         if (
           message instanceof Array &&
@@ -256,9 +330,22 @@ export function useForm<Data extends FormData, SubmitActionResult>(
       event?.preventDefault()
       setWithSubmitAttempts(true)
       const errors = props.validator.getErrorsJoined(data)
+      const fieldsWithNotIgnoredErrorsSet =
+        props.fieldsWithNotIgnoredErrorsBeforeSubmit
+          ? new Set(props.fieldsWithNotIgnoredErrorsBeforeSubmit)
+          : null
       if (errors !== null) {
         updateErrors(errors)
-      } else {
+      }
+      if (
+        errors === null ||
+        (fieldsWithNotIgnoredErrorsSet !== null &&
+          Object.keys(errors).every(
+            (field) =>
+              errors[field] === undefined ||
+              fieldsWithNotIgnoredErrorsSet.has(field) === false
+          ))
+      ) {
         try {
           setIsSubmitting(true)
           setSubmitActionError(null)
@@ -280,6 +367,7 @@ export function useForm<Data extends FormData, SubmitActionResult>(
     },
     [
       props.validator,
+      props.fieldsWithNotIgnoredErrorsBeforeSubmit,
       props.submitAction,
       props.onSuccessSubmit,
       data,
@@ -300,6 +388,10 @@ export function useForm<Data extends FormData, SubmitActionResult>(
     },
     data,
     errors,
+    clearFields,
+    moveFields,
+    handleFieldChange,
+    handleCheckboxChange,
     handleTextFieldChange,
     handleNumSelectChange,
     handleStrSelectChange,

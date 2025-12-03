@@ -7,6 +7,7 @@ import type { ReadSubgroupsWithPrimaryPropsSuccessResultItemDto } from '@common/
 import type { DtoWithoutEnums } from '@common/dto-without-enums'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
+import { useChangeDetector } from '~/hooks/change-detector'
 import { useTags, useCoverages } from '~/hooks/resources'
 import {
   type CreateTestFormData,
@@ -68,6 +69,18 @@ export function CreateTestFormDialog(props: CreateTestFormDialogProps) {
     props.createModeIsActive
   )
 
+  const tagIds = React.useMemo(() => tags?.map((tag) => tag.id) ?? [], [tags])
+
+  const tagCodeForId = React.useMemo(
+    () => new Map((tags ?? []).map((tag) => [tag.id, tag.code])),
+    [tags]
+  )
+
+  const tagIdForCode = React.useMemo(
+    () => new Map((tags ?? []).map((tag) => [tag.code, tag.id])),
+    [tags]
+  )
+
   const readTopologyVertexNamesSorted = React.useCallback(
     async (topologyId: number, errorMessage: string) => {
       try {
@@ -100,25 +113,33 @@ export function CreateTestFormDialog(props: CreateTestFormDialogProps) {
         ...truncatedData
       } = validatedData
 
-      const createdTagIds = (
+      const recentlyCreatedTagIds = (tagCodesToCreate ?? [])
+        .map((tagCodeToCreate) => tagIdForCode.get(tagCodeToCreate))
+        .filter((tagId) => tagId !== undefined)
+
+      const newCreatedTagIds = (
         await Promise.allSettled(
-          (tagCodesToCreate ?? []).map((tagCodeToCreate) =>
-            (async () => {
-              try {
-                return await serverConnector
-                  .createTag({
-                    code: tagCodeToCreate
-                  })
-                  .then((result) => result.result.createdResourceId)
-              } catch (error) {
-                notifier.showError(
-                  error,
-                  `не удалось создать тег '${tagCodeToCreate}'`
-                )
-                return null
-              }
-            })()
-          )
+          (tagCodesToCreate ?? [])
+            .filter(
+              (tagCodeToCreate) => tagIdForCode.has(tagCodeToCreate) === false
+            )
+            .map((tagCodeToCreate) =>
+              (async () => {
+                try {
+                  return await serverConnector
+                    .createTag({
+                      code: tagCodeToCreate
+                    })
+                    .then((result) => result.result.createdResourceId)
+                } catch (error) {
+                  notifier.showError(
+                    error,
+                    `не удалось создать тег '${tagCodeToCreate}'`
+                  )
+                  return null
+                }
+              })()
+            )
         )
       )
         .map((result) => (result.status === 'fulfilled' ? result.value : null))
@@ -176,8 +197,15 @@ export function CreateTestFormDialog(props: CreateTestFormDialogProps) {
                 }
               : undefined,
           tagIds:
-            (tagIds ?? []).length + createdTagIds.length > 0
-              ? [...(tagIds ?? []), ...createdTagIds]
+            (tagIds ?? []).length +
+              recentlyCreatedTagIds.length +
+              newCreatedTagIds.length >
+            0
+              ? [
+                  ...(tagIds ?? []),
+                  ...recentlyCreatedTagIds,
+                  ...newCreatedTagIds
+                ]
               : undefined,
           coverageIds: truncatedData.coverageIds,
           vertexes: vertexNamesSorted.map((vertexName, vertexIndex) => ({
@@ -192,7 +220,7 @@ export function CreateTestFormDialog(props: CreateTestFormDialogProps) {
         undefined
       )
     },
-    [notifier, readTopologyVertexNamesSorted]
+    [notifier, tagIdForCode, readTopologyVertexNamesSorted]
   )
 
   const onSuccessSubmit = React.useCallback(
@@ -210,6 +238,7 @@ export function CreateTestFormDialog(props: CreateTestFormDialogProps) {
     formInternal,
     data,
     errors,
+    clearFields,
     handleTextFieldChange,
     handleAutocompleteSingleSelectChange,
     handleAutocompleteMultipleSelectChange,
@@ -221,13 +250,6 @@ export function CreateTestFormDialog(props: CreateTestFormDialogProps) {
     submitAction: submitAction,
     onSuccessSubmit: onSuccessSubmit
   })
-
-  const tagIds = React.useMemo(() => tags?.map((tag) => tag.id) ?? [], [tags])
-
-  const tagCodeForId = React.useMemo(
-    () => new Map((tags ?? []).map((tag) => [tag.id, tag.code])),
-    [tags]
-  )
 
   const coverageIds = React.useMemo(
     () => coverages?.map((coverage) => coverage.id) ?? [],
@@ -320,6 +342,21 @@ export function CreateTestFormDialog(props: CreateTestFormDialogProps) {
       })()
     }
   }, [data.topologyId, readTopologyVertexNamesSorted, setVertexNames])
+
+  useChangeDetector({
+    detectedObjects: [vertexNamesTruncated],
+    otherDependencies: [clearFields],
+    onChange: ([oldVertexNames]) => {
+      clearFields(
+        Array.from(Array(oldVertexNames.length).keys()).flatMap(
+          (vertexIndex) => [
+            getDbcIdField(vertexIndex),
+            getDeltaField(vertexIndex)
+          ]
+        )
+      )
+    }
+  })
 
   return (
     <FormDialog
@@ -441,7 +478,7 @@ export function CreateTestFormDialog(props: CreateTestFormDialogProps) {
           const dbcIdField = getDbcIdField(vertexIndex)
           const deltaField = getDeltaField(vertexIndex)
           return (
-            <FormBlock key={vertexName} title={`вершина ${vertexName}`}>
+            <FormBlock key={vertexIndex} title={`вершина ${vertexName}`}>
               <FormAutocompleteSingleSelect
                 name={dbcIdField}
                 label="базовая конфигурация"

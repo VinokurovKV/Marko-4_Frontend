@@ -13,10 +13,11 @@ import FormatListNumberedRtlIcon from '@mui/icons-material/FormatListNumberedRtl
 export type RequirementsScreenProps = RequirementsGridProps
 
 export function RequirementsScreen(props: RequirementsScreenProps) {
+  const title = 'требования'
   const breadcrumbsItems: ProjBreadcrumbsProps['items'] = React.useMemo(
     () => [
       {
-        title: 'требования',
+        title: title,
         href: '/requirements',
         Icon: FormatListNumberedRtlIcon
       }
@@ -24,10 +25,7 @@ export function RequirementsScreen(props: RequirementsScreenProps) {
     []
   )
   return (
-    <LayoutScreenContainer
-      title="требования"
-      breadcrumbsItems={breadcrumbsItems}
-    >
+    <LayoutScreenContainer title={title} breadcrumbsItems={breadcrumbsItems}>
       <RequirementsGrid {...props} />
     </LayoutScreenContainer>
   )

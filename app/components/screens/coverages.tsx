@@ -13,10 +13,11 @@ import HiveIcon from '@mui/icons-material/Hive'
 export type CoveragesScreenProps = CoveragesGridProps
 
 export function CoveragesScreen(props: CoveragesScreenProps) {
+  const title = 'покрытия требований'
   const breadcrumbsItems: ProjBreadcrumbsProps['items'] = React.useMemo(
     () => [
       {
-        title: 'покрытия требований',
+        title: title,
         href: '/coverages',
         Icon: HiveIcon
       }
@@ -24,10 +25,7 @@ export function CoveragesScreen(props: CoveragesScreenProps) {
     []
   )
   return (
-    <LayoutScreenContainer
-      title="покрытия требований"
-      breadcrumbsItems={breadcrumbsItems}
-    >
+    <LayoutScreenContainer title={title} breadcrumbsItems={breadcrumbsItems}>
       <CoveragesGrid {...props} />
     </LayoutScreenContainer>
   )

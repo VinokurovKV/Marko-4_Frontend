@@ -10,10 +10,11 @@ import ComputerIcon from '@mui/icons-material/Computer'
 export type DevicesScreenProps = DevicesGridProps
 
 export function DevicesScreen(props: DevicesScreenProps) {
+  const title = 'устройства'
   const breadcrumbsItems: ProjBreadcrumbsProps['items'] = React.useMemo(
     () => [
       {
-        title: 'устройства',
+        title: title,
         href: '/devices',
         Icon: ComputerIcon
       }
@@ -21,10 +22,7 @@ export function DevicesScreen(props: DevicesScreenProps) {
     []
   )
   return (
-    <LayoutScreenContainer
-      title="устройства"
-      breadcrumbsItems={breadcrumbsItems}
-    >
+    <LayoutScreenContainer title={title} breadcrumbsItems={breadcrumbsItems}>
       <DevicesGrid {...props} />
     </LayoutScreenContainer>
   )

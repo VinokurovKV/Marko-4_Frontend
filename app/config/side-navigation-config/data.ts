@@ -7,7 +7,7 @@ import ComputerIcon from '@mui/icons-material/Computer'
 import ConstructionIcon from '@mui/icons-material/Construction'
 import DataObjectIcon from '@mui/icons-material/DataObject'
 import DescriptionIcon from '@mui/icons-material/Description'
-// import DeviceHubIcon from '@mui/icons-material/DeviceHub'
+import DeviceHubIcon from '@mui/icons-material/DeviceHub'
 // import ExtensionIcon from '@mui/icons-material/Extension'
 import FormatListNumberedRtlIcon from '@mui/icons-material/FormatListNumberedRtl'
 import FoundationIcon from '@mui/icons-material/Foundation'
@@ -83,11 +83,25 @@ export const SIDE_NAVIGATION_CONFIG: SideNavigationConfig = [
         requiredRights: ['READ_TEST', 'READ_SUBGROUP', 'READ_GROUP']
       },
       {
-        id: 'topologies',
+        id: 'topologies-block',
         title: 'топологии',
         Icon: LanIcon,
-        href: '/topologies',
-        requiredRights: ['READ_COMMON_TOPOLOGY', 'READ_TOPOLOGY']
+        nested: [
+          {
+            id: 'common-topologies',
+            title: 'общие топологии',
+            Icon: DeviceHubIcon,
+            href: '/common-topologies',
+            requiredRights: ['READ_COMMON_TOPOLOGY']
+          },
+          {
+            id: 'topologies',
+            title: 'топологии',
+            Icon: LanIcon,
+            href: '/topologies',
+            requiredRights: ['READ_TOPOLOGY']
+          }
+        ]
       },
       {
         id: 'coverages',

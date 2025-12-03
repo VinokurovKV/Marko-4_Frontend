@@ -10,10 +10,11 @@ import RuleIcon from '@mui/icons-material/Rule'
 export type TestsScreenProps = TestsGridProps
 
 export function TestsScreen(props: TestsScreenProps) {
+  const title = 'тесты'
   const breadcrumbsItems: ProjBreadcrumbsProps['items'] = React.useMemo(
     () => [
       {
-        title: 'тесты',
+        title: title,
         href: '/tests',
         Icon: RuleIcon
       }
@@ -21,7 +22,7 @@ export function TestsScreen(props: TestsScreenProps) {
     []
   )
   return (
-    <LayoutScreenContainer title="тесты" breadcrumbsItems={breadcrumbsItems}>
+    <LayoutScreenContainer title={title} breadcrumbsItems={breadcrumbsItems}>
       <TestsGrid {...props} />
     </LayoutScreenContainer>
   )

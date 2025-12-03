@@ -13,10 +13,11 @@ import FoundationIcon from '@mui/icons-material/Foundation'
 export type TestTemplatesScreenProps = TestTemplatesGridProps
 
 export function TestTemplatesScreen(props: TestTemplatesScreenProps) {
+  const title = 'шаблоны тестов'
   const breadcrumbsItems: ProjBreadcrumbsProps['items'] = React.useMemo(
     () => [
       {
-        title: 'шаблоны тестов',
+        title: title,
         href: '/test-templates',
         Icon: FoundationIcon
       }
@@ -24,10 +25,7 @@ export function TestTemplatesScreen(props: TestTemplatesScreenProps) {
     []
   )
   return (
-    <LayoutScreenContainer
-      title="шаблоны тестов"
-      breadcrumbsItems={breadcrumbsItems}
-    >
+    <LayoutScreenContainer title={title} breadcrumbsItems={breadcrumbsItems}>
       <TestTemplatesGrid {...props} />
     </LayoutScreenContainer>
   )

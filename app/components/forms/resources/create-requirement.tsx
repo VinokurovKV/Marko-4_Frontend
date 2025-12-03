@@ -67,6 +67,18 @@ export function CreateRequirementFormDialog(
     props.createModeIsActive
   )
 
+  const tagIds = React.useMemo(() => tags?.map((tag) => tag.id) ?? [], [tags])
+
+  const tagCodeForId = React.useMemo(
+    () => new Map((tags ?? []).map((tag) => [tag.id, tag.code])),
+    [tags]
+  )
+
+  const tagIdForCode = React.useMemo(
+    () => new Map((tags ?? []).map((tag) => [tag.code, tag.id])),
+    [tags]
+  )
+
   const submitAction = React.useCallback(
     async (validatedData: CreateRequirementFormData) => {
       const {
@@ -77,25 +89,33 @@ export function CreateRequirementFormDialog(
         ...truncatedData
       } = validatedData
 
-      const createdTagIds = (
+      const recentlyCreatedTagIds = (tagCodesToCreate ?? [])
+        .map((tagCodeToCreate) => tagIdForCode.get(tagCodeToCreate))
+        .filter((tagId) => tagId !== undefined)
+
+      const newCreatedTagIds = (
         await Promise.allSettled(
-          (tagCodesToCreate ?? []).map((tagCodeToCreate) =>
-            (async () => {
-              try {
-                return await serverConnector
-                  .createTag({
-                    code: tagCodeToCreate
-                  })
-                  .then((result) => result.result.createdResourceId)
-              } catch (error) {
-                notifier.showError(
-                  error,
-                  `не удалось создать тег '${tagCodeToCreate}'`
-                )
-                return null
-              }
-            })()
-          )
+          (tagCodesToCreate ?? [])
+            .filter(
+              (tagCodeToCreate) => tagIdForCode.has(tagCodeToCreate) === false
+            )
+            .map((tagCodeToCreate) =>
+              (async () => {
+                try {
+                  return await serverConnector
+                    .createTag({
+                      code: tagCodeToCreate
+                    })
+                    .then((result) => result.result.createdResourceId)
+                } catch (error) {
+                  notifier.showError(
+                    error,
+                    `не удалось создать тег '${tagCodeToCreate}'`
+                  )
+                  return null
+                }
+              })()
+            )
         )
       )
         .map((result) => (result.status === 'fulfilled' ? result.value : null))
@@ -120,12 +140,15 @@ export function CreateRequirementFormDialog(
               }
             : undefined,
         tagIds:
-          (tagIds ?? []).length + createdTagIds.length > 0
-            ? [...(tagIds ?? []), ...createdTagIds]
+          (tagIds ?? []).length +
+            recentlyCreatedTagIds.length +
+            newCreatedTagIds.length >
+          0
+            ? [...(tagIds ?? []), ...recentlyCreatedTagIds, ...newCreatedTagIds]
             : undefined
       })
     },
-    [notifier]
+    [notifier, tagIdForCode]
   )
 
   const onSuccessSubmit = React.useCallback(
@@ -170,13 +193,6 @@ export function CreateRequirementFormDialog(
         title: localizationForRequirementOrigin.get(origin) ?? origin
       })),
     []
-  )
-
-  const tagIds = React.useMemo(() => tags?.map((tag) => tag.id) ?? [], [tags])
-
-  const tagCodeForId = React.useMemo(
-    () => new Map((tags ?? []).map((tag) => [tag.id, tag.code])),
-    [tags]
   )
 
   const documentCodeForId = React.useMemo(

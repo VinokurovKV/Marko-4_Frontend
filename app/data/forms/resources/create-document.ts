@@ -78,6 +78,7 @@ export const createDocumentFormValidator =
         transforms: ['EMPTY_ARR_TO_UNDEFINED']
       },
       tagCodesToCreate: {
+        rules: ['AUTOCOMPLETE_FREE_ITEMS'],
         transforms: ['EMPTY_ARR_TO_UNDEFINED']
       },
       remarkText: {

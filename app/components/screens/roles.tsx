@@ -10,10 +10,11 @@ import TheaterComedyIcon from '@mui/icons-material/TheaterComedy'
 export type RolesScreenProps = RolesGridProps
 
 export function RolesScreen(props: RolesScreenProps) {
+  const title = 'роли'
   const breadcrumbsItems: ProjBreadcrumbsProps['items'] = React.useMemo(
     () => [
       {
-        title: 'роли',
+        title: title,
         href: '/roles',
         Icon: TheaterComedyIcon
       }
@@ -21,7 +22,7 @@ export function RolesScreen(props: RolesScreenProps) {
     []
   )
   return (
-    <LayoutScreenContainer title="роли" breadcrumbsItems={breadcrumbsItems}>
+    <LayoutScreenContainer title={title} breadcrumbsItems={breadcrumbsItems}>
       <RolesGrid {...props} />
     </LayoutScreenContainer>
   )

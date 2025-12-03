@@ -1,0 +1,41 @@
+{
+  "links": [
+    {
+      "end": { "ifaceName": "iface-2", "vertexName": "B2" },
+      "start": { "ifaceName": "iface-2", "vertexName": "B1" }
+    },
+    {
+      "end": { "ifaceName": "iface-1", "vertexName": "B3" },
+      "start": { "ifaceName": "iface-1", "vertexName": "B1" }
+    },
+    {
+      "end": { "ifaceName": "iface-1", "vertexName": "DUT" },
+      "start": { "ifaceName": "iface-1", "vertexName": "B2" }
+    },
+    {
+      "end": { "ifaceName": "iface-2", "vertexName": "DUT" },
+      "start": { "ifaceName": "iface-2", "vertexName": "B3" }
+    },
+    {
+      "end": { "ifaceName": "iface-1", "vertexName": "Xinertel" },
+      "start": { "ifaceName": "iface-3", "vertexName": "DUT" }
+    }
+  ],
+  "vertexes": [
+    {
+      "name": "B1",
+      "ifaces": [{ "name": "iface-1" }, { "name": "iface-2" }],
+      "isGenerator": false
+    },
+    {
+      "name": "B2",
+      "ifaces": [{ "name": "iface-1" }, { "name": "iface-2" }],
+      "isGenerator": false
+    },
+    {
+      "name": "B3",
+      "ifaces": [{ "name": "iface-1" }, { "name": "iface-2" }],
+      "isGenerator": false
+    }
+  ]
+}

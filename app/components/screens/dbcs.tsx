@@ -10,10 +10,11 @@ import WidgetsIcon from '@mui/icons-material/Widgets'
 export type DbcsScreenProps = DbcsGridProps
 
 export function DbcsScreen(props: DbcsScreenProps) {
+  const title = 'базовые конфигурации'
   const breadcrumbsItems: ProjBreadcrumbsProps['items'] = React.useMemo(
     () => [
       {
-        title: 'базовые конфигурации',
+        title: title,
         href: '/dbcs',
         Icon: WidgetsIcon
       }
@@ -21,10 +22,7 @@ export function DbcsScreen(props: DbcsScreenProps) {
     []
   )
   return (
-    <LayoutScreenContainer
-      title="базовые конфигурации"
-      breadcrumbsItems={breadcrumbsItems}
-    >
+    <LayoutScreenContainer title={title} breadcrumbsItems={breadcrumbsItems}>
       <DbcsGrid {...props} />
     </LayoutScreenContainer>
   )

@@ -13,10 +13,11 @@ import DescriptionIcon from '@mui/icons-material/Description'
 export type DocumentsScreenProps = DocumentsGridProps
 
 export function DocumentsScreen(props: DocumentsScreenProps) {
+  const title = 'документы'
   const breadcrumbsItems: ProjBreadcrumbsProps['items'] = React.useMemo(
     () => [
       {
-        title: 'документы',
+        title: title,
         href: '/documents',
         Icon: DescriptionIcon
       }
@@ -24,10 +25,7 @@ export function DocumentsScreen(props: DocumentsScreenProps) {
     []
   )
   return (
-    <LayoutScreenContainer
-      title="документы"
-      breadcrumbsItems={breadcrumbsItems}
-    >
+    <LayoutScreenContainer title={title} breadcrumbsItems={breadcrumbsItems}>
       <DocumentsGrid {...props} />
     </LayoutScreenContainer>
   )

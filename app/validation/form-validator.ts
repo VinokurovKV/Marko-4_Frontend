@@ -11,11 +11,13 @@ type FormValidatorFieldTransform =
 
 type FormValidatorOneFieldRule =
   | 'ALLOW_UNDEFINED'
+  | 'AUTOCOMPLETE_FREE_ITEMS'
   | 'BIG_CODE'
   | 'BIG_NAME'
   | 'CODE'
   | 'EMAIL'
   | 'FORENAME'
+  | 'IFACE_NAME'
   | 'INT_NON_NEGATIVE'
   | 'LOGIN'
   | 'NAME'
@@ -30,12 +32,14 @@ type FormValidatorOneFieldRule =
   | 'SURNAME'
   | 'TEXT'
   | 'URL'
+  | 'VERTEX_NAME'
   | 'ZIP_EXT'
 
 type FormValidatorManyFieldsRule =
   | 'EQUAL_PASSES'
   | 'DISTINCT_LOGINS'
   | 'DISTINCT_NAMES'
+  | 'DISTINCT_VERTEX_NAMES'
 
 export type FormData = { [index: string]: any }
 
@@ -108,6 +112,9 @@ export class FormValidator<Data extends FormData> {
             props.push(`${minLength}-${maxLength} символов`)
           })()
           break
+        case 'AUTOCOMPLETE_FREE_ITEMS':
+          props.push(`используйте 'Enter' для добавления элементов в список`)
+          break
         case 'BIG_NAME':
           ;(() => {
             const { minLength, maxLength } = restrictionConfig.common.bigName
@@ -132,6 +139,13 @@ export class FormValidator<Data extends FormData> {
           ;(() => {
             const { minLength, maxLength } = restrictionConfig.common.forename
             props.push(`${minLength}-${maxLength} символов`)
+          })()
+          break
+        case 'IFACE_NAME':
+          ;(() => {
+            const { maxLength } =
+              restrictionConfig.common.commonTopology.ifaceName
+            props.push(`не более ${maxLength} символов`)
           })()
           break
         case 'INT_NON_NEGATIVE':
@@ -208,6 +222,13 @@ export class FormValidator<Data extends FormData> {
         case 'URL':
           ;(() => {
             const { maxLength } = restrictionConfig.common.url
+            props.push(`не более ${maxLength} символов`)
+          })()
+          break
+        case 'VERTEX_NAME':
+          ;(() => {
+            const { maxLength } =
+              restrictionConfig.common.commonTopology.vertexName
             props.push(`не более ${maxLength} символов`)
           })()
           break
@@ -516,6 +537,18 @@ export class FormValidator<Data extends FormData> {
             }
           })()
           break
+        case 'IFACE_NAME':
+          ;(() => {
+            const ifaceNameErrors = this.getStringErrors(
+              val,
+              undefined,
+              restrictionConfig.common.commonTopology.ifaceName.maxLength
+            )
+            if (ifaceNameErrors !== null) {
+              errors.push(...ifaceNameErrors)
+            }
+          })()
+          break
         case 'INT_NON_NEGATIVE':
           ;(() => {
             if (typeof val !== 'number' || Number.isInteger(val) === false) {
@@ -666,6 +699,18 @@ export class FormValidator<Data extends FormData> {
             }
           })()
           break
+        case 'VERTEX_NAME':
+          ;(() => {
+            const vertexNameErrors = this.getStringErrors(
+              val,
+              undefined,
+              restrictionConfig.common.commonTopology.vertexName.maxLength
+            )
+            if (vertexNameErrors !== null) {
+              errors.push(...vertexNameErrors)
+            }
+          })()
+          break
         case 'ZIP_EXT':
           ;(() => {
             const fileErrors = this.getFileErrors(val, ['zip'])
@@ -726,6 +771,13 @@ export class FormValidator<Data extends FormData> {
             if (this.isDistinct(vals) === false) {
               ruleFields.forEach((field) => {
                 addError(field, 'неуникальное название')
+              })
+            }
+            break
+          case 'DISTINCT_VERTEX_NAMES':
+            if (this.isDistinct(vals) === false) {
+              ruleFields.forEach((field) => {
+                addError(field, 'неуникальное название вершины')
               })
             }
             break
