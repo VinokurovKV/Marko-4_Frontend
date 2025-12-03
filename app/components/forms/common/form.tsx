@@ -76,7 +76,8 @@ export function useForm<Data extends FormData, SubmitActionResult>(
       data: props.INITIAL_FORM_DATA,
       errors: {}
     })
-  }, [props.INITIAL_FORM_DATA, setState])
+    setSubmitActionError(null)
+  }, [props.INITIAL_FORM_DATA, setSubmitActionError, setState])
 
   const updateErrors = React.useCallback(
     (errors: Errors<Data>) => {
