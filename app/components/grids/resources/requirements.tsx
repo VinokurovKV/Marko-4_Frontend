@@ -36,8 +36,11 @@ export interface RequirementsGridProps {
 export function RequirementsGrid(props: RequirementsGridProps) {
   const notifier = useNotifier()
   const meta = useMeta()
-  const rightsSet =
-    meta.status !== 'AUTHENTICATED' ? new Set([]) : meta.selfMeta.rightsSet
+  const rightsSet = React.useMemo(
+    () =>
+      meta.status !== 'AUTHENTICATED' ? new Set([]) : meta.selfMeta.rightsSet,
+    [meta]
+  )
 
   const [createModeIsActive, setCreateModeIsActive] = React.useState(false)
 

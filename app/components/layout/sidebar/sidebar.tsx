@@ -39,8 +39,11 @@ export function Sidebar({
   container
 }: SidebarProps) {
   const meta = useMeta()
-  const rightsSet =
-    meta.status !== 'AUTHENTICATED' ? new Set([]) : meta.selfMeta.rightsSet
+  const rightsSet = React.useMemo(
+    () =>
+      meta.status !== 'AUTHENTICATED' ? new Set([]) : meta.selfMeta.rightsSet,
+    [meta]
+  )
 
   const restrictedSideNavigationConfig: SideNavigationConfig =
     React.useMemo(() => {

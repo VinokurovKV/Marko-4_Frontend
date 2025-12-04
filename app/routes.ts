@@ -20,6 +20,7 @@ export default [
             route('requirements', 'routes/requirements.tsx'),
             route('coverages', 'routes/coverages.tsx'),
             route('common-topologies', 'routes/common-topologies.tsx'),
+            route('topologies', 'routes/topologies.tsx'),
             route('dbcs', 'routes/dbcs.tsx'),
             route('test-templates', 'routes/test-templates.tsx'),
             route('tests', 'routes/tests.tsx'),

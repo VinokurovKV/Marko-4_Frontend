@@ -41,8 +41,11 @@ export interface CoveragesGridProps {
 export function CoveragesGrid(props: CoveragesGridProps) {
   const notifier = useNotifier()
   const meta = useMeta()
-  const rightsSet =
-    meta.status !== 'AUTHENTICATED' ? new Set([]) : meta.selfMeta.rightsSet
+  const rightsSet = React.useMemo(
+    () =>
+      meta.status !== 'AUTHENTICATED' ? new Set([]) : meta.selfMeta.rightsSet,
+    [meta]
+  )
 
   const [createModeIsActive, setCreateModeIsActive] = React.useState(false)
 
@@ -115,7 +118,7 @@ export function CoveragesGrid(props: CoveragesGridProps) {
                 })
                 const requirementCode = getRequirementCodeForCoverageId(rowId)
                 notifier.showSuccess(
-                  `покрытие '${coverageCodeForId.get(rowId) ?? ''} 'требования '${requirementCode ?? ''}' удалено`
+                  `покрытие '${coverageCodeForId.get(rowId) ?? ''}' требования '${requirementCode ?? ''}' удалено`
                 )
               } catch (error) {
                 notifier.showError(error)

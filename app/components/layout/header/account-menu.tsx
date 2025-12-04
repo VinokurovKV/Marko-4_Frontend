@@ -28,8 +28,11 @@ export function AccountMenu() {
   const meta = useMeta()
 
   const login = meta.status === 'AUTHENTICATED' ? meta.selfMeta.login : null
-  const rightsSet =
-    meta.status !== 'AUTHENTICATED' ? new Set([]) : meta.selfMeta.rightsSet
+  const rightsSet = React.useMemo(
+    () =>
+      meta.status !== 'AUTHENTICATED' ? new Set([]) : meta.selfMeta.rightsSet,
+    [meta]
+  )
 
   const restrictedAcountMenuConfig: AcountMenuConfig = React.useMemo(() => {
     return ACCOUNT_MENU_CONFIG.filter((item) =>

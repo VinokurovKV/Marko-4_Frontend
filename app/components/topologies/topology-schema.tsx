@@ -1,4 +1,5 @@
 // Project
+import { calculateTopologyConfig } from '@common/utilities'
 import { useCommonTopology, useTopology } from '~/hooks/resources'
 import { TopologyConfigSchema } from './topology-config-schema'
 // React
@@ -18,20 +19,9 @@ export function TopologySchema({ topologyId }: TopologySchemaProps) {
   )
 
   const topologyConfig = React.useMemo(() => {
-    if (commonTopology === null || topology === null) {
-      return null
-    }
-    const vertexNamesSet = new Set(topology.vertexNames)
-    return {
-      vertexes: commonTopology.config.vertexes.filter((vertex) =>
-        vertexNamesSet.has(vertex.name)
-      ),
-      links: commonTopology.config.links.filter(
-        (link) =>
-          vertexNamesSet.has(link.start.vertexName) &&
-          vertexNamesSet.has(link.end.vertexName)
-      )
-    }
+    return commonTopology !== null && topology !== null
+      ? calculateTopologyConfig(commonTopology.config, topology.vertexNames)
+      : null
   }, [commonTopology, topology])
 
   return (
