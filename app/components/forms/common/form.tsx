@@ -72,11 +72,12 @@ export function useForm<Data extends FormData, SubmitActionResult>(
   const { data, errors } = state
 
   const clear = React.useCallback(() => {
+    setWithSubmitAttempts(false)
+    setSubmitActionError(null)
     setState({
       data: props.INITIAL_FORM_DATA,
       errors: {}
     })
-    setSubmitActionError(null)
   }, [props.INITIAL_FORM_DATA, setSubmitActionError, setState])
 
   const updateErrors = React.useCallback(
@@ -102,17 +103,17 @@ export function useForm<Data extends FormData, SubmitActionResult>(
         }
         const revalidateResult =
           withSubmitAttempts && withoutRevalidate !== true
-            ? props.validator.revalidateJoined(newData, errors, fields)
+            ? props.validator.revalidateJoined(newData, oldState.errors, fields)
             : null
         return {
           data: newData,
           errors: revalidateResult?.errorsChanged
             ? revalidateResult.newErrorsJoined
-            : errors
+            : oldState.errors
         }
       })
     },
-    [errors, withSubmitAttempts, setState]
+    [withSubmitAttempts, setState]
   )
 
   const moveFields = React.useCallback(
@@ -151,17 +152,17 @@ export function useForm<Data extends FormData, SubmitActionResult>(
           [field]: newValue
         }
         const revalidateResult = withSubmitAttempts
-          ? props.validator.revalidateJoined(newData, errors, [field])
+          ? props.validator.revalidateJoined(newData, oldState.errors, [field])
           : null
         return {
           data: newData,
           errors: revalidateResult?.errorsChanged
             ? revalidateResult.newErrorsJoined
-            : errors
+            : oldState.errors
         }
       })
     },
-    [errors, withSubmitAttempts, setState]
+    [withSubmitAttempts, setState]
   )
 
   const handleCheckboxChange = React.useCallback(

@@ -34,6 +34,32 @@ export type CreateCommonTopologyFormData =
     [index: string]: any
   }
 
+export function getVertexIdField(vertexIndex: number) {
+  return `vertexId_${vertexIndex}`
+}
+
+// export function getVertexId(
+//   data: CreateCommonTopologyFormData,
+//   vertexIndex: number
+// ) {
+//   return data[getVertexIdField(vertexIndex)] as number | undefined
+// }
+
+let lastUsedVertexId = -1
+
+export function getUniqueVertexId() {
+  lastUsedVertexId++
+  return lastUsedVertexId
+}
+
+// export function setVertexId(
+//   data: CreateCommonTopologyFormData,
+//   vertexIndex: number,
+//   vertexId: number | undefined
+// ) {
+//   data[getVertexIdField(vertexIndex)] = vertexId
+// }
+
 export function getVertexNameField(vertexIndex: number) {
   return `vertexName_${vertexIndex}`
 }
@@ -45,6 +71,32 @@ export function getVertexIsGeneratorField(vertexIndex: number) {
 export function getVertexIfaceNamesField(vertexIndex: number) {
   return `vertexIfaceNames_${vertexIndex}`
 }
+
+export function getLinkIdField(linkIndex: number) {
+  return `linkId_${linkIndex}`
+}
+
+// export function getLinkId(
+//   data: CreateCommonTopologyFormData,
+//   linkIndex: number
+// ) {
+//   return data[getLinkIdField(linkIndex)] as number | undefined
+// }
+
+let lastUsedLinkId = -1
+
+export function getUniqueLinkId() {
+  lastUsedLinkId++
+  return lastUsedLinkId
+}
+
+// export function setLinkId(
+//   data: CreateCommonTopologyFormData,
+//   linkIndex: number,
+//   linkId: number | undefined
+// ) {
+//   data[getLinkIdField(linkIndex)] = linkId
+// }
 
 export function getStartVertexIfacePairField(linkIndex: number) {
   return `startVertexIfacePair_${linkIndex}`

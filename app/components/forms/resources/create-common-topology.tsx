@@ -12,9 +12,13 @@ import {
   MAX_VERTEXES_IN_COMMON_TOPOLOGY,
   MAX_LINKS_IN_COMMON_TOPOLOGY,
   INITIAL_CREATE_COMMON_TOPOLOGY_FORM_DATA,
+  getVertexIdField,
+  getUniqueVertexId,
   getVertexNameField,
   getVertexIsGeneratorField,
   getVertexIfaceNamesField,
+  getLinkIdField,
+  getUniqueLinkId,
   getStartVertexIfacePairField,
   getEndVertexIfacePairField,
   createCommonTopologyFormValidator
@@ -170,7 +174,6 @@ export function CreateCommonTopologyFormDialog(
       )
         .map((result) => (result.status === 'fulfilled' ? result.value : null))
         .filter((result) => result !== null)
-
       return await serverConnector.createCommonTopology({
         code: validatedData.code,
         name: validatedData.name,
@@ -190,11 +193,15 @@ export function CreateCommonTopologyFormDialog(
               }
             : undefined,
         tagIds:
-          (tagIds ?? []).length +
+          (validatedData.tagIds ?? []).length +
             recentlyCreatedTagIds.length +
             newCreatedTagIds.length >
           0
-            ? [...(tagIds ?? []), ...recentlyCreatedTagIds, ...newCreatedTagIds]
+            ? [
+                ...(validatedData.tagIds ?? []),
+                ...recentlyCreatedTagIds,
+                ...newCreatedTagIds
+              ]
             : undefined,
         config: calculateConfig(validatedData)
       })
@@ -260,10 +267,12 @@ export function CreateCommonTopologyFormDialog(
     data.linksCount
   ])
 
+  // Process data.vertexesCount change
   useChangeDetector({
     detectedObjects: [data.vertexesCount],
     otherDependencies: [
       clearFields,
+      handleFieldChange,
       updateFieldsWithNotIgnoredErrorsBeforeSubmit
     ],
     onChange: ([oldVertexesCount]) => {
@@ -272,21 +281,32 @@ export function CreateCommonTopologyFormDialog(
           Array.from(Array(oldVertexesCount).keys())
             .filter((vertexIndex) => vertexIndex >= data.vertexesCount)
             .flatMap((vertexIndex) => [
+              getVertexIdField(vertexIndex),
               getVertexNameField(vertexIndex),
               getVertexIsGeneratorField(vertexIndex),
               getVertexIfaceNamesField(vertexIndex)
-            ]),
-          true
+            ])
+          // true
         )
+      } else if (data.vertexesCount > oldVertexesCount) {
+        for (
+          let vertexIndex = oldVertexesCount;
+          vertexIndex < data.vertexesCount;
+          vertexIndex++
+        ) {
+          handleFieldChange(getVertexIdField(vertexIndex), getUniqueVertexId())
+        }
       }
       updateFieldsWithNotIgnoredErrorsBeforeSubmit()
     }
   })
 
+  // Process data.linksCount change
   useChangeDetector({
     detectedObjects: [data.linksCount],
     otherDependencies: [
       clearFields,
+      handleFieldChange,
       updateFieldsWithNotIgnoredErrorsBeforeSubmit
     ],
     onChange: ([oldLinksCount]) => {
@@ -295,11 +315,20 @@ export function CreateCommonTopologyFormDialog(
           Array.from(Array(oldLinksCount).keys())
             .filter((linkIndex) => linkIndex >= data.linksCount)
             .flatMap((linkIndex) => [
+              getLinkIdField(linkIndex),
               getStartVertexIfacePairField(linkIndex),
               getEndVertexIfacePairField(linkIndex)
-            ]),
-          true
+            ])
+          // true
         )
+      } else if (data.linksCount > oldLinksCount) {
+        for (
+          let linkIndex = oldLinksCount;
+          linkIndex < data.linksCount;
+          linkIndex++
+        ) {
+          handleFieldChange(getLinkIdField(linkIndex), getUniqueLinkId())
+        }
       }
       updateFieldsWithNotIgnoredErrorsBeforeSubmit()
     }
@@ -307,87 +336,130 @@ export function CreateCommonTopologyFormDialog(
 
   const vertexNameIfaceNamePairs = React.useMemo(
     () =>
-      Array.from(Array(data.vertexesCount).keys()).flatMap((vertexIndex) => {
-        const vertexNameField = getVertexNameField(vertexIndex)
-        const vertexIfaceNamesField = getVertexIfaceNamesField(vertexIndex)
-        let vertexName = data[vertexNameField] as string | undefined
-        if (vertexName?.trim() === '') {
-          vertexName = undefined
-        }
-        const ifaceNames = data[vertexIfaceNamesField] as string[] | undefined
-        return vertexName !== undefined
-          ? (ifaceNames ?? []).map(
-              (ifaceName) =>
-                `${vertexName}${VERTEX_NAME_IFACE_NAME_PAIR_SEPARATOR}${ifaceName}`
-            )
-          : []
-      }),
+      Array.from(
+        new Set(
+          Array.from(Array(data.vertexesCount).keys()).flatMap(
+            (vertexIndex) => {
+              const vertexNameField = getVertexNameField(vertexIndex)
+              const vertexIfaceNamesField =
+                getVertexIfaceNamesField(vertexIndex)
+              let vertexName = data[vertexNameField] as string | undefined
+              if (vertexName?.trim() === '') {
+                vertexName = undefined
+              }
+              const ifaceNames = data[vertexIfaceNamesField] as
+                | string[]
+                | undefined
+              return vertexName !== undefined
+                ? (ifaceNames ?? []).map(
+                    (ifaceName) =>
+                      `${vertexName}${VERTEX_NAME_IFACE_NAME_PAIR_SEPARATOR}${ifaceName}`
+                  )
+                : []
+            }
+          )
+        )
+      ).toSorted(),
     [data]
   )
 
+  const updateLinkIfacesForVertexName = React.useCallback(
+    (vertexName: string, newVertexName: string | undefined) => {
+      for (const linkIndex of Array.from(Array(data.linksCount).keys())) {
+        const startVertexIfacePairField =
+          getStartVertexIfacePairField(linkIndex)
+        const endVertexIfacePairField = getEndVertexIfacePairField(linkIndex)
+        const startVertexIfacePair = data[startVertexIfacePairField] as
+          | string
+          | undefined
+        const endVertexIfacePair = data[endVertexIfacePairField] as
+          | string
+          | undefined
+        if (startVertexIfacePair !== undefined) {
+          const [linkVertexName, linkIfaceName] = startVertexIfacePair.split(
+            VERTEX_NAME_IFACE_NAME_PAIR_SEPARATOR
+          )
+          if (linkVertexName === vertexName) {
+            handleFieldChange(
+              startVertexIfacePairField,
+              newVertexName !== undefined
+                ? `${newVertexName}${VERTEX_NAME_IFACE_NAME_PAIR_SEPARATOR}${linkIfaceName}`
+                : undefined
+            )
+          }
+        }
+        if (endVertexIfacePair !== undefined) {
+          const [linkVertexName, linkIfaceName] = endVertexIfacePair.split(
+            VERTEX_NAME_IFACE_NAME_PAIR_SEPARATOR
+          )
+          if (linkVertexName === vertexName) {
+            handleFieldChange(
+              endVertexIfacePairField,
+              newVertexName !== undefined
+                ? `${newVertexName}${VERTEX_NAME_IFACE_NAME_PAIR_SEPARATOR}${linkIfaceName}`
+                : undefined
+            )
+          }
+        }
+      }
+    },
+    [data, handleFieldChange]
+  )
+
+  // Process vertex name change
   for (const vertexIndex of Array.from(
     Array(MAX_VERTEXES_IN_COMMON_TOPOLOGY).keys()
   )) {
+    const vertexIdField = getVertexIdField(vertexIndex)
     const vertexNameField = getVertexNameField(vertexIndex)
-    const vertexIfaceNamesField = getVertexIfaceNamesField(vertexIndex)
     useChangeDetector({
-      detectedObjects: [data[vertexNameField] as string | undefined],
-      otherDependencies: [data, handleFieldChange],
-      onChange: ([oldVertexName]) => {
+      detectedObjects: [data[vertexIdField], data[vertexNameField]] as [
+        number | undefined,
+        string | undefined
+      ],
+      otherDependencies: [data, updateLinkIfacesForVertexName],
+      onChange: ([oldVertexId, oldVertexName]) => {
+        const newVertexId = data[vertexIdField] as number | undefined
         let newVertexName = data[vertexNameField] as string | undefined
-        if (newVertexName?.trim() === '') {
-          newVertexName = undefined
-        }
-        for (const linkIndex of Array.from(Array(data.linksCount).keys())) {
-          const startVertexIfacePairField =
-            getStartVertexIfacePairField(linkIndex)
-          const endVertexIfacePairField = getEndVertexIfacePairField(linkIndex)
-          const startVertexIfacePair = data[startVertexIfacePairField] as
-            | string
-            | undefined
-          const endVertexIfacePair = data[endVertexIfacePairField] as
-            | string
-            | undefined
-          if (startVertexIfacePair !== undefined) {
-            const [vertexName, ifaceName] = startVertexIfacePair.split(
-              VERTEX_NAME_IFACE_NAME_PAIR_SEPARATOR
-            )
-            if (vertexName === oldVertexName) {
-              handleFieldChange(
-                startVertexIfacePairField,
-                newVertexName !== undefined
-                  ? `${newVertexName}${VERTEX_NAME_IFACE_NAME_PAIR_SEPARATOR}${ifaceName}`
-                  : undefined
-              )
-            }
+        if (newVertexId === oldVertexId && newVertexName !== oldVertexName) {
+          if (newVertexName?.trim() === '') {
+            newVertexName = undefined
           }
-          if (endVertexIfacePair !== undefined) {
-            const [vertexName, ifaceName] = endVertexIfacePair.split(
-              VERTEX_NAME_IFACE_NAME_PAIR_SEPARATOR
-            )
-            if (vertexName === oldVertexName) {
-              handleFieldChange(
-                endVertexIfacePairField,
-                newVertexName !== undefined
-                  ? `${newVertexName}${VERTEX_NAME_IFACE_NAME_PAIR_SEPARATOR}${ifaceName}`
-                  : undefined
-              )
-            }
+          if (oldVertexName !== undefined) {
+            updateLinkIfacesForVertexName(oldVertexName, newVertexName)
           }
         }
       }
     })
+  }
+
+  // Process vertex iface names change
+  for (const vertexIndex of Array.from(
+    Array(MAX_VERTEXES_IN_COMMON_TOPOLOGY).keys()
+  )) {
+    const vertexIdField = getVertexIdField(vertexIndex)
+    const vertexNameField = getVertexNameField(vertexIndex)
+    const vertexIfaceNamesField = getVertexIfaceNamesField(vertexIndex)
     useChangeDetector({
-      detectedObjects: [data[vertexIfaceNamesField] as string[] | undefined],
+      detectedObjects: [data[vertexIdField], data[vertexIfaceNamesField]] as [
+        number | undefined,
+        string[] | undefined
+      ],
       otherDependencies: [data, handleFieldChange],
-      onChange: ([oldVertexIfaceNames]) => {
+      onChange: ([oldVertexId, oldVertexIfaceNames]) => {
+        const newVertexId = data[vertexIdField] as number | undefined
         const currentVertexName = data[vertexNameField] as string | undefined
-        if (currentVertexName !== undefined) {
-          const deletedVertexNamesSet = (() => {
+        const newVertexIfaceNames = data[vertexIfaceNamesField] as
+          | string[]
+          | undefined
+        if (
+          newVertexId === oldVertexId &&
+          newVertexIfaceNames !== oldVertexIfaceNames &&
+          currentVertexName !== undefined
+        ) {
+          const deletedVertexIfaceNamesSet = (() => {
             const vertexIfaceNamesSet = new Set(oldVertexIfaceNames ?? [])
-            for (const vertexIfaceName of (data[vertexIfaceNamesField] as
-              | string[]
-              | undefined) ?? []) {
+            for (const vertexIfaceName of newVertexIfaceNames ?? []) {
               vertexIfaceNamesSet.delete(vertexIfaceName)
             }
             return vertexIfaceNamesSet
@@ -409,7 +481,7 @@ export function CreateCommonTopologyFormDialog(
               )
               if (
                 vertexName === currentVertexName &&
-                deletedVertexNamesSet.has(ifaceName)
+                deletedVertexIfaceNamesSet.has(ifaceName)
               ) {
                 handleFieldChange(startVertexIfacePairField, undefined)
               }
@@ -420,7 +492,7 @@ export function CreateCommonTopologyFormDialog(
               )
               if (
                 vertexName === currentVertexName &&
-                deletedVertexNamesSet.has(ifaceName)
+                deletedVertexIfaceNamesSet.has(ifaceName)
               ) {
                 handleFieldChange(endVertexIfacePairField, undefined)
               }
@@ -467,8 +539,13 @@ export function CreateCommonTopologyFormDialog(
         )
       )
       handleFieldChange('vertexesCount', data.vertexesCount - 1)
+      updateLinkIfacesForVertexName(
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+        data[getVertexNameField(deletedVertexIndex)],
+        undefined
+      )
     },
-    [data.vertexesCount, moveFields]
+    [data, moveFields, handleFieldChange, updateLinkIfacesForVertexName]
   )
 
   const handleDeleteLinkClick = React.useCallback(
@@ -491,7 +568,7 @@ export function CreateCommonTopologyFormDialog(
       )
       handleFieldChange('linksCount', data.linksCount - 1)
     },
-    [data.linksCount, moveFields]
+    [data.linksCount, moveFields, handleFieldChange]
   )
 
   return (
