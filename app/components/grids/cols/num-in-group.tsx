@@ -3,13 +3,13 @@ import * as React from 'react'
 // Material UI
 import type { GridColDef } from '@mui/x-data-grid'
 
-export function useNumCol() {
+export function useNumInGroupCol() {
   const col: GridColDef = React.useMemo(
     () => ({
-      field: 'num',
-      headerName: 'Номер',
+      field: 'numInGroup',
+      headerName: 'Номер в группе',
       type: 'number',
-      minWidth: 100,
+      minWidth: 150,
       flex: 0.01
     }),
     []

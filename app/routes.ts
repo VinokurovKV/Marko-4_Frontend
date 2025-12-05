@@ -24,6 +24,8 @@ export default [
             route('dbcs', 'routes/dbcs.tsx'),
             route('test-templates', 'routes/test-templates.tsx'),
             route('tests', 'routes/tests.tsx'),
+            route('subgroups', 'routes/subgroups.tsx'),
+            route('groups', 'routes/groups.tsx'),
             route('devices', 'routes/devices.tsx'),
             index('routes/home.tsx'),
             route('*', 'routes/not-found.tsx')

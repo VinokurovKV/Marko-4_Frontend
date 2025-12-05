@@ -17,11 +17,13 @@ import FoundationIcon from '@mui/icons-material/Foundation'
 import GroupsIcon from '@mui/icons-material/Groups'
 import HistoryIcon from '@mui/icons-material/History'
 import HiveIcon from '@mui/icons-material/Hive'
+// import HubIcon from '@mui/icons-material/Hub'
 import LanIcon from '@mui/icons-material/Lan'
 // import LayersIcon from '@mui/icons-material/Layers'
 // import ManageAccountsIcon from '@mui/icons-material/ManageAccounts'
 // import MediationIcon from '@mui/icons-material/Mediation'
 import PersonIcon from '@mui/icons-material/Person'
+// import PolylineIcon from '@mui/icons-material/Polyline'
 import RuleIcon from '@mui/icons-material/Rule'
 // import SchemaIcon from '@mui/icons-material/Schema'
 // import SettingsIcon from '@mui/icons-material/Settings'
@@ -31,6 +33,8 @@ import TagIcon from '@mui/icons-material/Tag'
 import TaskIcon from '@mui/icons-material/Task'
 import TheaterComedyIcon from '@mui/icons-material/TheaterComedy'
 // import VerifiedIcon from '@mui/icons-material/Verified'
+import ViewStreamIcon from '@mui/icons-material/ViewStream'
+import ViewWeekIcon from '@mui/icons-material/ViewWeek'
 import WidgetsIcon from '@mui/icons-material/Widgets'
 
 export const SIDE_NAVIGATION_CONFIG: SideNavigationConfig = [
@@ -76,11 +80,39 @@ export const SIDE_NAVIGATION_CONFIG: SideNavigationConfig = [
     title: 'тесты',
     nested: [
       {
-        id: 'tests',
+        id: 'tests-block',
         title: 'тесты',
         Icon: RuleIcon,
-        href: '/tests',
-        requiredRights: ['READ_TEST', 'READ_SUBGROUP', 'READ_GROUP']
+        nested: [
+          {
+            id: 'tests',
+            title: 'тесты',
+            Icon: RuleIcon,
+            href: '/tests',
+            requiredRights: ['READ_TEST']
+          },
+          {
+            id: 'subgroups',
+            title: 'подгруппы',
+            Icon: ViewStreamIcon,
+            href: '/subgroups',
+            requiredRights: ['READ_SUBGROUP']
+          },
+          {
+            id: 'groups',
+            title: 'группы',
+            Icon: ViewWeekIcon,
+            href: '/groups',
+            requiredRights: ['READ_GROUP']
+          }
+        ]
+      },
+      {
+        id: 'coverages',
+        title: 'покрытия',
+        Icon: HiveIcon,
+        href: '/coverages',
+        requiredRights: ['READ_COVERAGE']
       },
       {
         id: 'topologies-block',
@@ -102,13 +134,6 @@ export const SIDE_NAVIGATION_CONFIG: SideNavigationConfig = [
             requiredRights: ['READ_TOPOLOGY']
           }
         ]
-      },
-      {
-        id: 'coverages',
-        title: 'покрытия',
-        Icon: HiveIcon,
-        href: '/coverages',
-        requiredRights: ['READ_COVERAGE']
       },
       {
         id: 'test-utilities',
