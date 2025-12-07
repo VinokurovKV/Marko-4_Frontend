@@ -36,10 +36,10 @@ export function useTestTemplateCol(
         testTemplateCodeForId.get(testTemplateId),
       renderCell: (params: GridRenderCellParams<any, string>) => (
         <GridRefCell
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
-          refObjectId={params.row.testTemplateId}
           text={params.value}
           hrefPrefix="/test-templates"
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+          hrefPath={params.row.testTemplateId}
         />
       ),
       minWidth: 150,

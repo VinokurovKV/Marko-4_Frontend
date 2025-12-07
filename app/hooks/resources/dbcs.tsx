@@ -10,6 +10,7 @@ import type {
 } from '@common/dtos/server-api/dbcs.dto'
 import type { DtoWithoutEnums } from '@common/dto-without-enums'
 import { serverConnector } from '~/server-connector'
+import { useChangeDetector } from '../change-detector'
 import { useNotifier } from '~/providers/notifier'
 // React
 import * as React from 'react'
@@ -34,7 +35,12 @@ type ReadManyDbc<Scope extends ReadManyResourceScope> = DtoWithoutEnums<
 export function useDbcSubscription<Scope extends ReadOneResourceScope>(
   scope: Scope,
   dbcId: number | null,
-  setDbc: React.Dispatch<React.SetStateAction<ReadOneDbc<Scope> | null>>,
+  setDbcPair: React.Dispatch<
+    React.SetStateAction<{
+      dbcId: number | null
+      dbc: ReadOneDbc<Scope> | null
+    }>
+  >,
   withInitialLoad: boolean = false,
   notifyAboutInitialLoadProblems: boolean = false,
   active: boolean = true
@@ -45,11 +51,10 @@ export function useDbcSubscription<Scope extends ReadOneResourceScope>(
 
   const load = React.useCallback(
     async (notifyAboutProblems: boolean) => {
-      if (active === false) {
-        return
-      }
       if (dbcId === null) {
-        setDbc(null as ReadOneDbc<Scope>)
+        setDbcPair((oldPair) =>
+          oldPair.dbcId === null ? { ...oldPair, dbc: null } : oldPair
+        )
         return
       }
       try {
@@ -59,7 +64,14 @@ export function useDbcSubscription<Scope extends ReadOneResourceScope>(
             scope: scope
           }
         )) as ReadOneDbc<Scope>
-        setDbc(dbc)
+        setDbcPair((oldPair) =>
+          oldPair.dbcId === dbcId
+            ? {
+                ...oldPair,
+                dbc: dbc
+              }
+            : oldPair
+        )
       } catch {
         if (notifyAboutProblems) {
           notifier.showWarning(
@@ -68,12 +80,13 @@ export function useDbcSubscription<Scope extends ReadOneResourceScope>(
         }
       }
     },
-    [scope, dbcId, setDbc, active, notifier]
+    [scope, dbcId, setDbcPair, notifier]
   )
 
+  // Initial load
   React.useEffect(() => {
     setInitialized(true)
-    if (withInitialLoad === false && initialized === false) {
+    if (active === false || withInitialLoad === false || initialized) {
       return
     }
     void load(notifyAboutInitialLoadProblems)
@@ -81,10 +94,22 @@ export function useDbcSubscription<Scope extends ReadOneResourceScope>(
     scope,
     withInitialLoad,
     notifyAboutInitialLoadProblems,
+    active,
     initialized,
     setInitialized,
     load
   ])
+
+  // Process resource id change or active flag change to true
+  useChangeDetector({
+    detectedObjects: [dbcId, active],
+    otherDependencies: [notifyAboutInitialLoadProblems, load],
+    onChange: () => {
+      if (active) {
+        void load(notifyAboutInitialLoadProblems)
+      }
+    }
+  })
 
   // Subscribe
   React.useEffect(() => {
@@ -126,16 +151,28 @@ export function useDbc<Scope extends ReadOneResourceScope>(
   notifyAboutInitialLoadProblems: boolean = false,
   active: boolean = true
 ) {
-  const [dbc, setDbc] = React.useState<ReadOneDbc<Scope> | null>(null)
+  const [dbcPair, setDbcPair] = React.useState<{
+    dbcId: number | null
+    dbc: ReadOneDbc<Scope> | null
+  }>({
+    dbcId: null,
+    dbc: null
+  })
+  React.useEffect(() => {
+    setDbcPair((oldPair) => ({
+      dbcId: dbcId,
+      dbc: oldPair.dbc
+    }))
+  }, [dbcId, setDbcPair])
   useDbcSubscription(
     scope,
-    dbcId,
-    setDbc,
+    dbcPair.dbcId,
+    setDbcPair,
     true,
     notifyAboutInitialLoadProblems,
     active
   )
-  return dbc
+  return dbcPair.dbc
 }
 
 /** Subscribe to dbcs updates for existing dbcs state */
@@ -150,12 +187,11 @@ export function useDbcsSubscription<Scope extends ReadManyResourceScope>(
 ) {
   const notifier = useNotifier()
 
+  const [initialized, setInitialized] = React.useState(false)
+
   const load = React.useCallback(
     async (notifyAboutProblems: boolean) => {
       try {
-        if (active === false) {
-          return
-        }
         const dbcs = (await serverConnector.readDbcs({
           scope: scope
         })) as ReadManyDbc<Scope>[]
@@ -168,16 +204,36 @@ export function useDbcsSubscription<Scope extends ReadManyResourceScope>(
         }
       }
     },
-    [scope, setDbcs, active, notifier]
+    [scope, setDbcs, notifier]
   )
 
   // Initial load
   React.useEffect(() => {
-    if (withInitialLoad === false) {
+    setInitialized(true)
+    if (active === false || withInitialLoad === false || initialized) {
       return
     }
     void load(notifyAboutInitialLoadProblems)
-  }, [scope, withInitialLoad, notifyAboutInitialLoadProblems, load])
+  }, [
+    scope,
+    withInitialLoad,
+    notifyAboutInitialLoadProblems,
+    active,
+    initialized,
+    setInitialized,
+    load
+  ])
+
+  // Process active flag change to true
+  useChangeDetector({
+    detectedObjects: [active],
+    otherDependencies: [notifyAboutInitialLoadProblems, load],
+    onChange: () => {
+      if (active) {
+        void load(notifyAboutInitialLoadProblems)
+      }
+    }
+  })
 
   // Subscribe
   React.useEffect(() => {

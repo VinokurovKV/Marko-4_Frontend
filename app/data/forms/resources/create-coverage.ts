@@ -10,6 +10,7 @@ import type {
   TagIdsUndefinedWrapDto,
   TestIdsUndefinedWrapDto
 } from '@common/dtos'
+import type { DtoWithoutEnums } from '@common/dto-without-enums'
 import {
   type FormKey,
   type FormVal,
@@ -18,16 +19,18 @@ import {
   FormValidator
 } from '~/validation/form-validator'
 
-export type CreateCoverageFormData = BigCodeWrapDto &
-  BigNameUndefinedWrapDto &
-  RequirementIdUndefinedWrapDto &
-  CoverageTypeUndefinedWrapDto &
-  TestIdsUndefinedWrapDto &
-  CoveragePercentUndefinedWrapDto &
-  DescriptionTextUndefinedWrapDto &
-  TagIdsUndefinedWrapDto & {
-    tagCodesToCreate?: string[]
-  } & RemarkTextUndefinedWrapDto
+export type CreateCoverageFormData = DtoWithoutEnums<
+  BigCodeWrapDto &
+    BigNameUndefinedWrapDto &
+    RequirementIdUndefinedWrapDto &
+    CoverageTypeUndefinedWrapDto &
+    TestIdsUndefinedWrapDto &
+    CoveragePercentUndefinedWrapDto &
+    DescriptionTextUndefinedWrapDto &
+    TagIdsUndefinedWrapDto & {
+      tagCodesToCreate?: string[]
+    } & RemarkTextUndefinedWrapDto
+>
 
 export type CreateCoverageFormKey = FormKey<CreateCoverageFormData>
 

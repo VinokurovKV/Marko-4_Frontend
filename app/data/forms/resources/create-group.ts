@@ -8,6 +8,7 @@ import type {
   SubgroupIdsUndefinedWrapDto,
   TagIdsUndefinedWrapDto
 } from '@common/dtos'
+import type { DtoWithoutEnums } from '@common/dto-without-enums'
 import {
   type FormKey,
   type FormVal,
@@ -16,14 +17,16 @@ import {
   FormValidator
 } from '~/validation/form-validator'
 
-export type CreateGroupFormData = BigCodeWrapDto &
-  BigNameUndefinedWrapDto &
-  SubgroupIdsUndefinedWrapDto &
-  NumUndefinedWrapDto &
-  DescriptionTextUndefinedWrapDto &
-  TagIdsUndefinedWrapDto & {
-    tagCodesToCreate?: string[]
-  } & RemarkTextUndefinedWrapDto
+export type CreateGroupFormData = DtoWithoutEnums<
+  BigCodeWrapDto &
+    BigNameUndefinedWrapDto &
+    SubgroupIdsUndefinedWrapDto &
+    NumUndefinedWrapDto &
+    DescriptionTextUndefinedWrapDto &
+    TagIdsUndefinedWrapDto & {
+      tagCodesToCreate?: string[]
+    } & RemarkTextUndefinedWrapDto
+>
 
 export type CreateGroupFormKey = FormKey<CreateGroupFormData>
 

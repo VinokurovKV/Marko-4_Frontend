@@ -28,6 +28,7 @@ type FormValidatorOneFieldRule =
   | 'PERCENT'
   | 'PDF_EXT'
   | 'PHONE'
+  | 'PRIORITY'
   | 'PUBLIC_VERSION'
   | 'SURNAME'
   | 'TEXT'
@@ -199,6 +200,11 @@ export class FormValidator<Data extends FormData> {
           ;(() => {
             const { maxLength } = restrictionConfig.common.phone
             props.push(`не более ${maxLength} символов`)
+          })()
+          break
+        case 'PRIORITY':
+          ;(() => {
+            props.push('0 (по умолчанию) - самый низкий приоритет')
           })()
           break
         case 'PUBLIC_VERSION':

@@ -63,7 +63,11 @@ export function TestTemplatesGrid(props: TestTemplatesGridProps) {
   const readCols = [
     useCodeCol('id', true, '/test-templates'),
     useNameCol(),
-    usePreparedCol('MALE', undefined, 'конфигурация не загружена')
+    usePreparedCol(
+      'MALE',
+      'конфигурация загружена',
+      'конфигурация не загружена'
+    )
   ]
 
   const actionsColProps: ActionsColProps = React.useMemo(

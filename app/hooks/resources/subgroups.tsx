@@ -10,6 +10,7 @@ import type {
 } from '@common/dtos/server-api/subgroups.dto'
 import type { DtoWithoutEnums } from '@common/dto-without-enums'
 import { serverConnector } from '~/server-connector'
+import { useChangeDetector } from '../change-detector'
 import { useNotifier } from '~/providers/notifier'
 // React
 import * as React from 'react'
@@ -34,8 +35,11 @@ type ReadManySubgroup<Scope extends ReadManyResourceScope> = DtoWithoutEnums<
 export function useSubgroupSubscription<Scope extends ReadOneResourceScope>(
   scope: Scope,
   subgroupId: number | null,
-  setSubgroup: React.Dispatch<
-    React.SetStateAction<ReadOneSubgroup<Scope> | null>
+  setSubgroupPair: React.Dispatch<
+    React.SetStateAction<{
+      subgroupId: number | null
+      subgroup: ReadOneSubgroup<Scope> | null
+    }>
   >,
   withInitialLoad: boolean = false,
   notifyAboutInitialLoadProblems: boolean = false,
@@ -47,11 +51,10 @@ export function useSubgroupSubscription<Scope extends ReadOneResourceScope>(
 
   const load = React.useCallback(
     async (notifyAboutProblems: boolean) => {
-      if (active === false) {
-        return
-      }
       if (subgroupId === null) {
-        setSubgroup(null as ReadOneSubgroup<Scope>)
+        setSubgroupPair((oldPair) =>
+          oldPair.subgroupId === null ? { ...oldPair, subgroup: null } : oldPair
+        )
         return
       }
       try {
@@ -61,7 +64,14 @@ export function useSubgroupSubscription<Scope extends ReadOneResourceScope>(
             scope: scope
           }
         )) as ReadOneSubgroup<Scope>
-        setSubgroup(subgroup)
+        setSubgroupPair((oldPair) =>
+          oldPair.subgroupId === subgroupId
+            ? {
+                ...oldPair,
+                subgroup: subgroup
+              }
+            : oldPair
+        )
       } catch {
         if (notifyAboutProblems) {
           notifier.showWarning(
@@ -70,12 +80,13 @@ export function useSubgroupSubscription<Scope extends ReadOneResourceScope>(
         }
       }
     },
-    [scope, subgroupId, setSubgroup, active, notifier]
+    [scope, subgroupId, setSubgroupPair, notifier]
   )
 
+  // Initial load
   React.useEffect(() => {
     setInitialized(true)
-    if (withInitialLoad === false && initialized === false) {
+    if (active === false || withInitialLoad === false || initialized) {
       return
     }
     void load(notifyAboutInitialLoadProblems)
@@ -83,10 +94,22 @@ export function useSubgroupSubscription<Scope extends ReadOneResourceScope>(
     scope,
     withInitialLoad,
     notifyAboutInitialLoadProblems,
+    active,
     initialized,
     setInitialized,
     load
   ])
+
+  // Process resource id change or active flag change to true
+  useChangeDetector({
+    detectedObjects: [subgroupId, active],
+    otherDependencies: [notifyAboutInitialLoadProblems, load],
+    onChange: () => {
+      if (active) {
+        void load(notifyAboutInitialLoadProblems)
+      }
+    }
+  })
 
   // Subscribe
   React.useEffect(() => {
@@ -128,18 +151,28 @@ export function useSubgroup<Scope extends ReadOneResourceScope>(
   notifyAboutInitialLoadProblems: boolean = false,
   active: boolean = true
 ) {
-  const [subgroup, setSubgroup] = React.useState<ReadOneSubgroup<Scope> | null>(
-    null
-  )
+  const [subgroupPair, setSubgroupPair] = React.useState<{
+    subgroupId: number | null
+    subgroup: ReadOneSubgroup<Scope> | null
+  }>({
+    subgroupId: null,
+    subgroup: null
+  })
+  React.useEffect(() => {
+    setSubgroupPair((oldPair) => ({
+      subgroupId: subgroupId,
+      subgroup: oldPair.subgroup
+    }))
+  }, [subgroupId, setSubgroupPair])
   useSubgroupSubscription(
     scope,
-    subgroupId,
-    setSubgroup,
+    subgroupPair.subgroupId,
+    setSubgroupPair,
     true,
     notifyAboutInitialLoadProblems,
     active
   )
-  return subgroup
+  return subgroupPair.subgroup
 }
 
 /** Subscribe to subgroups updates for existing subgroups state */
@@ -154,12 +187,11 @@ export function useSubgroupsSubscription<Scope extends ReadManyResourceScope>(
 ) {
   const notifier = useNotifier()
 
+  const [initialized, setInitialized] = React.useState(false)
+
   const load = React.useCallback(
     async (notifyAboutProblems: boolean) => {
       try {
-        if (active === false) {
-          return
-        }
         const subgroups = (await serverConnector.readSubgroups({
           scope: scope
         })) as ReadManySubgroup<Scope>[]
@@ -172,16 +204,36 @@ export function useSubgroupsSubscription<Scope extends ReadManyResourceScope>(
         }
       }
     },
-    [scope, setSubgroups, active, notifier]
+    [scope, setSubgroups, notifier]
   )
 
   // Initial load
   React.useEffect(() => {
-    if (withInitialLoad === false) {
+    setInitialized(true)
+    if (active === false || withInitialLoad === false || initialized) {
       return
     }
     void load(notifyAboutInitialLoadProblems)
-  }, [scope, withInitialLoad, notifyAboutInitialLoadProblems, load])
+  }, [
+    scope,
+    withInitialLoad,
+    notifyAboutInitialLoadProblems,
+    active,
+    initialized,
+    setInitialized,
+    load
+  ])
+
+  // Process active flag change to true
+  useChangeDetector({
+    detectedObjects: [active],
+    otherDependencies: [notifyAboutInitialLoadProblems, load],
+    onChange: () => {
+      if (active) {
+        void load(notifyAboutInitialLoadProblems)
+      }
+    }
+  })
 
   // Subscribe
   React.useEffect(() => {

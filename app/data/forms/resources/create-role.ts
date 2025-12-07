@@ -13,9 +13,9 @@ import {
   FormValidator
 } from '~/validation/form-validator'
 
-export type CreateRoleFormData = NameWrapDto &
-  DtoWithoutEnums<RightsUndefinedWrapDto> &
-  DescriptionTextUndefinedWrapDto
+export type CreateRoleFormData = DtoWithoutEnums<
+  NameWrapDto & RightsUndefinedWrapDto & DescriptionTextUndefinedWrapDto
+>
 
 export type CreateRoleFormKey = FormKey<CreateRoleFormData>
 

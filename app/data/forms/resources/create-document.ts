@@ -10,6 +10,7 @@ import type {
   TagIdsUndefinedWrapDto,
   UrlUndefinedWrapDto
 } from '@common/dtos'
+import type { DtoWithoutEnums } from '@common/dto-without-enums'
 import {
   type FormKey,
   type FormVal,
@@ -18,17 +19,19 @@ import {
   FormValidator
 } from '~/validation/form-validator'
 
-export type CreateDocumentFormData = CodeWrapDto &
-  NameUndefinedWrapDto &
-  DocumentTypeUndefinedWrapDto & {
-    config?: File
-  } & PublicVersionUndefinedWrapDto &
-  DescriptionTextUndefinedWrapDto &
-  DateUndefinedWrapDto &
-  UrlUndefinedWrapDto &
-  TagIdsUndefinedWrapDto & {
-    tagCodesToCreate?: string[]
-  } & RemarkTextUndefinedWrapDto
+export type CreateDocumentFormData = DtoWithoutEnums<
+  CodeWrapDto &
+    NameUndefinedWrapDto &
+    DocumentTypeUndefinedWrapDto & {
+      config?: File
+    } & PublicVersionUndefinedWrapDto &
+    DescriptionTextUndefinedWrapDto &
+    DateUndefinedWrapDto &
+    UrlUndefinedWrapDto &
+    TagIdsUndefinedWrapDto & {
+      tagCodesToCreate?: string[]
+    } & RemarkTextUndefinedWrapDto
+>
 
 export type CreateDocumentFormKey = FormKey<CreateDocumentFormData>
 

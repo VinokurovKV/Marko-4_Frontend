@@ -33,10 +33,10 @@ export function useTopologyCol(topologies: Topology[] | null | undefined) {
       valueGetter: (topologyId) => topologyCodeForId.get(topologyId),
       renderCell: (params: GridRenderCellParams<any, string>) => (
         <GridRefCell
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
-          refObjectId={params.row.topologyId}
           text={params.value}
           hrefPrefix="/topologies"
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+          hrefPath={params.row.topologyId}
         />
       ),
       minWidth: 150,

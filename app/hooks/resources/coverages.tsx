@@ -10,6 +10,7 @@ import type {
 } from '@common/dtos/server-api/coverages.dto'
 import type { DtoWithoutEnums } from '@common/dto-without-enums'
 import { serverConnector } from '~/server-connector'
+import { useChangeDetector } from '../change-detector'
 import { useNotifier } from '~/providers/notifier'
 // React
 import * as React from 'react'
@@ -34,8 +35,11 @@ type ReadManyCoverage<Scope extends ReadManyResourceScope> = DtoWithoutEnums<
 export function useCoverageSubscription<Scope extends ReadOneResourceScope>(
   scope: Scope,
   coverageId: number | null,
-  setCoverage: React.Dispatch<
-    React.SetStateAction<ReadOneCoverage<Scope> | null>
+  setCoveragePair: React.Dispatch<
+    React.SetStateAction<{
+      coverageId: number | null
+      coverage: ReadOneCoverage<Scope> | null
+    }>
   >,
   withInitialLoad: boolean = false,
   notifyAboutInitialLoadProblems: boolean = false,
@@ -47,11 +51,10 @@ export function useCoverageSubscription<Scope extends ReadOneResourceScope>(
 
   const load = React.useCallback(
     async (notifyAboutProblems: boolean) => {
-      if (active === false) {
-        return
-      }
       if (coverageId === null) {
-        setCoverage(null as ReadOneCoverage<Scope>)
+        setCoveragePair((oldPair) =>
+          oldPair.coverageId === null ? { ...oldPair, coverage: null } : oldPair
+        )
         return
       }
       try {
@@ -61,7 +64,14 @@ export function useCoverageSubscription<Scope extends ReadOneResourceScope>(
             scope: scope
           }
         )) as ReadOneCoverage<Scope>
-        setCoverage(coverage)
+        setCoveragePair((oldPair) =>
+          oldPair.coverageId === coverageId
+            ? {
+                ...oldPair,
+                coverage: coverage
+              }
+            : oldPair
+        )
       } catch {
         if (notifyAboutProblems) {
           notifier.showWarning(
@@ -70,12 +80,13 @@ export function useCoverageSubscription<Scope extends ReadOneResourceScope>(
         }
       }
     },
-    [scope, coverageId, setCoverage, active, notifier]
+    [scope, coverageId, setCoveragePair, notifier]
   )
 
+  // Initial load
   React.useEffect(() => {
     setInitialized(true)
-    if (withInitialLoad === false && initialized === false) {
+    if (active === false || withInitialLoad === false || initialized) {
       return
     }
     void load(notifyAboutInitialLoadProblems)
@@ -83,10 +94,22 @@ export function useCoverageSubscription<Scope extends ReadOneResourceScope>(
     scope,
     withInitialLoad,
     notifyAboutInitialLoadProblems,
+    active,
     initialized,
     setInitialized,
     load
   ])
+
+  // Process resource id change or active flag change to true
+  useChangeDetector({
+    detectedObjects: [coverageId, active],
+    otherDependencies: [notifyAboutInitialLoadProblems, load],
+    onChange: () => {
+      if (active) {
+        void load(notifyAboutInitialLoadProblems)
+      }
+    }
+  })
 
   // Subscribe
   React.useEffect(() => {
@@ -128,18 +151,28 @@ export function useCoverage<Scope extends ReadOneResourceScope>(
   notifyAboutInitialLoadProblems: boolean = false,
   active: boolean = true
 ) {
-  const [coverage, setCoverage] = React.useState<ReadOneCoverage<Scope> | null>(
-    null
-  )
+  const [coveragePair, setCoveragePair] = React.useState<{
+    coverageId: number | null
+    coverage: ReadOneCoverage<Scope> | null
+  }>({
+    coverageId: null,
+    coverage: null
+  })
+  React.useEffect(() => {
+    setCoveragePair((oldPair) => ({
+      coverageId: coverageId,
+      coverage: oldPair.coverage
+    }))
+  }, [coverageId, setCoveragePair])
   useCoverageSubscription(
     scope,
-    coverageId,
-    setCoverage,
+    coveragePair.coverageId,
+    setCoveragePair,
     true,
     notifyAboutInitialLoadProblems,
     active
   )
-  return coverage
+  return coveragePair.coverage
 }
 
 /** Subscribe to coverages updates for existing coverages state */
@@ -154,12 +187,11 @@ export function useCoveragesSubscription<Scope extends ReadManyResourceScope>(
 ) {
   const notifier = useNotifier()
 
+  const [initialized, setInitialized] = React.useState(false)
+
   const load = React.useCallback(
     async (notifyAboutProblems: boolean) => {
       try {
-        if (active === false) {
-          return
-        }
         const coverages = (await serverConnector.readCoverages({
           scope: scope
         })) as ReadManyCoverage<Scope>[]
@@ -172,16 +204,36 @@ export function useCoveragesSubscription<Scope extends ReadManyResourceScope>(
         }
       }
     },
-    [scope, setCoverages, active, notifier]
+    [scope, setCoverages, notifier]
   )
 
   // Initial load
   React.useEffect(() => {
-    if (withInitialLoad === false) {
+    setInitialized(true)
+    if (active === false || withInitialLoad === false || initialized) {
       return
     }
     void load(notifyAboutInitialLoadProblems)
-  }, [scope, withInitialLoad, notifyAboutInitialLoadProblems, load])
+  }, [
+    scope,
+    withInitialLoad,
+    notifyAboutInitialLoadProblems,
+    active,
+    initialized,
+    setInitialized,
+    load
+  ])
+
+  // Process active flag change to true
+  useChangeDetector({
+    detectedObjects: [active],
+    otherDependencies: [notifyAboutInitialLoadProblems, load],
+    onChange: () => {
+      if (active) {
+        void load(notifyAboutInitialLoadProblems)
+      }
+    }
+  })
 
   // Subscribe
   React.useEffect(() => {

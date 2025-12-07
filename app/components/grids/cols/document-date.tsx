@@ -11,7 +11,7 @@ export function useDocumentDateCol() {
     field: 'date',
     headerName: 'Дата публикации',
     minWidth: 150,
-    flex: 1
+    flex: 0.01
   })
   // const col: GridColDef = React.useMemo(
   //   () => ({

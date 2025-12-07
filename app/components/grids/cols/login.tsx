@@ -13,10 +13,10 @@ export function useLoginCol(userIdField: string, header: boolean) {
       hideable: !header,
       renderCell: (params: GridRenderCellParams<any, string>) => (
         <GridRefCell
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
-          refObjectId={params.row[userIdField]}
           text={params.value}
           hrefPrefix="/users"
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+          hrefPath={params.row[userIdField]}
           header={header}
           disableCapitalize
         />

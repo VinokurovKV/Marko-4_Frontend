@@ -1,4 +1,5 @@
 // Project
+import { useChangeDetector } from '~/hooks/change-detector'
 import { FormHelperTextStyled } from './form-helper-text'
 import { FormTextField } from './form-text-field'
 // React
@@ -53,12 +54,30 @@ export function FormAutocompleteMultipleSelect<Value extends number | string>(
     [props.name, props.onChange]
   )
 
+  // Process possible values change
+  useChangeDetector({
+    detectedObjects: [props.possibleValues],
+    otherDependencies: [props.name, props.values, props.onChange],
+    onChange: () => {
+      const possibleValuesSet = new Set(props.possibleValues)
+      if (
+        props.values.some((value) => possibleValuesSet.has(value) === false)
+      ) {
+        props.onChange({
+          name: props.name,
+          values: props.values.filter((value) => possibleValuesSet.has(value))
+        })
+      }
+    }
+  })
+
   const preparedLabel = `${props.label}${props.required ? '\u2009*' : ''}`
 
   return (
     <FormControl size="small" sx={{ m: 1, minWidth: 120 }}>
       <AutocompleteStyled
         multiple
+        disableCloseOnSelect
         options={props.possibleValues}
         getOptionLabel={(value) => {
           const title = props.titleForValue?.get(value) ?? value.toString()

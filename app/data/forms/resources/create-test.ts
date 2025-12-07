@@ -11,6 +11,7 @@ import type {
   TestTemplateIdUndefinedWrapDto,
   TagIdsUndefinedWrapDto
 } from '@common/dtos'
+import type { DtoWithoutEnums } from '@common/dto-without-enums'
 import {
   type FormKey,
   type FormVal,
@@ -22,21 +23,23 @@ import {
 
 export const MAX_VERTEXES_IN_TOPOLOGY = 30
 
-export type CreateTestFormDataWithoutVertexes = BigCodeWrapDto &
-  BigNameUndefinedWrapDto &
-  SubgroupIdUndefinedWrapDto &
-  NumInSubgroupUndefinedWrapDto &
-  CoverageIdsUndefinedWrapDto &
-  TestTemplateIdUndefinedWrapDto & {
-    config?: File
-  } & TopologyIdUndefinedWrapDto &
-  DescriptionTextUndefinedWrapDto &
-  TagIdsUndefinedWrapDto & {
-    tagCodesToCreate?: string[]
-  } & RemarkTextUndefinedWrapDto
+export type CreateTestFormDataWithoutVertexes = DtoWithoutEnums<
+  BigCodeWrapDto &
+    BigNameUndefinedWrapDto &
+    SubgroupIdUndefinedWrapDto &
+    NumInSubgroupUndefinedWrapDto &
+    CoverageIdsUndefinedWrapDto &
+    TestTemplateIdUndefinedWrapDto & {
+      config?: File
+    } & TopologyIdUndefinedWrapDto &
+    DescriptionTextUndefinedWrapDto &
+    TagIdsUndefinedWrapDto & {
+      tagCodesToCreate?: string[]
+    } & RemarkTextUndefinedWrapDto
+>
 
 export type CreateTestFormData = CreateTestFormDataWithoutVertexes & {
-  [index: string]: any // number | File | undefined
+  [index: string]: any
 }
 
 export function getDbcIdField(index: number) {

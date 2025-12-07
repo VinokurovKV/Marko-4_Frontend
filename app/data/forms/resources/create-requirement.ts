@@ -11,6 +11,7 @@ import type {
   RequirementOriginUndefinedWrapDto,
   TagIdsUndefinedWrapDto
 } from '@common/dtos'
+import type { DtoWithoutEnums } from '@common/dto-without-enums'
 import {
   type FormKey,
   type FormVal,
@@ -19,17 +20,19 @@ import {
   FormValidator
 } from '~/validation/form-validator'
 
-export type CreateRequirementFormData = BigCodeWrapDto &
-  BigNameUndefinedWrapDto &
-  RequirementModifierUndefinedWrapDto &
-  RequirementOriginUndefinedWrapDto &
-  FragmentIdsUndefinedWrapDto &
-  ParentRequirementIdsUndefinedWrapDto &
-  ChildRequirementIdsUndefinedWrapDto &
-  DescriptionTextUndefinedWrapDto &
-  TagIdsUndefinedWrapDto & {
-    tagCodesToCreate?: string[]
-  } & RemarkTextUndefinedWrapDto
+export type CreateRequirementFormData = DtoWithoutEnums<
+  BigCodeWrapDto &
+    BigNameUndefinedWrapDto &
+    RequirementModifierUndefinedWrapDto &
+    RequirementOriginUndefinedWrapDto &
+    FragmentIdsUndefinedWrapDto &
+    ParentRequirementIdsUndefinedWrapDto &
+    ChildRequirementIdsUndefinedWrapDto &
+    DescriptionTextUndefinedWrapDto &
+    TagIdsUndefinedWrapDto & {
+      tagCodesToCreate?: string[]
+    } & RemarkTextUndefinedWrapDto
+>
 
 export type CreateRequirementFormKey = FormKey<CreateRequirementFormData>
 

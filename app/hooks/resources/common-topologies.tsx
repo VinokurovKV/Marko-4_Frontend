@@ -10,6 +10,7 @@ import type {
 } from '@common/dtos/server-api/common-topologies.dto'
 import type { DtoWithoutEnums } from '@common/dto-without-enums'
 import { serverConnector } from '~/server-connector'
+import { useChangeDetector } from '../change-detector'
 import { useNotifier } from '~/providers/notifier'
 // React
 import * as React from 'react'
@@ -38,8 +39,11 @@ export function useCommonTopologySubscription<
 >(
   scope: Scope,
   commonTopologyId: number | null,
-  setCommonTopology: React.Dispatch<
-    React.SetStateAction<ReadOneCommonTopology<Scope> | null>
+  setCommonTopologyPair: React.Dispatch<
+    React.SetStateAction<{
+      commonTopologyId: number | null
+      commonTopology: ReadOneCommonTopology<Scope> | null
+    }>
   >,
   withInitialLoad: boolean = false,
   notifyAboutInitialLoadProblems: boolean = false,
@@ -51,11 +55,12 @@ export function useCommonTopologySubscription<
 
   const load = React.useCallback(
     async (notifyAboutProblems: boolean) => {
-      if (active === false) {
-        return
-      }
       if (commonTopologyId === null) {
-        setCommonTopology(null as ReadOneCommonTopology<Scope>)
+        setCommonTopologyPair((oldPair) =>
+          oldPair.commonTopologyId === null
+            ? { ...oldPair, commonTopology: null }
+            : oldPair
+        )
         return
       }
       try {
@@ -65,7 +70,14 @@ export function useCommonTopologySubscription<
             scope: scope
           }
         )) as ReadOneCommonTopology<Scope>
-        setCommonTopology(commonTopology)
+        setCommonTopologyPair((oldPair) =>
+          oldPair.commonTopologyId === commonTopologyId
+            ? {
+                ...oldPair,
+                commonTopology: commonTopology
+              }
+            : oldPair
+        )
       } catch {
         if (notifyAboutProblems) {
           notifier.showWarning(
@@ -74,13 +86,13 @@ export function useCommonTopologySubscription<
         }
       }
     },
-    [scope, commonTopologyId, setCommonTopology, active, notifier]
+    [scope, commonTopologyId, setCommonTopologyPair, notifier]
   )
 
   // Initial load
   React.useEffect(() => {
     setInitialized(true)
-    if (withInitialLoad === false && initialized === false) {
+    if (active === false || withInitialLoad === false || initialized) {
       return
     }
     void load(notifyAboutInitialLoadProblems)
@@ -88,10 +100,22 @@ export function useCommonTopologySubscription<
     scope,
     withInitialLoad,
     notifyAboutInitialLoadProblems,
+    active,
     initialized,
     setInitialized,
     load
   ])
+
+  // Process resource id change or active flag change to true
+  useChangeDetector({
+    detectedObjects: [commonTopologyId, active],
+    otherDependencies: [notifyAboutInitialLoadProblems, load],
+    onChange: () => {
+      if (active) {
+        void load(notifyAboutInitialLoadProblems)
+      }
+    }
+  })
 
   // Subscribe
   React.useEffect(() => {
@@ -133,17 +157,28 @@ export function useCommonTopology<Scope extends ReadOneResourceScope>(
   notifyAboutInitialLoadProblems: boolean = false,
   active: boolean = true
 ) {
-  const [commonTopology, setCommonTopology] =
-    React.useState<ReadOneCommonTopology<Scope> | null>(null)
+  const [commonTopologyPair, setCommonTopologyPair] = React.useState<{
+    commonTopologyId: number | null
+    commonTopology: ReadOneCommonTopology<Scope> | null
+  }>({
+    commonTopologyId: null,
+    commonTopology: null
+  })
+  React.useEffect(() => {
+    setCommonTopologyPair((oldPair) => ({
+      commonTopologyId: commonTopologyId,
+      commonTopology: oldPair.commonTopology
+    }))
+  }, [commonTopologyId, setCommonTopologyPair])
   useCommonTopologySubscription(
     scope,
-    commonTopologyId,
-    setCommonTopology,
+    commonTopologyPair.commonTopologyId,
+    setCommonTopologyPair,
     true,
     notifyAboutInitialLoadProblems,
     active
   )
-  return commonTopology
+  return commonTopologyPair.commonTopology
 }
 
 /** Subscribe to commonTopologies updates for existing commonTopologies state */
@@ -162,12 +197,11 @@ export function useCommonTopologiesSubscription<
 ) {
   const notifier = useNotifier()
 
+  const [initialized, setInitialized] = React.useState(false)
+
   const load = React.useCallback(
     async (notifyAboutProblems: boolean) => {
       try {
-        if (active === false) {
-          return
-        }
         const commonTopologies = (await serverConnector.readCommonTopologies({
           scope: scope
         })) as ReadManyCommonTopology<Scope>[]
@@ -180,16 +214,36 @@ export function useCommonTopologiesSubscription<
         }
       }
     },
-    [scope, setCommonTopologies, active, notifier]
+    [scope, setCommonTopologies, notifier]
   )
 
   // Initial load
   React.useEffect(() => {
-    if (withInitialLoad === false) {
+    setInitialized(true)
+    if (active === false || withInitialLoad === false || initialized) {
       return
     }
     void load(notifyAboutInitialLoadProblems)
-  }, [scope, withInitialLoad, notifyAboutInitialLoadProblems, load])
+  }, [
+    scope,
+    withInitialLoad,
+    notifyAboutInitialLoadProblems,
+    active,
+    initialized,
+    setInitialized,
+    load
+  ])
+
+  // Process active flag change to true
+  useChangeDetector({
+    detectedObjects: [active],
+    otherDependencies: [notifyAboutInitialLoadProblems, load],
+    onChange: () => {
+      if (active) {
+        void load(notifyAboutInitialLoadProblems)
+      }
+    }
+  })
 
   // Subscribe
   React.useEffect(() => {

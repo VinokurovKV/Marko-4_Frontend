@@ -4,9 +4,9 @@ import { localizationForCoverageType } from '~/localization'
 // React
 import * as React from 'react'
 // Material UI
-import LockOpenIcon from '@mui/icons-material/LockOpen'
-import LockIcon from '@mui/icons-material/Lock'
-import PanToolAltIcon from '@mui/icons-material/PanToolAlt'
+import LockOpenIcon from '@mui/icons-material/LockOpenTwoTone'
+import LockIcon from '@mui/icons-material/LockTwoTone'
+import PanToolAltIcon from '@mui/icons-material/PanToolAltTwoTone'
 import Stack from '@mui/material/Stack'
 import Tooltip from '@mui/material/Tooltip'
 import type { GridColDef, GridRenderCellParams } from '@mui/x-data-grid'

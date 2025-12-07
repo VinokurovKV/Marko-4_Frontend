@@ -17,10 +17,10 @@ export function useCodeCol(
       hideable: !header,
       renderCell: (params: GridRenderCellParams<any, string>) => (
         <GridRefCell
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
-          refObjectId={params.row[resourceIdField]}
           text={params.value}
           hrefPrefix={hrefPrefix}
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+          hrefPath={params.row[resourceIdField]}
           header={header}
           disableCapitalize
         />

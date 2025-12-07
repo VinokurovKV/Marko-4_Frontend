@@ -10,6 +10,7 @@ import type {
 } from '@common/dtos/server-api/topologies.dto'
 import type { DtoWithoutEnums } from '@common/dto-without-enums'
 import { serverConnector } from '~/server-connector'
+import { useChangeDetector } from '../change-detector'
 import { useNotifier } from '~/providers/notifier'
 // React
 import * as React from 'react'
@@ -34,8 +35,11 @@ type ReadManyTopology<Scope extends ReadManyResourceScope> = DtoWithoutEnums<
 export function useTopologySubscription<Scope extends ReadOneResourceScope>(
   scope: Scope,
   topologyId: number | null,
-  setTopology: React.Dispatch<
-    React.SetStateAction<ReadOneTopology<Scope> | null>
+  setTopologyPair: React.Dispatch<
+    React.SetStateAction<{
+      topologyId: number | null
+      topology: ReadOneTopology<Scope> | null
+    }>
   >,
   withInitialLoad: boolean = false,
   notifyAboutInitialLoadProblems: boolean = false,
@@ -47,11 +51,10 @@ export function useTopologySubscription<Scope extends ReadOneResourceScope>(
 
   const load = React.useCallback(
     async (notifyAboutProblems: boolean) => {
-      if (active === false) {
-        return
-      }
       if (topologyId === null) {
-        setTopology(null as ReadOneTopology<Scope>)
+        setTopologyPair((oldPair) =>
+          oldPair.topologyId === null ? { ...oldPair, topology: null } : oldPair
+        )
         return
       }
       try {
@@ -61,7 +64,14 @@ export function useTopologySubscription<Scope extends ReadOneResourceScope>(
             scope: scope
           }
         )) as ReadOneTopology<Scope>
-        setTopology(topology)
+        setTopologyPair((oldPair) =>
+          oldPair.topologyId === topologyId
+            ? {
+                ...oldPair,
+                topology: topology
+              }
+            : oldPair
+        )
       } catch {
         if (notifyAboutProblems) {
           notifier.showWarning(
@@ -70,12 +80,13 @@ export function useTopologySubscription<Scope extends ReadOneResourceScope>(
         }
       }
     },
-    [scope, topologyId, setTopology, active, notifier]
+    [scope, topologyId, setTopologyPair, notifier]
   )
 
+  // Initial load
   React.useEffect(() => {
     setInitialized(true)
-    if (withInitialLoad === false && initialized === false) {
+    if (active === false || withInitialLoad === false || initialized) {
       return
     }
     void load(notifyAboutInitialLoadProblems)
@@ -83,10 +94,22 @@ export function useTopologySubscription<Scope extends ReadOneResourceScope>(
     scope,
     withInitialLoad,
     notifyAboutInitialLoadProblems,
+    active,
     initialized,
     setInitialized,
     load
   ])
+
+  // Process resource id change or active flag change to true
+  useChangeDetector({
+    detectedObjects: [topologyId, active],
+    otherDependencies: [notifyAboutInitialLoadProblems, load],
+    onChange: () => {
+      if (active) {
+        void load(notifyAboutInitialLoadProblems)
+      }
+    }
+  })
 
   // Subscribe
   React.useEffect(() => {
@@ -128,18 +151,28 @@ export function useTopology<Scope extends ReadOneResourceScope>(
   notifyAboutInitialLoadProblems: boolean = false,
   active: boolean = true
 ) {
-  const [topology, setTopology] = React.useState<ReadOneTopology<Scope> | null>(
-    null
-  )
+  const [topologyPair, setTopologyPair] = React.useState<{
+    topologyId: number | null
+    topology: ReadOneTopology<Scope> | null
+  }>({
+    topologyId: null,
+    topology: null
+  })
+  React.useEffect(() => {
+    setTopologyPair((oldPair) => ({
+      topologyId: topologyId,
+      topology: oldPair.topology
+    }))
+  }, [topologyId, setTopologyPair])
   useTopologySubscription(
     scope,
-    topologyId,
-    setTopology,
+    topologyPair.topologyId,
+    setTopologyPair,
     true,
     notifyAboutInitialLoadProblems,
     active
   )
-  return topology
+  return topologyPair.topology
 }
 
 /** Subscribe to topologies updates for existing topologies state */
@@ -154,12 +187,11 @@ export function useTopologiesSubscription<Scope extends ReadManyResourceScope>(
 ) {
   const notifier = useNotifier()
 
+  const [initialized, setInitialized] = React.useState(false)
+
   const load = React.useCallback(
     async (notifyAboutProblems: boolean) => {
       try {
-        if (active === false) {
-          return
-        }
         const topologies = (await serverConnector.readTopologies({
           scope: scope
         })) as ReadManyTopology<Scope>[]
@@ -172,16 +204,36 @@ export function useTopologiesSubscription<Scope extends ReadManyResourceScope>(
         }
       }
     },
-    [scope, setTopologies, active, notifier]
+    [scope, setTopologies, notifier]
   )
 
   // Initial load
   React.useEffect(() => {
-    if (withInitialLoad === false) {
+    setInitialized(true)
+    if (active === false || withInitialLoad === false || initialized) {
       return
     }
     void load(notifyAboutInitialLoadProblems)
-  }, [scope, withInitialLoad, notifyAboutInitialLoadProblems, load])
+  }, [
+    scope,
+    withInitialLoad,
+    notifyAboutInitialLoadProblems,
+    active,
+    initialized,
+    setInitialized,
+    load
+  ])
+
+  // Process active flag change to true
+  useChangeDetector({
+    detectedObjects: [active],
+    otherDependencies: [notifyAboutInitialLoadProblems, load],
+    onChange: () => {
+      if (active) {
+        void load(notifyAboutInitialLoadProblems)
+      }
+    }
+  })
 
   // Subscribe
   React.useEffect(() => {

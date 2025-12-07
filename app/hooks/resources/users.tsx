@@ -10,6 +10,7 @@ import type {
 } from '@common/dtos/server-api/users.dto'
 import type { DtoWithoutEnums } from '@common/dto-without-enums'
 import { serverConnector } from '~/server-connector'
+import { useChangeDetector } from '../change-detector'
 import { useNotifier } from '~/providers/notifier'
 // React
 import * as React from 'react'
@@ -34,7 +35,12 @@ type ReadManyUser<Scope extends ReadManyResourceScope> = DtoWithoutEnums<
 export function useUserSubscription<Scope extends ReadOneResourceScope>(
   scope: Scope,
   userId: number | null,
-  setUser: React.Dispatch<React.SetStateAction<ReadOneUser<Scope> | null>>,
+  setUserPair: React.Dispatch<
+    React.SetStateAction<{
+      userId: number | null
+      user: ReadOneUser<Scope> | null
+    }>
+  >,
   withInitialLoad: boolean = false,
   notifyAboutInitialLoadProblems: boolean = false,
   active: boolean = true
@@ -45,11 +51,10 @@ export function useUserSubscription<Scope extends ReadOneResourceScope>(
 
   const load = React.useCallback(
     async (notifyAboutProblems: boolean) => {
-      if (active === false) {
-        return
-      }
       if (userId === null) {
-        setUser(null as ReadOneUser<Scope>)
+        setUserPair((oldPair) =>
+          oldPair.userId === null ? { ...oldPair, user: null } : oldPair
+        )
         return
       }
       try {
@@ -59,7 +64,14 @@ export function useUserSubscription<Scope extends ReadOneResourceScope>(
             scope: scope
           }
         )) as ReadOneUser<Scope>
-        setUser(user)
+        setUserPair((oldPair) =>
+          oldPair.userId === userId
+            ? {
+                ...oldPair,
+                user: user
+              }
+            : oldPair
+        )
       } catch {
         if (notifyAboutProblems) {
           notifier.showWarning(
@@ -68,12 +80,13 @@ export function useUserSubscription<Scope extends ReadOneResourceScope>(
         }
       }
     },
-    [scope, userId, setUser, active, notifier]
+    [scope, userId, setUserPair, notifier]
   )
 
+  // Initial load
   React.useEffect(() => {
     setInitialized(true)
-    if (withInitialLoad === false && initialized === false) {
+    if (active === false || withInitialLoad === false || initialized) {
       return
     }
     void load(notifyAboutInitialLoadProblems)
@@ -81,10 +94,22 @@ export function useUserSubscription<Scope extends ReadOneResourceScope>(
     scope,
     withInitialLoad,
     notifyAboutInitialLoadProblems,
+    active,
     initialized,
     setInitialized,
     load
   ])
+
+  // Process resource id change or active flag change to true
+  useChangeDetector({
+    detectedObjects: [userId, active],
+    otherDependencies: [notifyAboutInitialLoadProblems, load],
+    onChange: () => {
+      if (active) {
+        void load(notifyAboutInitialLoadProblems)
+      }
+    }
+  })
 
   // Subscribe
   React.useEffect(() => {
@@ -126,16 +151,28 @@ export function useUser<Scope extends ReadOneResourceScope>(
   notifyAboutInitialLoadProblems: boolean = false,
   active: boolean = true
 ) {
-  const [user, setUser] = React.useState<ReadOneUser<Scope> | null>(null)
+  const [userPair, setUserPair] = React.useState<{
+    userId: number | null
+    user: ReadOneUser<Scope> | null
+  }>({
+    userId: null,
+    user: null
+  })
+  React.useEffect(() => {
+    setUserPair((oldPair) => ({
+      userId: userId,
+      user: oldPair.user
+    }))
+  }, [userId, setUserPair])
   useUserSubscription(
     scope,
-    userId,
-    setUser,
+    userPair.userId,
+    setUserPair,
     true,
     notifyAboutInitialLoadProblems,
     active
   )
-  return user
+  return userPair.user
 }
 
 /** Subscribe to users updates for existing users state */
@@ -150,12 +187,11 @@ export function useUsersSubscription<Scope extends ReadManyResourceScope>(
 ) {
   const notifier = useNotifier()
 
+  const [initialized, setInitialized] = React.useState(false)
+
   const load = React.useCallback(
     async (notifyAboutProblems: boolean) => {
       try {
-        if (active === false) {
-          return
-        }
         const users = (await serverConnector.readUsers({
           scope: scope
         })) as ReadManyUser<Scope>[]
@@ -168,16 +204,36 @@ export function useUsersSubscription<Scope extends ReadManyResourceScope>(
         }
       }
     },
-    [scope, setUsers, active, notifier]
+    [scope, setUsers, notifier]
   )
 
   // Initial load
   React.useEffect(() => {
-    if (withInitialLoad === false) {
+    setInitialized(true)
+    if (active === false || withInitialLoad === false || initialized) {
       return
     }
     void load(notifyAboutInitialLoadProblems)
-  }, [scope, withInitialLoad, notifyAboutInitialLoadProblems, load])
+  }, [
+    scope,
+    withInitialLoad,
+    notifyAboutInitialLoadProblems,
+    active,
+    initialized,
+    setInitialized,
+    load
+  ])
+
+  // Process active flag change to true
+  useChangeDetector({
+    detectedObjects: [active],
+    otherDependencies: [notifyAboutInitialLoadProblems, load],
+    onChange: () => {
+      if (active) {
+        void load(notifyAboutInitialLoadProblems)
+      }
+    }
+  })
 
   // Subscribe
   React.useEffect(() => {

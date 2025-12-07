@@ -7,6 +7,7 @@ import type {
   RemarkTextUndefinedWrapDto,
   TagIdsUndefinedWrapDto
 } from '@common/dtos'
+import type { DtoWithoutEnums } from '@common/dto-without-enums'
 import {
   type FormKey,
   type FormVal,
@@ -19,15 +20,17 @@ import {
 export const MAX_VERTEXES_IN_COMMON_TOPOLOGY = 30
 export const MAX_LINKS_IN_COMMON_TOPOLOGY = 100
 
-export type CreateCommonTopologyFormDataWithoutConfig = CodeWrapDto &
-  NameUndefinedWrapDto &
-  NumUndefinedWrapDto & {
-    vertexesCount: number
-    linksCount: number
-  } & DescriptionTextUndefinedWrapDto &
-  TagIdsUndefinedWrapDto & {
-    tagCodesToCreate?: string[]
-  } & RemarkTextUndefinedWrapDto
+export type CreateCommonTopologyFormDataWithoutConfig = DtoWithoutEnums<
+  CodeWrapDto &
+    NameUndefinedWrapDto &
+    NumUndefinedWrapDto & {
+      vertexesCount: number
+      linksCount: number
+    } & DescriptionTextUndefinedWrapDto &
+    TagIdsUndefinedWrapDto & {
+      tagCodesToCreate?: string[]
+    } & RemarkTextUndefinedWrapDto
+>
 
 export type CreateCommonTopologyFormData =
   CreateCommonTopologyFormDataWithoutConfig & {
@@ -38,27 +41,12 @@ export function getVertexIdField(vertexIndex: number) {
   return `vertexId_${vertexIndex}`
 }
 
-// export function getVertexId(
-//   data: CreateCommonTopologyFormData,
-//   vertexIndex: number
-// ) {
-//   return data[getVertexIdField(vertexIndex)] as number | undefined
-// }
-
 let lastUsedVertexId = -1
 
 export function getUniqueVertexId() {
   lastUsedVertexId++
   return lastUsedVertexId
 }
-
-// export function setVertexId(
-//   data: CreateCommonTopologyFormData,
-//   vertexIndex: number,
-//   vertexId: number | undefined
-// ) {
-//   data[getVertexIdField(vertexIndex)] = vertexId
-// }
 
 export function getVertexNameField(vertexIndex: number) {
   return `vertexName_${vertexIndex}`
@@ -76,27 +64,12 @@ export function getLinkIdField(linkIndex: number) {
   return `linkId_${linkIndex}`
 }
 
-// export function getLinkId(
-//   data: CreateCommonTopologyFormData,
-//   linkIndex: number
-// ) {
-//   return data[getLinkIdField(linkIndex)] as number | undefined
-// }
-
 let lastUsedLinkId = -1
 
 export function getUniqueLinkId() {
   lastUsedLinkId++
   return lastUsedLinkId
 }
-
-// export function setLinkId(
-//   data: CreateCommonTopologyFormData,
-//   linkIndex: number,
-//   linkId: number | undefined
-// ) {
-//   data[getLinkIdField(linkIndex)] = linkId
-// }
 
 export function getStartVertexIfacePairField(linkIndex: number) {
   return `startVertexIfacePair_${linkIndex}`

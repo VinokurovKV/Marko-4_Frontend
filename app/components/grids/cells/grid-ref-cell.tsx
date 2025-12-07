@@ -9,9 +9,9 @@ import Button from '@mui/material/Button'
 import capitalize from 'capitalize'
 
 interface GridRefCellProps {
-  refObjectId: number
   text?: string
   hrefPrefix: string
+  hrefPath: number | string
   header?: boolean
   disableCapitalize?: boolean
 }
@@ -29,7 +29,7 @@ export function GridRefCell(props: GridRefCellProps) {
   return props.text !== undefined ? (
     <Button
       component={Link}
-      to={`${props.hrefPrefix}/${props.refObjectId}`}
+      to={`${props.hrefPrefix}/${props.hrefPath}`}
       onClick={handleClick}
       sx={{
         justifyContent: 'start',

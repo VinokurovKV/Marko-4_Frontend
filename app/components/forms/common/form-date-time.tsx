@@ -80,7 +80,7 @@ export function FormDateTime({
         {...props}
         className={error ? 'error' : undefined}
         label={preparedLabel}
-        value={value !== undefined ? dayjs(value) : undefined}
+        value={value !== null ? dayjs(value) : null}
         onChange={handleChange}
         views={['year', 'day', 'hours', 'minutes', 'seconds']}
         slotProps={{ field: { clearable: true } }}

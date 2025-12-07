@@ -9,6 +9,7 @@ import type {
   TagIdsUndefinedWrapDto,
   VertexNamesUndefinedWrapDto
 } from '@common/dtos'
+import type { DtoWithoutEnums } from '@common/dto-without-enums'
 import {
   type FormKey,
   type FormVal,
@@ -17,15 +18,17 @@ import {
   FormValidator
 } from '~/validation/form-validator'
 
-export type CreateTopologyFormData = CodeWrapDto &
-  NameUndefinedWrapDto &
-  CommonTopologyIdUndefinedWrapDto &
-  VertexNamesUndefinedWrapDto &
-  NumInCommonTopologyUndefinedWrapDto &
-  DescriptionTextUndefinedWrapDto &
-  TagIdsUndefinedWrapDto & {
-    tagCodesToCreate?: string[]
-  } & RemarkTextUndefinedWrapDto
+export type CreateTopologyFormData = DtoWithoutEnums<
+  CodeWrapDto &
+    NameUndefinedWrapDto &
+    CommonTopologyIdUndefinedWrapDto &
+    VertexNamesUndefinedWrapDto &
+    NumInCommonTopologyUndefinedWrapDto &
+    DescriptionTextUndefinedWrapDto &
+    TagIdsUndefinedWrapDto & {
+      tagCodesToCreate?: string[]
+    } & RemarkTextUndefinedWrapDto
+>
 
 export type CreateTopologyFormKey = FormKey<CreateTopologyFormData>
 

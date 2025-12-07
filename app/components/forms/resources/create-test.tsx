@@ -8,7 +8,12 @@ import type { DtoWithoutEnums } from '@common/dto-without-enums'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
 import { useChangeDetector } from '~/hooks/change-detector'
-import { useTags, useCoverages } from '~/hooks/resources'
+import {
+  useTags,
+  useCoverages,
+  useCommonTopology,
+  useTopology
+} from '~/hooks/resources'
 import {
   type CreateTestFormData,
   MAX_VERTEXES_IN_TOPOLOGY,
@@ -81,19 +86,35 @@ export function CreateTestFormDialog(props: CreateTestFormDialogProps) {
     [tags]
   )
 
-  const readTopologyVertexNamesSorted = React.useCallback(
+  const readTopologyNonGeneratorVertexNamesSorted = React.useCallback(
     async (topologyId: number, errorMessage: string) => {
       try {
-        return (
-          await serverConnector.readTopology(
-            {
-              id: topologyId
-            },
-            {
-              scope: 'UP_TO_TERTIARY_PROPS'
-            }
+        const topology = await serverConnector.readTopology(
+          {
+            id: topologyId
+          },
+          {
+            scope: 'UP_TO_TERTIARY_PROPS'
+          }
+        )
+        const commonTopology = await serverConnector.readCommonTopology(
+          {
+            id: topology.commonTopologyId
+          },
+          {
+            scope: 'UP_TO_TERTIARY_PROPS'
+          }
+        )
+        const generatorVertexNamesSet = new Set(
+          commonTopology.config.vertexes
+            .filter((vertex) => vertex.isGenerator)
+            .map((vertex) => vertex.name)
+        )
+        return topology.vertexNames
+          .filter(
+            (vertexName) => generatorVertexNamesSet.has(vertexName) === false
           )
-        ).vertexNames.toSorted()
+          .toSorted()
       } catch (error) {
         notifier.showError(error, errorMessage)
         return EMPTY_VERTEX_NAMES_ARR
@@ -149,7 +170,7 @@ export function CreateTestFormDialog(props: CreateTestFormDialogProps) {
         if (validatedData.topologyId === undefined) {
           return EMPTY_VERTEX_NAMES_ARR
         }
-        return await readTopologyVertexNamesSorted(
+        return await readTopologyNonGeneratorVertexNamesSorted(
           validatedData.topologyId,
           'не удалось загрузить топологию при обработке введенных данных о вершинах'
         )
@@ -220,7 +241,7 @@ export function CreateTestFormDialog(props: CreateTestFormDialogProps) {
         undefined
       )
     },
-    [notifier, tagIdForCode, readTopologyVertexNamesSorted]
+    [notifier, tagIdForCode, readTopologyNonGeneratorVertexNamesSorted]
   )
 
   const onSuccessSubmit = React.useCallback(
@@ -277,6 +298,37 @@ export function CreateTestFormDialog(props: CreateTestFormDialogProps) {
     [props.topologies]
   )
 
+  const topology = useTopology(
+    'UP_TO_TERTIARY_PROPS',
+    data.topologyId ?? null,
+    true,
+    props.createModeIsActive
+  )
+
+  const commonTopology = useCommonTopology(
+    'UP_TO_TERTIARY_PROPS',
+    topology?.commonTopologyId ?? null,
+    true,
+    props.createModeIsActive
+  )
+
+  const vertexNames = React.useMemo(() => {
+    if (topology === null || commonTopology === null) {
+      return EMPTY_VERTEX_NAMES_ARR
+    } else {
+      const generatorVertexNamesSet = new Set(
+        commonTopology.config.vertexes
+          .filter((vertex) => vertex.isGenerator)
+          .map((vertex) => vertex.name)
+      )
+      return topology.vertexNames
+        .filter(
+          (vertexName) => generatorVertexNamesSet.has(vertexName) === false
+        )
+        .toSorted()
+    }
+  }, [topology, commonTopology])
+
   const dbcIds = React.useMemo(
     () => props.dbcs?.map((dbc) => dbc.id) ?? [],
     [props.dbcs]
@@ -316,10 +368,6 @@ export function CreateTestFormDialog(props: CreateTestFormDialogProps) {
     [props.subgroups]
   )
 
-  const [vertexNames, setVertexNames] = React.useState<string[]>(
-    EMPTY_VERTEX_NAMES_ARR
-  )
-
   const vertexNamesTruncated = React.useMemo(() => {
     const vertexNamesTruncated = [...vertexNames]
     if (vertexNamesTruncated.length > MAX_VERTEXES_IN_TOPOLOGY) {
@@ -327,21 +375,6 @@ export function CreateTestFormDialog(props: CreateTestFormDialogProps) {
     }
     return vertexNamesTruncated
   }, [vertexNames])
-
-  React.useEffect(() => {
-    const topologyId = data.topologyId
-    if (topologyId === undefined) {
-      setVertexNames(EMPTY_VERTEX_NAMES_ARR)
-    } else {
-      void (async () => {
-        const vertexNamesSorted = await readTopologyVertexNamesSorted(
-          topologyId,
-          'не удалось загрузить список вершин топологии'
-        )
-        setVertexNames(vertexNamesSorted)
-      })()
-    }
-  }, [data.topologyId, readTopologyVertexNamesSorted, setVertexNames])
 
   useChangeDetector({
     detectedObjects: [vertexNamesTruncated],

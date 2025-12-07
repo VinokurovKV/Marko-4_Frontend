@@ -36,10 +36,10 @@ export function useCommonTopologyCol(
         commonTopologyCodeForId.get(commonTopologyId),
       renderCell: (params: GridRenderCellParams<any, string>) => (
         <GridRefCell
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
-          refObjectId={params.row.commonTopologyId}
           text={params.value}
           hrefPrefix="/common-topologies"
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+          hrefPath={params.row.commonTopologyId}
         />
       ),
       minWidth: 150,

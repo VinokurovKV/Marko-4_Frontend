@@ -10,6 +10,7 @@ import type {
 } from '@common/dtos/server-api/documents.dto'
 import type { DtoWithoutEnums } from '@common/dto-without-enums'
 import { serverConnector } from '~/server-connector'
+import { useChangeDetector } from '../change-detector'
 import { useNotifier } from '~/providers/notifier'
 // React
 import * as React from 'react'
@@ -34,8 +35,11 @@ type ReadManyDocument<Scope extends ReadManyResourceScope> = DtoWithoutEnums<
 export function useDocumentSubscription<Scope extends ReadOneResourceScope>(
   scope: Scope,
   documentId: number | null,
-  setDocument: React.Dispatch<
-    React.SetStateAction<ReadOneDocument<Scope> | null>
+  setDocumentPair: React.Dispatch<
+    React.SetStateAction<{
+      documentId: number | null
+      document: ReadOneDocument<Scope> | null
+    }>
   >,
   withInitialLoad: boolean = false,
   notifyAboutInitialLoadProblems: boolean = false,
@@ -47,11 +51,10 @@ export function useDocumentSubscription<Scope extends ReadOneResourceScope>(
 
   const load = React.useCallback(
     async (notifyAboutProblems: boolean) => {
-      if (active === false) {
-        return
-      }
       if (documentId === null) {
-        setDocument(null as ReadOneDocument<Scope>)
+        setDocumentPair((oldPair) =>
+          oldPair.documentId === null ? { ...oldPair, document: null } : oldPair
+        )
         return
       }
       try {
@@ -61,7 +64,14 @@ export function useDocumentSubscription<Scope extends ReadOneResourceScope>(
             scope: scope
           }
         )) as ReadOneDocument<Scope>
-        setDocument(document)
+        setDocumentPair((oldPair) =>
+          oldPair.documentId === documentId
+            ? {
+                ...oldPair,
+                document: document
+              }
+            : oldPair
+        )
       } catch {
         if (notifyAboutProblems) {
           notifier.showWarning(
@@ -70,12 +80,13 @@ export function useDocumentSubscription<Scope extends ReadOneResourceScope>(
         }
       }
     },
-    [scope, documentId, setDocument, active, notifier]
+    [scope, documentId, setDocumentPair, notifier]
   )
 
+  // Initial load
   React.useEffect(() => {
     setInitialized(true)
-    if (withInitialLoad === false && initialized === false) {
+    if (active === false || withInitialLoad === false || initialized) {
       return
     }
     void load(notifyAboutInitialLoadProblems)
@@ -83,10 +94,22 @@ export function useDocumentSubscription<Scope extends ReadOneResourceScope>(
     scope,
     withInitialLoad,
     notifyAboutInitialLoadProblems,
+    active,
     initialized,
     setInitialized,
     load
   ])
+
+  // Process resource id change or active flag change to true
+  useChangeDetector({
+    detectedObjects: [documentId, active],
+    otherDependencies: [notifyAboutInitialLoadProblems, load],
+    onChange: () => {
+      if (active) {
+        void load(notifyAboutInitialLoadProblems)
+      }
+    }
+  })
 
   // Subscribe
   React.useEffect(() => {
@@ -128,18 +151,28 @@ export function useDocument<Scope extends ReadOneResourceScope>(
   notifyAboutInitialLoadProblems: boolean = false,
   active: boolean = true
 ) {
-  const [document, setDocument] = React.useState<ReadOneDocument<Scope> | null>(
-    null
-  )
+  const [documentPair, setDocumentPair] = React.useState<{
+    documentId: number | null
+    document: ReadOneDocument<Scope> | null
+  }>({
+    documentId: null,
+    document: null
+  })
+  React.useEffect(() => {
+    setDocumentPair((oldPair) => ({
+      documentId: documentId,
+      document: oldPair.document
+    }))
+  }, [documentId, setDocumentPair])
   useDocumentSubscription(
     scope,
-    documentId,
-    setDocument,
+    documentPair.documentId,
+    setDocumentPair,
     true,
     notifyAboutInitialLoadProblems,
     active
   )
-  return document
+  return documentPair.document
 }
 
 /** Subscribe to documents updates for existing documents state */
@@ -154,12 +187,11 @@ export function useDocumentsSubscription<Scope extends ReadManyResourceScope>(
 ) {
   const notifier = useNotifier()
 
+  const [initialized, setInitialized] = React.useState(false)
+
   const load = React.useCallback(
     async (notifyAboutProblems: boolean) => {
       try {
-        if (active === false) {
-          return
-        }
         const documents = (await serverConnector.readDocuments({
           scope: scope
         })) as ReadManyDocument<Scope>[]
@@ -172,16 +204,36 @@ export function useDocumentsSubscription<Scope extends ReadManyResourceScope>(
         }
       }
     },
-    [scope, setDocuments, active, notifier]
+    [scope, setDocuments, notifier]
   )
 
   // Initial load
   React.useEffect(() => {
-    if (withInitialLoad === false) {
+    setInitialized(true)
+    if (active === false || withInitialLoad === false || initialized) {
       return
     }
     void load(notifyAboutInitialLoadProblems)
-  }, [scope, withInitialLoad, notifyAboutInitialLoadProblems, load])
+  }, [
+    scope,
+    withInitialLoad,
+    notifyAboutInitialLoadProblems,
+    active,
+    initialized,
+    setInitialized,
+    load
+  ])
+
+  // Process active flag change to true
+  useChangeDetector({
+    detectedObjects: [active],
+    otherDependencies: [notifyAboutInitialLoadProblems, load],
+    onChange: () => {
+      if (active) {
+        void load(notifyAboutInitialLoadProblems)
+      }
+    }
+  })
 
   // Subscribe
   React.useEffect(() => {

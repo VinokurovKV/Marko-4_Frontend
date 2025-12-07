@@ -104,7 +104,7 @@ export function TestsGrid(props: TestsGridProps) {
     useTestTemplateCol(testTemplates),
     usePreparedCol(
       'MALE',
-      undefined,
+      'все необходимые конфигурации загружены',
       'не все необходимые конфигурации загружены'
     ),
     // useWithPassCriteriaCol(),

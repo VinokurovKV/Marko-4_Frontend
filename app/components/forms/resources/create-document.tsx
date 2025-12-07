@@ -10,9 +10,7 @@ import {
   INITIAL_CREATE_DOCUMENT_FORM_DATA,
   createDocumentFormValidator
 } from '~/data/forms/resources/create-document'
-import type { FormSelectProps } from '../common/form-select'
 import {
-  useForm,
   FormAutocompleteFreeItemsMultipleSelect,
   FormBlock,
   FormDate,
@@ -21,7 +19,9 @@ import {
   FormMultilineTextField,
   FormSelect,
   FormTextField,
-  FormUrlField
+  FormUrlField,
+  type FormSelectProps,
+  useForm
 } from '../common'
 // React
 import * as React from 'react'

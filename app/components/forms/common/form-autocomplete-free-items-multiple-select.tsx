@@ -1,4 +1,5 @@
 // Project
+import { useChangeDetector } from '~/hooks/change-detector'
 import { FormHelperTextStyled } from './form-helper-text'
 import { FormTextField } from './form-text-field'
 // React
@@ -123,6 +124,23 @@ export function FormAutocompleteFreeItemsMultipleSelect<
     ]
   )
 
+  // Process possible values change
+  useChangeDetector({
+    detectedObjects: [props.possibleValues],
+    otherDependencies: [props.name, props.values, props.onChange],
+    onChange: () => {
+      const possibleValuesSet = new Set(props.possibleValues)
+      if (
+        props.values.some((value) => possibleValuesSet.has(value) === false)
+      ) {
+        props.onChange({
+          name: props.name,
+          values: props.values.filter((value) => possibleValuesSet.has(value))
+        })
+      }
+    }
+  })
+
   const valuesWithFreeItems = React.useMemo(
     () => [...props.values, ...props.freeItems],
     [props.values, props.freeItems]
@@ -134,6 +152,7 @@ export function FormAutocompleteFreeItemsMultipleSelect<
     <FormControl size="small" sx={{ m: 1, minWidth: 120 }}>
       <AutocompleteStyled
         multiple
+        disableCloseOnSelect
         freeSolo
         /* autoSelect */
         options={props.possibleValues}

@@ -29,10 +29,10 @@ export function useRoleCol(roles: Role[] | null | undefined) {
       valueGetter: (roleId) => roleNameForId.get(roleId),
       renderCell: (params: GridRenderCellParams<any, string>) => (
         <GridRefCell
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
-          refObjectId={params.row.roleId}
           text={params.value}
           hrefPrefix="/roles"
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+          hrefPath={params.row.roleId}
         />
       ),
       minWidth: 150,

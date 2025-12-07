@@ -10,6 +10,7 @@ import type {
 } from '@common/dtos/server-api/requirements.dto'
 import type { DtoWithoutEnums } from '@common/dto-without-enums'
 import { serverConnector } from '~/server-connector'
+import { useChangeDetector } from '../change-detector'
 import { useNotifier } from '~/providers/notifier'
 // React
 import * as React from 'react'
@@ -34,8 +35,11 @@ type ReadManyRequirement<Scope extends ReadManyResourceScope> = DtoWithoutEnums<
 export function useRequirementSubscription<Scope extends ReadOneResourceScope>(
   scope: Scope,
   requirementId: number | null,
-  setRequirement: React.Dispatch<
-    React.SetStateAction<ReadOneRequirement<Scope> | null>
+  setRequirementPair: React.Dispatch<
+    React.SetStateAction<{
+      requirementId: number | null
+      requirement: ReadOneRequirement<Scope> | null
+    }>
   >,
   withInitialLoad: boolean = false,
   notifyAboutInitialLoadProblems: boolean = false,
@@ -47,11 +51,12 @@ export function useRequirementSubscription<Scope extends ReadOneResourceScope>(
 
   const load = React.useCallback(
     async (notifyAboutProblems: boolean) => {
-      if (active === false) {
-        return
-      }
       if (requirementId === null) {
-        setRequirement(null as ReadOneRequirement<Scope>)
+        setRequirementPair((oldPair) =>
+          oldPair.requirementId === null
+            ? { ...oldPair, requirement: null }
+            : oldPair
+        )
         return
       }
       try {
@@ -61,7 +66,14 @@ export function useRequirementSubscription<Scope extends ReadOneResourceScope>(
             scope: scope
           }
         )) as ReadOneRequirement<Scope>
-        setRequirement(requirement)
+        setRequirementPair((oldPair) =>
+          oldPair.requirementId === requirementId
+            ? {
+                ...oldPair,
+                requirement: requirement
+              }
+            : oldPair
+        )
       } catch {
         if (notifyAboutProblems) {
           notifier.showWarning(
@@ -70,12 +82,13 @@ export function useRequirementSubscription<Scope extends ReadOneResourceScope>(
         }
       }
     },
-    [scope, requirementId, setRequirement, active, notifier]
+    [scope, requirementId, setRequirementPair, notifier]
   )
 
+  // Initial load
   React.useEffect(() => {
     setInitialized(true)
-    if (withInitialLoad === false && initialized === false) {
+    if (active === false || withInitialLoad === false || initialized) {
       return
     }
     void load(notifyAboutInitialLoadProblems)
@@ -83,10 +96,22 @@ export function useRequirementSubscription<Scope extends ReadOneResourceScope>(
     scope,
     withInitialLoad,
     notifyAboutInitialLoadProblems,
+    active,
     initialized,
     setInitialized,
     load
   ])
+
+  // Process resource id change or active flag change to true
+  useChangeDetector({
+    detectedObjects: [requirementId, active],
+    otherDependencies: [notifyAboutInitialLoadProblems, load],
+    onChange: () => {
+      if (active) {
+        void load(notifyAboutInitialLoadProblems)
+      }
+    }
+  })
 
   // Subscribe
   React.useEffect(() => {
@@ -128,17 +153,28 @@ export function useRequirement<Scope extends ReadOneResourceScope>(
   notifyAboutInitialLoadProblems: boolean = false,
   active: boolean = true
 ) {
-  const [requirement, setRequirement] =
-    React.useState<ReadOneRequirement<Scope> | null>(null)
+  const [requirementPair, setRequirementPair] = React.useState<{
+    requirementId: number | null
+    requirement: ReadOneRequirement<Scope> | null
+  }>({
+    requirementId: null,
+    requirement: null
+  })
+  React.useEffect(() => {
+    setRequirementPair((oldPair) => ({
+      requirementId: requirementId,
+      requirement: oldPair.requirement
+    }))
+  }, [requirementId, setRequirementPair])
   useRequirementSubscription(
     scope,
-    requirementId,
-    setRequirement,
+    requirementPair.requirementId,
+    setRequirementPair,
     true,
     notifyAboutInitialLoadProblems,
     active
   )
-  return requirement
+  return requirementPair.requirement
 }
 
 /** Subscribe to requirements updates for existing requirements state */
@@ -155,12 +191,11 @@ export function useRequirementsSubscription<
 ) {
   const notifier = useNotifier()
 
+  const [initialized, setInitialized] = React.useState(false)
+
   const load = React.useCallback(
     async (notifyAboutProblems: boolean) => {
       try {
-        if (active === false) {
-          return
-        }
         const requirements = (await serverConnector.readRequirements({
           scope: scope
         })) as ReadManyRequirement<Scope>[]
@@ -173,16 +208,36 @@ export function useRequirementsSubscription<
         }
       }
     },
-    [scope, setRequirements, active, notifier]
+    [scope, setRequirements, notifier]
   )
 
   // Initial load
   React.useEffect(() => {
-    if (withInitialLoad === false) {
+    setInitialized(true)
+    if (active === false || withInitialLoad === false || initialized) {
       return
     }
     void load(notifyAboutInitialLoadProblems)
-  }, [scope, withInitialLoad, notifyAboutInitialLoadProblems, load])
+  }, [
+    scope,
+    withInitialLoad,
+    notifyAboutInitialLoadProblems,
+    active,
+    initialized,
+    setInitialized,
+    load
+  ])
+
+  // Process active flag change to true
+  useChangeDetector({
+    detectedObjects: [active],
+    otherDependencies: [notifyAboutInitialLoadProblems, load],
+    onChange: () => {
+      if (active) {
+        void load(notifyAboutInitialLoadProblems)
+      }
+    }
+  })
 
   // Subscribe
   React.useEffect(() => {

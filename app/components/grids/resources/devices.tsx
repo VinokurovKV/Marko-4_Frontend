@@ -60,7 +60,7 @@ export function DevicesGrid(props: DevicesGridProps) {
     useDeviceTypeCol(),
     usePreparedCol(
       'MIDDLE',
-      undefined,
+      'все необходимые конфигурации загружены',
       'не все необходимые конфигурации загружены'
     ),
     useDsefsCountCol()

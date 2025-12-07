@@ -29,10 +29,10 @@ export function useGroupCol(groups: Group[] | null | undefined) {
       valueGetter: (groupId) => groupCodeForId.get(groupId),
       renderCell: (params: GridRenderCellParams<any, string>) => (
         <GridRefCell
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
-          refObjectId={params.row.groupId}
           text={params.value}
           hrefPrefix="/groups"
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+          hrefPath={params.row.groupId}
         />
       ),
       minWidth: 150,

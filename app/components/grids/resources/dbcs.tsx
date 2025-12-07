@@ -57,7 +57,7 @@ export function DbcsGrid(props: DbcsGridProps) {
     useNameCol(),
     usePreparedCol(
       'FEMALE',
-      undefined,
+      'все необходимые конфигурации загружены',
       'не все необходимые конфигурации загружены'
     ),
     useDsefsCountCol()

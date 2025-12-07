@@ -1,5 +1,6 @@
 // Project
 import type { CodeWrapDto, DescriptionTextUndefinedWrapDto } from '@common/dtos'
+import type { DtoWithoutEnums } from '@common/dto-without-enums'
 import {
   type FormKey,
   type FormVal,
@@ -8,7 +9,9 @@ import {
   FormValidator
 } from '~/validation/form-validator'
 
-export type CreateTagFormData = CodeWrapDto & DescriptionTextUndefinedWrapDto
+export type CreateTagFormData = DtoWithoutEnums<
+  CodeWrapDto & DescriptionTextUndefinedWrapDto
+>
 
 export type CreateTagFormKey = FormKey<CreateTagFormData>
 

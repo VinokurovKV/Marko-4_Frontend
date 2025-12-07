@@ -11,6 +11,7 @@ import type {
   RoleIdUndefinedWrapDto,
   SurnameUndefinedWrapDto
 } from '@common/dtos'
+import type { DtoWithoutEnums } from '@common/dto-without-enums'
 import {
   type FormKey,
   type FormVal,
@@ -19,16 +20,18 @@ import {
   FormValidator
 } from '~/validation/form-validator'
 
-export type CreateUserFormData = LoginWrapDto &
-  PassWrapDto &
-  PassConfirmWrapDto &
-  RoleIdUndefinedWrapDto &
-  SurnameUndefinedWrapDto &
-  ForenameUndefinedWrapDto &
-  PatronymicUndefinedWrapDto &
-  PhoneUndefinedWrapDto &
-  EmailUndefinedWrapDto &
-  DescriptionTextUndefinedWrapDto
+export type CreateUserFormData = DtoWithoutEnums<
+  LoginWrapDto &
+    PassWrapDto &
+    PassConfirmWrapDto &
+    RoleIdUndefinedWrapDto &
+    SurnameUndefinedWrapDto &
+    ForenameUndefinedWrapDto &
+    PatronymicUndefinedWrapDto &
+    PhoneUndefinedWrapDto &
+    EmailUndefinedWrapDto &
+    DescriptionTextUndefinedWrapDto
+>
 
 export type CreateUserFormKey = FormKey<CreateUserFormData>
 

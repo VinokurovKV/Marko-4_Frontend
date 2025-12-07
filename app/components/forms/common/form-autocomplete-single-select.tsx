@@ -1,4 +1,5 @@
 // Project
+import { useChangeDetector } from '~/hooks/change-detector'
 import { FormHelperTextStyled } from './form-helper-text'
 import { FormTextField } from './form-text-field'
 // React
@@ -49,6 +50,23 @@ export function FormAutocompleteSingleSelect<Value extends number | string>(
     },
     [props.name, props.onChange]
   )
+
+  // Process possible values change
+  useChangeDetector({
+    detectedObjects: [props.possibleValues],
+    otherDependencies: [props.name, props.value, props.onChange],
+    onChange: () => {
+      if (
+        props.value !== null &&
+        props.possibleValues.includes(props.value) === false
+      ) {
+        props.onChange({
+          name: props.name,
+          value: undefined
+        })
+      }
+    }
+  })
 
   const preparedLabel = `${props.label}${props.required ? '\u2009*' : ''}`
 

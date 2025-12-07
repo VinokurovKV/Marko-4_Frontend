@@ -6,6 +6,7 @@ import type {
   RemarkTextUndefinedWrapDto,
   TagIdsUndefinedWrapDto
 } from '@common/dtos'
+import type { DtoWithoutEnums } from '@common/dto-without-enums'
 import {
   type FormKey,
   type FormVal,
@@ -14,13 +15,15 @@ import {
   FormValidator
 } from '~/validation/form-validator'
 
-export type CreateDbcFormData = CodeWrapDto &
-  NameUndefinedWrapDto & {
-    config?: File
-  } & DescriptionTextUndefinedWrapDto &
-  TagIdsUndefinedWrapDto & {
-    tagCodesToCreate?: string[]
-  } & RemarkTextUndefinedWrapDto
+export type CreateDbcFormData = DtoWithoutEnums<
+  CodeWrapDto &
+    NameUndefinedWrapDto & {
+      config?: File
+    } & DescriptionTextUndefinedWrapDto &
+    TagIdsUndefinedWrapDto & {
+      tagCodesToCreate?: string[]
+    } & RemarkTextUndefinedWrapDto
+>
 
 export type CreateDbcFormKey = FormKey<CreateDbcFormData>
 

@@ -13,10 +13,10 @@ export function useRoleNameCol(roleIdField: string, header: boolean) {
       hideable: !header,
       renderCell: (params: GridRenderCellParams<any, string>) => (
         <GridRefCell
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
-          refObjectId={params.row[roleIdField]}
           text={params.value}
           hrefPrefix="/roles"
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+          hrefPath={params.row[roleIdField]}
           header={header}
         />
       ),

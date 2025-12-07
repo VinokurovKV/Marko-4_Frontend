@@ -35,10 +35,10 @@ export function useRequirementCol(
       valueGetter: (requirementId) => requirementNameForId.get(requirementId),
       renderCell: (params: GridRenderCellParams<any, string>) => (
         <GridRefCell
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
-          refObjectId={params.row.requirementId}
           text={params.value}
           hrefPrefix="/requirements"
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+          hrefPath={params.row.requirementId}
         />
       ),
       minWidth: 150,

@@ -10,6 +10,7 @@ import type {
 } from '@common/dtos/server-api/tests.dto'
 import type { DtoWithoutEnums } from '@common/dto-without-enums'
 import { serverConnector } from '~/server-connector'
+import { useChangeDetector } from '../change-detector'
 import { useNotifier } from '~/providers/notifier'
 // React
 import * as React from 'react'
@@ -34,7 +35,12 @@ type ReadManyTest<Scope extends ReadManyResourceScope> = DtoWithoutEnums<
 export function useTestSubscription<Scope extends ReadOneResourceScope>(
   scope: Scope,
   testId: number | null,
-  setTest: React.Dispatch<React.SetStateAction<ReadOneTest<Scope> | null>>,
+  setTestPair: React.Dispatch<
+    React.SetStateAction<{
+      testId: number | null
+      test: ReadOneTest<Scope> | null
+    }>
+  >,
   withInitialLoad: boolean = false,
   notifyAboutInitialLoadProblems: boolean = false,
   active: boolean = true
@@ -45,11 +51,10 @@ export function useTestSubscription<Scope extends ReadOneResourceScope>(
 
   const load = React.useCallback(
     async (notifyAboutProblems: boolean) => {
-      if (active === false) {
-        return
-      }
       if (testId === null) {
-        setTest(null as ReadOneTest<Scope>)
+        setTestPair((oldPair) =>
+          oldPair.testId === null ? { ...oldPair, test: null } : oldPair
+        )
         return
       }
       try {
@@ -59,7 +64,14 @@ export function useTestSubscription<Scope extends ReadOneResourceScope>(
             scope: scope
           }
         )) as ReadOneTest<Scope>
-        setTest(test)
+        setTestPair((oldPair) =>
+          oldPair.testId === testId
+            ? {
+                ...oldPair,
+                test: test
+              }
+            : oldPair
+        )
       } catch {
         if (notifyAboutProblems) {
           notifier.showWarning(
@@ -68,12 +80,13 @@ export function useTestSubscription<Scope extends ReadOneResourceScope>(
         }
       }
     },
-    [scope, testId, setTest, active, notifier]
+    [scope, testId, setTestPair, notifier]
   )
 
+  // Initial load
   React.useEffect(() => {
     setInitialized(true)
-    if (withInitialLoad === false && initialized === false) {
+    if (active === false || withInitialLoad === false || initialized) {
       return
     }
     void load(notifyAboutInitialLoadProblems)
@@ -81,10 +94,22 @@ export function useTestSubscription<Scope extends ReadOneResourceScope>(
     scope,
     withInitialLoad,
     notifyAboutInitialLoadProblems,
+    active,
     initialized,
     setInitialized,
     load
   ])
+
+  // Process resource id change or active flag change to true
+  useChangeDetector({
+    detectedObjects: [testId, active],
+    otherDependencies: [notifyAboutInitialLoadProblems, load],
+    onChange: () => {
+      if (active) {
+        void load(notifyAboutInitialLoadProblems)
+      }
+    }
+  })
 
   // Subscribe
   React.useEffect(() => {
@@ -126,16 +151,28 @@ export function useTest<Scope extends ReadOneResourceScope>(
   notifyAboutInitialLoadProblems: boolean = false,
   active: boolean = true
 ) {
-  const [test, setTest] = React.useState<ReadOneTest<Scope> | null>(null)
+  const [testPair, setTestPair] = React.useState<{
+    testId: number | null
+    test: ReadOneTest<Scope> | null
+  }>({
+    testId: null,
+    test: null
+  })
+  React.useEffect(() => {
+    setTestPair((oldPair) => ({
+      testId: testId,
+      test: oldPair.test
+    }))
+  }, [testId, setTestPair])
   useTestSubscription(
     scope,
-    testId,
-    setTest,
+    testPair.testId,
+    setTestPair,
     true,
     notifyAboutInitialLoadProblems,
     active
   )
-  return test
+  return testPair.test
 }
 
 /** Subscribe to tests updates for existing tests state */
@@ -150,12 +187,11 @@ export function useTestsSubscription<Scope extends ReadManyResourceScope>(
 ) {
   const notifier = useNotifier()
 
+  const [initialized, setInitialized] = React.useState(false)
+
   const load = React.useCallback(
     async (notifyAboutProblems: boolean) => {
       try {
-        if (active === false) {
-          return
-        }
         const tests = (await serverConnector.readTests({
           scope: scope
         })) as ReadManyTest<Scope>[]
@@ -166,16 +202,36 @@ export function useTestsSubscription<Scope extends ReadManyResourceScope>(
         }
       }
     },
-    [scope, setTests, active, notifier]
+    [scope, setTests, notifier]
   )
 
   // Initial load
   React.useEffect(() => {
-    if (withInitialLoad === false) {
+    setInitialized(true)
+    if (active === false || withInitialLoad === false || initialized) {
       return
     }
     void load(notifyAboutInitialLoadProblems)
-  }, [scope, withInitialLoad, notifyAboutInitialLoadProblems, load])
+  }, [
+    scope,
+    withInitialLoad,
+    notifyAboutInitialLoadProblems,
+    active,
+    initialized,
+    setInitialized,
+    load
+  ])
+
+  // Process active flag change to true
+  useChangeDetector({
+    detectedObjects: [active],
+    otherDependencies: [notifyAboutInitialLoadProblems, load],
+    onChange: () => {
+      if (active) {
+        void load(notifyAboutInitialLoadProblems)
+      }
+    }
+  })
 
   // Subscribe
   React.useEffect(() => {

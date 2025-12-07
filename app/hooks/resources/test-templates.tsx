@@ -10,6 +10,7 @@ import type {
 } from '@common/dtos/server-api/test-templates.dto'
 import type { DtoWithoutEnums } from '@common/dto-without-enums'
 import { serverConnector } from '~/server-connector'
+import { useChangeDetector } from '../change-detector'
 import { useNotifier } from '~/providers/notifier'
 // React
 import * as React from 'react'
@@ -35,8 +36,11 @@ type ReadManyTestTemplate<Scope extends ReadManyResourceScope> =
 export function useTestTemplateSubscription<Scope extends ReadOneResourceScope>(
   scope: Scope,
   testTemplateId: number | null,
-  setTestTemplate: React.Dispatch<
-    React.SetStateAction<ReadOneTestTemplate<Scope> | null>
+  setTestTemplatePair: React.Dispatch<
+    React.SetStateAction<{
+      testTemplateId: number | null
+      testTemplate: ReadOneTestTemplate<Scope> | null
+    }>
   >,
   withInitialLoad: boolean = false,
   notifyAboutInitialLoadProblems: boolean = false,
@@ -48,11 +52,12 @@ export function useTestTemplateSubscription<Scope extends ReadOneResourceScope>(
 
   const load = React.useCallback(
     async (notifyAboutProblems: boolean) => {
-      if (active === false) {
-        return
-      }
       if (testTemplateId === null) {
-        setTestTemplate(null as ReadOneTestTemplate<Scope>)
+        setTestTemplatePair((oldPair) =>
+          oldPair.testTemplateId === null
+            ? { ...oldPair, testTemplate: null }
+            : oldPair
+        )
         return
       }
       try {
@@ -62,7 +67,14 @@ export function useTestTemplateSubscription<Scope extends ReadOneResourceScope>(
             scope: scope
           }
         )) as ReadOneTestTemplate<Scope>
-        setTestTemplate(testTemplate)
+        setTestTemplatePair((oldPair) =>
+          oldPair.testTemplateId === testTemplateId
+            ? {
+                ...oldPair,
+                testTemplate: testTemplate
+              }
+            : oldPair
+        )
       } catch {
         if (notifyAboutProblems) {
           notifier.showWarning(
@@ -71,12 +83,13 @@ export function useTestTemplateSubscription<Scope extends ReadOneResourceScope>(
         }
       }
     },
-    [scope, testTemplateId, setTestTemplate, active, notifier]
+    [scope, testTemplateId, setTestTemplatePair, notifier]
   )
 
+  // Initial load
   React.useEffect(() => {
     setInitialized(true)
-    if (withInitialLoad === false && initialized === false) {
+    if (active === false || withInitialLoad === false || initialized) {
       return
     }
     void load(notifyAboutInitialLoadProblems)
@@ -84,10 +97,22 @@ export function useTestTemplateSubscription<Scope extends ReadOneResourceScope>(
     scope,
     withInitialLoad,
     notifyAboutInitialLoadProblems,
+    active,
     initialized,
     setInitialized,
     load
   ])
+
+  // Process resource id change or active flag change to true
+  useChangeDetector({
+    detectedObjects: [testTemplateId, active],
+    otherDependencies: [notifyAboutInitialLoadProblems, load],
+    onChange: () => {
+      if (active) {
+        void load(notifyAboutInitialLoadProblems)
+      }
+    }
+  })
 
   // Subscribe
   React.useEffect(() => {
@@ -129,17 +154,28 @@ export function useTestTemplate<Scope extends ReadOneResourceScope>(
   notifyAboutInitialLoadProblems: boolean = false,
   active: boolean = true
 ) {
-  const [testTemplate, setTestTemplate] =
-    React.useState<ReadOneTestTemplate<Scope> | null>(null)
+  const [testTemplatePair, setTestTemplatePair] = React.useState<{
+    testTemplateId: number | null
+    testTemplate: ReadOneTestTemplate<Scope> | null
+  }>({
+    testTemplateId: null,
+    testTemplate: null
+  })
+  React.useEffect(() => {
+    setTestTemplatePair((oldPair) => ({
+      testTemplateId: testTemplateId,
+      testTemplate: oldPair.testTemplate
+    }))
+  }, [testTemplateId, setTestTemplatePair])
   useTestTemplateSubscription(
     scope,
-    testTemplateId,
-    setTestTemplate,
+    testTemplatePair.testTemplateId,
+    setTestTemplatePair,
     true,
     notifyAboutInitialLoadProblems,
     active
   )
-  return testTemplate
+  return testTemplatePair.testTemplate
 }
 
 /** Subscribe to testTemplates updates for existing testTemplates state */
@@ -158,12 +194,11 @@ export function useTestTemplatesSubscription<
 ) {
   const notifier = useNotifier()
 
+  const [initialized, setInitialized] = React.useState(false)
+
   const load = React.useCallback(
     async (notifyAboutProblems: boolean) => {
       try {
-        if (active === false) {
-          return
-        }
         const testTemplates = (await serverConnector.readTestTemplates({
           scope: scope
         })) as ReadManyTestTemplate<Scope>[]
@@ -176,16 +211,36 @@ export function useTestTemplatesSubscription<
         }
       }
     },
-    [scope, setTestTemplates, active, notifier]
+    [scope, setTestTemplates, notifier]
   )
 
   // Initial load
   React.useEffect(() => {
-    if (withInitialLoad === false) {
+    setInitialized(true)
+    if (active === false || withInitialLoad === false || initialized) {
       return
     }
     void load(notifyAboutInitialLoadProblems)
-  }, [scope, withInitialLoad, notifyAboutInitialLoadProblems, load])
+  }, [
+    scope,
+    withInitialLoad,
+    notifyAboutInitialLoadProblems,
+    active,
+    initialized,
+    setInitialized,
+    load
+  ])
+
+  // Process active flag change to true
+  useChangeDetector({
+    detectedObjects: [active],
+    otherDependencies: [notifyAboutInitialLoadProblems, load],
+    onChange: () => {
+      if (active) {
+        void load(notifyAboutInitialLoadProblems)
+      }
+    }
+  })
 
   // Subscribe
   React.useEffect(() => {

@@ -10,6 +10,7 @@ import type {
 } from '@common/dtos/server-api/groups.dto'
 import type { DtoWithoutEnums } from '@common/dto-without-enums'
 import { serverConnector } from '~/server-connector'
+import { useChangeDetector } from '../change-detector'
 import { useNotifier } from '~/providers/notifier'
 // React
 import * as React from 'react'
@@ -34,7 +35,12 @@ type ReadManyGroup<Scope extends ReadManyResourceScope> = DtoWithoutEnums<
 export function useGroupSubscription<Scope extends ReadOneResourceScope>(
   scope: Scope,
   groupId: number | null,
-  setGroup: React.Dispatch<React.SetStateAction<ReadOneGroup<Scope> | null>>,
+  setGroupPair: React.Dispatch<
+    React.SetStateAction<{
+      groupId: number | null
+      group: ReadOneGroup<Scope> | null
+    }>
+  >,
   withInitialLoad: boolean = false,
   notifyAboutInitialLoadProblems: boolean = false,
   active: boolean = true
@@ -45,11 +51,10 @@ export function useGroupSubscription<Scope extends ReadOneResourceScope>(
 
   const load = React.useCallback(
     async (notifyAboutProblems: boolean) => {
-      if (active === false) {
-        return
-      }
       if (groupId === null) {
-        setGroup(null as ReadOneGroup<Scope>)
+        setGroupPair((oldPair) =>
+          oldPair.groupId === null ? { ...oldPair, group: null } : oldPair
+        )
         return
       }
       try {
@@ -59,7 +64,14 @@ export function useGroupSubscription<Scope extends ReadOneResourceScope>(
             scope: scope
           }
         )) as ReadOneGroup<Scope>
-        setGroup(group)
+        setGroupPair((oldPair) =>
+          oldPair.groupId === groupId
+            ? {
+                ...oldPair,
+                group: group
+              }
+            : oldPair
+        )
       } catch {
         if (notifyAboutProblems) {
           notifier.showWarning(
@@ -68,12 +80,13 @@ export function useGroupSubscription<Scope extends ReadOneResourceScope>(
         }
       }
     },
-    [scope, groupId, setGroup, active, notifier]
+    [scope, groupId, setGroupPair, notifier]
   )
 
+  // Initial load
   React.useEffect(() => {
     setInitialized(true)
-    if (withInitialLoad === false && initialized === false) {
+    if (active === false || withInitialLoad === false || initialized) {
       return
     }
     void load(notifyAboutInitialLoadProblems)
@@ -81,10 +94,22 @@ export function useGroupSubscription<Scope extends ReadOneResourceScope>(
     scope,
     withInitialLoad,
     notifyAboutInitialLoadProblems,
+    active,
     initialized,
     setInitialized,
     load
   ])
+
+  // Process resource id change or active flag change to true
+  useChangeDetector({
+    detectedObjects: [groupId, active],
+    otherDependencies: [notifyAboutInitialLoadProblems, load],
+    onChange: () => {
+      if (active) {
+        void load(notifyAboutInitialLoadProblems)
+      }
+    }
+  })
 
   // Subscribe
   React.useEffect(() => {
@@ -126,16 +151,28 @@ export function useGroup<Scope extends ReadOneResourceScope>(
   notifyAboutInitialLoadProblems: boolean = false,
   active: boolean = true
 ) {
-  const [group, setGroup] = React.useState<ReadOneGroup<Scope> | null>(null)
+  const [groupPair, setGroupPair] = React.useState<{
+    groupId: number | null
+    group: ReadOneGroup<Scope> | null
+  }>({
+    groupId: null,
+    group: null
+  })
+  React.useEffect(() => {
+    setGroupPair((oldPair) => ({
+      groupId: groupId,
+      group: oldPair.group
+    }))
+  }, [groupId, setGroupPair])
   useGroupSubscription(
     scope,
-    groupId,
-    setGroup,
+    groupPair.groupId,
+    setGroupPair,
     true,
     notifyAboutInitialLoadProblems,
     active
   )
-  return group
+  return groupPair.group
 }
 
 /** Subscribe to groups updates for existing groups state */
@@ -150,12 +187,11 @@ export function useGroupsSubscription<Scope extends ReadManyResourceScope>(
 ) {
   const notifier = useNotifier()
 
+  const [initialized, setInitialized] = React.useState(false)
+
   const load = React.useCallback(
     async (notifyAboutProblems: boolean) => {
       try {
-        if (active === false) {
-          return
-        }
         const groups = (await serverConnector.readGroups({
           scope: scope
         })) as ReadManyGroup<Scope>[]
@@ -168,16 +204,36 @@ export function useGroupsSubscription<Scope extends ReadManyResourceScope>(
         }
       }
     },
-    [scope, setGroups, active, notifier]
+    [scope, setGroups, notifier]
   )
 
   // Initial load
   React.useEffect(() => {
-    if (withInitialLoad === false) {
+    setInitialized(true)
+    if (active === false || withInitialLoad === false || initialized) {
       return
     }
     void load(notifyAboutInitialLoadProblems)
-  }, [scope, withInitialLoad, notifyAboutInitialLoadProblems, load])
+  }, [
+    scope,
+    withInitialLoad,
+    notifyAboutInitialLoadProblems,
+    active,
+    initialized,
+    setInitialized,
+    load
+  ])
+
+  // Process active flag change to true
+  useChangeDetector({
+    detectedObjects: [active],
+    otherDependencies: [notifyAboutInitialLoadProblems, load],
+    onChange: () => {
+      if (active) {
+        void load(notifyAboutInitialLoadProblems)
+      }
+    }
+  })
 
   // Subscribe
   React.useEffect(() => {

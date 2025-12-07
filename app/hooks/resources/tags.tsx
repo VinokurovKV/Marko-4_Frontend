@@ -10,6 +10,7 @@ import type {
 } from '@common/dtos/server-api/tags.dto'
 import type { DtoWithoutEnums } from '@common/dto-without-enums'
 import { serverConnector } from '~/server-connector'
+import { useChangeDetector } from '../change-detector'
 import { useNotifier } from '~/providers/notifier'
 // React
 import * as React from 'react'
@@ -34,7 +35,12 @@ type ReadManyTag<Scope extends ReadManyResourceScope> = DtoWithoutEnums<
 export function useTagSubscription<Scope extends ReadOneResourceScope>(
   scope: Scope,
   tagId: number | null,
-  setTag: React.Dispatch<React.SetStateAction<ReadOneTag<Scope> | null>>,
+  setTagPair: React.Dispatch<
+    React.SetStateAction<{
+      tagId: number | null
+      tag: ReadOneTag<Scope> | null
+    }>
+  >,
   withInitialLoad: boolean = false,
   notifyAboutInitialLoadProblems: boolean = false,
   active: boolean = true
@@ -45,11 +51,10 @@ export function useTagSubscription<Scope extends ReadOneResourceScope>(
 
   const load = React.useCallback(
     async (notifyAboutProblems: boolean) => {
-      if (active === false) {
-        return
-      }
       if (tagId === null) {
-        setTag(null as ReadOneTag<Scope>)
+        setTagPair((oldPair) =>
+          oldPair.tagId === null ? { ...oldPair, tag: null } : oldPair
+        )
         return
       }
       try {
@@ -59,7 +64,14 @@ export function useTagSubscription<Scope extends ReadOneResourceScope>(
             scope: scope
           }
         )) as ReadOneTag<Scope>
-        setTag(tag)
+        setTagPair((oldPair) =>
+          oldPair.tagId === tagId
+            ? {
+                ...oldPair,
+                tag: tag
+              }
+            : oldPair
+        )
       } catch {
         if (notifyAboutProblems) {
           notifier.showWarning(
@@ -68,12 +80,13 @@ export function useTagSubscription<Scope extends ReadOneResourceScope>(
         }
       }
     },
-    [scope, tagId, setTag, active, notifier]
+    [scope, tagId, setTagPair, notifier]
   )
 
+  // Initial load
   React.useEffect(() => {
     setInitialized(true)
-    if (withInitialLoad === false && initialized === false) {
+    if (active === false || withInitialLoad === false || initialized) {
       return
     }
     void load(notifyAboutInitialLoadProblems)
@@ -81,10 +94,22 @@ export function useTagSubscription<Scope extends ReadOneResourceScope>(
     scope,
     withInitialLoad,
     notifyAboutInitialLoadProblems,
+    active,
     initialized,
     setInitialized,
     load
   ])
+
+  // Process resource id change or active flag change to true
+  useChangeDetector({
+    detectedObjects: [tagId, active],
+    otherDependencies: [notifyAboutInitialLoadProblems, load],
+    onChange: () => {
+      if (active) {
+        void load(notifyAboutInitialLoadProblems)
+      }
+    }
+  })
 
   // Subscribe
   React.useEffect(() => {
@@ -126,16 +151,28 @@ export function useTag<Scope extends ReadOneResourceScope>(
   notifyAboutInitialLoadProblems: boolean = false,
   active: boolean = true
 ) {
-  const [tag, setTag] = React.useState<ReadOneTag<Scope> | null>(null)
+  const [tagPair, setTagPair] = React.useState<{
+    tagId: number | null
+    tag: ReadOneTag<Scope> | null
+  }>({
+    tagId: null,
+    tag: null
+  })
+  React.useEffect(() => {
+    setTagPair((oldPair) => ({
+      tagId: tagId,
+      tag: oldPair.tag
+    }))
+  }, [tagId, setTagPair])
   useTagSubscription(
     scope,
-    tagId,
-    setTag,
+    tagPair.tagId,
+    setTagPair,
     true,
     notifyAboutInitialLoadProblems,
     active
   )
-  return tag
+  return tagPair.tag
 }
 
 /** Subscribe to tags updates for existing tags state */
@@ -150,12 +187,11 @@ export function useTagsSubscription<Scope extends ReadManyResourceScope>(
 ) {
   const notifier = useNotifier()
 
+  const [initialized, setInitialized] = React.useState(false)
+
   const load = React.useCallback(
     async (notifyAboutProblems: boolean) => {
       try {
-        if (active === false) {
-          return
-        }
         const tags = (await serverConnector.readTags({
           scope: scope
         })) as ReadManyTag<Scope>[]
@@ -166,16 +202,36 @@ export function useTagsSubscription<Scope extends ReadManyResourceScope>(
         }
       }
     },
-    [scope, setTags, active, notifier]
+    [scope, setTags, notifier]
   )
 
   // Initial load
   React.useEffect(() => {
-    if (withInitialLoad === false) {
+    setInitialized(true)
+    if (active === false || withInitialLoad === false || initialized) {
       return
     }
     void load(notifyAboutInitialLoadProblems)
-  }, [scope, withInitialLoad, notifyAboutInitialLoadProblems, load])
+  }, [
+    scope,
+    withInitialLoad,
+    notifyAboutInitialLoadProblems,
+    active,
+    initialized,
+    setInitialized,
+    load
+  ])
+
+  // Process active flag change to true
+  useChangeDetector({
+    detectedObjects: [active],
+    otherDependencies: [notifyAboutInitialLoadProblems, load],
+    onChange: () => {
+      if (active) {
+        void load(notifyAboutInitialLoadProblems)
+      }
+    }
+  })
 
   // Subscribe
   React.useEffect(() => {

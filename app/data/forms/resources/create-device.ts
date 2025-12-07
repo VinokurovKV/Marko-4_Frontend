@@ -7,6 +7,7 @@ import type {
   RemarkTextUndefinedWrapDto,
   TagIdsUndefinedWrapDto
 } from '@common/dtos'
+import type { DtoWithoutEnums } from '@common/dto-without-enums'
 import {
   type FormKey,
   type FormVal,
@@ -15,18 +16,20 @@ import {
   FormValidator
 } from '~/validation/form-validator'
 
-export type CreateDeviceFormData = CodeWrapDto &
-  NameUndefinedWrapDto &
-  DeviceTypeUndefinedWrapDto & {
-    config?: File
-  } & {
-    clearConfig?: File
-  } & {
-    accessConfig?: File
-  } & DescriptionTextUndefinedWrapDto &
-  TagIdsUndefinedWrapDto & {
-    tagCodesToCreate?: string[]
-  } & RemarkTextUndefinedWrapDto
+export type CreateDeviceFormData = DtoWithoutEnums<
+  CodeWrapDto &
+    NameUndefinedWrapDto &
+    DeviceTypeUndefinedWrapDto & {
+      config?: File
+    } & {
+      clearConfig?: File
+    } & {
+      accessConfig?: File
+    } & DescriptionTextUndefinedWrapDto &
+    TagIdsUndefinedWrapDto & {
+      tagCodesToCreate?: string[]
+    } & RemarkTextUndefinedWrapDto
+>
 
 export type CreateDeviceFormKey = FormKey<CreateDeviceFormData>
 

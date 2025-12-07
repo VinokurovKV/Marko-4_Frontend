@@ -1396,7 +1396,9 @@ export class ServerConnector {
   readRoleVersion(
     params: Params<ReadRoleVersionParamsDto>
   ): Result<ReadRoleVersionSuccessResultDto> {
-    return this.getObject(`/roles/${params.id}/version/${params.transitionNum}`)
+    return this.getObject(
+      `/roles/${params.id}/versions/${params.transitionNum}`
+    )
   }
   readRoleTransitionsCount(
     params: Params<ReadRoleTransitionsCountParamsDto>,
@@ -1495,7 +1497,9 @@ export class ServerConnector {
   readUserVersion(
     params: Params<ReadUserVersionParamsDto>
   ): Result<ReadUserVersionSuccessResultDto> {
-    return this.getObject(`/users/${params.id}/version/${params.transitionNum}`)
+    return this.getObject(
+      `/users/${params.id}/versions/${params.transitionNum}`
+    )
   }
   readUserTransitionsCount(
     params: Params<ReadUserTransitionsCountParamsDto>,
@@ -1572,7 +1576,7 @@ export class ServerConnector {
   readTagVersion(
     params: Params<ReadTagVersionParamsDto>
   ): Result<ReadTagVersionSuccessResultDto> {
-    return this.getObject(`/tags/${params.id}/version/${params.transitionNum}`)
+    return this.getObject(`/tags/${params.id}/versions/${params.transitionNum}`)
   }
   readTagTransitionsCount(
     params: Params<ReadTagTransitionsCountParamsDto>,
@@ -1647,14 +1651,14 @@ export class ServerConnector {
     params: Params<ReadDocumentVersionConfigParamsDto>
   ): Promise<Blob> {
     return this.getBlob(
-      `/documents/${params.id}/version/${params.transitionNum}/config`
+      `/documents/${params.id}/versions/${params.transitionNum}/config`
     )
   }
   readDocumentVersion(
     params: Params<ReadDocumentVersionParamsDto>
   ): Result<ReadDocumentVersionSuccessResultDto> {
     return this.getObject(
-      `/documents/${params.id}/version/${params.transitionNum}`
+      `/documents/${params.id}/versions/${params.transitionNum}`
     )
   }
   readDocumentTransitionsCount(
@@ -1752,14 +1756,14 @@ export class ServerConnector {
     params: Params<ReadFragmentVersionConfigParamsDto>
   ): Promise<Blob> {
     return this.getBlob(
-      `/fragments/${params.id}/version/${params.transitionNum}/config`
+      `/fragments/${params.id}/versions/${params.transitionNum}/config`
     )
   }
   readFragmentVersion(
     params: Params<ReadFragmentVersionParamsDto>
   ): Result<ReadFragmentVersionSuccessResultDto> {
     return this.getObject(
-      `/fragments/${params.id}/version/${params.transitionNum}`
+      `/fragments/${params.id}/versions/${params.transitionNum}`
     )
   }
   readFragmentTransitionsCount(
@@ -1840,7 +1844,7 @@ export class ServerConnector {
     params: Params<ReadRequirementVersionParamsDto>
   ): Result<ReadRequirementVersionSuccessResultDto> {
     return this.getObject(
-      `/requirements/${params.id}/version/${params.transitionNum}`
+      `/requirements/${params.id}/versions/${params.transitionNum}`
     )
   }
   readRequirementTransitionsCount(
@@ -1916,7 +1920,7 @@ export class ServerConnector {
     params: Params<ReadCoverageVersionParamsDto>
   ): Result<ReadCoverageVersionSuccessResultDto> {
     return this.getObject(
-      `/coverages/${params.id}/version/${params.transitionNum}`
+      `/coverages/${params.id}/versions/${params.transitionNum}`
     )
   }
   readCoverageTransitionsCount(
@@ -1992,7 +1996,7 @@ export class ServerConnector {
     params: Params<ReadCommonTopologyVersionParamsDto>
   ): Result<ReadCommonTopologyVersionSuccessResultDto> {
     return this.getObject(
-      `/common-topologies/${params.id}/version/${params.transitionNum}`
+      `/common-topologies/${params.id}/versions/${params.transitionNum}`
     )
   }
   readCommonTopologyTransitionsCount(
@@ -2087,7 +2091,7 @@ export class ServerConnector {
     params: Params<ReadTopologyVersionParamsDto>
   ): Result<ReadTopologyVersionSuccessResultDto> {
     return this.getObject(
-      `/topologies/${params.id}/version/${params.transitionNum}`
+      `/topologies/${params.id}/versions/${params.transitionNum}`
     )
   }
   readTopologyTransitionsCount(
@@ -2163,20 +2167,22 @@ export class ServerConnector {
     params: Params<ReadDsefVersionAdapterParamsDto>
   ): Promise<Blob> {
     return this.getBlob(
-      `/dsefs/${params.id}/version/${params.transitionNum}/adapter`
+      `/dsefs/${params.id}/versions/${params.transitionNum}/adapter`
     )
   }
   readDsefVersionNoAdapterConfig(
     params: Params<ReadDsefVersionNoAdapterConfigParamsDto>
   ): Promise<Blob> {
     return this.getBlob(
-      `/dsefs/${params.id}/version/${params.transitionNum}/no-adapter-config`
+      `/dsefs/${params.id}/versions/${params.transitionNum}/no-adapter-config`
     )
   }
   readDsefVersion(
     params: Params<ReadDsefVersionParamsDto>
   ): Result<ReadDsefVersionSuccessResultDto> {
-    return this.getObject(`/dsefs/${params.id}/version/${params.transitionNum}`)
+    return this.getObject(
+      `/dsefs/${params.id}/versions/${params.transitionNum}`
+    )
   }
   readDsefTransitionsCount(
     params: Params<ReadDsefTransitionsCountParamsDto>,
@@ -2275,20 +2281,20 @@ export class ServerConnector {
     params: Params<ReadDbcVersionConfigParamsDto>
   ): Promise<Blob> {
     return this.getBlob(
-      `/dbcs/${params.id}/version/${params.transitionNum}/config`
+      `/dbcs/${params.id}/versions/${params.transitionNum}/config`
     )
   }
   readDbcVersionDsefConfig(
     params: Params<ReadDbcVersionDsefConfigParamsDto>
   ): Promise<Blob> {
     return this.getBlob(
-      `/dbcs/${params.id}/version/${params.transitionNum}/dsefs/${params.dsefId}/config`
+      `/dbcs/${params.id}/versions/${params.transitionNum}/dsefs/${params.dsefId}/config`
     )
   }
   readDbcVersion(
     params: Params<ReadDbcVersionParamsDto>
   ): Result<ReadDbcVersionSuccessResultDto> {
-    return this.getObject(`/dbcs/${params.id}/version/${params.transitionNum}`)
+    return this.getObject(`/dbcs/${params.id}/versions/${params.transitionNum}`)
   }
   readDbcTransitionsCount(
     params: Params<ReadDbcTransitionsCountParamsDto>,
@@ -2387,14 +2393,14 @@ export class ServerConnector {
     params: Params<ReadTestTemplateVersionConfigParamsDto>
   ): Promise<Blob> {
     return this.getBlob(
-      `/test-templates/${params.id}/version/${params.transitionNum}/config`
+      `/test-templates/${params.id}/versions/${params.transitionNum}/config`
     )
   }
   readTestTemplateVersion(
     params: Params<ReadTestTemplateVersionParamsDto>
   ): Result<ReadTestTemplateVersionSuccessResultDto> {
     return this.getObject(
-      `/test-templates/${params.id}/version/${params.transitionNum}`
+      `/test-templates/${params.id}/versions/${params.transitionNum}`
     )
   }
   readTestTemplateTransitionsCount(
@@ -2494,27 +2500,29 @@ export class ServerConnector {
     params: Params<ReadTestVersionConfigParamsDto>
   ): Promise<Blob> {
     return this.getBlob(
-      `/tests/${params.id}/version/${params.transitionNum}/config`
+      `/tests/${params.id}/versions/${params.transitionNum}/config`
     )
   }
   readTestVersionDelta(
     params: Params<ReadTestVersionDeltaParamsDto>
   ): Promise<Blob> {
     return this.getBlob(
-      `/tests/${params.id}/version/${params.transitionNum}/vertexes/${params.vertexName}/delta`
+      `/tests/${params.id}/versions/${params.transitionNum}/vertexes/${params.vertexName}/delta`
     )
   }
   readTestVersionDeltaDsefConfig(
     params: Params<ReadTestVersionDeltaDsefConfigParamsDto>
   ): Promise<Blob> {
     return this.getBlob(
-      `/tests/${params.id}/version/${params.transitionNum}/vertexes/${params.vertexName}/dsefs/${params.dsefId}/config`
+      `/tests/${params.id}/versions/${params.transitionNum}/vertexes/${params.vertexName}/dsefs/${params.dsefId}/config`
     )
   }
   readTestVersion(
     params: Params<ReadTestVersionParamsDto>
   ): Result<ReadTestVersionSuccessResultDto> {
-    return this.getObject(`/tests/${params.id}/version/${params.transitionNum}`)
+    return this.getObject(
+      `/tests/${params.id}/versions/${params.transitionNum}`
+    )
   }
   readTestTransitionsCount(
     params: Params<ReadTestTransitionsCountParamsDto>,
@@ -2630,7 +2638,7 @@ export class ServerConnector {
     params: Params<ReadSubgroupVersionParamsDto>
   ): Result<ReadSubgroupVersionSuccessResultDto> {
     return this.getObject(
-      `/subgroups/${params.id}/version/${params.transitionNum}`
+      `/subgroups/${params.id}/versions/${params.transitionNum}`
     )
   }
   readSubgroupTransitionsCount(
@@ -2706,7 +2714,7 @@ export class ServerConnector {
     params: Params<ReadGroupVersionParamsDto>
   ): Result<ReadGroupVersionSuccessResultDto> {
     return this.getObject(
-      `/groups/${params.id}/version/${params.transitionNum}`
+      `/groups/${params.id}/versions/${params.transitionNum}`
     )
   }
   readGroupTransitionsCount(
@@ -2782,42 +2790,42 @@ export class ServerConnector {
     params: Params<ReadDeviceVersionConfigParamsDto>
   ): Promise<Blob> {
     return this.getBlob(
-      `/devices/${params.id}/version/${params.transitionNum}/config`
+      `/devices/${params.id}/versions/${params.transitionNum}/config`
     )
   }
   readDeviceVersionClearConfig(
     params: Params<ReadDeviceVersionClearConfigParamsDto>
   ): Promise<Blob> {
     return this.getBlob(
-      `/devices/${params.id}/version/${params.transitionNum}/clear-config`
+      `/devices/${params.id}/versions/${params.transitionNum}/clear-config`
     )
   }
   readDeviceVersionAccessConfig(
     params: Params<ReadDeviceVersionAccessConfigParamsDto>
   ): Promise<Blob> {
     return this.getBlob(
-      `/devices/${params.id}/version/${params.transitionNum}/access-config`
+      `/devices/${params.id}/versions/${params.transitionNum}/access-config`
     )
   }
   readDeviceVersionDsefClearConfig(
     params: Params<ReadDeviceVersionDsefClearConfigParamsDto>
   ): Promise<Blob> {
     return this.getBlob(
-      `/devices/${params.id}/version/${params.transitionNum}/dsefs/${params.dsefId}/clear-config`
+      `/devices/${params.id}/versions/${params.transitionNum}/dsefs/${params.dsefId}/clear-config`
     )
   }
   readDeviceVersionDsefAccessConfig(
     params: Params<ReadDeviceVersionDsefAccessConfigParamsDto>
   ): Promise<Blob> {
     return this.getBlob(
-      `/devices/${params.id}/version/${params.transitionNum}/dsefs/${params.dsefId}/access-config`
+      `/devices/${params.id}/versions/${params.transitionNum}/dsefs/${params.dsefId}/access-config`
     )
   }
   readDeviceVersion(
     params: Params<ReadDeviceVersionParamsDto>
   ): Result<ReadDeviceVersionSuccessResultDto> {
     return this.getObject(
-      `/devices/${params.id}/version/${params.transitionNum}`
+      `/devices/${params.id}/versions/${params.transitionNum}`
     )
   }
   readDeviceTransitionsCount(
@@ -2954,7 +2962,9 @@ export class ServerConnector {
   readTaskVersion(
     params: Params<ReadTaskVersionParamsDto>
   ): Result<ReadTaskVersionSuccessResultDto> {
-    return this.getObject(`/tasks/${params.id}/version/${params.transitionNum}`)
+    return this.getObject(
+      `/tasks/${params.id}/versions/${params.transitionNum}`
+    )
   }
   readTaskTransitionsCount(
     params: Params<ReadTaskTransitionsCountParamsDto>,
@@ -3053,7 +3063,7 @@ export class ServerConnector {
     params: Params<ReadTaskTemplateVersionParamsDto>
   ): Result<ReadTaskTemplateVersionSuccessResultDto> {
     return this.getObject(
-      `/task-templates/${params.id}/version/${params.transitionNum}`
+      `/task-templates/${params.id}/versions/${params.transitionNum}`
     )
   }
   readTaskTemplateTransitionsCount(
@@ -3376,7 +3386,7 @@ export class ServerConnector {
     params: Params<ReadSliceVersionParamsDto>
   ): Result<ReadSliceVersionSuccessResultDto> {
     return this.getObject(
-      `/slices/${params.id}/version/${params.transitionNum}`
+      `/slices/${params.id}/versions/${params.transitionNum}`
     )
   }
   readSliceTransitionsCount(

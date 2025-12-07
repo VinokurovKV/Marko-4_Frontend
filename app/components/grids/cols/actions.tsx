@@ -5,6 +5,9 @@ import * as React from 'react'
 // Material UI
 import DeleteIcon from '@mui/icons-material/Delete'
 import DownloadIcon from '@mui/icons-material/Download'
+import PauseIcon from '@mui/icons-material/Pause'
+import PlayArrowIcon from '@mui/icons-material/PlayArrow'
+import StopIcon from '@mui/icons-material/Stop'
 import Tooltip from '@mui/material/Tooltip'
 import Menu from '@mui/material/Menu'
 import MenuItem from '@mui/material/MenuItem'
@@ -66,7 +69,24 @@ export interface ActionsColProps {
     action: (rowId: number) => Promise<void>
   }
   exportMenuItems?: MenuItem[]
+  cancel?: {
+    displayCondition?: (rowId: number) => boolean
+    action: (rowId: number) => Promise<void>
+  }
+  abort?: {
+    displayCondition?: (rowId: number) => boolean
+    action: (rowId: number) => Promise<void>
+  }
+  pause?: {
+    displayCondition?: (rowId: number) => boolean
+    action: (rowId: number) => Promise<void>
+  }
+  unpause?: {
+    displayCondition?: (rowId: number) => boolean
+    action: (rowId: number) => Promise<void>
+  }
   delete?: {
+    displayCondition?: (rowId: number) => boolean
     prepareConfirmMessage?: (rowId: number) => string
     action: (rowId: number) => Promise<void>
   }
@@ -82,6 +102,42 @@ export function useActionsCol(props: ActionsColProps) {
       }
     },
     [props.export]
+  )
+
+  const handleCancelClick = React.useCallback(
+    async (rowId: number) => {
+      if (props.cancel?.action !== undefined) {
+        await props.cancel.action(rowId)
+      }
+    },
+    [props.cancel]
+  )
+
+  const handleAbortClick = React.useCallback(
+    async (rowId: number) => {
+      if (props.abort?.action !== undefined) {
+        await props.abort.action(rowId)
+      }
+    },
+    [props.abort]
+  )
+
+  const handlePauseClick = React.useCallback(
+    async (rowId: number) => {
+      if (props.pause?.action !== undefined) {
+        await props.pause.action(rowId)
+      }
+    },
+    [props.pause]
+  )
+
+  const handleUnpauseClick = React.useCallback(
+    async (rowId: number) => {
+      if (props.unpause?.action !== undefined) {
+        await props.unpause.action(rowId)
+      }
+    },
+    [props.unpause]
   )
 
   const handleDeleteClick = React.useCallback(
@@ -128,7 +184,78 @@ export function useActionsCol(props: ActionsColProps) {
           ? // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
             [<ExportMenu rowId={row.id} items={props.exportMenuItems} />]
           : []),
-        ...(props.delete !== undefined
+        ...(props.pause !== undefined &&
+        (props.pause.displayCondition === undefined ||
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access
+          props.pause.displayCondition(row.id))
+          ? [
+              <Tooltip title="Приостановить">
+                <GridActionsCellItem
+                  icon={<PauseIcon />}
+                  label="Приостановить"
+                  onClick={() => {
+                    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access
+                    void handlePauseClick(row.id)
+                  }}
+                />
+              </Tooltip>
+            ]
+          : []),
+        ...(props.unpause !== undefined &&
+        (props.unpause.displayCondition === undefined ||
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access
+          props.unpause.displayCondition(row.id))
+          ? [
+              <Tooltip title="Возобновить">
+                <GridActionsCellItem
+                  icon={<PlayArrowIcon />}
+                  label="Возобновить"
+                  onClick={() => {
+                    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access
+                    void handleUnpauseClick(row.id)
+                  }}
+                />
+              </Tooltip>
+            ]
+          : []),
+        ...(props.cancel !== undefined &&
+        (props.cancel.displayCondition === undefined ||
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access
+          props.cancel.displayCondition(row.id))
+          ? [
+              <Tooltip title="Отменить">
+                <GridActionsCellItem
+                  icon={<StopIcon />}
+                  label="Отменить"
+                  onClick={() => {
+                    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access
+                    void handleCancelClick(row.id)
+                  }}
+                />
+              </Tooltip>
+            ]
+          : []),
+        ...(props.abort !== undefined &&
+        (props.abort.displayCondition === undefined ||
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access
+          props.abort.displayCondition(row.id))
+          ? [
+              <Tooltip title="Прервать">
+                <GridActionsCellItem
+                  icon={<StopIcon />}
+                  label="Прервать"
+                  onClick={() => {
+                    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access
+                    void handleAbortClick(row.id)
+                  }}
+                />
+              </Tooltip>
+            ]
+          : []),
+        ...(props.delete !== undefined &&
+        (props.delete.displayCondition === undefined ||
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access
+          props.delete.displayCondition(row.id))
           ? [
               <Tooltip title="Удалить">
                 <GridActionsCellItem
@@ -149,8 +276,16 @@ export function useActionsCol(props: ActionsColProps) {
     [
       props.export,
       props.exportMenuItems,
+      props.cancel,
+      props.abort,
+      props.pause,
+      props.unpause,
       props.delete,
       handleExportClick,
+      handleCancelClick,
+      handleAbortClick,
+      handlePauseClick,
+      handleUnpauseClick,
       handleDeleteClick
     ]
   )

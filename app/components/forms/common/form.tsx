@@ -350,15 +350,16 @@ export function useForm<Data extends FormData, SubmitActionResult>(
       ) {
         try {
           setIsSubmitting(true)
-          setSubmitActionError(null)
           const transformedData = props.validator.getTransformed(data)
           const submitActionResult = await props.submitAction(transformedData)
+          setSubmitActionError(null)
           props.onSuccessSubmit?.(transformedData, submitActionResult)
         } catch (error) {
           const errorText = prepareTextForSubmitActionError(error)
           if (errorText !== null) {
             setSubmitActionError(capitalize(errorText, true))
           } else {
+            setSubmitActionError(null)
             // TODO: unsuccessful request
             throw error
           }
@@ -536,7 +537,7 @@ function useFormSeparated(props: FormProps) {
     </Box>
   )
   const ActionsElem = (
-    <Stack p={0.5} spacing={1} sx={{ width: '100%' }}>
+    <Stack p={0.5} spacing={1} sx={{ width: '100%', maxWidth: '700px' }}>
       <Typography
         color="error"
         align="center"
@@ -620,7 +621,9 @@ export function FormDialog({
       <DialogContent dividers={true}>
         <FormContainer>{ContentElem}</FormContainer>
       </DialogContent>
-      <DialogActions>{ActionsElem}</DialogActions>
+      <DialogActions sx={{ justifyContent: 'center' }}>
+        {ActionsElem}
+      </DialogActions>
     </Dialog>
   )
 }
