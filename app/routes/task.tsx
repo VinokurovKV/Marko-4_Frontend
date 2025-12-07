@@ -1,19 +1,23 @@
 // // Project
+// import { ServerConnectorNotFoundError } from '~/server-connector/error'
 // import { serverConnector } from '~/server-connector'
 // import { useNotifier } from '~/providers/notifier'
 // import { useMeta } from '~/providers/meta'
 // import { ForbiddenScreen } from '~/components/screens/problem/forbidden'
 // import { TaskScreen } from '~/components/screens/task'
 // // React router
-// import type { Route } from './+types/tasks'
+// import type { Route } from './+types/task'
 // // React
 // import * as React from 'react'
 
 // export async function clientLoader({ params }: Route.ClientLoaderArgs) {
-//   const taskId = params.taskId
+//   const taskId = (() => {
+//     const parsed = parseInt(params.taskId)
+//     return isNaN(parsed) ? null : parsed
+//   })()
 //   await serverConnector.connect()
 //   const [task] = await (async () => {
-//     if (serverConnector.meta.status !== 'AUTHENTICATED') {
+//     if (taskId === null || serverConnector.meta.status !== 'AUTHENTICATED') {
 //       return [null]
 //     } else {
 //       const rights = serverConnector.meta.selfMeta.rights
@@ -47,40 +51,46 @@
 //                   scope: 'PRIMARY_PROPS'
 //                 }
 //               )
-//               .catch(() => null)
+//               .catch((error) =>
+//                 error instanceof ServerConnectorNotFoundError ? 'DELETED' : null
+//               )
 //           : Promise.resolve(null)
 //       ])
 //     }
 //   })()
 //   return {
+//     taskId,
 //     commonTopology,
 //     task
 //   }
 // }
 
 // export default function MetaRoute({
-//   loaderData: { commonTopologies, tasks }
+//   loaderData: { taskId, commonTopology, task }
 // }: Route.ComponentProps) {
 //   const notifier = useNotifier()
 //   const meta = useMeta()
 
 //   React.useEffect(() => {
-//     if (
-//       tasks === null &&
+//     if (taskId === null) {
+//       notifier.showError(
+//         'указан некорректный идентификатор при загрузке задания тестирования'
+//       )
+//     } else if (
+//       task === null &&
 //       serverConnector.meta.status === 'AUTHENTICATED' &&
 //       serverConnector.meta.selfMeta.rights.includes('READ_TASK')
 //     ) {
-//       notifier.showError('не удалось загрузить список заданий тестирования')
+//       notifier.showError(
+//         `не удалось загрузить задание тестирования с идентификатором ${taskId}`
+//       )
 //     }
-//   }, [tasks, notifier])
+//   }, [taskId, task, notifier])
 
 //   return meta.status === 'AUTHENTICATED' &&
 //     meta.selfMeta.rights.includes('READ_TASK') === false ? (
 //     <ForbiddenScreen />
-//   ) : (
-//     <TasksScreen
-//       initialCommonTopologies={commonTopologies}
-//       initialTasks={tasks ?? []}
-//     />
-//   )
+//   ) : task !== null ? (
+//     <TaskScreen initialCommonTopology={commonTopology} initialTask={task} />
+//   ) : null
 // }

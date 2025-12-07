@@ -5,7 +5,7 @@
 // import { ForbiddenScreen } from '~/components/screens/problem/forbidden'
 // import { TaskLayoutScreen } from '~/components/screens/task-layout'
 // // React router
-// import type { Route } from './+types/tasks'
+// import type { Route } from './+types/task-layout'
 // import { Outlet } from 'react-router'
 // // React
 // import * as React from 'react'
