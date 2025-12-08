@@ -34,9 +34,11 @@ type Subgroup =
 export interface SubgroupsGridProps {
   initialGroups: Group[] | null
   initialSubgroups: Subgroup[]
+  navigationMode?: boolean
 }
 
 export function SubgroupsGrid(props: SubgroupsGridProps) {
+  const navigationMode = props.navigationMode ?? false
   const notifier = useNotifier()
   const meta = useMeta()
   const rightsSet = React.useMemo(
@@ -173,6 +175,7 @@ export function SubgroupsGrid(props: SubgroupsGridProps) {
         cols={cols}
         rows={rows}
         defaultHiddenFields={defaultHiddenFields}
+        navigationMode={navigationMode}
         create={createProps}
         deleteMany={deleteManyProps}
       />

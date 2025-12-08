@@ -28,10 +28,10 @@ const BreadcrumbsStyled = styled(Breadcrumbs)(({ theme }) => ({
   margin: theme.spacing(1, 0),
   [`& .${breadcrumbsClasses.separator}`]: {
     margin: 0,
-    transform: 'translate(-4px, 2px)'
+    transform: 'translate(-4px, 0px)'
   },
   [`& .${breadcrumbsClasses.ol}`]: {
-    alignItems: 'center'
+    alignItems: 'flex-end'
   }
 }))
 

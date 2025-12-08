@@ -36,9 +36,11 @@ type Coverage =
 export interface CoveragesGridProps {
   initialRequirements: Requirement[] | null
   initialCoverages: Coverage[]
+  navigationMode?: boolean
 }
 
 export function CoveragesGrid(props: CoveragesGridProps) {
+  const navigationMode = props.navigationMode ?? false
   const notifier = useNotifier()
   const meta = useMeta()
   const rightsSet = React.useMemo(
@@ -206,6 +208,7 @@ export function CoveragesGrid(props: CoveragesGridProps) {
         cols={cols}
         rows={rows}
         defaultHiddenFields={defaultHiddenFields}
+        navigationMode={navigationMode}
         create={createProps}
         deleteMany={deleteManyProps}
       />

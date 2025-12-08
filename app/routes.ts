@@ -27,11 +27,9 @@ export default [
             route('subgroups', 'routes/subgroups.tsx'),
             route('groups', 'routes/groups.tsx'),
             route('devices', 'routes/devices.tsx'),
-            route('tasks', 'routes/tasks.tsx', [
-              layout('routes/task-layout.tsx', [
-                route(':taskId', 'routes/task.tsx')
-              ])
-              // route(':taskId', 'routes/task.tsx')
+            route('tasks', 'routes/tasks.tsx'),
+            layout('routes/task-layout.tsx', [
+              route('tasks/:taskId', 'routes/task.tsx')
             ]),
             index('routes/home.tsx'),
             route('*', 'routes/not-found.tsx')

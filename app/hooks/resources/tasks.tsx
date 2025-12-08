@@ -31,14 +31,13 @@ type ReadManyTask<Scope extends ReadManyResourceScope> = DtoWithoutEnums<
     : ReadTasksWithUpToSecondaryPropsSuccessResultItemDto
 >
 
-/** Subscribe to task updates for existing task state */
-export function useTaskSubscription<Scope extends ReadOneResourceScope>(
+function useTaskSubscriptionInner<Scope extends ReadOneResourceScope>(
   scope: Scope,
   taskId: number | null,
   setTaskPair: React.Dispatch<
     React.SetStateAction<{
       taskId: number | null
-      task: ReadOneTask<Scope> | null
+      task?: ReadOneTask<Scope> | null
     }>
   >,
   withInitialLoad: boolean = false,
@@ -75,7 +74,7 @@ export function useTaskSubscription<Scope extends ReadOneResourceScope>(
       } catch {
         if (notifyAboutProblems) {
           notifier.showWarning(
-            `не удалось загрузить задание с идентификатором ${taskId}`
+            `не удалось загрузить задание тестирования с идентификатором ${taskId}`
           )
         }
       }
@@ -144,6 +143,43 @@ export function useTaskSubscription<Scope extends ReadOneResourceScope>(
   }, [scope, taskId, load])
 }
 
+/** Subscribe to task updates for existing task state */
+export function useTaskSubscription<Scope extends ReadOneResourceScope>(
+  scope: Scope,
+  taskId: number | null,
+  setTask: React.Dispatch<React.SetStateAction<ReadOneTask<Scope> | null>>,
+  withInitialLoad: boolean = false,
+  notifyAboutInitialLoadProblems: boolean = false,
+  active: boolean = true
+) {
+  const [taskPair, setTaskPair] = React.useState<{
+    taskId: number | null
+    task?: ReadOneTask<Scope> | null
+  }>({
+    taskId: taskId,
+    task: undefined
+  })
+  React.useEffect(() => {
+    setTaskPair((oldPair) => ({
+      taskId: taskId,
+      task: oldPair.task
+    }))
+  }, [taskId, setTaskPair])
+  useTaskSubscriptionInner(
+    scope,
+    taskPair.taskId,
+    setTaskPair,
+    withInitialLoad,
+    notifyAboutInitialLoadProblems,
+    active
+  )
+  React.useEffect(() => {
+    if (taskPair.task !== undefined) {
+      setTask(taskPair.task)
+    }
+  }, [setTask, taskPair.task])
+}
+
 /** Subscribe to task updates with initial load */
 export function useTask<Scope extends ReadOneResourceScope>(
   scope: Scope,
@@ -153,9 +189,9 @@ export function useTask<Scope extends ReadOneResourceScope>(
 ) {
   const [taskPair, setTaskPair] = React.useState<{
     taskId: number | null
-    task: ReadOneTask<Scope> | null
+    task?: ReadOneTask<Scope> | null
   }>({
-    taskId: null,
+    taskId: taskId,
     task: null
   })
   React.useEffect(() => {
@@ -164,7 +200,7 @@ export function useTask<Scope extends ReadOneResourceScope>(
       task: oldPair.task
     }))
   }, [taskId, setTaskPair])
-  useTaskSubscription(
+  useTaskSubscriptionInner(
     scope,
     taskPair.taskId,
     setTaskPair,
@@ -172,7 +208,7 @@ export function useTask<Scope extends ReadOneResourceScope>(
     notifyAboutInitialLoadProblems,
     active
   )
-  return taskPair.task
+  return taskPair.task ?? null
 }
 
 /** Subscribe to tasks updates for existing tasks state */
@@ -198,7 +234,9 @@ export function useTasksSubscription<Scope extends ReadManyResourceScope>(
         setTasks(tasks)
       } catch {
         if (notifyAboutProblems) {
-          notifier.showWarning('не удалось загрузить актуальный список заданий')
+          notifier.showWarning(
+            'не удалось загрузить актуальный список заданий тестирования'
+          )
         }
       }
     },

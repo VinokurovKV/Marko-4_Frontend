@@ -31,14 +31,13 @@ type ReadManyDevice<Scope extends ReadManyResourceScope> = DtoWithoutEnums<
     : ReadDevicesWithUpToSecondaryPropsSuccessResultItemDto
 >
 
-/** Subscribe to device updates for existing device state */
-export function useDeviceSubscription<Scope extends ReadOneResourceScope>(
+function useDeviceSubscriptionInner<Scope extends ReadOneResourceScope>(
   scope: Scope,
   deviceId: number | null,
   setDevicePair: React.Dispatch<
     React.SetStateAction<{
       deviceId: number | null
-      device: ReadOneDevice<Scope> | null
+      device?: ReadOneDevice<Scope> | null
     }>
   >,
   withInitialLoad: boolean = false,
@@ -144,6 +143,43 @@ export function useDeviceSubscription<Scope extends ReadOneResourceScope>(
   }, [scope, deviceId, load])
 }
 
+/** Subscribe to device updates for existing device state */
+export function useDeviceSubscription<Scope extends ReadOneResourceScope>(
+  scope: Scope,
+  deviceId: number | null,
+  setDevice: React.Dispatch<React.SetStateAction<ReadOneDevice<Scope> | null>>,
+  withInitialLoad: boolean = false,
+  notifyAboutInitialLoadProblems: boolean = false,
+  active: boolean = true
+) {
+  const [devicePair, setDevicePair] = React.useState<{
+    deviceId: number | null
+    device?: ReadOneDevice<Scope> | null
+  }>({
+    deviceId: deviceId,
+    device: undefined
+  })
+  React.useEffect(() => {
+    setDevicePair((oldPair) => ({
+      deviceId: deviceId,
+      device: oldPair.device
+    }))
+  }, [deviceId, setDevicePair])
+  useDeviceSubscriptionInner(
+    scope,
+    devicePair.deviceId,
+    setDevicePair,
+    withInitialLoad,
+    notifyAboutInitialLoadProblems,
+    active
+  )
+  React.useEffect(() => {
+    if (devicePair.device !== undefined) {
+      setDevice(devicePair.device)
+    }
+  }, [setDevice, devicePair.device])
+}
+
 /** Subscribe to device updates with initial load */
 export function useDevice<Scope extends ReadOneResourceScope>(
   scope: Scope,
@@ -153,9 +189,9 @@ export function useDevice<Scope extends ReadOneResourceScope>(
 ) {
   const [devicePair, setDevicePair] = React.useState<{
     deviceId: number | null
-    device: ReadOneDevice<Scope> | null
+    device?: ReadOneDevice<Scope> | null
   }>({
-    deviceId: null,
+    deviceId: deviceId,
     device: null
   })
   React.useEffect(() => {
@@ -164,7 +200,7 @@ export function useDevice<Scope extends ReadOneResourceScope>(
       device: oldPair.device
     }))
   }, [deviceId, setDevicePair])
-  useDeviceSubscription(
+  useDeviceSubscriptionInner(
     scope,
     devicePair.deviceId,
     setDevicePair,
@@ -172,7 +208,7 @@ export function useDevice<Scope extends ReadOneResourceScope>(
     notifyAboutInitialLoadProblems,
     active
   )
-  return devicePair.device
+  return devicePair.device ?? null
 }
 
 /** Subscribe to devices updates for existing devices state */

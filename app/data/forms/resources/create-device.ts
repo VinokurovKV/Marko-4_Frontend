@@ -60,7 +60,7 @@ export const createDeviceFormValidator =
         rules: ['NOT_UNDEFINED']
       },
       config: {
-        rules: ['ALLOW_UNDEFINED', 'ZIP_EXT']
+        rules: ['ALLOW_UNDEFINED', 'TXT_EXT']
       },
       clearConfig: {
         rules: ['ALLOW_UNDEFINED', 'ZIP_EXT']

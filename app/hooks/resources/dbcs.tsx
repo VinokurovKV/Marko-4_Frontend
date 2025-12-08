@@ -31,14 +31,13 @@ type ReadManyDbc<Scope extends ReadManyResourceScope> = DtoWithoutEnums<
     : ReadDbcsWithUpToSecondaryPropsSuccessResultItemDto
 >
 
-/** Subscribe to dbc updates for existing dbc state */
-export function useDbcSubscription<Scope extends ReadOneResourceScope>(
+function useDbcSubscriptionInner<Scope extends ReadOneResourceScope>(
   scope: Scope,
   dbcId: number | null,
   setDbcPair: React.Dispatch<
     React.SetStateAction<{
       dbcId: number | null
-      dbc: ReadOneDbc<Scope> | null
+      dbc?: ReadOneDbc<Scope> | null
     }>
   >,
   withInitialLoad: boolean = false,
@@ -144,6 +143,43 @@ export function useDbcSubscription<Scope extends ReadOneResourceScope>(
   }, [scope, dbcId, load])
 }
 
+/** Subscribe to dbc updates for existing dbc state */
+export function useDbcSubscription<Scope extends ReadOneResourceScope>(
+  scope: Scope,
+  dbcId: number | null,
+  setDbc: React.Dispatch<React.SetStateAction<ReadOneDbc<Scope> | null>>,
+  withInitialLoad: boolean = false,
+  notifyAboutInitialLoadProblems: boolean = false,
+  active: boolean = true
+) {
+  const [dbcPair, setDbcPair] = React.useState<{
+    dbcId: number | null
+    dbc?: ReadOneDbc<Scope> | null
+  }>({
+    dbcId: dbcId,
+    dbc: undefined
+  })
+  React.useEffect(() => {
+    setDbcPair((oldPair) => ({
+      dbcId: dbcId,
+      dbc: oldPair.dbc
+    }))
+  }, [dbcId, setDbcPair])
+  useDbcSubscriptionInner(
+    scope,
+    dbcPair.dbcId,
+    setDbcPair,
+    withInitialLoad,
+    notifyAboutInitialLoadProblems,
+    active
+  )
+  React.useEffect(() => {
+    if (dbcPair.dbc !== undefined) {
+      setDbc(dbcPair.dbc)
+    }
+  }, [setDbc, dbcPair.dbc])
+}
+
 /** Subscribe to dbc updates with initial load */
 export function useDbc<Scope extends ReadOneResourceScope>(
   scope: Scope,
@@ -153,9 +189,9 @@ export function useDbc<Scope extends ReadOneResourceScope>(
 ) {
   const [dbcPair, setDbcPair] = React.useState<{
     dbcId: number | null
-    dbc: ReadOneDbc<Scope> | null
+    dbc?: ReadOneDbc<Scope> | null
   }>({
-    dbcId: null,
+    dbcId: dbcId,
     dbc: null
   })
   React.useEffect(() => {
@@ -164,7 +200,7 @@ export function useDbc<Scope extends ReadOneResourceScope>(
       dbc: oldPair.dbc
     }))
   }, [dbcId, setDbcPair])
-  useDbcSubscription(
+  useDbcSubscriptionInner(
     scope,
     dbcPair.dbcId,
     setDbcPair,
@@ -172,7 +208,7 @@ export function useDbc<Scope extends ReadOneResourceScope>(
     notifyAboutInitialLoadProblems,
     active
   )
-  return dbcPair.dbc
+  return dbcPair.dbc ?? null
 }
 
 /** Subscribe to dbcs updates for existing dbcs state */

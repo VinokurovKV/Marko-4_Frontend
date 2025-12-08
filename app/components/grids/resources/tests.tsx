@@ -56,9 +56,11 @@ export interface TestsGridProps {
   initialTestTemplates: TestTemplate[] | null
   initialTests: Test[]
   initialSubgroups: Subgroup[] | null
+  navigationMode?: boolean
 }
 
 export function TestsGrid(props: TestsGridProps) {
+  const navigationMode = props.navigationMode ?? false
   const notifier = useNotifier()
   const meta = useMeta()
   const rightsSet = React.useMemo(
@@ -228,6 +230,7 @@ export function TestsGrid(props: TestsGridProps) {
         cols={cols}
         rows={rows}
         defaultHiddenFields={defaultHiddenFields}
+        navigationMode={navigationMode}
         create={createProps}
         deleteMany={deleteManyProps}
       />

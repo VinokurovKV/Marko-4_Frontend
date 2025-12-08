@@ -19,9 +19,11 @@ type Tag = DtoWithoutEnums<ReadTagsWithUpToSecondaryPropsSuccessResultItemDto>
 
 export interface TagsGridProps {
   initialTags: Tag[]
+  navigationMode?: boolean
 }
 
 export function TagsGrid(props: TagsGridProps) {
+  const navigationMode = props.navigationMode ?? false
   const notifier = useNotifier()
   const meta = useMeta()
   const rightsSet = React.useMemo(
@@ -145,6 +147,7 @@ export function TagsGrid(props: TagsGridProps) {
         cols={cols}
         rows={rows}
         defaultHiddenFields={defaultHiddenFields}
+        navigationMode={navigationMode}
         create={createProps}
         deleteMany={deleteManyProps}
       />

@@ -33,16 +33,13 @@ type ReadManyCommonTopology<Scope extends ReadManyResourceScope> =
       : ReadCommonTopologiesWithUpToSecondaryPropsSuccessResultItemDto
   >
 
-/** Subscribe to commonTopology updates for existing commonTopology state */
-export function useCommonTopologySubscription<
-  Scope extends ReadOneResourceScope
->(
+function useCommonTopologySubscriptionInner<Scope extends ReadOneResourceScope>(
   scope: Scope,
   commonTopologyId: number | null,
   setCommonTopologyPair: React.Dispatch<
     React.SetStateAction<{
       commonTopologyId: number | null
-      commonTopology: ReadOneCommonTopology<Scope> | null
+      commonTopology?: ReadOneCommonTopology<Scope> | null
     }>
   >,
   withInitialLoad: boolean = false,
@@ -150,6 +147,47 @@ export function useCommonTopologySubscription<
   }, [scope, commonTopologyId, load])
 }
 
+/** Subscribe to commonTopology updates for existing commonTopology state */
+export function useCommonTopologySubscription<
+  Scope extends ReadOneResourceScope
+>(
+  scope: Scope,
+  commonTopologyId: number | null,
+  setCommonTopology: React.Dispatch<
+    React.SetStateAction<ReadOneCommonTopology<Scope> | null>
+  >,
+  withInitialLoad: boolean = false,
+  notifyAboutInitialLoadProblems: boolean = false,
+  active: boolean = true
+) {
+  const [commonTopologyPair, setCommonTopologyPair] = React.useState<{
+    commonTopologyId: number | null
+    commonTopology?: ReadOneCommonTopology<Scope> | null
+  }>({
+    commonTopologyId: commonTopologyId,
+    commonTopology: undefined
+  })
+  React.useEffect(() => {
+    setCommonTopologyPair((oldPair) => ({
+      commonTopologyId: commonTopologyId,
+      commonTopology: oldPair.commonTopology
+    }))
+  }, [commonTopologyId, setCommonTopologyPair])
+  useCommonTopologySubscriptionInner(
+    scope,
+    commonTopologyPair.commonTopologyId,
+    setCommonTopologyPair,
+    withInitialLoad,
+    notifyAboutInitialLoadProblems,
+    active
+  )
+  React.useEffect(() => {
+    if (commonTopologyPair.commonTopology !== undefined) {
+      setCommonTopology(commonTopologyPair.commonTopology)
+    }
+  }, [setCommonTopology, commonTopologyPair.commonTopology])
+}
+
 /** Subscribe to commonTopology updates with initial load */
 export function useCommonTopology<Scope extends ReadOneResourceScope>(
   scope: Scope,
@@ -159,9 +197,9 @@ export function useCommonTopology<Scope extends ReadOneResourceScope>(
 ) {
   const [commonTopologyPair, setCommonTopologyPair] = React.useState<{
     commonTopologyId: number | null
-    commonTopology: ReadOneCommonTopology<Scope> | null
+    commonTopology?: ReadOneCommonTopology<Scope> | null
   }>({
-    commonTopologyId: null,
+    commonTopologyId: commonTopologyId,
     commonTopology: null
   })
   React.useEffect(() => {
@@ -170,7 +208,7 @@ export function useCommonTopology<Scope extends ReadOneResourceScope>(
       commonTopology: oldPair.commonTopology
     }))
   }, [commonTopologyId, setCommonTopologyPair])
-  useCommonTopologySubscription(
+  useCommonTopologySubscriptionInner(
     scope,
     commonTopologyPair.commonTopologyId,
     setCommonTopologyPair,
@@ -178,7 +216,7 @@ export function useCommonTopology<Scope extends ReadOneResourceScope>(
     notifyAboutInitialLoadProblems,
     active
   )
-  return commonTopologyPair.commonTopology
+  return commonTopologyPair.commonTopology ?? null
 }
 
 /** Subscribe to commonTopologies updates for existing commonTopologies state */

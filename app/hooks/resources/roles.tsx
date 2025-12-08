@@ -31,14 +31,13 @@ type ReadManyRole<Scope extends ReadManyResourceScope> = DtoWithoutEnums<
     : ReadRolesWithUpToSecondaryPropsSuccessResultItemDto
 >
 
-/** Subscribe to role updates for existing role state */
-export function useRoleSubscription<Scope extends ReadOneResourceScope>(
+function useRoleSubscriptionInner<Scope extends ReadOneResourceScope>(
   scope: Scope,
   roleId: number | null,
   setRolePair: React.Dispatch<
     React.SetStateAction<{
       roleId: number | null
-      role: ReadOneRole<Scope> | null
+      role?: ReadOneRole<Scope> | null
     }>
   >,
   withInitialLoad: boolean = false,
@@ -144,6 +143,43 @@ export function useRoleSubscription<Scope extends ReadOneResourceScope>(
   }, [scope, roleId, load])
 }
 
+/** Subscribe to role updates for existing role state */
+export function useRoleSubscription<Scope extends ReadOneResourceScope>(
+  scope: Scope,
+  roleId: number | null,
+  setRole: React.Dispatch<React.SetStateAction<ReadOneRole<Scope> | null>>,
+  withInitialLoad: boolean = false,
+  notifyAboutInitialLoadProblems: boolean = false,
+  active: boolean = true
+) {
+  const [rolePair, setRolePair] = React.useState<{
+    roleId: number | null
+    role?: ReadOneRole<Scope> | null
+  }>({
+    roleId: roleId,
+    role: undefined
+  })
+  React.useEffect(() => {
+    setRolePair((oldPair) => ({
+      roleId: roleId,
+      role: oldPair.role
+    }))
+  }, [roleId, setRolePair])
+  useRoleSubscriptionInner(
+    scope,
+    rolePair.roleId,
+    setRolePair,
+    withInitialLoad,
+    notifyAboutInitialLoadProblems,
+    active
+  )
+  React.useEffect(() => {
+    if (rolePair.role !== undefined) {
+      setRole(rolePair.role)
+    }
+  }, [setRole, rolePair.role])
+}
+
 /** Subscribe to role updates with initial load */
 export function useRole<Scope extends ReadOneResourceScope>(
   scope: Scope,
@@ -153,9 +189,9 @@ export function useRole<Scope extends ReadOneResourceScope>(
 ) {
   const [rolePair, setRolePair] = React.useState<{
     roleId: number | null
-    role: ReadOneRole<Scope> | null
+    role?: ReadOneRole<Scope> | null
   }>({
-    roleId: null,
+    roleId: roleId,
     role: null
   })
   React.useEffect(() => {
@@ -164,7 +200,7 @@ export function useRole<Scope extends ReadOneResourceScope>(
       role: oldPair.role
     }))
   }, [roleId, setRolePair])
-  useRoleSubscription(
+  useRoleSubscriptionInner(
     scope,
     rolePair.roleId,
     setRolePair,
@@ -172,7 +208,7 @@ export function useRole<Scope extends ReadOneResourceScope>(
     notifyAboutInitialLoadProblems,
     active
   )
-  return rolePair.role
+  return rolePair.role ?? null
 }
 
 /** Subscribe to roles updates for existing roles state */

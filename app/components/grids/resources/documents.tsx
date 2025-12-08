@@ -33,9 +33,11 @@ type Document =
 
 export interface DocumentsGridProps {
   initialDocuments: Document[]
+  navigationMode?: boolean
 }
 
 export function DocumentsGrid(props: DocumentsGridProps) {
+  const navigationMode = props.navigationMode ?? false
   const notifier = useNotifier()
   const meta = useMeta()
   const rightsSet = React.useMemo(
@@ -183,6 +185,7 @@ export function DocumentsGrid(props: DocumentsGridProps) {
         cols={cols}
         rows={rows}
         defaultHiddenFields={defaultHiddenFields}
+        navigationMode={navigationMode}
         create={createProps}
         deleteMany={deleteManyProps}
       />

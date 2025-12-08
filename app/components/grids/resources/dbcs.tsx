@@ -28,9 +28,11 @@ type Dbc = DtoWithoutEnums<ReadDbcsWithUpToSecondaryPropsSuccessResultItemDto>
 
 export interface DbcsGridProps {
   initialDbcs: Dbc[]
+  navigationMode?: boolean
 }
 
 export function DbcsGrid(props: DbcsGridProps) {
+  const navigationMode = props.navigationMode ?? false
   const notifier = useNotifier()
   const meta = useMeta()
   const rightsSet = React.useMemo(
@@ -173,6 +175,7 @@ export function DbcsGrid(props: DbcsGridProps) {
         cols={cols}
         rows={rows}
         defaultHiddenFields={defaultHiddenFields}
+        navigationMode={navigationMode}
         create={createProps}
         deleteMany={deleteManyProps}
       />

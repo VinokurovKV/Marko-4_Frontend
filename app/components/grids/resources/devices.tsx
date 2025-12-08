@@ -30,9 +30,11 @@ type Device =
 
 export interface DevicesGridProps {
   initialDevices: Device[]
+  navigationMode?: boolean
 }
 
 export function DevicesGrid(props: DevicesGridProps) {
+  const navigationMode = props.navigationMode ?? false
   const notifier = useNotifier()
   const meta = useMeta()
   const rightsSet = React.useMemo(
@@ -70,7 +72,7 @@ export function DevicesGrid(props: DevicesGridProps) {
     () => ({
       exportMenuItems: [
         {
-          title: 'Скачать основную конфигурацию',
+          title: 'Скачать параметры устройства',
           action: async (rowId) => {
             try {
               const config = await serverConnector.readDeviceConfig({
@@ -211,6 +213,7 @@ export function DevicesGrid(props: DevicesGridProps) {
         cols={cols}
         rows={rows}
         defaultHiddenFields={defaultHiddenFields}
+        navigationMode={navigationMode}
         create={createProps}
         deleteMany={deleteManyProps}
       />

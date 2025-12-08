@@ -67,6 +67,7 @@ function GridToolbarDivider() {
 }
 
 export interface ProjGridToolbarProps {
+  navigationMode: boolean
   createButton?: {
     active: boolean
     onClick: () => void
@@ -103,11 +104,13 @@ export function ProjGridToolbar(props: ProjGridToolbarProps) {
         </>
       ) : null}
 
-      <Tooltip title="Столбцы">
-        <ColumnsPanelTrigger render={<ToolbarButton />}>
-          <ViewColumnIcon fontSize="small" />
-        </ColumnsPanelTrigger>
-      </Tooltip>
+      {props.navigationMode === false ? (
+        <Tooltip title="Столбцы">
+          <ColumnsPanelTrigger render={<ToolbarButton />}>
+            <ViewColumnIcon fontSize="small" />
+          </ColumnsPanelTrigger>
+        </Tooltip>
+      ) : null}
 
       <Tooltip title="Фильтры">
         <FilterPanelTrigger
@@ -127,15 +130,17 @@ export function ProjGridToolbar(props: ProjGridToolbarProps) {
 
       <GridToolbarDivider />
 
-      <Tooltip title="Экспорт">
-        <ToolbarButton
-          ref={exportMenuTriggerRef}
-          id="export-menu-trigger"
-          onClick={() => setExportMenuOpen(true)}
-        >
-          <FileDownloadIcon fontSize="small" />
-        </ToolbarButton>
-      </Tooltip>
+      {props.navigationMode === false ? (
+        <Tooltip title="Экспорт">
+          <ToolbarButton
+            ref={exportMenuTriggerRef}
+            id="export-menu-trigger"
+            onClick={() => setExportMenuOpen(true)}
+          >
+            <FileDownloadIcon fontSize="small" />
+          </ToolbarButton>
+        </Tooltip>
+      ) : null}
 
       <Menu
         id="export-menu"

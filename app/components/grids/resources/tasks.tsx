@@ -31,6 +31,8 @@ import {
   useTestsCountCol,
   useWithoutDeviceConfigCol
 } from '../cols'
+// React router
+import { useNavigate } from 'react-router'
 // React
 import * as React from 'react'
 // Material UI
@@ -45,9 +47,13 @@ type Task = DtoWithoutEnums<ReadTasksWithUpToSecondaryPropsSuccessResultItemDto>
 export interface TasksGridProps {
   initialCommonTopologies: CommonTopology[] | null
   initialTasks: Task[]
+  navigationMode?: boolean
+  navigationModeSelectedRowId?: number
 }
 
 export function TasksGrid(props: TasksGridProps) {
+  const navigationMode = props.navigationMode ?? false
+  const navigate = useNavigate()
   const notifier = useNotifier()
   const meta = useMeta()
   const rightsSet = React.useMemo(
@@ -79,11 +85,11 @@ export function TasksGrid(props: TasksGridProps) {
   const rows: GridValidRowModel[] = tasks
 
   const readCols = [
-    useCodeCol('id', true, '/tasks'),
+    useCodeCol('id', true, '/tasks', navigationMode),
+    useTaskStatusCol(),
     useCreateTimeCol(),
     useNameCol(),
     useTaskModeCol(),
-    useTaskStatusCol(),
     useCommonTopologyVersionCol(commonTopologies),
     useAllTestsCountCol(),
     useTestsCountCol(),
@@ -96,6 +102,11 @@ export function TasksGrid(props: TasksGridProps) {
     usePausedCol()
     // useMinLaunchTimeCol()
   ]
+
+  const navigationModeReadCols = React.useMemo(
+    () => [readCols[0], readCols[1]],
+    [readCols]
+  )
 
   const actionsColProps: ActionsColProps = React.useMemo(
     () => ({
@@ -213,18 +224,21 @@ export function TasksGrid(props: TasksGridProps) {
   const actionsCol = useActionsCol(actionsColProps)
 
   const cols: GridColDef[] = React.useMemo(
-    () => [
-      ...readCols,
-      ...(rightsSet.has('UPDATE_TASK') ||
-      rightsSet.has('CANCEL_TASK') ||
-      rightsSet.has('ABORT_TASK') ||
-      rightsSet.has('PAUSE_TASK') ||
-      rightsSet.has('UNPAUSE_TASK') ||
-      rightsSet.has('DELETE_TASK')
-        ? [actionsCol]
-        : [])
-    ],
-    [readCols, actionsCol]
+    () =>
+      navigationMode
+        ? navigationModeReadCols
+        : [
+            ...readCols,
+            ...(rightsSet.has('UPDATE_TASK') ||
+            rightsSet.has('CANCEL_TASK') ||
+            rightsSet.has('ABORT_TASK') ||
+            rightsSet.has('PAUSE_TASK') ||
+            rightsSet.has('UNPAUSE_TASK') ||
+            rightsSet.has('DELETE_TASK')
+              ? [actionsCol]
+              : [])
+          ],
+    [navigationMode, readCols, actionsCol]
   )
 
   const defaultHiddenFields = React.useMemo(
@@ -298,6 +312,17 @@ export function TasksGrid(props: TasksGridProps) {
     setCreateModeIsActive(false)
   }, [setCreateModeIsActive])
 
+  const handleNavigationModeRowClick = React.useCallback(
+    (rowId: number) => {
+      void navigate(
+        props.navigationModeSelectedRowId !== rowId
+          ? `/tasks/${rowId}`
+          : '/tasks'
+      )
+    },
+    [props.navigationModeSelectedRowId, navigate]
+  )
+
   return (
     <>
       <Grid
@@ -305,6 +330,11 @@ export function TasksGrid(props: TasksGridProps) {
         cols={cols}
         rows={rows}
         defaultHiddenFields={defaultHiddenFields}
+        navigationMode={navigationMode}
+        selectedRowId={
+          navigationMode ? props.navigationModeSelectedRowId : undefined
+        }
+        navigationModeOnRowClick={handleNavigationModeRowClick}
         create={createProps}
         // deleteMany={deleteManyProps}
       />

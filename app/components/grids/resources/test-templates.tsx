@@ -28,9 +28,11 @@ type TestTemplate =
 
 export interface TestTemplatesGridProps {
   initialTestTemplates: TestTemplate[]
+  navigationMode?: boolean
 }
 
 export function TestTemplatesGrid(props: TestTemplatesGridProps) {
+  const navigationMode = props.navigationMode ?? false
   const notifier = useNotifier()
   const meta = useMeta()
   const rightsSet = React.useMemo(
@@ -185,6 +187,7 @@ export function TestTemplatesGrid(props: TestTemplatesGridProps) {
         cols={cols}
         rows={rows}
         defaultHiddenFields={defaultHiddenFields}
+        navigationMode={navigationMode}
         create={createProps}
         deleteMany={deleteManyProps}
       />

@@ -32,9 +32,11 @@ type User = DtoWithoutEnums<ReadUsersWithUpToSecondaryPropsSuccessResultItemDto>
 export interface UsersGridProps {
   initialRoles: Role[] | null
   initialUsers: User[]
+  navigationMode?: boolean
 }
 
 export function UsersGrid(props: UsersGridProps) {
+  const navigationMode = props.navigationMode ?? false
   const notifier = useNotifier()
   const meta = useMeta()
   const rightsSet = React.useMemo(
@@ -171,6 +173,7 @@ export function UsersGrid(props: UsersGridProps) {
         cols={cols}
         rows={rows}
         defaultHiddenFields={defaultHiddenFields}
+        navigationMode={navigationMode}
         create={createProps}
         deleteMany={deleteManyProps}
       />

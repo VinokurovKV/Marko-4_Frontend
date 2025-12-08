@@ -31,14 +31,13 @@ type ReadManyCoverage<Scope extends ReadManyResourceScope> = DtoWithoutEnums<
     : ReadCoveragesWithUpToSecondaryPropsSuccessResultItemDto
 >
 
-/** Subscribe to coverage updates for existing coverage state */
-export function useCoverageSubscription<Scope extends ReadOneResourceScope>(
+function useCoverageSubscriptionInner<Scope extends ReadOneResourceScope>(
   scope: Scope,
   coverageId: number | null,
   setCoveragePair: React.Dispatch<
     React.SetStateAction<{
       coverageId: number | null
-      coverage: ReadOneCoverage<Scope> | null
+      coverage?: ReadOneCoverage<Scope> | null
     }>
   >,
   withInitialLoad: boolean = false,
@@ -144,6 +143,45 @@ export function useCoverageSubscription<Scope extends ReadOneResourceScope>(
   }, [scope, coverageId, load])
 }
 
+/** Subscribe to coverage updates for existing coverage state */
+export function useCoverageSubscription<Scope extends ReadOneResourceScope>(
+  scope: Scope,
+  coverageId: number | null,
+  setCoverage: React.Dispatch<
+    React.SetStateAction<ReadOneCoverage<Scope> | null>
+  >,
+  withInitialLoad: boolean = false,
+  notifyAboutInitialLoadProblems: boolean = false,
+  active: boolean = true
+) {
+  const [coveragePair, setCoveragePair] = React.useState<{
+    coverageId: number | null
+    coverage?: ReadOneCoverage<Scope> | null
+  }>({
+    coverageId: coverageId,
+    coverage: undefined
+  })
+  React.useEffect(() => {
+    setCoveragePair((oldPair) => ({
+      coverageId: coverageId,
+      coverage: oldPair.coverage
+    }))
+  }, [coverageId, setCoveragePair])
+  useCoverageSubscriptionInner(
+    scope,
+    coveragePair.coverageId,
+    setCoveragePair,
+    withInitialLoad,
+    notifyAboutInitialLoadProblems,
+    active
+  )
+  React.useEffect(() => {
+    if (coveragePair.coverage !== undefined) {
+      setCoverage(coveragePair.coverage)
+    }
+  }, [setCoverage, coveragePair.coverage])
+}
+
 /** Subscribe to coverage updates with initial load */
 export function useCoverage<Scope extends ReadOneResourceScope>(
   scope: Scope,
@@ -153,9 +191,9 @@ export function useCoverage<Scope extends ReadOneResourceScope>(
 ) {
   const [coveragePair, setCoveragePair] = React.useState<{
     coverageId: number | null
-    coverage: ReadOneCoverage<Scope> | null
+    coverage?: ReadOneCoverage<Scope> | null
   }>({
-    coverageId: null,
+    coverageId: coverageId,
     coverage: null
   })
   React.useEffect(() => {
@@ -164,7 +202,7 @@ export function useCoverage<Scope extends ReadOneResourceScope>(
       coverage: oldPair.coverage
     }))
   }, [coverageId, setCoveragePair])
-  useCoverageSubscription(
+  useCoverageSubscriptionInner(
     scope,
     coveragePair.coverageId,
     setCoveragePair,
@@ -172,7 +210,7 @@ export function useCoverage<Scope extends ReadOneResourceScope>(
     notifyAboutInitialLoadProblems,
     active
   )
-  return coveragePair.coverage
+  return coveragePair.coverage ?? null
 }
 
 /** Subscribe to coverages updates for existing coverages state */

@@ -20,6 +20,7 @@ import PropTypes from 'prop-types'
 const DELETE_BAR_BUTTON_HEIGHT = 24
 
 export type ProjGridFooterProps = GridFooterContainerProps & {
+  withSelectedRowCount?: boolean
   deleteBar?: {
     active: boolean
     onCancelClick: () => void
@@ -28,7 +29,7 @@ export type ProjGridFooterProps = GridFooterContainerProps & {
 }
 
 const ProjGridFooter = forwardRef<HTMLDivElement, ProjGridFooterProps>(
-  function GridFooter({ deleteBar, ...props }, ref) {
+  function GridFooter({ withSelectedRowCount, deleteBar, ...props }, ref) {
     const apiRef = useGridApiContext()
     const rootProps = useGridRootProps()
     const totalTopLevelRowCount = useGridSelector(
@@ -68,7 +69,7 @@ const ProjGridFooter = forwardRef<HTMLDivElement, ProjGridFooterProps>(
 
     return (
       <GridFooterContainer {...props} ref={ref}>
-        {selectedRowCountElement}
+        {withSelectedRowCount !== false ? selectedRowCountElement : null}
         {deleteBar?.active ? (
           <Stack direction="row" spacing={1}>
             <ProjButton

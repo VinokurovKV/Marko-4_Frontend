@@ -31,14 +31,13 @@ type ReadManyFragment<Scope extends ReadManyResourceScope> = DtoWithoutEnums<
     : ReadFragmentsWithUpToSecondaryPropsSuccessResultItemDto
 >
 
-/** Subscribe to fragment updates for existing fragment state */
-export function useFragmentSubscription<Scope extends ReadOneResourceScope>(
+function useFragmentSubscriptionInner<Scope extends ReadOneResourceScope>(
   scope: Scope,
   fragmentId: number | null,
   setFragmentPair: React.Dispatch<
     React.SetStateAction<{
       fragmentId: number | null
-      fragment: ReadOneFragment<Scope> | null
+      fragment?: ReadOneFragment<Scope> | null
     }>
   >,
   withInitialLoad: boolean = false,
@@ -144,6 +143,45 @@ export function useFragmentSubscription<Scope extends ReadOneResourceScope>(
   }, [scope, fragmentId, load])
 }
 
+/** Subscribe to fragment updates for existing fragment state */
+export function useFragmentSubscription<Scope extends ReadOneResourceScope>(
+  scope: Scope,
+  fragmentId: number | null,
+  setFragment: React.Dispatch<
+    React.SetStateAction<ReadOneFragment<Scope> | null>
+  >,
+  withInitialLoad: boolean = false,
+  notifyAboutInitialLoadProblems: boolean = false,
+  active: boolean = true
+) {
+  const [fragmentPair, setFragmentPair] = React.useState<{
+    fragmentId: number | null
+    fragment?: ReadOneFragment<Scope> | null
+  }>({
+    fragmentId: fragmentId,
+    fragment: undefined
+  })
+  React.useEffect(() => {
+    setFragmentPair((oldPair) => ({
+      fragmentId: fragmentId,
+      fragment: oldPair.fragment
+    }))
+  }, [fragmentId, setFragmentPair])
+  useFragmentSubscriptionInner(
+    scope,
+    fragmentPair.fragmentId,
+    setFragmentPair,
+    withInitialLoad,
+    notifyAboutInitialLoadProblems,
+    active
+  )
+  React.useEffect(() => {
+    if (fragmentPair.fragment !== undefined) {
+      setFragment(fragmentPair.fragment)
+    }
+  }, [setFragment, fragmentPair.fragment])
+}
+
 /** Subscribe to fragment updates with initial load */
 export function useFragment<Scope extends ReadOneResourceScope>(
   scope: Scope,
@@ -153,9 +191,9 @@ export function useFragment<Scope extends ReadOneResourceScope>(
 ) {
   const [fragmentPair, setFragmentPair] = React.useState<{
     fragmentId: number | null
-    fragment: ReadOneFragment<Scope> | null
+    fragment?: ReadOneFragment<Scope> | null
   }>({
-    fragmentId: null,
+    fragmentId: fragmentId,
     fragment: null
   })
   React.useEffect(() => {
@@ -164,7 +202,7 @@ export function useFragment<Scope extends ReadOneResourceScope>(
       fragment: oldPair.fragment
     }))
   }, [fragmentId, setFragmentPair])
-  useFragmentSubscription(
+  useFragmentSubscriptionInner(
     scope,
     fragmentPair.fragmentId,
     setFragmentPair,
@@ -172,7 +210,7 @@ export function useFragment<Scope extends ReadOneResourceScope>(
     notifyAboutInitialLoadProblems,
     active
   )
-  return fragmentPair.fragment
+  return fragmentPair.fragment ?? null
 }
 
 /** Subscribe to fragments updates for existing fragments state */

@@ -31,14 +31,13 @@ type ReadManyRequirement<Scope extends ReadManyResourceScope> = DtoWithoutEnums<
     : ReadRequirementsWithUpToSecondaryPropsSuccessResultItemDto
 >
 
-/** Subscribe to requirement updates for existing requirement state */
-export function useRequirementSubscription<Scope extends ReadOneResourceScope>(
+function useRequirementSubscriptionInner<Scope extends ReadOneResourceScope>(
   scope: Scope,
   requirementId: number | null,
   setRequirementPair: React.Dispatch<
     React.SetStateAction<{
       requirementId: number | null
-      requirement: ReadOneRequirement<Scope> | null
+      requirement?: ReadOneRequirement<Scope> | null
     }>
   >,
   withInitialLoad: boolean = false,
@@ -146,6 +145,45 @@ export function useRequirementSubscription<Scope extends ReadOneResourceScope>(
   }, [scope, requirementId, load])
 }
 
+/** Subscribe to requirement updates for existing requirement state */
+export function useRequirementSubscription<Scope extends ReadOneResourceScope>(
+  scope: Scope,
+  requirementId: number | null,
+  setRequirement: React.Dispatch<
+    React.SetStateAction<ReadOneRequirement<Scope> | null>
+  >,
+  withInitialLoad: boolean = false,
+  notifyAboutInitialLoadProblems: boolean = false,
+  active: boolean = true
+) {
+  const [requirementPair, setRequirementPair] = React.useState<{
+    requirementId: number | null
+    requirement?: ReadOneRequirement<Scope> | null
+  }>({
+    requirementId: requirementId,
+    requirement: undefined
+  })
+  React.useEffect(() => {
+    setRequirementPair((oldPair) => ({
+      requirementId: requirementId,
+      requirement: oldPair.requirement
+    }))
+  }, [requirementId, setRequirementPair])
+  useRequirementSubscriptionInner(
+    scope,
+    requirementPair.requirementId,
+    setRequirementPair,
+    withInitialLoad,
+    notifyAboutInitialLoadProblems,
+    active
+  )
+  React.useEffect(() => {
+    if (requirementPair.requirement !== undefined) {
+      setRequirement(requirementPair.requirement)
+    }
+  }, [setRequirement, requirementPair.requirement])
+}
+
 /** Subscribe to requirement updates with initial load */
 export function useRequirement<Scope extends ReadOneResourceScope>(
   scope: Scope,
@@ -155,9 +193,9 @@ export function useRequirement<Scope extends ReadOneResourceScope>(
 ) {
   const [requirementPair, setRequirementPair] = React.useState<{
     requirementId: number | null
-    requirement: ReadOneRequirement<Scope> | null
+    requirement?: ReadOneRequirement<Scope> | null
   }>({
-    requirementId: null,
+    requirementId: requirementId,
     requirement: null
   })
   React.useEffect(() => {
@@ -166,7 +204,7 @@ export function useRequirement<Scope extends ReadOneResourceScope>(
       requirement: oldPair.requirement
     }))
   }, [requirementId, setRequirementPair])
-  useRequirementSubscription(
+  useRequirementSubscriptionInner(
     scope,
     requirementPair.requirementId,
     setRequirementPair,
@@ -174,7 +212,7 @@ export function useRequirement<Scope extends ReadOneResourceScope>(
     notifyAboutInitialLoadProblems,
     active
   )
-  return requirementPair.requirement
+  return requirementPair.requirement ?? null
 }
 
 /** Subscribe to requirements updates for existing requirements state */

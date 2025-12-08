@@ -31,14 +31,13 @@ type ReadManySubgroup<Scope extends ReadManyResourceScope> = DtoWithoutEnums<
     : ReadSubgroupsWithUpToSecondaryPropsSuccessResultItemDto
 >
 
-/** Subscribe to subgroup updates for existing subgroup state */
-export function useSubgroupSubscription<Scope extends ReadOneResourceScope>(
+function useSubgroupSubscriptionInner<Scope extends ReadOneResourceScope>(
   scope: Scope,
   subgroupId: number | null,
   setSubgroupPair: React.Dispatch<
     React.SetStateAction<{
       subgroupId: number | null
-      subgroup: ReadOneSubgroup<Scope> | null
+      subgroup?: ReadOneSubgroup<Scope> | null
     }>
   >,
   withInitialLoad: boolean = false,
@@ -144,6 +143,45 @@ export function useSubgroupSubscription<Scope extends ReadOneResourceScope>(
   }, [scope, subgroupId, load])
 }
 
+/** Subscribe to subgroup updates for existing subgroup state */
+export function useSubgroupSubscription<Scope extends ReadOneResourceScope>(
+  scope: Scope,
+  subgroupId: number | null,
+  setSubgroup: React.Dispatch<
+    React.SetStateAction<ReadOneSubgroup<Scope> | null>
+  >,
+  withInitialLoad: boolean = false,
+  notifyAboutInitialLoadProblems: boolean = false,
+  active: boolean = true
+) {
+  const [subgroupPair, setSubgroupPair] = React.useState<{
+    subgroupId: number | null
+    subgroup?: ReadOneSubgroup<Scope> | null
+  }>({
+    subgroupId: subgroupId,
+    subgroup: undefined
+  })
+  React.useEffect(() => {
+    setSubgroupPair((oldPair) => ({
+      subgroupId: subgroupId,
+      subgroup: oldPair.subgroup
+    }))
+  }, [subgroupId, setSubgroupPair])
+  useSubgroupSubscriptionInner(
+    scope,
+    subgroupPair.subgroupId,
+    setSubgroupPair,
+    withInitialLoad,
+    notifyAboutInitialLoadProblems,
+    active
+  )
+  React.useEffect(() => {
+    if (subgroupPair.subgroup !== undefined) {
+      setSubgroup(subgroupPair.subgroup)
+    }
+  }, [setSubgroup, subgroupPair.subgroup])
+}
+
 /** Subscribe to subgroup updates with initial load */
 export function useSubgroup<Scope extends ReadOneResourceScope>(
   scope: Scope,
@@ -153,9 +191,9 @@ export function useSubgroup<Scope extends ReadOneResourceScope>(
 ) {
   const [subgroupPair, setSubgroupPair] = React.useState<{
     subgroupId: number | null
-    subgroup: ReadOneSubgroup<Scope> | null
+    subgroup?: ReadOneSubgroup<Scope> | null
   }>({
-    subgroupId: null,
+    subgroupId: subgroupId,
     subgroup: null
   })
   React.useEffect(() => {
@@ -164,7 +202,7 @@ export function useSubgroup<Scope extends ReadOneResourceScope>(
       subgroup: oldPair.subgroup
     }))
   }, [subgroupId, setSubgroupPair])
-  useSubgroupSubscription(
+  useSubgroupSubscriptionInner(
     scope,
     subgroupPair.subgroupId,
     setSubgroupPair,
@@ -172,7 +210,7 @@ export function useSubgroup<Scope extends ReadOneResourceScope>(
     notifyAboutInitialLoadProblems,
     active
   )
-  return subgroupPair.subgroup
+  return subgroupPair.subgroup ?? null
 }
 
 /** Subscribe to subgroups updates for existing subgroups state */

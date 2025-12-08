@@ -32,6 +32,7 @@ type FormValidatorOneFieldRule =
   | 'PUBLIC_VERSION'
   | 'SURNAME'
   | 'TEXT'
+  | 'TXT_EXT'
   | 'URL'
   | 'VERTEX_NAME'
   | 'ZIP_EXT'
@@ -223,6 +224,11 @@ export class FormValidator<Data extends FormData> {
           ;(() => {
             const { maxLength } = restrictionConfig.common.text
             props.push(`не более ${maxLength} символов`)
+          })()
+          break
+        case 'TXT_EXT':
+          ;(() => {
+            props.push(`допустимые  расширения: '.txt'`)
           })()
           break
         case 'URL':
@@ -690,6 +696,14 @@ export class FormValidator<Data extends FormData> {
             )
             if (textErrors !== null) {
               errors.push(...textErrors)
+            }
+          })()
+          break
+        case 'TXT_EXT':
+          ;(() => {
+            const fileErrors = this.getFileErrors(val, ['txt'])
+            if (fileErrors !== null) {
+              errors.push(...fileErrors)
             }
           })()
           break

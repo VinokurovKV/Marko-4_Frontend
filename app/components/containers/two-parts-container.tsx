@@ -1,7 +1,7 @@
 // React
 import * as React from 'react'
 // Material UI
-import Stack from '@mui/material/Stack'
+import Grid from '@mui/material/Grid'
 
 export interface TwoPartsContainerProps {
   children: [React.ReactNode, React.ReactNode]
@@ -9,13 +9,11 @@ export interface TwoPartsContainerProps {
 
 export function TwoPartsContainer(props: TwoPartsContainerProps) {
   return (
-    <Stack
-      direction="row"
-      spacing={1.5}
-      p={4}
-      sx={{ width: '100%', height: '100%' }}
-    >
-      {props.children}
-    </Stack>
+    <Grid container spacing={1.5} sx={{ height: '100%', overflow: 'hidden' }}>
+      <Grid size={4} sx={{ height: '100%' }}>
+        {props.children[0]}
+      </Grid>
+      <Grid size={8}>{props.children[1]}</Grid>
+    </Grid>
   )
 }

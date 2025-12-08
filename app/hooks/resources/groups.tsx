@@ -31,14 +31,13 @@ type ReadManyGroup<Scope extends ReadManyResourceScope> = DtoWithoutEnums<
     : ReadGroupsWithUpToSecondaryPropsSuccessResultItemDto
 >
 
-/** Subscribe to group updates for existing group state */
-export function useGroupSubscription<Scope extends ReadOneResourceScope>(
+function useGroupSubscriptionInner<Scope extends ReadOneResourceScope>(
   scope: Scope,
   groupId: number | null,
   setGroupPair: React.Dispatch<
     React.SetStateAction<{
       groupId: number | null
-      group: ReadOneGroup<Scope> | null
+      group?: ReadOneGroup<Scope> | null
     }>
   >,
   withInitialLoad: boolean = false,
@@ -144,6 +143,43 @@ export function useGroupSubscription<Scope extends ReadOneResourceScope>(
   }, [scope, groupId, load])
 }
 
+/** Subscribe to group updates for existing group state */
+export function useGroupSubscription<Scope extends ReadOneResourceScope>(
+  scope: Scope,
+  groupId: number | null,
+  setGroup: React.Dispatch<React.SetStateAction<ReadOneGroup<Scope> | null>>,
+  withInitialLoad: boolean = false,
+  notifyAboutInitialLoadProblems: boolean = false,
+  active: boolean = true
+) {
+  const [groupPair, setGroupPair] = React.useState<{
+    groupId: number | null
+    group?: ReadOneGroup<Scope> | null
+  }>({
+    groupId: groupId,
+    group: undefined
+  })
+  React.useEffect(() => {
+    setGroupPair((oldPair) => ({
+      groupId: groupId,
+      group: oldPair.group
+    }))
+  }, [groupId, setGroupPair])
+  useGroupSubscriptionInner(
+    scope,
+    groupPair.groupId,
+    setGroupPair,
+    withInitialLoad,
+    notifyAboutInitialLoadProblems,
+    active
+  )
+  React.useEffect(() => {
+    if (groupPair.group !== undefined) {
+      setGroup(groupPair.group)
+    }
+  }, [setGroup, groupPair.group])
+}
+
 /** Subscribe to group updates with initial load */
 export function useGroup<Scope extends ReadOneResourceScope>(
   scope: Scope,
@@ -153,9 +189,9 @@ export function useGroup<Scope extends ReadOneResourceScope>(
 ) {
   const [groupPair, setGroupPair] = React.useState<{
     groupId: number | null
-    group: ReadOneGroup<Scope> | null
+    group?: ReadOneGroup<Scope> | null
   }>({
-    groupId: null,
+    groupId: groupId,
     group: null
   })
   React.useEffect(() => {
@@ -164,7 +200,7 @@ export function useGroup<Scope extends ReadOneResourceScope>(
       group: oldPair.group
     }))
   }, [groupId, setGroupPair])
-  useGroupSubscription(
+  useGroupSubscriptionInner(
     scope,
     groupPair.groupId,
     setGroupPair,
@@ -172,7 +208,7 @@ export function useGroup<Scope extends ReadOneResourceScope>(
     notifyAboutInitialLoadProblems,
     active
   )
-  return groupPair.group
+  return groupPair.group ?? null
 }
 
 /** Subscribe to groups updates for existing groups state */

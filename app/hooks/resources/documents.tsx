@@ -31,14 +31,13 @@ type ReadManyDocument<Scope extends ReadManyResourceScope> = DtoWithoutEnums<
     : ReadDocumentsWithUpToSecondaryPropsSuccessResultItemDto
 >
 
-/** Subscribe to document updates for existing document state */
-export function useDocumentSubscription<Scope extends ReadOneResourceScope>(
+function useDocumentSubscriptionInner<Scope extends ReadOneResourceScope>(
   scope: Scope,
   documentId: number | null,
   setDocumentPair: React.Dispatch<
     React.SetStateAction<{
       documentId: number | null
-      document: ReadOneDocument<Scope> | null
+      document?: ReadOneDocument<Scope> | null
     }>
   >,
   withInitialLoad: boolean = false,
@@ -144,6 +143,45 @@ export function useDocumentSubscription<Scope extends ReadOneResourceScope>(
   }, [scope, documentId, load])
 }
 
+/** Subscribe to document updates for existing document state */
+export function useDocumentSubscription<Scope extends ReadOneResourceScope>(
+  scope: Scope,
+  documentId: number | null,
+  setDocument: React.Dispatch<
+    React.SetStateAction<ReadOneDocument<Scope> | null>
+  >,
+  withInitialLoad: boolean = false,
+  notifyAboutInitialLoadProblems: boolean = false,
+  active: boolean = true
+) {
+  const [documentPair, setDocumentPair] = React.useState<{
+    documentId: number | null
+    document?: ReadOneDocument<Scope> | null
+  }>({
+    documentId: documentId,
+    document: undefined
+  })
+  React.useEffect(() => {
+    setDocumentPair((oldPair) => ({
+      documentId: documentId,
+      document: oldPair.document
+    }))
+  }, [documentId, setDocumentPair])
+  useDocumentSubscriptionInner(
+    scope,
+    documentPair.documentId,
+    setDocumentPair,
+    withInitialLoad,
+    notifyAboutInitialLoadProblems,
+    active
+  )
+  React.useEffect(() => {
+    if (documentPair.document !== undefined) {
+      setDocument(documentPair.document)
+    }
+  }, [setDocument, documentPair.document])
+}
+
 /** Subscribe to document updates with initial load */
 export function useDocument<Scope extends ReadOneResourceScope>(
   scope: Scope,
@@ -153,9 +191,9 @@ export function useDocument<Scope extends ReadOneResourceScope>(
 ) {
   const [documentPair, setDocumentPair] = React.useState<{
     documentId: number | null
-    document: ReadOneDocument<Scope> | null
+    document?: ReadOneDocument<Scope> | null
   }>({
-    documentId: null,
+    documentId: documentId,
     document: null
   })
   React.useEffect(() => {
@@ -164,7 +202,7 @@ export function useDocument<Scope extends ReadOneResourceScope>(
       document: oldPair.document
     }))
   }, [documentId, setDocumentPair])
-  useDocumentSubscription(
+  useDocumentSubscriptionInner(
     scope,
     documentPair.documentId,
     setDocumentPair,
@@ -172,7 +210,7 @@ export function useDocument<Scope extends ReadOneResourceScope>(
     notifyAboutInitialLoadProblems,
     active
   )
-  return documentPair.document
+  return documentPair.document ?? null
 }
 
 /** Subscribe to documents updates for existing documents state */

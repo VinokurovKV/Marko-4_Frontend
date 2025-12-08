@@ -14,7 +14,12 @@ import type {
   GridRowSelectionModel,
   GridValidRowModel
 } from '@mui/x-data-grid'
-import { type DataGridProps, useGridApiRef, DataGrid } from '@mui/x-data-grid'
+import {
+  type DataGridProps,
+  type GridRowParams,
+  useGridApiRef,
+  DataGrid
+} from '@mui/x-data-grid'
 // Other
 import capitalize from 'capitalize'
 
@@ -45,6 +50,12 @@ const DataGridStyled = styled(DataGrid)(({ theme }) => [
     },
     '& .MuiDataGrid-toolbar .MuiInputBase-root': {
       height: TOOLBAR_INPUT_HEIGHT
+    },
+    '&.navigation-mode .MuiDataGrid-row': {
+      cursor: 'pointer',
+      ':hover': {
+        backgroundColor: 'rgb(239, 244, 251)'
+      }
     }
   },
   theme.applyStyles('light', {
@@ -60,7 +71,9 @@ export interface GridProps {
   cols: GridColDef<GridValidRowModel>[]
   rows: GridValidRowModel[]
   defaultHiddenFields?: string[]
-
+  navigationMode: boolean
+  selectedRowId?: number
+  navigationModeOnRowClick?: (rowId: number) => void
   create?: {
     createModeIsActive: boolean
     setCreateModeIsActive: React.Dispatch<React.SetStateAction<boolean>>
@@ -89,7 +102,25 @@ export function Grid(props: GridProps) {
   const [deleteModeIsActive, setDeleteModeIsActive] = React.useState(false)
 
   const [rowSelectionModel, setRowSelectionModel] =
-    React.useState<GridRowSelectionModel>(defaultRowSelectionModel)
+    React.useState<GridRowSelectionModel>(
+      props.selectedRowId !== undefined
+        ? {
+            type: 'include',
+            ids: new Set([props.selectedRowId])
+          }
+        : defaultRowSelectionModel
+    )
+
+  React.useEffect(() => {
+    setRowSelectionModel(
+      props.selectedRowId !== undefined
+        ? {
+            type: 'include',
+            ids: new Set([props.selectedRowId])
+          }
+        : defaultRowSelectionModel
+    )
+  }, [props.selectedRowId, setRowSelectionModel])
 
   React.useEffect(() => {
     const rowIdsSet = new Set(props.rows.map((row) => row.id as number))
@@ -153,6 +184,16 @@ export function Grid(props: GridProps) {
     }
   }, [props.defaultHiddenFields, saveSnapshot])
 
+  const handleRowClick = React.useCallback(
+    (event: GridRowParams<any>) => {
+      if (props.navigationMode) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access
+        props.navigationModeOnRowClick?.(event.row.id)
+      }
+    },
+    [props.navigationMode, props.navigationModeOnRowClick]
+  )
+
   const handleCreateClick = React.useCallback(() => {
     if (props.create) {
       const { createModeIsActive, setCreateModeIsActive } = props.create
@@ -169,6 +210,7 @@ export function Grid(props: GridProps) {
 
   const footerProps: ProjGridFooterProps = React.useMemo(
     () => ({
+      withSelectedRowCount: deleteModeIsActive,
       deleteBar: {
         active: deleteModeIsActive && rowSelectionModel.ids.size > 0,
         onCancelClick: () => {
@@ -230,6 +272,7 @@ export function Grid(props: GridProps) {
       slotProps={
         {
           toolbar: {
+            navigationMode: props.navigationMode,
             createButton: props.create
               ? {
                   active: props.create.createModeIsActive,
@@ -252,10 +295,12 @@ export function Grid(props: GridProps) {
       disableRowSelectionExcludeModel
       disableRowSelectionOnClick={deleteModeIsActive}
       keepNonExistentRowsSelected
+      onRowClick={handleRowClick}
       rowSelectionModel={rowSelectionModel}
       onRowSelectionModelChange={(newRowSelectionModel) => {
         setRowSelectionModel(newRowSelectionModel)
       }}
+      className={props.navigationMode ? 'navigation-mode' : undefined}
     />
   )
 }

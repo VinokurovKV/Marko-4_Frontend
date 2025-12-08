@@ -19,9 +19,11 @@ type Role = DtoWithoutEnums<ReadRolesWithUpToSecondaryPropsSuccessResultItemDto>
 
 export interface RolesGridProps {
   initialRoles: Role[]
+  navigationMode?: boolean
 }
 
 export function RolesGrid(props: RolesGridProps) {
+  const navigationMode = props.navigationMode ?? false
   const notifier = useNotifier()
   const meta = useMeta()
   const rightsSet = React.useMemo(
@@ -145,6 +147,7 @@ export function RolesGrid(props: RolesGridProps) {
         cols={cols}
         rows={rows}
         defaultHiddenFields={defaultHiddenFields}
+        navigationMode={navigationMode}
         create={createProps}
         deleteMany={deleteManyProps}
       />

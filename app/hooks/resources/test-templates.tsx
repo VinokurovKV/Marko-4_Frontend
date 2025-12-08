@@ -32,14 +32,13 @@ type ReadManyTestTemplate<Scope extends ReadManyResourceScope> =
       : ReadTestTemplatesWithUpToSecondaryPropsSuccessResultItemDto
   >
 
-/** Subscribe to testTemplate updates for existing testTemplate state */
-export function useTestTemplateSubscription<Scope extends ReadOneResourceScope>(
+function useTestTemplateSubscriptionInner<Scope extends ReadOneResourceScope>(
   scope: Scope,
   testTemplateId: number | null,
   setTestTemplatePair: React.Dispatch<
     React.SetStateAction<{
       testTemplateId: number | null
-      testTemplate: ReadOneTestTemplate<Scope> | null
+      testTemplate?: ReadOneTestTemplate<Scope> | null
     }>
   >,
   withInitialLoad: boolean = false,
@@ -147,6 +146,45 @@ export function useTestTemplateSubscription<Scope extends ReadOneResourceScope>(
   }, [scope, testTemplateId, load])
 }
 
+/** Subscribe to testTemplate updates for existing testTemplate state */
+export function useTestTemplateSubscription<Scope extends ReadOneResourceScope>(
+  scope: Scope,
+  testTemplateId: number | null,
+  setTestTemplate: React.Dispatch<
+    React.SetStateAction<ReadOneTestTemplate<Scope> | null>
+  >,
+  withInitialLoad: boolean = false,
+  notifyAboutInitialLoadProblems: boolean = false,
+  active: boolean = true
+) {
+  const [testTemplatePair, setTestTemplatePair] = React.useState<{
+    testTemplateId: number | null
+    testTemplate?: ReadOneTestTemplate<Scope> | null
+  }>({
+    testTemplateId: testTemplateId,
+    testTemplate: undefined
+  })
+  React.useEffect(() => {
+    setTestTemplatePair((oldPair) => ({
+      testTemplateId: testTemplateId,
+      testTemplate: oldPair.testTemplate
+    }))
+  }, [testTemplateId, setTestTemplatePair])
+  useTestTemplateSubscriptionInner(
+    scope,
+    testTemplatePair.testTemplateId,
+    setTestTemplatePair,
+    withInitialLoad,
+    notifyAboutInitialLoadProblems,
+    active
+  )
+  React.useEffect(() => {
+    if (testTemplatePair.testTemplate !== undefined) {
+      setTestTemplate(testTemplatePair.testTemplate)
+    }
+  }, [setTestTemplate, testTemplatePair.testTemplate])
+}
+
 /** Subscribe to testTemplate updates with initial load */
 export function useTestTemplate<Scope extends ReadOneResourceScope>(
   scope: Scope,
@@ -156,9 +194,9 @@ export function useTestTemplate<Scope extends ReadOneResourceScope>(
 ) {
   const [testTemplatePair, setTestTemplatePair] = React.useState<{
     testTemplateId: number | null
-    testTemplate: ReadOneTestTemplate<Scope> | null
+    testTemplate?: ReadOneTestTemplate<Scope> | null
   }>({
-    testTemplateId: null,
+    testTemplateId: testTemplateId,
     testTemplate: null
   })
   React.useEffect(() => {
@@ -167,7 +205,7 @@ export function useTestTemplate<Scope extends ReadOneResourceScope>(
       testTemplate: oldPair.testTemplate
     }))
   }, [testTemplateId, setTestTemplatePair])
-  useTestTemplateSubscription(
+  useTestTemplateSubscriptionInner(
     scope,
     testTemplatePair.testTemplateId,
     setTestTemplatePair,
@@ -175,7 +213,7 @@ export function useTestTemplate<Scope extends ReadOneResourceScope>(
     notifyAboutInitialLoadProblems,
     active
   )
-  return testTemplatePair.testTemplate
+  return testTemplatePair.testTemplate ?? null
 }
 
 /** Subscribe to testTemplates updates for existing testTemplates state */

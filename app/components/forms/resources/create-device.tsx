@@ -228,8 +228,8 @@ export function CreateDeviceFormDialog(props: CreateDeviceFormDialogProps) {
         />
         <FormFileUpload
           name="config"
-          label="основная конфигурация"
-          extensions={['zip']}
+          label="параметры устройства"
+          extensions={['txt']}
           value={data.config}
           helperText={
             errors?.config ?? CREATE_DEVICE_FORM_PROPS_JOINED.config ?? ' '

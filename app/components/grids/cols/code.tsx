@@ -8,7 +8,8 @@ import type { GridColDef, GridRenderCellParams } from '@mui/x-data-grid'
 export function useCodeCol(
   resourceIdField: string,
   header: boolean,
-  hrefPrefix: string
+  hrefPrefix: string,
+  disableRef?: boolean
 ) {
   const col: GridColDef = React.useMemo(
     () => ({
@@ -23,12 +24,13 @@ export function useCodeCol(
           hrefPath={params.row[resourceIdField]}
           header={header}
           disableCapitalize
+          disableRef={disableRef}
         />
       ),
       minWidth: 150,
       flex: 1
     }),
-    []
+    [resourceIdField, header, hrefPrefix, disableRef]
   )
   return col
 }

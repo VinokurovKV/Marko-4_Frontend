@@ -31,14 +31,13 @@ type ReadManyTag<Scope extends ReadManyResourceScope> = DtoWithoutEnums<
     : ReadTagsWithUpToSecondaryPropsSuccessResultItemDto
 >
 
-/** Subscribe to tag updates for existing tag state */
-export function useTagSubscription<Scope extends ReadOneResourceScope>(
+function useTagSubscriptionInner<Scope extends ReadOneResourceScope>(
   scope: Scope,
   tagId: number | null,
   setTagPair: React.Dispatch<
     React.SetStateAction<{
       tagId: number | null
-      tag: ReadOneTag<Scope> | null
+      tag?: ReadOneTag<Scope> | null
     }>
   >,
   withInitialLoad: boolean = false,
@@ -144,6 +143,43 @@ export function useTagSubscription<Scope extends ReadOneResourceScope>(
   }, [scope, tagId, load])
 }
 
+/** Subscribe to tag updates for existing tag state */
+export function useTagSubscription<Scope extends ReadOneResourceScope>(
+  scope: Scope,
+  tagId: number | null,
+  setTag: React.Dispatch<React.SetStateAction<ReadOneTag<Scope> | null>>,
+  withInitialLoad: boolean = false,
+  notifyAboutInitialLoadProblems: boolean = false,
+  active: boolean = true
+) {
+  const [tagPair, setTagPair] = React.useState<{
+    tagId: number | null
+    tag?: ReadOneTag<Scope> | null
+  }>({
+    tagId: tagId,
+    tag: undefined
+  })
+  React.useEffect(() => {
+    setTagPair((oldPair) => ({
+      tagId: tagId,
+      tag: oldPair.tag
+    }))
+  }, [tagId, setTagPair])
+  useTagSubscriptionInner(
+    scope,
+    tagPair.tagId,
+    setTagPair,
+    withInitialLoad,
+    notifyAboutInitialLoadProblems,
+    active
+  )
+  React.useEffect(() => {
+    if (tagPair.tag !== undefined) {
+      setTag(tagPair.tag)
+    }
+  }, [setTag, tagPair.tag])
+}
+
 /** Subscribe to tag updates with initial load */
 export function useTag<Scope extends ReadOneResourceScope>(
   scope: Scope,
@@ -153,9 +189,9 @@ export function useTag<Scope extends ReadOneResourceScope>(
 ) {
   const [tagPair, setTagPair] = React.useState<{
     tagId: number | null
-    tag: ReadOneTag<Scope> | null
+    tag?: ReadOneTag<Scope> | null
   }>({
-    tagId: null,
+    tagId: tagId,
     tag: null
   })
   React.useEffect(() => {
@@ -164,7 +200,7 @@ export function useTag<Scope extends ReadOneResourceScope>(
       tag: oldPair.tag
     }))
   }, [tagId, setTagPair])
-  useTagSubscription(
+  useTagSubscriptionInner(
     scope,
     tagPair.tagId,
     setTagPair,
@@ -172,7 +208,7 @@ export function useTag<Scope extends ReadOneResourceScope>(
     notifyAboutInitialLoadProblems,
     active
   )
-  return tagPair.tag
+  return tagPair.tag ?? null
 }
 
 /** Subscribe to tags updates for existing tags state */

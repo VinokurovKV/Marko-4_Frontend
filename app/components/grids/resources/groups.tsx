@@ -27,9 +27,11 @@ type Group =
 
 export interface GroupsGridProps {
   initialGroups: Group[]
+  navigationMode?: boolean
 }
 
 export function GroupsGrid(props: GroupsGridProps) {
+  const navigationMode = props.navigationMode ?? false
   const notifier = useNotifier()
   const meta = useMeta()
   const rightsSet = React.useMemo(
@@ -159,6 +161,7 @@ export function GroupsGrid(props: GroupsGridProps) {
         cols={cols}
         rows={rows}
         defaultHiddenFields={defaultHiddenFields}
+        navigationMode={navigationMode}
         create={createProps}
         deleteMany={deleteManyProps}
       />

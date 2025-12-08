@@ -35,9 +35,11 @@ type Topology =
 export interface TopologiesGridProps {
   initialCommonTopologies: CommonTopology[] | null
   initialTopologies: Topology[]
+  navigationMode?: boolean
 }
 
 export function TopologiesGrid(props: TopologiesGridProps) {
+  const navigationMode = props.navigationMode ?? false
   const notifier = useNotifier()
   const meta = useMeta()
   const rightsSet = React.useMemo(
@@ -174,6 +176,7 @@ export function TopologiesGrid(props: TopologiesGridProps) {
         cols={cols}
         rows={rows}
         defaultHiddenFields={defaultHiddenFields}
+        navigationMode={navigationMode}
         create={createProps}
         deleteMany={deleteManyProps}
       />

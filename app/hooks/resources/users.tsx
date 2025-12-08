@@ -31,14 +31,13 @@ type ReadManyUser<Scope extends ReadManyResourceScope> = DtoWithoutEnums<
     : ReadUsersWithUpToSecondaryPropsSuccessResultItemDto
 >
 
-/** Subscribe to user updates for existing user state */
-export function useUserSubscription<Scope extends ReadOneResourceScope>(
+function useUserSubscriptionInner<Scope extends ReadOneResourceScope>(
   scope: Scope,
   userId: number | null,
   setUserPair: React.Dispatch<
     React.SetStateAction<{
       userId: number | null
-      user: ReadOneUser<Scope> | null
+      user?: ReadOneUser<Scope> | null
     }>
   >,
   withInitialLoad: boolean = false,
@@ -144,6 +143,43 @@ export function useUserSubscription<Scope extends ReadOneResourceScope>(
   }, [scope, userId, load])
 }
 
+/** Subscribe to user updates for existing user state */
+export function useUserSubscription<Scope extends ReadOneResourceScope>(
+  scope: Scope,
+  userId: number | null,
+  setUser: React.Dispatch<React.SetStateAction<ReadOneUser<Scope> | null>>,
+  withInitialLoad: boolean = false,
+  notifyAboutInitialLoadProblems: boolean = false,
+  active: boolean = true
+) {
+  const [userPair, setUserPair] = React.useState<{
+    userId: number | null
+    user?: ReadOneUser<Scope> | null
+  }>({
+    userId: userId,
+    user: undefined
+  })
+  React.useEffect(() => {
+    setUserPair((oldPair) => ({
+      userId: userId,
+      user: oldPair.user
+    }))
+  }, [userId, setUserPair])
+  useUserSubscriptionInner(
+    scope,
+    userPair.userId,
+    setUserPair,
+    withInitialLoad,
+    notifyAboutInitialLoadProblems,
+    active
+  )
+  React.useEffect(() => {
+    if (userPair.user !== undefined) {
+      setUser(userPair.user)
+    }
+  }, [setUser, userPair.user])
+}
+
 /** Subscribe to user updates with initial load */
 export function useUser<Scope extends ReadOneResourceScope>(
   scope: Scope,
@@ -153,9 +189,9 @@ export function useUser<Scope extends ReadOneResourceScope>(
 ) {
   const [userPair, setUserPair] = React.useState<{
     userId: number | null
-    user: ReadOneUser<Scope> | null
+    user?: ReadOneUser<Scope> | null
   }>({
-    userId: null,
+    userId: userId,
     user: null
   })
   React.useEffect(() => {
@@ -164,7 +200,7 @@ export function useUser<Scope extends ReadOneResourceScope>(
       user: oldPair.user
     }))
   }, [userId, setUserPair])
-  useUserSubscription(
+  useUserSubscriptionInner(
     scope,
     userPair.userId,
     setUserPair,
@@ -172,7 +208,7 @@ export function useUser<Scope extends ReadOneResourceScope>(
     notifyAboutInitialLoadProblems,
     active
   )
-  return userPair.user
+  return userPair.user ?? null
 }
 
 /** Subscribe to users updates for existing users state */

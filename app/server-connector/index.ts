@@ -802,7 +802,7 @@ import type { Socket } from 'socket.io-client'
 import { io } from 'socket.io-client'
 import Queue from 'yocto-queue'
 
-const HOST = '' // 'http://localhost:3000'
+const HOST = 'http://localhost:3000'
 const PATH_PREFIX = '/api'
 const SECS = 1000
 const MINS = 60 * SECS
@@ -1201,11 +1201,11 @@ export class ServerConnector {
       }
       const socket = this.socket!
       socket.on('connect', () => {
-        console.log('WS: CONNECTED')
+        // console.log('WS: CONNECTED')
         void this.activateSubscriptions()
       })
       const emit = (notification: { subscriptionId: number; data: any }) => {
-        console.log(`WS: NOTIFICATION`, notification)
+        // console.log(`WS: NOTIFICATION`, notification)
         const subscriptionId = this.subscriptionIdForServerSubscriptionId.get(
           notification.subscriptionId
         )
@@ -1251,7 +1251,7 @@ export class ServerConnector {
         setTimeout(() => {
           this.initWebSocket()
         }, WEB_SOCKET_RECONNECTION_DELAY)
-        console.log('WS: DISCONNECTED')
+        // console.log('WS: DISCONNECTED')
       })
     }
   }
@@ -3507,7 +3507,7 @@ export class ServerConnector {
     return { subscriptionId: subscriptionId }
   }
   unsubscribe(subscriptionId: number) {
-    console.log(`UNSUBSCRIBE: ${subscriptionId}`)
+    // console.log(`UNSUBSCRIBE: ${subscriptionId}`)
     this.subscriptionBlockForSubscriptionId.delete(subscriptionId)
     const serverSubscriptionId =
       this.serverSubscriptionIdForSubscriptionId.get(subscriptionId)
@@ -3521,7 +3521,7 @@ export class ServerConnector {
         this.socket
           .emitWithAck(WEB_SOCKET_CONFIG.MESSAGE_TYPE.UNSUBSCRIBE_ONE, params)
           .then(() => {
-            console.log('WS: UNSUBSCRIBE:', serverSubscriptionId)
+            // console.log('WS: UNSUBSCRIBE:', serverSubscriptionId)
           })
           .catch(() => {
             //
@@ -3530,7 +3530,7 @@ export class ServerConnector {
     }
   }
   unsubscribeMany(subscriptionIds: number[]) {
-    console.log(`UNSUBSCRIBE MANY: ${subscriptionIds.toString()}`)
+    // console.log(`UNSUBSCRIBE MANY: ${subscriptionIds.toString()}`)
     const serverSubscriptionIds: number[] = []
     for (const subscriptionId of subscriptionIds) {
       this.subscriptionBlockForSubscriptionId.delete(subscriptionId)
@@ -3549,7 +3549,7 @@ export class ServerConnector {
       this.socket
         .emitWithAck(WEB_SOCKET_CONFIG.MESSAGE_TYPE.UNSUBSCRIBE_MANY, params)
         .then(() => {
-          console.log('WS: UNSUBSCRIBE:', serverSubscriptionIds)
+          // console.log('WS: UNSUBSCRIBE:', serverSubscriptionIds)
         })
         .catch(() => {
           //
@@ -3557,7 +3557,7 @@ export class ServerConnector {
     }
   }
   unsubscribeAll() {
-    console.log('UNSUBSCRIBE ALL')
+    // console.log('UNSUBSCRIBE ALL')
     this.subscriptionBlockForSubscriptionId.clear()
     this.serverSubscriptionIdForSubscriptionId.clear()
     this.subscriptionIdForServerSubscriptionId.clear()
@@ -3566,7 +3566,7 @@ export class ServerConnector {
       this.socket
         .emitWithAck(WEB_SOCKET_CONFIG.MESSAGE_TYPE.UNSUBSCRIBE_ALL)
         .then(() => {
-          console.log('WS: UNSUBSCRIBE ALL')
+          // console.log('WS: UNSUBSCRIBE ALL')
         })
         .catch(() => {
           //
@@ -3576,7 +3576,7 @@ export class ServerConnector {
   private addSubscriptionBlock(block: SubscriptionBlock) {
     this.subscriptionBlockForSubscriptionId.set(block.subscriptionId, block)
     this.inactiveSubscriptionIds.enqueue(block.subscriptionId)
-    console.log(`SUBSCRIBE: ${block.subscriptionId}`)
+    // console.log(`SUBSCRIBE: ${block.subscriptionId}`)
     void this.activateSubscriptions()
   }
   private async activateSubscriptions(): Promise<void> {
@@ -3602,7 +3602,7 @@ export class ServerConnector {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           const response: SubscriptionIdNullWrapDto =
             await this.socket.emitWithAck(messageType, block.params)
-          console.log('WS: SUBSCRIBE:', response)
+          // console.log('WS: SUBSCRIBE:', response)
           const serverSubscriptionId = response.subscriptionId
           if (
             serverSubscriptionId !== null &&
@@ -3627,7 +3627,7 @@ export class ServerConnector {
                   WEB_SOCKET_CONFIG.MESSAGE_TYPE.UNSUBSCRIBE_ONE,
                   params
                 )
-                console.log('WS: UNSUBSCRIBE:', serverSubscriptionId)
+                // console.log('WS: UNSUBSCRIBE:', serverSubscriptionId)
               } catch {
                 //
               }
