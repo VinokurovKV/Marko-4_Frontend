@@ -1,6 +1,9 @@
 // Project
 import type { CommonTopologyConfigDto } from '@common/dtos'
 import type { DtoWithoutEnums } from '@common/dto-without-enums'
+import { TopologyViewer } from './topology-viewer'
+// React
+import * as React from 'react'
 // Material UI
 import { useTheme } from '@mui/material/styles'
 import Container from '@mui/material/Container'
@@ -10,6 +13,9 @@ import Typography from '@mui/material/Typography'
 import capitalize from 'capitalize'
 
 type CommonTopologyConfig = DtoWithoutEnums<CommonTopologyConfigDto>
+
+const EMPTY_VERTEX_NAME_PROMPT = 'БЕЗЫМЯННАЯ ВЕРШИНА'
+const EMPTY_IFACE_NAME_PROMPT = 'БЕЗЫМЯННЫЙ ИНТЕРФЕЙС'
 
 export interface TopologyConfigSchemaProps {
   config: CommonTopologyConfig | null
@@ -24,8 +30,38 @@ export function TopologyConfigSchema({
   const palette = theme.palette
   const mode = theme.palette.mode
 
+  const validatedConfig: CommonTopologyConfig | null = React.useMemo(
+    () =>
+      config !== null && config.vertexes.length > 0
+        ? {
+            vertexes: config.vertexes.map((vertex) => ({
+              ...vertex,
+              name:
+                vertex.name.trim() !== ''
+                  ? vertex.name
+                  : EMPTY_VERTEX_NAME_PROMPT,
+              ifaces: vertex.ifaces.map((iface) => ({
+                ...iface,
+                name:
+                  iface.name.trim() !== ''
+                    ? iface.name
+                    : EMPTY_IFACE_NAME_PROMPT
+              }))
+            })),
+            links: config.links.filter(
+              (link) =>
+                link.start.vertexName.trim() !== '' &&
+                link.start.ifaceName.trim() !== '' &&
+                link.end.vertexName.trim() !== '' &&
+                link.end.ifaceName.trim() !== ''
+            )
+          }
+        : null,
+    [config]
+  )
+
   return (
-    <Container sx={{ height: '300px', p: '0 !important' }}>
+    <Container sx={{ maxHeight: '100%', height: '400px', p: '0 !important' }}>
       <Stack
         height="100%"
         alignItems="center"
@@ -35,9 +71,10 @@ export function TopologyConfigSchema({
           p: 1
         }}
       >
-        {config !== null ? (
-          JSON.stringify(config)
+        {validatedConfig !== null ? (
+          <TopologyViewer config={validatedConfig} showButtons={false} />
         ) : (
+          //JSON.stringify(config)
           // <TopologyViewer config={config} />
           <Typography sx={{ opacity: 0.55 }}>
             {capitalize(nullConfigTitle, true)}

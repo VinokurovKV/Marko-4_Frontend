@@ -1,10 +1,15 @@
 // Project
-import type { ReadCommonTopologyWithPrimaryPropsSuccessResultDto } from '@common/dtos/server-api/common-topologies.dto'
+import type { ReadTagWithPrimaryPropsSuccessResultDto } from '@common/dtos/server-api/tags.dto'
+import type {
+  ReadCommonTopologyWithPrimaryPropsSuccessResultDto,
+  ReadCommonTopologyVersionSuccessResultDto
+} from '@common/dtos/server-api/common-topologies.dto'
 import type { ReadTestWithPrimaryPropsSuccessResultDto } from '@common/dtos/server-api/tests.dto'
 import type { ReadTaskWithUpToTertiaryPropsSuccessResultDto } from '@common/dtos/server-api/tasks.dto'
 import type { ReadTestReportWithUpToSecondaryPropsSuccessResultDto } from '@common/dtos/server-api/test-reports.dto'
 import type { DtoWithoutEnums } from '@common/dto-without-enums'
 import {
+  useTagsFilteredSubscription,
   useCommonTopologySubscription,
   useTestsFilteredSubscription,
   useTaskSubscription,
@@ -14,8 +19,11 @@ import { TaskViewer } from '../single-resource-viewers/resources/task'
 // React
 import * as React from 'react'
 
+type Tag = DtoWithoutEnums<ReadTagWithPrimaryPropsSuccessResultDto>
 type CommonTopology =
   DtoWithoutEnums<ReadCommonTopologyWithPrimaryPropsSuccessResultDto>
+type CommonTopologyVersion =
+  DtoWithoutEnums<ReadCommonTopologyVersionSuccessResultDto>
 type Test = DtoWithoutEnums<ReadTestWithPrimaryPropsSuccessResultDto>
 type Task = DtoWithoutEnums<ReadTaskWithUpToTertiaryPropsSuccessResultDto>
 type TestReport =
@@ -23,13 +31,16 @@ type TestReport =
 
 export interface TaskScreenProps {
   taskId: number
+  initialTags: Tag[] | null
   initialCommonTopology: CommonTopology | null
+  commonTopologyVersion: CommonTopologyVersion | null
   initialTests: Test[] | null
   initialTask: Task | null
   initialTestReports: TestReport[] | null
 }
 
 export function TaskScreen(props: TaskScreenProps) {
+  const [tags, setTags] = React.useState<Tag[] | null>(props.initialTags)
   const [commonTopology, setCommonTopology] =
     React.useState<CommonTopology | null>(props.initialCommonTopology)
   const [tests, setTests] = React.useState<Test[] | null>(props.initialTests)
@@ -38,11 +49,14 @@ export function TaskScreen(props: TaskScreenProps) {
     props.initialTestReports
   )
 
+  const tagIds = React.useMemo(() => task?.tagIds ?? [], [task])
+
   const testIds = React.useMemo(
     () => (testReports ?? []).map((testReport) => testReport.testId),
     [testReports]
   )
 
+  useTagsFilteredSubscription('PRIMARY_PROPS', tagIds, setTags)
   useCommonTopologySubscription(
     'PRIMARY_PROPS',
     task?.commonTopology.id ?? null,
@@ -58,7 +72,9 @@ export function TaskScreen(props: TaskScreenProps) {
 
   return task !== null ? (
     <TaskViewer
+      tags={tags}
       commonTopology={commonTopology}
+      commonTopologyVersion={props.commonTopologyVersion}
       tests={tests}
       task={task}
       testReports={testReports}

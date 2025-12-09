@@ -55,10 +55,10 @@ export function TaskLayoutScreen(props: TaskLayoutScreenProps) {
   )
   return (
     <LayoutScreenContainer
-      title={`задание тестирования ${tascCode}`}
+      title="задания тестирования"
       breadcrumbsItems={breadcrumbsItems}
     >
-      <TwoPartsContainer>
+      <TwoPartsContainer proportions="ONE_TWO">
         <TasksGrid
           {...props}
           navigationMode={true}

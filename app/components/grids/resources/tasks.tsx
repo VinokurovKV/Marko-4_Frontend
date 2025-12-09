@@ -86,9 +86,9 @@ export function TasksGrid(props: TasksGridProps) {
 
   const readCols = [
     useCodeCol('id', true, '/tasks', navigationMode),
+    useNameCol(),
     useTaskStatusCol(),
     useCreateTimeCol(),
-    useNameCol(),
     useTaskModeCol(),
     useCommonTopologyVersionCol(commonTopologies),
     useAllTestsCountCol(),
@@ -104,7 +104,7 @@ export function TasksGrid(props: TasksGridProps) {
   ]
 
   const navigationModeReadCols = React.useMemo(
-    () => [readCols[0], readCols[1]],
+    () => [readCols[0], readCols[1], readCols[2]],
     [readCols]
   )
 

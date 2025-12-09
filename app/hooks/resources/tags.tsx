@@ -14,6 +14,8 @@ import { useChangeDetector } from '../change-detector'
 import { useNotifier } from '~/providers/notifier'
 // React
 import * as React from 'react'
+// Other
+import { isEqual } from 'lodash'
 
 type ReadOneTag<Scope extends ReadOneResourceScope> = DtoWithoutEnums<
   Scope extends 'PRIMARY_PROPS'
@@ -308,4 +310,167 @@ export function useTags<Scope extends ReadManyResourceScope>(
     active
   )
   return tags
+}
+
+function useTagsFilteredSubscriptionInner<Scope extends ReadManyResourceScope>(
+  scope: Scope,
+  tagIds: number[],
+  setTagsPair: React.Dispatch<
+    React.SetStateAction<{
+      tagIds: number[]
+      tags?: ReadManyTag<Scope>[] | null
+    }>
+  >,
+  withInitialLoad: boolean = false,
+  notifyAboutInitialLoadProblems: boolean = false,
+  active: boolean = true
+) {
+  const notifier = useNotifier()
+
+  const [initialized, setInitialized] = React.useState(false)
+
+  const load = React.useCallback(
+    async (notifyAboutProblems: boolean) => {
+      try {
+        const tags = (await serverConnector.readTags({
+          ids: tagIds,
+          scope: scope
+        })) as ReadManyTag<Scope>[]
+        setTagsPair((oldPair) =>
+          isEqual(oldPair.tagIds, tagIds)
+            ? {
+                ...oldPair,
+                tags: tags
+              }
+            : oldPair
+        )
+      } catch {
+        if (notifyAboutProblems) {
+          notifier.showWarning('не удалось загрузить актуальный список тегов')
+        }
+      }
+    },
+    [scope, tagIds, setTagsPair, notifier]
+  )
+
+  // Initial load
+  React.useEffect(() => {
+    setInitialized(true)
+    if (active === false || withInitialLoad === false || initialized) {
+      return
+    }
+    void load(notifyAboutInitialLoadProblems)
+  }, [
+    scope,
+    withInitialLoad,
+    notifyAboutInitialLoadProblems,
+    active,
+    initialized,
+    setInitialized,
+    load
+  ])
+
+  // Process tag ids change or active flag change to true
+  useChangeDetector({
+    detectedObjects: [tagIds, active],
+    otherDependencies: [notifyAboutInitialLoadProblems, load],
+    onChange: () => {
+      if (active) {
+        void load(notifyAboutInitialLoadProblems)
+      }
+    }
+  })
+
+  // Subscribe
+  React.useEffect(() => {
+    const subscriptionId = serverConnector.subscribeToResources(
+      {
+        type: 'TAG'
+      },
+      (data) => {
+        ;(() => {
+          const updateScope = data.updateScope
+          if (
+            updateScope.primaryProps ||
+            (updateScope.secondaryProps && scope === 'UP_TO_SECONDARY_PROPS')
+          ) {
+            void load(true)
+          }
+        })()
+      }
+    ).subscriptionId
+    return () => {
+      serverConnector.unsubscribe(subscriptionId)
+    }
+  }, [scope, tagIds, load])
+}
+
+/** Subscribe to tags updates for existing tags state */
+export function useTagsFilteredSubscription<
+  Scope extends ReadManyResourceScope
+>(
+  scope: Scope,
+  tagIds: number[],
+  setTags: React.Dispatch<React.SetStateAction<ReadManyTag<Scope>[] | null>>,
+  withInitialLoad: boolean = false,
+  notifyAboutInitialLoadProblems: boolean = false,
+  active: boolean = true
+) {
+  const [tagsPair, setTagsPair] = React.useState<{
+    tagIds: number[]
+    tags?: ReadManyTag<Scope>[] | null
+  }>({
+    tagIds: tagIds,
+    tags: undefined
+  })
+  React.useEffect(() => {
+    setTagsPair((oldPair) => ({
+      tagIds: tagIds,
+      tags: oldPair.tags
+    }))
+  }, [tagIds, setTagsPair])
+  useTagsFilteredSubscriptionInner(
+    scope,
+    tagsPair.tagIds,
+    setTagsPair,
+    withInitialLoad,
+    notifyAboutInitialLoadProblems,
+    active
+  )
+  React.useEffect(() => {
+    if (tagsPair.tags !== undefined) {
+      setTags(tagsPair.tags)
+    }
+  }, [setTags, tagsPair.tags])
+}
+
+/** Subscribe to tags updates with initial load */
+export function useTagsFiltered<Scope extends ReadManyResourceScope>(
+  scope: Scope,
+  tagIds: number[],
+  notifyAboutInitialLoadProblems: boolean = false,
+  active: boolean = true
+) {
+  const [tagsPair, setTagsPair] = React.useState<{
+    tagIds: number[]
+    tags?: ReadManyTag<Scope>[] | null
+  }>({
+    tagIds: tagIds,
+    tags: null
+  })
+  React.useEffect(() => {
+    setTagsPair((oldPair) => ({
+      tagIds: tagIds,
+      tags: oldPair.tags
+    }))
+  }, [tagIds, setTagsPair])
+  useTagsFilteredSubscriptionInner(
+    scope,
+    tagsPair.tagIds,
+    setTagsPair,
+    true,
+    notifyAboutInitialLoadProblems,
+    active
+  )
+  return tagsPair.tags ?? null
 }

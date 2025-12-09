@@ -475,7 +475,7 @@ export function CreateTaskFormDialog(props: CreateTaskFormDialogProps) {
           </FormBlock>
         )
       })}
-      <FormBlock title="тесты">
+      <FormBlock title="тестовая иерархия">
         <FormAutocompleteMultipleSelect
           name="testIds"
           label="тесты"

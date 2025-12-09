@@ -44,37 +44,54 @@ export async function clientLoader({ params }: Route.ClientLoaderArgs) {
       ])
     }
   })()
+  const tagIds = task?.tagIds ?? []
   const testIds = (testReports ?? []).map((testReport) => testReport.testId)
-  const [commonTopology, tests] = await (async () => {
-    if (serverConnector.meta.status !== 'AUTHENTICATED' || task === null) {
-      return [null, null]
-    } else {
-      const rights = serverConnector.meta.selfMeta.rights
-      return await Promise.all([
-        rights.includes('READ_COMMON_TOPOLOGY')
-          ? serverConnector
-              .readCommonTopology(
-                { id: task.commonTopology.id },
-                {
+  const [tags, commonTopology, commonTopologyVersion, tests] =
+    await (async () => {
+      if (serverConnector.meta.status !== 'AUTHENTICATED' || task === null) {
+        return [null, null, null, null]
+      } else {
+        const rights = serverConnector.meta.selfMeta.rights
+        return await Promise.all([
+          rights.includes('READ_TAG')
+            ? serverConnector
+                .readTags({
+                  ids: tagIds,
                   scope: 'PRIMARY_PROPS'
-                }
-              )
-              .catch(() => null)
-          : Promise.resolve(null),
-        rights.includes('READ_TEST')
-          ? serverConnector
-              .readTests({
-                ids: [testIds],
-                scope: 'PRIMARY_PROPS'
-              })
-              .catch(() => null)
-          : Promise.resolve(null)
-      ])
-    }
-  })()
+                })
+                .catch(() => null)
+            : Promise.resolve(null),
+          rights.includes('READ_COMMON_TOPOLOGY')
+            ? serverConnector
+                .readCommonTopology(
+                  { id: task.commonTopology.id },
+                  {
+                    scope: 'PRIMARY_PROPS'
+                  }
+                )
+                .catch(() => null)
+            : Promise.resolve(null),
+          rights.includes('READ_COMMON_TOPOLOGY')
+            ? serverConnector
+                .readCommonTopologyVersion(task.commonTopology)
+                .catch(() => null)
+            : Promise.resolve(null),
+          rights.includes('READ_TEST')
+            ? serverConnector
+                .readTests({
+                  ids: testIds,
+                  scope: 'PRIMARY_PROPS'
+                })
+                .catch(() => null)
+            : Promise.resolve(null)
+        ])
+      }
+    })()
   return {
     taskId,
+    tags,
     commonTopology,
+    commonTopologyVersion,
     tests,
     task,
     testReports
@@ -82,7 +99,15 @@ export async function clientLoader({ params }: Route.ClientLoaderArgs) {
 }
 
 export default function MetaRoute({
-  loaderData: { taskId, commonTopology, tests, task, testReports }
+  loaderData: {
+    taskId,
+    tags,
+    commonTopology,
+    commonTopologyVersion,
+    tests,
+    task,
+    testReports
+  }
 }: Route.ComponentProps) {
   const notifier = useNotifier()
   const meta = useMeta()
@@ -108,8 +133,11 @@ export default function MetaRoute({
     <ForbiddenScreen />
   ) : taskId !== null && task !== null ? (
     <TaskScreen
+      key={taskId}
       taskId={taskId}
+      initialTags={tags}
       initialCommonTopology={commonTopology}
+      commonTopologyVersion={commonTopologyVersion}
       initialTests={tests}
       initialTask={task}
       initialTestReports={testReports}

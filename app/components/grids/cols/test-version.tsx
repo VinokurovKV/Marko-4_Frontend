@@ -1,5 +1,6 @@
 // Project
 import type { ReadTestsWithPrimaryPropsSuccessResultItemDto } from '@common/dtos/server-api/tests.dto'
+import type { ReadTaskWithUpToTertiaryPropsSuccessResultDto } from '@common/dtos/server-api/tasks.dto'
 import type { DtoWithoutEnums } from '@common/dto-without-enums'
 import { GridRefCell } from '../cells/grid-ref-cell'
 // React
@@ -10,8 +11,12 @@ import type { GridColDef, GridRenderCellParams } from '@mui/x-data-grid'
 import capitalize from 'capitalize'
 
 type Test = DtoWithoutEnums<ReadTestsWithPrimaryPropsSuccessResultItemDto>
+type Task = DtoWithoutEnums<ReadTaskWithUpToTertiaryPropsSuccessResultDto>
 
-export function useTestVersionCol(tests: Test[] | null | undefined) {
+export function useFlatTestVersionCol(
+  tests: Test[] | null | undefined,
+  task: Task
+) {
   const testCodeForId = React.useMemo(() => {
     const map = new Map(
       tests?.map((test) => [test.id, capitalize(test.code, true)]) ?? []
@@ -20,21 +25,41 @@ export function useTestVersionCol(tests: Test[] | null | undefined) {
     return map
   }, [tests])
 
+  const testTransitionNumForId = React.useMemo(() => {
+    const testTransitionNumForId = new Map<number, number>()
+    const hierarchy = task.hierarchy
+    for (const test of hierarchy.orphanTests) {
+      testTransitionNumForId.set(test.id, test.transitionNum)
+    }
+    for (const subgroup of hierarchy.orphanSubgroups) {
+      for (const test of subgroup.tests) {
+        testTransitionNumForId.set(test.id, test.transitionNum)
+      }
+    }
+    for (const group of hierarchy.groups) {
+      for (const subgroup of group.subgroups) {
+        for (const test of subgroup.tests) {
+          testTransitionNumForId.set(test.id, test.transitionNum)
+        }
+      }
+    }
+    return testTransitionNumForId
+  }, [task])
+
   const col: GridColDef = React.useMemo(
     () => ({
-      field: 'test',
+      field: 'testId',
       headerName: 'Тест',
       type: 'singleSelect',
       valueOptions: Array.from(testCodeForId.values()).toSorted(),
-      valueGetter: (test: any) =>
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access
-        testCodeForId.get(test.id) ?? testCodeForId.get(-1),
+      valueGetter: (testId: number) =>
+        testCodeForId.get(testId) ?? testCodeForId.get(-1),
       renderCell: (params: GridRenderCellParams<any, string>) => (
         <GridRefCell
           text={params.value}
           hrefPrefix="/tests"
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-          hrefPath={`${params.row.test.id}/versions/${params.row.test.transitionNum}`}
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument
+          hrefPath={`${params.row.testId}/versions/${testTransitionNumForId.get(params.row.testId) ?? -1}`}
         />
       ),
       minWidth: 150,

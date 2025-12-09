@@ -7,6 +7,8 @@ import * as React from 'react'
 // Material UI
 import { styled } from '@mui/material/styles'
 import CircularProgress from '@mui/material/CircularProgress'
+import Stack from '@mui/material/Stack'
+import Typography from '@mui/material/Typography'
 import type {
   GridColDef,
   GridColumnVisibilityModel,
@@ -68,6 +70,7 @@ const DataGridStyled = styled(DataGrid)(({ theme }) => [
 
 export interface GridProps {
   localSaveKey: string
+  title?: string
   cols: GridColDef<GridValidRowModel>[]
   rows: GridValidRowModel[]
   defaultHiddenFields?: string[]
@@ -256,51 +259,63 @@ export function Grid(props: GridProps) {
   }
 
   return (
-    <DataGridStyled
-      apiRef={apiRef}
-      columns={props.cols}
-      rows={props.rows}
-      pageSizeOptions={PAGE_SIZE_OPTIONS}
-      initialState={initialState}
-      showToolbar
-      slots={
-        {
-          toolbar: ProjGridToolbar,
-          footer: ProjGridFooter
-        } as unknown as DataGridProps['slots']
-      }
-      slotProps={
-        {
-          toolbar: {
-            navigationMode: props.navigationMode,
-            createButton: props.create
-              ? {
-                  active: props.create.createModeIsActive,
-                  onClick: handleCreateClick
-                }
-              : undefined,
-            deleteManyButton: props.deleteMany
-              ? {
-                  active: deleteModeIsActive,
-                  onClick: handleDeleteManyClick
-                }
-              : undefined
-          } satisfies ProjGridToolbarProps,
-          footer: footerProps
-        } as DataGridProps['slotProps']
-      }
-      columnHeaderHeight={ROW_HEIGHT}
-      rowHeight={ROW_HEIGHT}
-      checkboxSelection={deleteModeIsActive}
-      disableRowSelectionExcludeModel
-      disableRowSelectionOnClick={deleteModeIsActive}
-      keepNonExistentRowsSelected
-      onRowClick={handleRowClick}
-      rowSelectionModel={rowSelectionModel}
-      onRowSelectionModelChange={(newRowSelectionModel) => {
-        setRowSelectionModel(newRowSelectionModel)
-      }}
-      className={props.navigationMode ? 'navigation-mode' : undefined}
-    />
+    <Stack spacing={1.5} p={0} sx={{ height: '100%', overflow: 'hidden' }}>
+      {props.title !== undefined ? (
+        <Typography
+          variant="h5"
+          sx={{
+            fontWeight: 'bold'
+          }}
+        >
+          {capitalize(props.title, true)}
+        </Typography>
+      ) : null}
+      <DataGridStyled
+        apiRef={apiRef}
+        columns={props.cols}
+        rows={props.rows}
+        pageSizeOptions={PAGE_SIZE_OPTIONS}
+        initialState={initialState}
+        showToolbar
+        slots={
+          {
+            toolbar: ProjGridToolbar,
+            footer: ProjGridFooter
+          } as unknown as DataGridProps['slots']
+        }
+        slotProps={
+          {
+            toolbar: {
+              navigationMode: props.navigationMode,
+              createButton: props.create
+                ? {
+                    active: props.create.createModeIsActive,
+                    onClick: handleCreateClick
+                  }
+                : undefined,
+              deleteManyButton: props.deleteMany
+                ? {
+                    active: deleteModeIsActive,
+                    onClick: handleDeleteManyClick
+                  }
+                : undefined
+            } satisfies ProjGridToolbarProps,
+            footer: footerProps
+          } as DataGridProps['slotProps']
+        }
+        columnHeaderHeight={ROW_HEIGHT}
+        rowHeight={ROW_HEIGHT}
+        checkboxSelection={deleteModeIsActive}
+        disableRowSelectionExcludeModel
+        disableRowSelectionOnClick={deleteModeIsActive}
+        keepNonExistentRowsSelected
+        onRowClick={handleRowClick}
+        rowSelectionModel={rowSelectionModel}
+        onRowSelectionModelChange={(newRowSelectionModel) => {
+          setRowSelectionModel(newRowSelectionModel)
+        }}
+        className={props.navigationMode ? 'navigation-mode' : undefined}
+      />
+    </Stack>
   )
 }
