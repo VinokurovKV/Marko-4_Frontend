@@ -7,13 +7,19 @@ import type {
 import type { ReadTestWithPrimaryPropsSuccessResultDto } from '@common/dtos/server-api/tests.dto'
 import type { ReadTaskWithUpToTertiaryPropsSuccessResultDto } from '@common/dtos/server-api/tasks.dto'
 import type { ReadTestReportWithUpToSecondaryPropsSuccessResultDto } from '@common/dtos/server-api/test-reports.dto'
+import type { ReadTaskReportWithUpToTertiaryPropsSuccessResultDto } from '@common/dtos/server-api/task-reports.dto'
 import type { DtoWithoutEnums } from '@common/dto-without-enums'
 import {
   localizationForTaskMode,
   localizationForTaskResultToSave,
   localizationForTaskStatus
 } from '~/localization'
-import { FlagIcon, TaskModeIcon, TaskStatusIcon } from '~/components/icons'
+import {
+  FlagIcon,
+  TaskModeIcon,
+  TaskStatusIcon,
+  TestStatusIcon
+} from '~/components/icons'
 import { TwoPartsContainer } from '~/components/containers/two-parts-container'
 import { TopologyConfigSchema } from '~/components/topologies/topology-config-schema'
 import { TestReportsGrid } from '~/components/grids/resources/test-reports'
@@ -21,6 +27,8 @@ import {
   ColumnViewer,
   ColumnViewerBlock,
   ColumnViewerChipsBlock,
+  ColumnViewerIconsBlock,
+  type ColumnViewerIconsBlockProps,
   ColumnViewerItem,
   ColumnViewerRef,
   ColumnViewerText,
@@ -41,6 +49,8 @@ type Test = DtoWithoutEnums<ReadTestWithPrimaryPropsSuccessResultDto>
 type Task = DtoWithoutEnums<ReadTaskWithUpToTertiaryPropsSuccessResultDto>
 type TestReport =
   DtoWithoutEnums<ReadTestReportWithUpToSecondaryPropsSuccessResultDto>
+type TaskReport =
+  DtoWithoutEnums<ReadTaskReportWithUpToTertiaryPropsSuccessResultDto>
 
 const EMPTY_TESTS_ARR: Test[] = []
 const EMPTY_TEST_REPORTS_ARR: TestReport[] = []
@@ -52,15 +62,67 @@ export interface TaskViewerProps {
   tests: Test[] | null
   task: Task
   testReports: TestReport[] | null
+  taskReport: TaskReport
+  testReportsGridNavigationMode?: boolean
+  testReportsGridNavigationModeSelectedRowId?: number
+  children?: React.ReactNode
 }
 
 export function TaskViewer(props: TaskViewerProps) {
   const task = props.task
+  const taskReport = props.taskReport
 
   const tagCodeForId = React.useMemo(
     () => new Map((props.tags ?? []).map((tag) => [tag.id, tag.code])),
     [props.tags]
   )
+
+  const testsCountsItems = React.useMemo(() => {
+    const items: ColumnViewerIconsBlockProps['items'] = []
+    if (taskReport.waitingCount > 0) {
+      items.push({
+        Icon: <TestStatusIcon status="WAITING" />,
+        text: taskReport.waitingCount
+      })
+    }
+    if (taskReport.canceledCount > 0) {
+      items.push({
+        Icon: <TestStatusIcon status="CANCELED" />,
+        text: taskReport.canceledCount
+      })
+    }
+    if (taskReport.launchedCount > 0) {
+      items.push({
+        Icon: <TestStatusIcon status="LAUNCHED" />,
+        text: taskReport.launchedCount
+      })
+    }
+    if (taskReport.abortedCount > 0) {
+      items.push({
+        Icon: <TestStatusIcon status="ABORTED" />,
+        text: taskReport.abortedCount
+      })
+    }
+    if (taskReport.errorCount > 0) {
+      items.push({
+        Icon: <TestStatusIcon status="ERROR" />,
+        text: taskReport.errorCount
+      })
+    }
+    if (taskReport.failedCount > 0) {
+      items.push({
+        Icon: <TestStatusIcon status="FAILED" />,
+        text: taskReport.failedCount
+      })
+    }
+    if (taskReport.passedCount > 0) {
+      items.push({
+        Icon: <TestStatusIcon status="PASSED" />,
+        text: taskReport.passedCount
+      })
+    }
+    return items
+  }, [props.tags])
 
   return (
     <Stack sx={{ height: '100%', overflow: 'hidden' }}>
@@ -91,6 +153,14 @@ export function TaskViewer(props: TaskViewerProps) {
                 Icon={<TaskModeIcon mode={task.mode} />}
               />
               <ColumnViewerTime field="время создания" time={task.createTime} />
+              <ColumnViewerTime
+                field="время запуска"
+                time={taskReport.launchTime}
+              />
+              <ColumnViewerTime
+                field="время завершения"
+                time={taskReport.finishTime}
+              />
               {task.minLaunchTime !== null ? (
                 <ColumnViewerTime
                   field="минимальное время запуска"
@@ -106,6 +176,10 @@ export function TaskViewer(props: TaskViewerProps) {
                 field="приостановлено"
                 Icon={<FlagIcon flag={task.paused} />}
               /> */}
+            </ColumnViewerBlock>
+            <ColumnViewerBlock title="счетчики тестов">
+              <ColumnViewerItem field="всего" val={taskReport.totalCount} />
+              <ColumnViewerIconsBlock items={testsCountsItems} />
             </ColumnViewerBlock>
             <ColumnViewerBlock title="описание">
               <ColumnViewerText emptyText="нет" text={task.description?.text} />
@@ -164,11 +238,19 @@ export function TaskViewer(props: TaskViewerProps) {
       <Container
         sx={{ height: '55%', pl: '0px !important', pr: '0px !important' }}
       >
-        <TestReportsGrid
-          tests={props.tests ?? EMPTY_TESTS_ARR}
-          task={props.task}
-          testReports={props.testReports ?? EMPTY_TEST_REPORTS_ARR}
-        />
+        <TwoPartsContainer
+          proportions={props.children !== undefined ? 'ONE_TWO' : 'ONE_ZERO'}
+        >
+          <TestReportsGrid
+            tests={props.tests ?? EMPTY_TESTS_ARR}
+            testReports={props.testReports ?? EMPTY_TEST_REPORTS_ARR}
+            navigationMode={props.testReportsGridNavigationMode}
+            navigationModeSelectedRowId={
+              props.testReportsGridNavigationModeSelectedRowId
+            }
+          />
+          {props.children !== undefined ? props.children : null}
+        </TwoPartsContainer>
       </Container>
     </Stack>
   )

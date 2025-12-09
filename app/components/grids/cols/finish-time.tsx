@@ -5,7 +5,7 @@ export function useFinishTimeCol() {
   return useDateTimeCol({
     field: 'finishTime',
     headerName: 'Время завершения',
-    minWidth: 120,
+    minWidth: 200,
     flex: 0.01
   })
 }

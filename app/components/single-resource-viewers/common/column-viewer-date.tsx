@@ -8,7 +8,7 @@ import capitalize from 'capitalize'
 
 export interface ColumnViewerDateProps {
   field: string
-  date: Date
+  date: Date | null
   Icon?: React.ReactNode
 }
 
@@ -22,7 +22,9 @@ export function ColumnViewerDate(props: ColumnViewerDateProps) {
       >
         {capitalize(props.field, true) + ':'}
       </Typography>
-      <Typography>{formatDate(props.date)}</Typography>
+      <Typography>
+        {props.date !== null ? formatDate(props.date) : ''}
+      </Typography>
       {props.Icon ? props.Icon : null}
     </Stack>
   )

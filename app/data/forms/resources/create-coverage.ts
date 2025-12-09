@@ -51,11 +51,11 @@ export const createCoverageFormValidator =
     oneField: {
       code: {
         transforms: ['TRIM'],
-        rules: ['NOT_EMPTY_STR', 'CODE']
+        rules: ['NOT_EMPTY_STR', 'BIG_CODE']
       },
       name: {
         transforms: ['TRIM', 'EMPTY_STR_TO_UNDEFINED'],
-        rules: ['ALLOW_UNDEFINED', 'NAME']
+        rules: ['ALLOW_UNDEFINED', 'BIG_NAME']
       },
       requirementId: {
         transforms: ['EMPTY_STR_TO_UNDEFINED'],

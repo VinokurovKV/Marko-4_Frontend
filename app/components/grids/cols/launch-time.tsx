@@ -5,7 +5,7 @@ export function useLaunchTimeCol() {
   return useDateTimeCol({
     field: 'launchTime',
     headerName: 'Время запуска',
-    minWidth: 120,
+    minWidth: 200,
     flex: 0.01
   })
 }

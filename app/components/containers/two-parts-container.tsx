@@ -8,7 +8,7 @@ import Typography from '@mui/material/Typography'
 import capitalize from 'capitalize'
 
 export interface TwoPartsContainerProps {
-  proportions: 'EQUAL' | 'ONE_TWO'
+  proportions: 'EQUAL' | 'ONE_TWO' | 'ONE_THREE' | 'ONE_ZERO'
   title?: string
   children: [React.ReactNode, React.ReactNode]
 }
@@ -28,13 +28,29 @@ export function TwoPartsContainer(props: TwoPartsContainerProps) {
       ) : null}
       <Grid container spacing={2} sx={{ height: '100%', overflow: 'hidden' }}>
         <Grid
-          size={props.proportions === 'EQUAL' ? 6 : 4}
+          size={
+            props.proportions === 'EQUAL'
+              ? 6
+              : props.proportions === 'ONE_TWO'
+                ? 4
+                : props.proportions === 'ONE_THREE'
+                  ? 3
+                  : 12
+          }
           sx={{ height: '100%' }}
         >
           {props.children[0]}
         </Grid>
         <Grid
-          size={props.proportions === 'EQUAL' ? 6 : 8}
+          size={
+            props.proportions === 'EQUAL'
+              ? 6
+              : props.proportions === 'ONE_TWO'
+                ? 8
+                : props.proportions === 'ONE_THREE'
+                  ? 9
+                  : 0
+          }
           sx={{ height: '100%' }}
         >
           {props.children[1]}

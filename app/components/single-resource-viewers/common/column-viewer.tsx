@@ -32,7 +32,7 @@ export function ColumnViewer(props: ColumnViewerProps) {
         border={`1px solid ${theme.palette.grey[300]}`}
         borderRadius="5px"
         p={0}
-        sx={{ height: '100%', overflow: 'auto' }}
+        sx={{ height: '100%', overflow: 'auto', backgroundColor: 'white' }}
       >
         <Paper elevation={0} sx={{ p: 2 }}>
           {props.children}

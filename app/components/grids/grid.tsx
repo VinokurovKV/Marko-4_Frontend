@@ -22,6 +22,7 @@ import {
   useGridApiRef,
   DataGrid
 } from '@mui/x-data-grid'
+import { ruRU as ruRuDataGrid } from '@mui/x-data-grid/locales'
 // Other
 import capitalize from 'capitalize'
 
@@ -31,7 +32,7 @@ const PAGE_SIZE_OPTIONS = [10, 25, 100]
 const LS_GRID_STATE_KEY_SUFFIX = 'DATA_GRID_STATE'
 const gridInitialState: GridInitialState = {
   pagination: {
-    paginationModel: { pageSize: 10, page: 0 }
+    paginationModel: { pageSize: 25, page: 0 }
   }
 }
 
@@ -77,6 +78,7 @@ export interface GridProps {
   navigationMode: boolean
   selectedRowId?: number
   navigationModeOnRowClick?: (rowId: number) => void
+  compactFooter?: boolean
   create?: {
     createModeIsActive: boolean
     setCreateModeIsActive: React.Dispatch<React.SetStateAction<boolean>>
@@ -271,6 +273,15 @@ export function Grid(props: GridProps) {
         </Typography>
       ) : null}
       <DataGridStyled
+        // autoPageSize
+        localeText={
+          props.compactFooter === true
+            ? {
+                ...ruRuDataGrid.components.MuiDataGrid.defaultProps.localeText,
+                paginationRowsPerPage: '' // 'Строк:'
+              }
+            : undefined
+        }
         apiRef={apiRef}
         columns={props.cols}
         rows={props.rows}

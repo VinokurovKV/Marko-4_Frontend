@@ -7,13 +7,15 @@ import type {
 import type { ReadTestWithPrimaryPropsSuccessResultDto } from '@common/dtos/server-api/tests.dto'
 import type { ReadTaskWithUpToTertiaryPropsSuccessResultDto } from '@common/dtos/server-api/tasks.dto'
 import type { ReadTestReportWithUpToSecondaryPropsSuccessResultDto } from '@common/dtos/server-api/test-reports.dto'
+import type { ReadTaskReportWithUpToTertiaryPropsSuccessResultDto } from '@common/dtos/server-api/task-reports.dto'
 import type { DtoWithoutEnums } from '@common/dto-without-enums'
 import {
   useTagsFilteredSubscription,
   useCommonTopologySubscription,
   useTestsFilteredSubscription,
   useTaskSubscription,
-  useTestReportsSubscription
+  useTestReportsSubscription,
+  useTaskReportSubscription
 } from '~/hooks/resources'
 import { TaskViewer } from '../single-resource-viewers/resources/task'
 // React
@@ -28,15 +30,19 @@ type Test = DtoWithoutEnums<ReadTestWithPrimaryPropsSuccessResultDto>
 type Task = DtoWithoutEnums<ReadTaskWithUpToTertiaryPropsSuccessResultDto>
 type TestReport =
   DtoWithoutEnums<ReadTestReportWithUpToSecondaryPropsSuccessResultDto>
+type TaskReport =
+  DtoWithoutEnums<ReadTaskReportWithUpToTertiaryPropsSuccessResultDto>
 
 export interface TaskScreenProps {
   taskId: number
+  taskReportId: number
   initialTags: Tag[] | null
   initialCommonTopology: CommonTopology | null
   commonTopologyVersion: CommonTopologyVersion | null
   initialTests: Test[] | null
   initialTask: Task | null
   initialTestReports: TestReport[] | null
+  initialTaskReport: TaskReport | null
 }
 
 export function TaskScreen(props: TaskScreenProps) {
@@ -47,6 +53,9 @@ export function TaskScreen(props: TaskScreenProps) {
   const [task, setTask] = React.useState<Task | null>(props.initialTask)
   const [testReports, setTestReports] = React.useState<TestReport[] | null>(
     props.initialTestReports
+  )
+  const [taskReport, setTaskReport] = React.useState<TaskReport | null>(
+    props.initialTaskReport
   )
 
   const tagIds = React.useMemo(() => task?.tagIds ?? [], [task])
@@ -69,8 +78,13 @@ export function TaskScreen(props: TaskScreenProps) {
     props.taskId,
     setTestReports
   )
+  useTaskReportSubscription(
+    'UP_TO_TERTIARY_PROPS',
+    props.taskReportId,
+    setTaskReport
+  )
 
-  return task !== null ? (
+  return task !== null && taskReport !== null ? (
     <TaskViewer
       tags={tags}
       commonTopology={commonTopology}
@@ -78,6 +92,7 @@ export function TaskScreen(props: TaskScreenProps) {
       tests={tests}
       task={task}
       testReports={testReports}
+      taskReport={taskReport}
     />
   ) : null
 }
