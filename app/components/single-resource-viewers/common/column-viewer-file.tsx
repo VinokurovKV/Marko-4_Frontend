@@ -1,5 +1,5 @@
 // Project
-import { convertMediaTypeToFileExtension } from '@common/formats'
+import { type FileFormat, convertFileFormatToExtension } from '@common/formats'
 import type { ReadTestReportWithUpToTertiaryPropsSuccessResultDto } from '@common/dtos/server-api/test-reports.dto'
 import type { DtoWithoutEnums } from '@common/dto-without-enums'
 import { downloadFileFromBlob } from '~/utilities/download-file'
@@ -23,9 +23,9 @@ export interface ColumnViewerFileProps extends Item {
 
 export function ColumnViewerFile(props: ColumnViewerFileProps) {
   const handleClick = React.useCallback(() => {
-    ;(async () => {
+    void (async () => {
       const blob = await props.getFileBlob(props.id)
-      const ext = convertMediaTypeToFileExtension(props.format) ?? ''
+      const ext = convertFileFormatToExtension(props.format as FileFormat) ?? ''
       const fileName = `${props.name}.${ext}`
       if (blob !== null) {
         downloadFileFromBlob(blob, fileName)
