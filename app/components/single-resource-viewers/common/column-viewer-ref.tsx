@@ -12,7 +12,7 @@ import capitalize from 'capitalize'
 export interface ColumnViewerRefProps {
   field: string
   text?: string
-  href: string
+  href?: string
   disableCapitalize?: boolean
 }
 
@@ -36,7 +36,8 @@ export function ColumnViewerRef(props: ColumnViewerRefProps) {
       {props.text !== undefined ? (
         <Button
           component={Link}
-          to={props.href}
+          to={props.href ?? ''}
+          disabled={props.href === undefined}
           onClick={handleClick}
           sx={{
             justifyContent: 'start',

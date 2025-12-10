@@ -14,6 +14,8 @@ import { useChangeDetector } from '../change-detector'
 import { useNotifier } from '~/providers/notifier'
 // React
 import * as React from 'react'
+// Other
+import { isEqual } from 'lodash'
 
 type ReadOneCoverage<Scope extends ReadOneResourceScope> = DtoWithoutEnums<
   Scope extends 'PRIMARY_PROPS'
@@ -314,4 +316,173 @@ export function useCoverages<Scope extends ReadManyResourceScope>(
     active
   )
   return coverages
+}
+
+function useCoveragesFilteredSubscriptionInner<
+  Scope extends ReadManyResourceScope
+>(
+  scope: Scope,
+  coverageIds: number[],
+  setCoveragesPair: React.Dispatch<
+    React.SetStateAction<{
+      coverageIds: number[]
+      coverages?: ReadManyCoverage<Scope>[] | null
+    }>
+  >,
+  withInitialLoad: boolean = false,
+  notifyAboutInitialLoadProblems: boolean = false,
+  active: boolean = true
+) {
+  const notifier = useNotifier()
+
+  const [initialized, setInitialized] = React.useState(false)
+
+  const load = React.useCallback(
+    async (notifyAboutProblems: boolean) => {
+      try {
+        const coverages = (await serverConnector.readCoverages({
+          ids: coverageIds,
+          scope: scope
+        })) as ReadManyCoverage<Scope>[]
+        setCoveragesPair((oldPair) =>
+          isEqual(oldPair.coverageIds, coverageIds)
+            ? {
+                ...oldPair,
+                coverages: coverages
+              }
+            : oldPair
+        )
+      } catch {
+        if (notifyAboutProblems) {
+          notifier.showWarning(
+            'не удалось загрузить актуальный список покрытий требований'
+          )
+        }
+      }
+    },
+    [scope, coverageIds, setCoveragesPair, notifier]
+  )
+
+  // Initial load
+  React.useEffect(() => {
+    setInitialized(true)
+    if (active === false || withInitialLoad === false || initialized) {
+      return
+    }
+    void load(notifyAboutInitialLoadProblems)
+  }, [
+    scope,
+    withInitialLoad,
+    notifyAboutInitialLoadProblems,
+    active,
+    initialized,
+    setInitialized,
+    load
+  ])
+
+  // Process coverage ids change or active flag change to true
+  useChangeDetector({
+    detectedObjects: [coverageIds, active],
+    otherDependencies: [notifyAboutInitialLoadProblems, load],
+    onChange: () => {
+      if (active) {
+        void load(notifyAboutInitialLoadProblems)
+      }
+    }
+  })
+
+  // Subscribe
+  React.useEffect(() => {
+    const subscriptionId = serverConnector.subscribeToResources(
+      {
+        type: 'COVERAGE'
+      },
+      (data) => {
+        ;(() => {
+          const updateScope = data.updateScope
+          if (
+            updateScope.primaryProps ||
+            (updateScope.secondaryProps && scope === 'UP_TO_SECONDARY_PROPS')
+          ) {
+            void load(true)
+          }
+        })()
+      }
+    ).subscriptionId
+    return () => {
+      serverConnector.unsubscribe(subscriptionId)
+    }
+  }, [scope, coverageIds, load])
+}
+
+/** Subscribe to coverages updates for existing coverages state */
+export function useCoveragesFilteredSubscription<
+  Scope extends ReadManyResourceScope
+>(
+  scope: Scope,
+  coverageIds: number[],
+  setCoverages: React.Dispatch<
+    React.SetStateAction<ReadManyCoverage<Scope>[] | null>
+  >,
+  withInitialLoad: boolean = false,
+  notifyAboutInitialLoadProblems: boolean = false,
+  active: boolean = true
+) {
+  const [coveragesPair, setCoveragesPair] = React.useState<{
+    coverageIds: number[]
+    coverages?: ReadManyCoverage<Scope>[] | null
+  }>({
+    coverageIds: coverageIds,
+    coverages: undefined
+  })
+  React.useEffect(() => {
+    setCoveragesPair((oldPair) => ({
+      coverageIds: coverageIds,
+      coverages: oldPair.coverages
+    }))
+  }, [coverageIds, setCoveragesPair])
+  useCoveragesFilteredSubscriptionInner(
+    scope,
+    coveragesPair.coverageIds,
+    setCoveragesPair,
+    withInitialLoad,
+    notifyAboutInitialLoadProblems,
+    active
+  )
+  React.useEffect(() => {
+    if (coveragesPair.coverages !== undefined) {
+      setCoverages(coveragesPair.coverages)
+    }
+  }, [setCoverages, coveragesPair.coverages])
+}
+
+/** Subscribe to coverages updates with initial load */
+export function useCoveragesFiltered<Scope extends ReadManyResourceScope>(
+  scope: Scope,
+  coverageIds: number[],
+  notifyAboutInitialLoadProblems: boolean = false,
+  active: boolean = true
+) {
+  const [coveragesPair, setCoveragesPair] = React.useState<{
+    coverageIds: number[]
+    coverages?: ReadManyCoverage<Scope>[] | null
+  }>({
+    coverageIds: coverageIds,
+    coverages: null
+  })
+  React.useEffect(() => {
+    setCoveragesPair((oldPair) => ({
+      coverageIds: coverageIds,
+      coverages: oldPair.coverages
+    }))
+  }, [coverageIds, setCoveragesPair])
+  useCoveragesFilteredSubscriptionInner(
+    scope,
+    coveragesPair.coverageIds,
+    setCoveragesPair,
+    true,
+    notifyAboutInitialLoadProblems,
+    active
+  )
+  return coveragesPair.coverages ?? null
 }

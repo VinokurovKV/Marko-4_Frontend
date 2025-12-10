@@ -54,7 +54,7 @@ export function TestReportsGrid(props: TestReportsGridProps) {
 
   const cols: GridColDef[] = React.useMemo(
     () => (navigationMode ? navigationModeReadCols : [...readCols]),
-    [navigationMode, readCols]
+    [navigationMode, readCols, navigationModeReadCols]
   )
 
   const defaultHiddenFields = React.useMemo(

@@ -17,8 +17,11 @@ import capitalize from 'capitalize'
 type Item =
   DtoWithoutEnums<ReadTestReportWithUpToTertiaryPropsSuccessResultDto>['items'][0]
 
-export interface ColumnViewerFileProps extends Item {
+export interface ColumnViewerFileProps extends Omit<Item, 'size' | 'time'> {
   getFileBlob: (id: number) => Promise<Blob | null>
+  field?: string
+  size?: number
+  time?: Date
 }
 
 export function ColumnViewerFile(props: ColumnViewerFileProps) {
@@ -40,7 +43,10 @@ export function ColumnViewerFile(props: ColumnViewerFileProps) {
           fontWeight: 'bold'
         }}
       >
-        {capitalize(props.name, true)}
+        {capitalize(
+          props.field !== undefined ? `${props.field}:` : props.name,
+          true
+        )}
       </Typography>
       <Stack direction="row" alignItems="center" spacing={0} p={0}>
         <Tooltip title="Скачать">
@@ -48,7 +54,9 @@ export function ColumnViewerFile(props: ColumnViewerFileProps) {
             <FileDownloadIcon sx={{ width: 27, height: 27 }} />
           </IconButton>
         </Tooltip>
-        <Typography>{`(${props.size} байт)`}</Typography>
+        {props.size !== undefined ? (
+          <Typography>{`(${props.size} байт)`}</Typography>
+        ) : null}
       </Stack>
     </Stack>
   )

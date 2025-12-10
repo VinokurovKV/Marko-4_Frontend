@@ -11,10 +11,11 @@ export function ColumnViewerText(props: ColumnViewerTextProps) {
   return (
     <Stack direction="row" alignItems="center" justifyContent="center">
       {props.text !== undefined ? (
-        <Typography textAlign="justify" whiteSpace="pre-wrap">
-          {props.text}
-        </Typography>
-      ) : null}
+        <Typography whiteSpace="pre-wrap">{props.text}</Typography>
+      ) : //   <Typography textAlign="justify" whiteSpace="pre-wrap">
+      //   {props.text}
+      // </Typography>
+      null}
       {props.text === undefined && props.emptyText !== undefined
         ? props.emptyText
         : null}
