@@ -6,6 +6,7 @@ import CancelIcon from '@mui/icons-material/Cancel'
 import DeleteIcon from '@mui/icons-material/Delete'
 import FileDownloadIcon from '@mui/icons-material/FileDownload'
 import FilterListIcon from '@mui/icons-material/FilterList'
+import KeyboardDoubleArrowLeftIcon from '@mui/icons-material/KeyboardDoubleArrowLeft'
 import SearchIcon from '@mui/icons-material/Search'
 import ViewColumnIcon from '@mui/icons-material/ViewColumn'
 import { styled } from '@mui/material/styles'
@@ -68,6 +69,10 @@ function GridToolbarDivider() {
 
 export interface ProjGridToolbarProps {
   navigationMode: boolean
+  changeModeButton?: {
+    active: boolean
+    onClick?: () => void
+  }
   createButton?: {
     active: boolean
     onClick: () => void
@@ -87,6 +92,26 @@ export function ProjGridToolbar(props: ProjGridToolbarProps) {
       {/* <Typography fontWeight="medium" sx={{ flex: 1, mx: 0.5 }}>
         Toolbar
       </Typography> */}
+
+      {props.changeModeButton ? (
+        <>
+          <Tooltip
+            title={
+              props.changeModeButton.active
+                ? 'Вернуть табличный режим'
+                : 'Выйти из табличного режима'
+            }
+          >
+            <ToolbarButton onClick={props.changeModeButton.onClick}>
+              <KeyboardDoubleArrowLeftIcon
+                fontSize="small"
+                color={props.changeModeButton.active ? 'primary' : undefined}
+              />
+            </ToolbarButton>
+          </Tooltip>
+          <GridToolbarDivider />
+        </>
+      ) : null}
 
       {props.createButton ? (
         <>

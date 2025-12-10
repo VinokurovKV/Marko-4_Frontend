@@ -109,7 +109,7 @@ export function TopologiesGrid(props: TopologiesGridProps) {
         ? [actionsCol]
         : [])
     ],
-    [readCols, actionsCol]
+    [rightsSet, readCols, actionsCol]
   )
 
   const defaultHiddenFields = React.useMemo(() => [] as (keyof Topology)[], [])

@@ -19,6 +19,8 @@ import {
   useRequirementModifierCol,
   useRequirementOriginCol
 } from '../cols'
+// React router
+import { useNavigate } from 'react-router'
 // React
 import * as React from 'react'
 // Material UI
@@ -36,6 +38,7 @@ export interface RequirementsGridProps {
 
 export function RequirementsGrid(props: RequirementsGridProps) {
   const navigationMode = props.navigationMode ?? false
+  const navigate = useNavigate()
   const notifier = useNotifier()
   const meta = useMeta()
   const rightsSet = React.useMemo(
@@ -73,6 +76,8 @@ export function RequirementsGrid(props: RequirementsGridProps) {
     useCoveragesCountCol()
   ]
 
+  const navigationModeReadCols = React.useMemo(() => [readCols[0]], [readCols])
+
   const actionsColProps: ActionsColProps = React.useMemo(
     () => ({
       delete: rightsSet.has('DELETE_REQUIREMENT')
@@ -100,14 +105,17 @@ export function RequirementsGrid(props: RequirementsGridProps) {
   const actionsCol = useActionsCol(actionsColProps)
 
   const cols: GridColDef[] = React.useMemo(
-    () => [
-      ...readCols,
-      ...(rightsSet.has('UPDATE_REQUIREMENT') ||
-      rightsSet.has('DELETE_REQUIREMENT')
-        ? [actionsCol]
-        : [])
-    ],
-    [rightsSet, readCols, actionsCol]
+    () =>
+      navigationMode
+        ? navigationModeReadCols
+        : [
+            ...readCols,
+            ...(rightsSet.has('UPDATE_REQUIREMENT') ||
+            rightsSet.has('DELETE_REQUIREMENT')
+              ? [actionsCol]
+              : [])
+          ],
+    [navigationMode, rightsSet, readCols, navigationModeReadCols, actionsCol]
   )
 
   const defaultHiddenFields = React.useMemo(
@@ -172,6 +180,10 @@ export function RequirementsGrid(props: RequirementsGridProps) {
     setCreateModeIsActive(false)
   }, [setCreateModeIsActive])
 
+  const handleChangeModeClick = React.useCallback(() => {
+    void navigate(navigationMode ? '/requirements' : '/requirements/hierarchy')
+  }, [navigationMode, navigate])
+
   return (
     <>
       <Grid
@@ -180,8 +192,10 @@ export function RequirementsGrid(props: RequirementsGridProps) {
         rows={rows}
         defaultHiddenFields={defaultHiddenFields}
         navigationMode={navigationMode}
+        onChangeModeClick={handleChangeModeClick}
         create={createProps}
         deleteMany={deleteManyProps}
+        compactFooter={navigationMode}
       />
       <CreateRequirementFormDialog
         requirements={requirements}

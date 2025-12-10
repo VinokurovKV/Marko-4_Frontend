@@ -94,7 +94,7 @@ export function GroupsGrid(props: GroupsGridProps) {
         ? [actionsCol]
         : [])
     ],
-    [readCols, actionsCol]
+    [rightsSet, readCols, actionsCol]
   )
 
   const defaultHiddenFields = React.useMemo(() => [] as (keyof Group)[], [])

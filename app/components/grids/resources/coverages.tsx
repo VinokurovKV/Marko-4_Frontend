@@ -141,7 +141,7 @@ export function CoveragesGrid(props: CoveragesGridProps) {
         ? [actionsCol]
         : [])
     ],
-    [readCols, actionsCol]
+    [rightsSet, readCols, actionsCol]
   )
 
   const defaultHiddenFields = React.useMemo(() => [] as (keyof Coverage)[], [])

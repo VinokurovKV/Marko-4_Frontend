@@ -79,6 +79,7 @@ export interface GridProps {
   selectedRowId?: number
   navigationModeOnRowClick?: (rowId: number) => void
   compactFooter?: boolean
+  onChangeModeClick?: () => void
   create?: {
     createModeIsActive: boolean
     setCreateModeIsActive: React.Dispatch<React.SetStateAction<boolean>>
@@ -298,6 +299,10 @@ export function Grid(props: GridProps) {
           {
             toolbar: {
               navigationMode: props.navigationMode,
+              changeModeButton: {
+                active: props.navigationMode,
+                onClick: props.onChangeModeClick
+              },
               createButton: props.create
                 ? {
                     active: props.create.createModeIsActive,

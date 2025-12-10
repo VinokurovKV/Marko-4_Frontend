@@ -108,7 +108,7 @@ export function SubgroupsGrid(props: SubgroupsGridProps) {
         ? [actionsCol]
         : [])
     ],
-    [readCols, actionsCol]
+    [rightsSet, readCols, actionsCol]
   )
 
   const defaultHiddenFields = React.useMemo(() => [] as (keyof Subgroup)[], [])

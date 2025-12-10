@@ -238,7 +238,7 @@ export function TasksGrid(props: TasksGridProps) {
               ? [actionsCol]
               : [])
           ],
-    [navigationMode, readCols, navigationModeReadCols, actionsCol]
+    [navigationMode, rightsSet, readCols, navigationModeReadCols, actionsCol]
   )
 
   const defaultHiddenFields = React.useMemo(

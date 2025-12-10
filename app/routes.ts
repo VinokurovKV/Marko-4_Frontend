@@ -18,6 +18,12 @@ export default [
             route('users', 'routes/users.tsx'),
             route('documents', 'routes/documents.tsx'),
             route('requirements', 'routes/requirements.tsx'),
+            layout('routes/requirements-hierarchy-layout.tsx', [
+              route(
+                'requirements/hierarchy',
+                'routes/requirements-hierarchy.tsx'
+              )
+            ]),
             route('coverages', 'routes/coverages.tsx'),
             route('common-topologies', 'routes/common-topologies.tsx'),
             route('topologies', 'routes/topologies.tsx'),
