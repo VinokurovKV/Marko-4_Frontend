@@ -43,7 +43,7 @@ export default [
             layout('routes/test-report-layout.tsx', [
               route('tasks/:taskId/:testId', 'routes/test-report.tsx')
             ]),
-            index('routes/tasks.tsx'),
+            index('routes/home.tsx'),
             route('*', 'routes/not-found.tsx')
           ])
         ])
