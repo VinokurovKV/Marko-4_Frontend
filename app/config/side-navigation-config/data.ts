@@ -5,7 +5,7 @@ import type { SideNavigationConfig } from './common'
 // import CodeIcon from '@mui/icons-material/Code'
 import ComputerIcon from '@mui/icons-material/Computer'
 import ConstructionIcon from '@mui/icons-material/Construction'
-import DataObjectIcon from '@mui/icons-material/DataObject'
+// import DataObjectIcon from '@mui/icons-material/DataObject'
 import DescriptionIcon from '@mui/icons-material/Description'
 import DeviceHubIcon from '@mui/icons-material/DeviceHub'
 // import ExtensionIcon from '@mui/icons-material/Extension'
@@ -15,7 +15,7 @@ import FoundationIcon from '@mui/icons-material/Foundation'
 // import GridOnIcon from '@mui/icons-material/GridOn'
 // import GroupIcon from '@mui/icons-material/Group'
 import GroupsIcon from '@mui/icons-material/Groups'
-import HistoryIcon from '@mui/icons-material/History'
+// import HistoryIcon from '@mui/icons-material/History'
 import HiveIcon from '@mui/icons-material/Hive'
 // import HubIcon from '@mui/icons-material/Hub'
 import LanIcon from '@mui/icons-material/Lan'
@@ -28,7 +28,7 @@ import RuleIcon from '@mui/icons-material/Rule'
 // import SchemaIcon from '@mui/icons-material/Schema'
 // import SettingsIcon from '@mui/icons-material/Settings'
 // import SettingsAccessibilityIcon from '@mui/icons-material/SettingsAccessibility'
-import StorageIcon from '@mui/icons-material/Storage'
+// import StorageIcon from '@mui/icons-material/Storage'
 import TagIcon from '@mui/icons-material/Tag'
 import TaskIcon from '@mui/icons-material/Task'
 import TheaterComedyIcon from '@mui/icons-material/TheaterComedy'
@@ -41,13 +41,13 @@ export const SIDE_NAVIGATION_CONFIG: SideNavigationConfig = [
   {
     title: 'общее',
     nested: [
-      {
-        id: 'events',
-        title: 'события',
-        Icon: HistoryIcon,
-        href: '/events',
-        requiredRights: ['READ_EVENT']
-      },
+      // {
+      //   id: 'events',
+      //   title: 'события',
+      //   Icon: HistoryIcon,
+      //   href: '/events',
+      //   requiredRights: ['READ_EVENT']
+      // },
       {
         id: 'tags',
         title: 'теги',
@@ -153,14 +153,14 @@ export const SIDE_NAVIGATION_CONFIG: SideNavigationConfig = [
             Icon: FoundationIcon,
             href: '/test-templates',
             requiredRights: ['READ_TEST_TEMPLATE']
-          },
-          {
-            id: 'dsefs',
-            title: 'доп. форматы',
-            Icon: DataObjectIcon,
-            href: '/dsefs',
-            requiredRights: ['READ_DSEF']
           }
+          // {
+          //   id: 'dsefs',
+          //   title: 'доп. форматы',
+          //   Icon: DataObjectIcon,
+          //   href: '/dsefs',
+          //   requiredRights: ['READ_DSEF']
+          // }
         ]
       }
     ]
@@ -207,15 +207,15 @@ export const SIDE_NAVIGATION_CONFIG: SideNavigationConfig = [
             requiredRights: ['READ_ROLE']
           }
         ]
-      },
-
-      {
-        id: 'server',
-        title: 'сервер',
-        Icon: StorageIcon,
-        href: '/server',
-        requiredRights: ['READ_LOGS']
       }
+
+      // {
+      //   id: 'server',
+      //   title: 'сервер',
+      //   Icon: StorageIcon,
+      //   href: '/server',
+      //   requiredRights: ['READ_LOGS']
+      // }
     ]
   }
 ]

@@ -81,6 +81,7 @@ export default function MetaRoute({
     meta.selfMeta.rights.includes('READ_REQUIREMENT') === false ? (
     <ForbiddenScreen />
   ) : requirements !== null ? (
-    <RequirementsHierarchyScreen initialRequirements={requirements} />
-  ) : null
+    <RequirementsHierarchyScreen />
+  ) : // <RequirementsHierarchyScreen initialRequirements={requirements} />
+  null
 }
