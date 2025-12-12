@@ -27,11 +27,12 @@ export interface FormDateTimeProps
 
 export const DateTimePickerStyled = styled(DateTimePicker)(({ theme }) => ({
   '& > .MuiFormLabel-root': {
-    transform: 'translate(14px, 8.5px) scale(0.85)'
+    fontSize: '0.85rem',
+    transform: 'translate(13px, 6.5px)'
   },
   '& > .MuiFormLabel-root.Mui-focused, & > .MuiFormLabel-root.MuiFormLabel-filled':
     {
-      transform: 'translate(14px, -7px) scale(0.65)'
+      transform: 'translate(14px, -6.5px) scale(0.65)'
     },
   '& > .MuiFormLabel-root:not(.Mui-focused):not(.MuiFormLabel-filled)': {
     opacity: 0.55
@@ -44,10 +45,10 @@ export const DateTimePickerStyled = styled(DateTimePicker)(({ theme }) => ({
       borderColor: `${theme.palette.error.main} !important`
     },
   '& .MuiPickersInputBase-root': {
-    height: '36px'
+    height: '32px' // '36px'
   },
   '& legend': {
-    fontSize: '0.65rem !important'
+    fontSize: '0.54rem !important' // '0.65rem !important'
   }
 }))
 

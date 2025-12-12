@@ -1,8 +1,8 @@
 // Project
 import { allCoverageTypes } from '@common/enums'
-import type { ReadRequirementsWithPrimaryPropsSuccessResultItemDto } from '@common/dtos/server-api/requirements.dto'
 import type { CreateCoverageSuccessResultDto } from '@common/dtos/server-api/coverages.dto'
 import type { DtoWithoutEnums } from '@common/dto-without-enums'
+import type { RequirementPrimary } from '~/types'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
 import { useTags, useTests } from '~/hooks/resources'
@@ -32,18 +32,15 @@ const EMPTY_TAG_IDS_ARR: number[] = []
 const EMPTY_TAG_CODES_ARR: string[] = []
 const EMPTY_TEST_IDS_ARR: number[] = []
 
-type Requirement =
-  DtoWithoutEnums<ReadRequirementsWithPrimaryPropsSuccessResultItemDto>
-
 const CREATE_COVERAGE_FORM_PROPS_JOINED =
   createCoverageFormValidator.getPromptsJoined()
 
 export interface CreateCoverageFormDialogProps {
-  requirements: Requirement[] | null
+  requirements: RequirementPrimary[] | null
   createModeIsActive: boolean
   setCreateModeIsActive: React.Dispatch<React.SetStateAction<boolean>>
   onSuccessCreateCoverage?: (
-    createCoverageResult: CreateCoverageSuccessResultDto
+    createCoverageResult: DtoWithoutEnums<CreateCoverageSuccessResultDto>
   ) => void
   onCancelClick?: () => void
 }
@@ -153,7 +150,7 @@ export function CreateCoverageFormDialog(props: CreateCoverageFormDialogProps) {
   const onSuccessSubmit = React.useCallback(
     (
       data: CreateCoverageFormData,
-      createCoverageResult: CreateCoverageSuccessResultDto
+      createCoverageResult: DtoWithoutEnums<CreateCoverageSuccessResultDto>
     ) => {
       notifier.showSuccess(
         `покрытие '${data.code}' требования '${requirementCodeForId.get(data.requirementId!) ?? ''}' создано`
@@ -172,7 +169,10 @@ export function CreateCoverageFormDialog(props: CreateCoverageFormDialogProps) {
     handleAutocompleteSingleSelectChange,
     handleAutocompleteMultipleSelectChange,
     handleAutocompleteMultipleSelectFreeItemsChange
-  } = useForm<CreateCoverageFormData, CreateCoverageSuccessResultDto>({
+  } = useForm<
+    CreateCoverageFormData,
+    DtoWithoutEnums<CreateCoverageSuccessResultDto>
+  >({
     INITIAL_FORM_DATA: INITIAL_CREATE_COVERAGE_FORM_DATA,
     validator: createCoverageFormValidator,
     submitAction: submitAction,

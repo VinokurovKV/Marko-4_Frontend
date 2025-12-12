@@ -35,7 +35,7 @@ export function useGroupCol(groups: Group[] | null | undefined) {
           hrefPath={params.row.groupId}
         />
       ),
-      minWidth: 150,
+      minWidth: 140,
       flex: 1
     }),
     []

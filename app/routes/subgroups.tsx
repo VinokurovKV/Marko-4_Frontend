@@ -1,7 +1,13 @@
 // Project
+import type { GroupPrimary, SubgroupSecondary } from '~/types'
 import { serverConnector } from '~/server-connector'
+import { readSubgroupsSecondary, readGroupsPrimary } from '~/readers'
 import { useNotifier } from '~/providers/notifier'
 import { useMeta } from '~/providers/meta'
+import {
+  useSubgroupsSubscription,
+  useGroupsSubscription
+} from '~/hooks/resources'
 import { ForbiddenScreen } from '~/components/screens/problem/forbidden'
 import { SubgroupsScreen } from '~/components/screens/subgroups'
 // React router
@@ -11,40 +17,31 @@ import * as React from 'react'
 
 export async function clientLoader() {
   await serverConnector.connect()
-  const [subgroups, groups] = await (async () => {
-    if (serverConnector.meta.status !== 'AUTHENTICATED') {
-      return [null, null]
-    } else {
-      const rights = serverConnector.meta.selfMeta.rights
-      return await Promise.all([
-        rights.includes('READ_SUBGROUP')
-          ? serverConnector
-              .readSubgroups({
-                scope: 'UP_TO_SECONDARY_PROPS'
-              })
-              .catch(() => null)
-          : Promise.resolve(null),
-        rights.includes('READ_GROUP')
-          ? serverConnector
-              .readGroups({
-                scope: 'PRIMARY_PROPS'
-              })
-              .catch(() => null)
-          : Promise.resolve(null)
-      ])
-    }
-  })()
+  const [subgroups, groups] = await Promise.all([
+    readSubgroupsSecondary(),
+    readGroupsPrimary()
+  ])
   return {
     subgroups,
     groups
   }
 }
 
-export default function MetaRoute({
-  loaderData: { subgroups, groups }
+export default function SubgroupsRoute({
+  loaderData: { subgroups: initialSubgroups, groups: initialGroups }
 }: Route.ComponentProps) {
   const notifier = useNotifier()
   const meta = useMeta()
+
+  const [groups, setGroups] = React.useState<GroupPrimary[] | null>(
+    initialGroups
+  )
+  const [subgroups, setSubgroups] = React.useState<SubgroupSecondary[] | null>(
+    initialSubgroups
+  )
+
+  useGroupsSubscription('PRIMARY_PROPS', setGroups)
+  useSubgroupsSubscription('UP_TO_SECONDARY_PROPS', setSubgroups)
 
   React.useEffect(() => {
     if (
@@ -59,10 +56,7 @@ export default function MetaRoute({
   return meta.status === 'AUTHENTICATED' &&
     meta.selfMeta.rights.includes('READ_SUBGROUP') === false ? (
     <ForbiddenScreen />
-  ) : (
-    <SubgroupsScreen
-      initialSubgroups={subgroups ?? []}
-      initialGroups={groups}
-    />
-  )
+  ) : subgroups !== null ? (
+    <SubgroupsScreen subgroups={subgroups} groups={groups} />
+  ) : null
 }

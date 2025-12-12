@@ -1,8 +1,8 @@
 // Project
 import { allRequirementModifiers, allRequirementOrigins } from '@common/enums'
-import type { ReadRequirementsWithPrimaryPropsSuccessResultItemDto } from '@common/dtos/server-api/requirements.dto'
 import type { CreateRequirementSuccessResultDto } from '@common/dtos/server-api/requirements.dto'
 import type { DtoWithoutEnums } from '@common/dto-without-enums'
+import type { RequirementPrimary } from '~/types'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
 import { useTags, useDocuments, useFragments } from '~/hooks/resources'
@@ -34,18 +34,15 @@ const EMPTY_TAG_CODES_ARR: string[] = []
 const EMPTY_FRAGMENT_IDS_ARR: number[] = []
 const EMPTY_REQUIREMENT_IDS_ARR: number[] = []
 
-type Requirement =
-  DtoWithoutEnums<ReadRequirementsWithPrimaryPropsSuccessResultItemDto>
-
 const CREATE_REQUIREMENT_FORM_PROPS_JOINED =
   createRequirementFormValidator.getPromptsJoined()
 
 export interface CreateRequirementFormDialogProps {
-  requirements: Requirement[] | null
+  requirements: RequirementPrimary[] | null
   createModeIsActive: boolean
   setCreateModeIsActive: React.Dispatch<React.SetStateAction<boolean>>
   onSuccessCreateRequirement?: (
-    createRequirementResult: CreateRequirementSuccessResultDto
+    createRequirementResult: DtoWithoutEnums<CreateRequirementSuccessResultDto>
   ) => void
   onCancelClick?: () => void
 }
@@ -154,7 +151,7 @@ export function CreateRequirementFormDialog(
   const onSuccessSubmit = React.useCallback(
     (
       data: CreateRequirementFormData,
-      createRequirementResult: CreateRequirementSuccessResultDto
+      createRequirementResult: DtoWithoutEnums<CreateRequirementSuccessResultDto>
     ) => {
       notifier.showSuccess(`требование '${data.code}' создано`)
       props.onSuccessCreateRequirement?.(createRequirementResult)
@@ -170,7 +167,10 @@ export function CreateRequirementFormDialog(
     handleStrSelectChange,
     handleAutocompleteMultipleSelectChange,
     handleAutocompleteMultipleSelectFreeItemsChange
-  } = useForm<CreateRequirementFormData, CreateRequirementSuccessResultDto>({
+  } = useForm<
+    CreateRequirementFormData,
+    DtoWithoutEnums<CreateRequirementSuccessResultDto>
+  >({
     INITIAL_FORM_DATA: INITIAL_CREATE_REQUIREMENT_FORM_DATA,
     validator: createRequirementFormValidator,
     submitAction: submitAction,

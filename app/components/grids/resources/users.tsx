@@ -1,11 +1,8 @@
 // Project
-import type { ReadRolesWithPrimaryPropsSuccessResultItemDto } from '@common/dtos/server-api/roles.dto'
-import type { ReadUsersWithUpToSecondaryPropsSuccessResultItemDto } from '@common/dtos/server-api/users.dto'
-import type { DtoWithoutEnums } from '@common/dto-without-enums'
+import type { RolePrimary, UserSecondary } from '~/types'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
 import { useMeta } from '~/providers/meta'
-import { useRolesSubscription, useUsersSubscription } from '~/hooks/resources'
 import { CreateUserFormDialog } from '~/components/forms/resources/create-user'
 import { type GridProps, Grid } from '../grid'
 import {
@@ -26,12 +23,9 @@ import { type GridColDef, type GridValidRowModel } from '@mui/x-data-grid'
 
 const MAX_USERS_IN_MESSAGES = 3
 
-type Role = DtoWithoutEnums<ReadRolesWithPrimaryPropsSuccessResultItemDto>
-type User = DtoWithoutEnums<ReadUsersWithUpToSecondaryPropsSuccessResultItemDto>
-
 export interface UsersGridProps {
-  initialRoles: Role[] | null
-  initialUsers: User[]
+  roles: RolePrimary[] | null
+  users: UserSecondary[]
   navigationMode?: boolean
 }
 
@@ -47,18 +41,12 @@ export function UsersGrid(props: UsersGridProps) {
 
   const [createModeIsActive, setCreateModeIsActive] = React.useState(false)
 
-  const [roles, setRoles] = React.useState<Role[] | null>(props.initialRoles)
-  const [users, setUsers] = React.useState<User[]>(props.initialUsers)
-
-  useRolesSubscription('PRIMARY_PROPS', setRoles)
-  useUsersSubscription('UP_TO_SECONDARY_PROPS', setUsers)
-
   const userLoginForId = React.useMemo(
-    () => new Map(users.map((user) => [user.id, user.login])),
-    [users]
+    () => new Map(props.users.map((user) => [user.id, user.login])),
+    [props.users]
   )
 
-  const rows: GridValidRowModel[] = users
+  const rows: GridValidRowModel[] = props.users
 
   const readCols = [
     useLoginCol('id', true),
@@ -67,7 +55,7 @@ export function UsersGrid(props: UsersGridProps) {
     usePatronymicCol(),
     useEmailCol(),
     usePhoneCol(),
-    useRoleCol(roles)
+    useRoleCol(props.roles)
   ]
 
   const actionsColProps: ActionsColProps = React.useMemo(
@@ -107,7 +95,7 @@ export function UsersGrid(props: UsersGridProps) {
   )
 
   const defaultHiddenFields = React.useMemo(
-    () => ['phone'] as (keyof User)[],
+    () => ['phone'] as (keyof UserSecondary)[],
     []
   )
 
@@ -178,7 +166,7 @@ export function UsersGrid(props: UsersGridProps) {
         deleteMany={deleteManyProps}
       />
       <CreateUserFormDialog
-        roles={roles}
+        roles={props.roles}
         createModeIsActive={createModeIsActive}
         setCreateModeIsActive={setCreateModeIsActive}
         onSuccessCreateUser={cancelCreateForm}

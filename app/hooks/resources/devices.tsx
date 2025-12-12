@@ -1,35 +1,28 @@
 // Project
 import type { ReadOneResourceScope, ReadManyResourceScope } from '@common/enums'
 import type {
-  ReadDeviceWithPrimaryPropsSuccessResultDto,
-  ReadDeviceWithUpToSecondaryPropsSuccessResultDto,
-  ReadDeviceWithUpToTertiaryPropsSuccessResultDto,
-  ReadDeviceWithAllPropsSuccessResultDto,
-  ReadDevicesWithPrimaryPropsSuccessResultItemDto,
-  ReadDevicesWithUpToSecondaryPropsSuccessResultItemDto
-} from '@common/dtos/server-api/devices.dto'
-import type { DtoWithoutEnums } from '@common/dto-without-enums'
+  DevicePrimary,
+  DeviceSecondary,
+  DeviceTertiary,
+  DeviceAll
+} from '~/types'
 import { serverConnector } from '~/server-connector'
 import { useChangeDetector } from '../change-detector'
 import { useNotifier } from '~/providers/notifier'
 // React
 import * as React from 'react'
 
-type ReadOneDevice<Scope extends ReadOneResourceScope> = DtoWithoutEnums<
+type ReadOneDevice<Scope extends ReadOneResourceScope> =
   Scope extends 'PRIMARY_PROPS'
-    ? ReadDeviceWithPrimaryPropsSuccessResultDto
+    ? DevicePrimary
     : Scope extends 'UP_TO_SECONDARY_PROPS'
-      ? ReadDeviceWithUpToSecondaryPropsSuccessResultDto
+      ? DeviceSecondary
       : Scope extends 'UP_TO_TERTIARY_PROPS'
-        ? ReadDeviceWithUpToTertiaryPropsSuccessResultDto
-        : ReadDeviceWithAllPropsSuccessResultDto
->
+        ? DeviceTertiary
+        : DeviceAll
 
-type ReadManyDevice<Scope extends ReadManyResourceScope> = DtoWithoutEnums<
-  Scope extends 'PRIMARY_PROPS'
-    ? ReadDevicesWithPrimaryPropsSuccessResultItemDto
-    : ReadDevicesWithUpToSecondaryPropsSuccessResultItemDto
->
+type ReadManyDevice<Scope extends ReadManyResourceScope> =
+  Scope extends 'PRIMARY_PROPS' ? DevicePrimary : DeviceSecondary
 
 function useDeviceSubscriptionInner<Scope extends ReadOneResourceScope>(
   scope: Scope,

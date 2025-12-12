@@ -1,35 +1,28 @@
 // Project
 import type { ReadOneResourceScope, ReadManyResourceScope } from '@common/enums'
 import type {
-  ReadFragmentWithPrimaryPropsSuccessResultDto,
-  ReadFragmentWithUpToSecondaryPropsSuccessResultDto,
-  ReadFragmentWithUpToTertiaryPropsSuccessResultDto,
-  ReadFragmentWithAllPropsSuccessResultDto,
-  ReadFragmentsWithPrimaryPropsSuccessResultItemDto,
-  ReadFragmentsWithUpToSecondaryPropsSuccessResultItemDto
-} from '@common/dtos/server-api/fragments.dto'
-import type { DtoWithoutEnums } from '@common/dto-without-enums'
+  FragmentPrimary,
+  FragmentSecondary,
+  FragmentTertiary,
+  FragmentAll
+} from '~/types'
 import { serverConnector } from '~/server-connector'
 import { useChangeDetector } from '../change-detector'
 import { useNotifier } from '~/providers/notifier'
 // React
 import * as React from 'react'
 
-type ReadOneFragment<Scope extends ReadOneResourceScope> = DtoWithoutEnums<
+type ReadOneFragment<Scope extends ReadOneResourceScope> =
   Scope extends 'PRIMARY_PROPS'
-    ? ReadFragmentWithPrimaryPropsSuccessResultDto
+    ? FragmentPrimary
     : Scope extends 'UP_TO_SECONDARY_PROPS'
-      ? ReadFragmentWithUpToSecondaryPropsSuccessResultDto
+      ? FragmentSecondary
       : Scope extends 'UP_TO_TERTIARY_PROPS'
-        ? ReadFragmentWithUpToTertiaryPropsSuccessResultDto
-        : ReadFragmentWithAllPropsSuccessResultDto
->
+        ? FragmentTertiary
+        : FragmentAll
 
-type ReadManyFragment<Scope extends ReadManyResourceScope> = DtoWithoutEnums<
-  Scope extends 'PRIMARY_PROPS'
-    ? ReadFragmentsWithPrimaryPropsSuccessResultItemDto
-    : ReadFragmentsWithUpToSecondaryPropsSuccessResultItemDto
->
+type ReadManyFragment<Scope extends ReadManyResourceScope> =
+  Scope extends 'PRIMARY_PROPS' ? FragmentPrimary : FragmentSecondary
 
 function useFragmentSubscriptionInner<Scope extends ReadOneResourceScope>(
   scope: Scope,

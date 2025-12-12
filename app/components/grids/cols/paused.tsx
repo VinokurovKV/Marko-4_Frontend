@@ -26,7 +26,7 @@ export function usePausedCol() {
           <PausedIcon flag={params.value === true} />
         </Stack>
       ),
-      minWidth: 150,
+      minWidth: 140,
       flex: 0.01
     }),
     []

@@ -1,35 +1,28 @@
 // Project
 import type { ReadOneResourceScope, ReadManyResourceScope } from '@common/enums'
 import type {
-  ReadSubgroupWithPrimaryPropsSuccessResultDto,
-  ReadSubgroupWithUpToSecondaryPropsSuccessResultDto,
-  ReadSubgroupWithUpToTertiaryPropsSuccessResultDto,
-  ReadSubgroupWithAllPropsSuccessResultDto,
-  ReadSubgroupsWithPrimaryPropsSuccessResultItemDto,
-  ReadSubgroupsWithUpToSecondaryPropsSuccessResultItemDto
-} from '@common/dtos/server-api/subgroups.dto'
-import type { DtoWithoutEnums } from '@common/dto-without-enums'
+  SubgroupPrimary,
+  SubgroupSecondary,
+  SubgroupTertiary,
+  SubgroupAll
+} from '~/types'
 import { serverConnector } from '~/server-connector'
 import { useChangeDetector } from '../change-detector'
 import { useNotifier } from '~/providers/notifier'
 // React
 import * as React from 'react'
 
-type ReadOneSubgroup<Scope extends ReadOneResourceScope> = DtoWithoutEnums<
+type ReadOneSubgroup<Scope extends ReadOneResourceScope> =
   Scope extends 'PRIMARY_PROPS'
-    ? ReadSubgroupWithPrimaryPropsSuccessResultDto
+    ? SubgroupPrimary
     : Scope extends 'UP_TO_SECONDARY_PROPS'
-      ? ReadSubgroupWithUpToSecondaryPropsSuccessResultDto
+      ? SubgroupSecondary
       : Scope extends 'UP_TO_TERTIARY_PROPS'
-        ? ReadSubgroupWithUpToTertiaryPropsSuccessResultDto
-        : ReadSubgroupWithAllPropsSuccessResultDto
->
+        ? SubgroupTertiary
+        : SubgroupAll
 
-type ReadManySubgroup<Scope extends ReadManyResourceScope> = DtoWithoutEnums<
-  Scope extends 'PRIMARY_PROPS'
-    ? ReadSubgroupsWithPrimaryPropsSuccessResultItemDto
-    : ReadSubgroupsWithUpToSecondaryPropsSuccessResultItemDto
->
+type ReadManySubgroup<Scope extends ReadManyResourceScope> =
+  Scope extends 'PRIMARY_PROPS' ? SubgroupPrimary : SubgroupSecondary
 
 function useSubgroupSubscriptionInner<Scope extends ReadOneResourceScope>(
   scope: Scope,

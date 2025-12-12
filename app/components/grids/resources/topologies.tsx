@@ -1,14 +1,8 @@
 // Project
-import type { ReadCommonTopologiesWithPrimaryPropsSuccessResultItemDto } from '@common/dtos/server-api/common-topologies.dto'
-import type { ReadTopologiesWithUpToSecondaryPropsSuccessResultItemDto } from '@common/dtos/server-api/topologies.dto'
-import type { DtoWithoutEnums } from '@common/dto-without-enums'
+import type { CommonTopologyPrimary, TopologySecondary } from '~/types'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
 import { useMeta } from '~/providers/meta'
-import {
-  useCommonTopologiesSubscription,
-  useTopologiesSubscription
-} from '~/hooks/resources'
 import { CreateTopologyFormDialog } from '~/components/forms/resources/create-topology'
 import { type GridProps, Grid } from '../grid'
 import {
@@ -27,14 +21,9 @@ import { type GridColDef, type GridValidRowModel } from '@mui/x-data-grid'
 
 const MAX_TOPOLOGIES_IN_MESSAGES = 3
 
-type CommonTopology =
-  DtoWithoutEnums<ReadCommonTopologiesWithPrimaryPropsSuccessResultItemDto>
-type Topology =
-  DtoWithoutEnums<ReadTopologiesWithUpToSecondaryPropsSuccessResultItemDto>
-
 export interface TopologiesGridProps {
-  initialCommonTopologies: CommonTopology[] | null
-  initialTopologies: Topology[]
+  commonTopologies: CommonTopologyPrimary[] | null
+  topologies: TopologySecondary[]
   navigationMode?: boolean
 }
 
@@ -50,27 +39,18 @@ export function TopologiesGrid(props: TopologiesGridProps) {
 
   const [createModeIsActive, setCreateModeIsActive] = React.useState(false)
 
-  const [commonTopologies, setCommonTopologies] = React.useState<
-    CommonTopology[] | null
-  >(props.initialCommonTopologies)
-  const [topologies, setTopologies] = React.useState<Topology[]>(
-    props.initialTopologies
-  )
-
-  useCommonTopologiesSubscription('PRIMARY_PROPS', setCommonTopologies)
-  useTopologiesSubscription('UP_TO_SECONDARY_PROPS', setTopologies)
-
   const topologyCodeForId = React.useMemo(
-    () => new Map(topologies.map((topology) => [topology.id, topology.code])),
-    [topologies]
+    () =>
+      new Map(props.topologies.map((topology) => [topology.id, topology.code])),
+    [props.topologies]
   )
 
-  const rows: GridValidRowModel[] = topologies
+  const rows: GridValidRowModel[] = props.topologies
 
   const readCols = [
     useCodeCol('id', true, '/topologies'),
     useNameCol(),
-    useCommonTopologyCol(commonTopologies),
+    useCommonTopologyCol(props.commonTopologies),
     useNumInCommonTopologyCol(),
     useVertexesCountCol()
   ]
@@ -112,7 +92,10 @@ export function TopologiesGrid(props: TopologiesGridProps) {
     [rightsSet, readCols, actionsCol]
   )
 
-  const defaultHiddenFields = React.useMemo(() => [] as (keyof Topology)[], [])
+  const defaultHiddenFields = React.useMemo(
+    () => [] as (keyof TopologySecondary)[],
+    []
+  )
 
   const createProps: GridProps['create'] = React.useMemo(
     () =>
@@ -181,7 +164,7 @@ export function TopologiesGrid(props: TopologiesGridProps) {
         deleteMany={deleteManyProps}
       />
       <CreateTopologyFormDialog
-        commonTopologies={commonTopologies}
+        commonTopologies={props.commonTopologies}
         createModeIsActive={createModeIsActive}
         setCreateModeIsActive={setCreateModeIsActive}
         onSuccessCreateTopology={cancelCreateForm}

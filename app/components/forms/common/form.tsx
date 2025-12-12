@@ -17,7 +17,7 @@ import type {
 } from '~/validation/form-validator'
 import { useChangeDetector } from '~/hooks/change-detector'
 import { ProjButton } from '~/components/buttons/button'
-import { FormContainer } from '~/components/containers/form-container'
+import { FormContainer } from '~/components/containers'
 import type { FormAutocompleteSingleSelectProps } from './form-autocomplete-single-select'
 import type { FormAutocompleteMultipleSelectProps } from './form-autocomplete-multiple-select'
 import type { FormAutocompleteFreeItemsMultipleSelectProps } from './form-autocomplete-free-items-multiple-select'

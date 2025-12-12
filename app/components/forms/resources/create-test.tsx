@@ -1,10 +1,12 @@
 // Project
-import type { ReadTopologiesWithPrimaryPropsSuccessResultItemDto } from '@common/dtos/server-api/topologies.dto'
-import type { ReadDbcsWithPrimaryPropsSuccessResultItemDto } from '@common/dtos/server-api/dbcs.dto'
-import type { ReadTestTemplatesWithPrimaryPropsSuccessResultItemDto } from '@common/dtos/server-api/test-templates.dto'
 import type { CreateTestSuccessResultDto } from '@common/dtos/server-api/tests.dto'
-import type { ReadSubgroupsWithPrimaryPropsSuccessResultItemDto } from '@common/dtos/server-api/subgroups.dto'
 import type { DtoWithoutEnums } from '@common/dto-without-enums'
+import type {
+  TopologyPrimary,
+  DbcPrimary,
+  TestTemplatePrimary,
+  SubgroupPrimary
+} from '~/types'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
 import { useChangeDetector } from '~/hooks/change-detector'
@@ -43,24 +45,18 @@ const EMPTY_TAG_CODES_ARR: string[] = []
 const EMPTY_COVERAGE_IDS_ARR: number[] = []
 const EMPTY_VERTEX_NAMES_ARR: string[] = []
 
-type Topology =
-  DtoWithoutEnums<ReadTopologiesWithPrimaryPropsSuccessResultItemDto>
-type Dbc = DtoWithoutEnums<ReadDbcsWithPrimaryPropsSuccessResultItemDto>
-type TestTemplate =
-  DtoWithoutEnums<ReadTestTemplatesWithPrimaryPropsSuccessResultItemDto>
-type Subgroup =
-  DtoWithoutEnums<ReadSubgroupsWithPrimaryPropsSuccessResultItemDto>
-
 const CREATE_TEST_FORM_PROPS_JOINED = createTestFormValidator.getPromptsJoined()
 
 export interface CreateTestFormDialogProps {
-  topologies: Topology[] | null
-  dbcs: Dbc[] | null
-  testTemplates: TestTemplate[] | null
-  subgroups: Subgroup[] | null
+  topologies: TopologyPrimary[] | null
+  dbcs: DbcPrimary[] | null
+  testTemplates: TestTemplatePrimary[] | null
+  subgroups: SubgroupPrimary[] | null
   createModeIsActive: boolean
   setCreateModeIsActive: React.Dispatch<React.SetStateAction<boolean>>
-  onSuccessCreateTest?: (createTestResult: CreateTestSuccessResultDto) => void
+  onSuccessCreateTest?: (
+    createTestResult: DtoWithoutEnums<CreateTestSuccessResultDto>
+  ) => void
   onCancelClick?: () => void
 }
 
@@ -247,7 +243,7 @@ export function CreateTestFormDialog(props: CreateTestFormDialogProps) {
   const onSuccessSubmit = React.useCallback(
     (
       data: CreateTestFormData,
-      createTestResult: CreateTestSuccessResultDto
+      createTestResult: DtoWithoutEnums<CreateTestSuccessResultDto>
     ) => {
       notifier.showSuccess(`тест '${data.code}' создан`)
       props.onSuccessCreateTest?.(createTestResult)
@@ -265,7 +261,7 @@ export function CreateTestFormDialog(props: CreateTestFormDialogProps) {
     handleAutocompleteMultipleSelectChange,
     handleAutocompleteMultipleSelectFreeItemsChange,
     handleFileUploadChange
-  } = useForm<CreateTestFormData, CreateTestSuccessResultDto>({
+  } = useForm<CreateTestFormData, DtoWithoutEnums<CreateTestSuccessResultDto>>({
     INITIAL_FORM_DATA: INITIAL_CREATE_TEST_FORM_DATA,
     validator: createTestFormValidator,
     submitAction: submitAction,

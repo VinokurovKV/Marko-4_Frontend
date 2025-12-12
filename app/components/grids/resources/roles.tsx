@@ -1,10 +1,8 @@
 // Project
-import type { ReadRolesWithUpToSecondaryPropsSuccessResultItemDto } from '@common/dtos/server-api/roles.dto'
-import type { DtoWithoutEnums } from '@common/dto-without-enums'
+import type { RoleSecondary } from '~/types'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
 import { useMeta } from '~/providers/meta'
-import { useRolesSubscription } from '~/hooks/resources'
 import { CreateRoleFormDialog } from '~/components/forms/resources/create-role'
 import { type GridProps, Grid } from '../grid'
 import { useRoleNameCol, type ActionsColProps, useActionsCol } from '../cols'
@@ -15,10 +13,8 @@ import { type GridColDef, type GridValidRowModel } from '@mui/x-data-grid'
 
 const MAX_ROLES_IN_MESSAGES = 3
 
-type Role = DtoWithoutEnums<ReadRolesWithUpToSecondaryPropsSuccessResultItemDto>
-
 export interface RolesGridProps {
-  initialRoles: Role[]
+  roles: RoleSecondary[]
   navigationMode?: boolean
 }
 
@@ -34,16 +30,12 @@ export function RolesGrid(props: RolesGridProps) {
 
   const [createModeIsActive, setCreateModeIsActive] = React.useState(false)
 
-  const [roles, setRoles] = React.useState<Role[]>(props.initialRoles)
-
-  useRolesSubscription('UP_TO_SECONDARY_PROPS', setRoles)
-
   const roleNameForId = React.useMemo(
-    () => new Map(roles.map((role) => [role.id, role.name])),
-    [roles]
+    () => new Map(props.roles.map((role) => [role.id, role.name])),
+    [props.roles]
   )
 
-  const rows: GridValidRowModel[] = roles
+  const rows: GridValidRowModel[] = props.roles
 
   const readCols = [useRoleNameCol('id', true)]
 
@@ -83,7 +75,10 @@ export function RolesGrid(props: RolesGridProps) {
     [rightsSet, readCols, actionsCol]
   )
 
-  const defaultHiddenFields = React.useMemo(() => [] as (keyof Role)[], [])
+  const defaultHiddenFields = React.useMemo(
+    () => [] as (keyof RoleSecondary)[],
+    []
+  )
 
   const createProps: GridProps['create'] = React.useMemo(
     () =>

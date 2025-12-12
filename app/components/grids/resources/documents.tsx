@@ -1,12 +1,10 @@
 // Project
 import { convertMediaTypeToFileExtension } from '@common/formats'
-import type { ReadDocumentsWithUpToSecondaryPropsSuccessResultItemDto } from '@common/dtos/server-api/documents.dto'
-import type { DtoWithoutEnums } from '@common/dto-without-enums'
+import type { DocumentSecondary } from '~/types'
 import { downloadFileFromBlob } from '~/utilities/download-file'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
 import { useMeta } from '~/providers/meta'
-import { useDocumentsSubscription } from '~/hooks/resources'
 import { CreateDocumentFormDialog } from '~/components/forms/resources/create-document'
 import { type GridProps, Grid } from '../grid'
 import {
@@ -28,11 +26,8 @@ import { type GridColDef, type GridValidRowModel } from '@mui/x-data-grid'
 
 const MAX_DOCUMENTS_IN_MESSAGES = 3
 
-type Document =
-  DtoWithoutEnums<ReadDocumentsWithUpToSecondaryPropsSuccessResultItemDto>
-
 export interface DocumentsGridProps {
-  initialDocuments: Document[]
+  documents: DocumentSecondary[]
   navigationMode?: boolean
 }
 
@@ -48,18 +43,13 @@ export function DocumentsGrid(props: DocumentsGridProps) {
 
   const [createModeIsActive, setCreateModeIsActive] = React.useState(false)
 
-  const [documents, setDocuments] = React.useState<Document[]>(
-    props.initialDocuments
-  )
-
-  useDocumentsSubscription('UP_TO_SECONDARY_PROPS', setDocuments)
-
   const documentCodeForId = React.useMemo(
-    () => new Map(documents.map((document) => [document.id, document.code])),
-    [documents]
+    () =>
+      new Map(props.documents.map((document) => [document.id, document.code])),
+    [props.documents]
   )
 
-  const rows: GridValidRowModel[] = documents
+  const rows: GridValidRowModel[] = props.documents
 
   const readCols = [
     useCodeCol('id', true, '/documents'),
@@ -119,7 +109,7 @@ export function DocumentsGrid(props: DocumentsGridProps) {
   )
 
   const defaultHiddenFields = React.useMemo(
-    () => ['publicVersion', 'date'] as (keyof Document)[],
+    () => ['publicVersion', 'date'] as (keyof DocumentSecondary)[],
     []
   )
 

@@ -20,7 +20,7 @@ export function useRoleNameCol(roleIdField: string, header: boolean) {
           header={header}
         />
       ),
-      minWidth: 150,
+      minWidth: 140,
       flex: 1
     }),
     []

@@ -17,7 +17,7 @@ export function useCoveragePercentCol() {
       renderCell: GridPercentCell,
       renderEditCell: GridPercentEditCell,
       headerAlign: 'center',
-      minWidth: 150,
+      minWidth: 140,
       flex: 0.01
     }),
     []

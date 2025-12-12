@@ -1,6 +1,5 @@
 // Project
-import type { CommonTopologyConfigDto } from '@common/dtos'
-import type { DtoWithoutEnums } from '@common/dto-without-enums'
+import type { CommonTopologyConfig } from '~/types'
 import { TopologyViewer } from './topology-viewer'
 // React
 import * as React from 'react'
@@ -11,8 +10,6 @@ import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
 // Other
 import capitalize from 'capitalize'
-
-type CommonTopologyConfig = DtoWithoutEnums<CommonTopologyConfigDto>
 
 const EMPTY_VERTEX_NAME_PROMPT = 'БЕЗЫМЯННАЯ ВЕРШИНА'
 const EMPTY_IFACE_NAME_PROMPT = 'БЕЗЫМЯННЫЙ ИНТЕРФЕЙС'

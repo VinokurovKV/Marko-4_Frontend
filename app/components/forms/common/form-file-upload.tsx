@@ -29,7 +29,8 @@ export interface FormFileUploadProps {
 
 const InputLabelStyled = styled(InputLabel)({
   '&': {
-    transform: 'translate(14px, 42px) scale(0.85)'
+    fontSize: '0.85rem',
+    transform: 'translate(13px, 42px)'
   },
   '&:not(.Mui-focused):not(.MuiFormLabel-filled)': {
     opacity: 0.55
@@ -180,7 +181,7 @@ export function FormFileUpload(props: FormFileUploadProps) {
             top: 0,
             left: '50%',
             transform: 'translate(-50%, 3px)',
-            fontSize: '0.55rem',
+            fontSize: '0.54rem',
             opacity: 0.55,
             userSelect: 'none'
           }}
@@ -246,7 +247,7 @@ export function FormFileUpload(props: FormFileUploadProps) {
             </Typography>
             <Tooltip title="Удалить">
               <IconButton
-                size="small"
+                size="medium"
                 onClick={handleClearClick}
                 sx={{
                   transform: 'translateX(-5px)'

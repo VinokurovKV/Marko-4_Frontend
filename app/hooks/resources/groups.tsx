@@ -1,35 +1,28 @@
 // Project
 import type { ReadOneResourceScope, ReadManyResourceScope } from '@common/enums'
 import type {
-  ReadGroupWithPrimaryPropsSuccessResultDto,
-  ReadGroupWithUpToSecondaryPropsSuccessResultDto,
-  ReadGroupWithUpToTertiaryPropsSuccessResultDto,
-  ReadGroupWithAllPropsSuccessResultDto,
-  ReadGroupsWithPrimaryPropsSuccessResultItemDto,
-  ReadGroupsWithUpToSecondaryPropsSuccessResultItemDto
-} from '@common/dtos/server-api/groups.dto'
-import type { DtoWithoutEnums } from '@common/dto-without-enums'
+  GroupPrimary,
+  GroupSecondary,
+  GroupTertiary,
+  GroupAll
+} from '~/types'
 import { serverConnector } from '~/server-connector'
 import { useChangeDetector } from '../change-detector'
 import { useNotifier } from '~/providers/notifier'
 // React
 import * as React from 'react'
 
-type ReadOneGroup<Scope extends ReadOneResourceScope> = DtoWithoutEnums<
+type ReadOneGroup<Scope extends ReadOneResourceScope> =
   Scope extends 'PRIMARY_PROPS'
-    ? ReadGroupWithPrimaryPropsSuccessResultDto
+    ? GroupPrimary
     : Scope extends 'UP_TO_SECONDARY_PROPS'
-      ? ReadGroupWithUpToSecondaryPropsSuccessResultDto
+      ? GroupSecondary
       : Scope extends 'UP_TO_TERTIARY_PROPS'
-        ? ReadGroupWithUpToTertiaryPropsSuccessResultDto
-        : ReadGroupWithAllPropsSuccessResultDto
->
+        ? GroupTertiary
+        : GroupAll
 
-type ReadManyGroup<Scope extends ReadManyResourceScope> = DtoWithoutEnums<
-  Scope extends 'PRIMARY_PROPS'
-    ? ReadGroupsWithPrimaryPropsSuccessResultItemDto
-    : ReadGroupsWithUpToSecondaryPropsSuccessResultItemDto
->
+type ReadManyGroup<Scope extends ReadManyResourceScope> =
+  Scope extends 'PRIMARY_PROPS' ? GroupPrimary : GroupSecondary
 
 function useGroupSubscriptionInner<Scope extends ReadOneResourceScope>(
   scope: Scope,

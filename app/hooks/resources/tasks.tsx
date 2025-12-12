@@ -1,35 +1,23 @@
 // Project
 import type { ReadOneResourceScope, ReadManyResourceScope } from '@common/enums'
-import type {
-  ReadTaskWithPrimaryPropsSuccessResultDto,
-  ReadTaskWithUpToSecondaryPropsSuccessResultDto,
-  ReadTaskWithUpToTertiaryPropsSuccessResultDto,
-  ReadTaskWithAllPropsSuccessResultDto,
-  ReadTasksWithPrimaryPropsSuccessResultItemDto,
-  ReadTasksWithUpToSecondaryPropsSuccessResultItemDto
-} from '@common/dtos/server-api/tasks.dto'
-import type { DtoWithoutEnums } from '@common/dto-without-enums'
+import type { TaskPrimary, TaskSecondary, TaskTertiary, TaskAll } from '~/types'
 import { serverConnector } from '~/server-connector'
 import { useChangeDetector } from '../change-detector'
 import { useNotifier } from '~/providers/notifier'
 // React
 import * as React from 'react'
 
-type ReadOneTask<Scope extends ReadOneResourceScope> = DtoWithoutEnums<
+type ReadOneTask<Scope extends ReadOneResourceScope> =
   Scope extends 'PRIMARY_PROPS'
-    ? ReadTaskWithPrimaryPropsSuccessResultDto
+    ? TaskPrimary
     : Scope extends 'UP_TO_SECONDARY_PROPS'
-      ? ReadTaskWithUpToSecondaryPropsSuccessResultDto
+      ? TaskSecondary
       : Scope extends 'UP_TO_TERTIARY_PROPS'
-        ? ReadTaskWithUpToTertiaryPropsSuccessResultDto
-        : ReadTaskWithAllPropsSuccessResultDto
->
+        ? TaskTertiary
+        : TaskAll
 
-type ReadManyTask<Scope extends ReadManyResourceScope> = DtoWithoutEnums<
-  Scope extends 'PRIMARY_PROPS'
-    ? ReadTasksWithPrimaryPropsSuccessResultItemDto
-    : ReadTasksWithUpToSecondaryPropsSuccessResultItemDto
->
+type ReadManyTask<Scope extends ReadManyResourceScope> =
+  Scope extends 'PRIMARY_PROPS' ? TaskPrimary : TaskSecondary
 
 function useTaskSubscriptionInner<Scope extends ReadOneResourceScope>(
   scope: Scope,

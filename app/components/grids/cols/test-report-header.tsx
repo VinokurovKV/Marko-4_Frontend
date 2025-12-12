@@ -1,6 +1,5 @@
 // Project
-import type { ReadTestsWithPrimaryPropsSuccessResultItemDto } from '@common/dtos/server-api/tests.dto'
-import type { DtoWithoutEnums } from '@common/dto-without-enums'
+import type { TestPrimary } from '~/types'
 import { GridRefCell } from '../cells/grid-ref-cell'
 // React
 import * as React from 'react'
@@ -9,10 +8,8 @@ import type { GridColDef, GridRenderCellParams } from '@mui/x-data-grid'
 // Other
 import capitalize from 'capitalize'
 
-type Test = DtoWithoutEnums<ReadTestsWithPrimaryPropsSuccessResultItemDto>
-
 export function useTestReportHeaderCol(
-  tests: Test[] | null | undefined,
+  tests: TestPrimary[] | null | undefined,
   disableRef?: boolean
 ) {
   const testCodeForId = React.useMemo(() => {
@@ -41,7 +38,7 @@ export function useTestReportHeaderCol(
           disableRef={disableRef}
         />
       ),
-      minWidth: 150,
+      minWidth: 140,
       flex: 1
     }),
     [disableRef]

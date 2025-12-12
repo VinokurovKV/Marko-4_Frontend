@@ -1,7 +1,9 @@
 // Project
 import { type ProjBreadcrumbsProps } from '../breadcrumbs'
-import { LayoutScreenContainer } from '../containers/layout-screen-container'
-import { TwoPartsContainer } from '../containers/two-parts-container'
+import {
+  LayoutScreenContainer,
+  HorizontalTwoPartsContainer
+} from '../containers'
 import {
   type RequirementsGridProps,
   RequirementsGrid
@@ -41,10 +43,10 @@ export function RequirementsHierarchyLayoutScreen(
       title="требования"
       breadcrumbsItems={breadcrumbsItems}
     >
-      <TwoPartsContainer proportions="ONE_THREE">
+      <HorizontalTwoPartsContainer proportions="ONE_THREE">
         <RequirementsGrid {...props} navigationMode={true} />
         {props.children}
-      </TwoPartsContainer>
+      </HorizontalTwoPartsContainer>
     </LayoutScreenContainer>
   )
 }

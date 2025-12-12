@@ -1,6 +1,5 @@
 // Project
-import type { ReadRequirementsWithPrimaryPropsSuccessResultItemDto } from '@common/dtos/server-api/requirements.dto'
-import type { DtoWithoutEnums } from '@common/dto-without-enums'
+import type { RequirementPrimary } from '~/types'
 import { GridRefCell } from '../cells/grid-ref-cell'
 // React
 import * as React from 'react'
@@ -9,11 +8,8 @@ import type { GridColDef, GridRenderCellParams } from '@mui/x-data-grid'
 // Other
 import capitalize from 'capitalize'
 
-type Requirement =
-  DtoWithoutEnums<ReadRequirementsWithPrimaryPropsSuccessResultItemDto>
-
 export function useRequirementCol(
-  requirements: Requirement[] | null | undefined
+  requirements: RequirementPrimary[] | null | undefined
 ) {
   const requirementNameForId = React.useMemo(
     () =>
@@ -41,7 +37,7 @@ export function useRequirementCol(
           hrefPath={params.row.requirementId}
         />
       ),
-      minWidth: 150,
+      minWidth: 140,
       flex: 1
     }),
     []

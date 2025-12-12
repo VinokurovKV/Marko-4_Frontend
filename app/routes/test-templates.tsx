@@ -1,7 +1,10 @@
 // Project
+import type { TestTemplateSecondary } from '~/types'
 import { serverConnector } from '~/server-connector'
+import { readTestTemplatesSecondary } from '~/readers'
 import { useNotifier } from '~/providers/notifier'
 import { useMeta } from '~/providers/meta'
+import { useTestTemplatesSubscription } from '~/hooks/resources'
 import { ForbiddenScreen } from '~/components/screens/problem/forbidden'
 import { TestTemplatesScreen } from '~/components/screens/test-templates'
 // React router
@@ -11,32 +14,23 @@ import * as React from 'react'
 
 export async function clientLoader() {
   await serverConnector.connect()
-  const [testTemplates] = await (async () => {
-    if (serverConnector.meta.status !== 'AUTHENTICATED') {
-      return [null]
-    } else {
-      const rights = serverConnector.meta.selfMeta.rights
-      return await Promise.all([
-        rights.includes('READ_TEST_TEMPLATE')
-          ? serverConnector
-              .readTestTemplates({
-                scope: 'UP_TO_SECONDARY_PROPS'
-              })
-              .catch(() => null)
-          : Promise.resolve(null)
-      ])
-    }
-  })()
+  const [testTemplates] = await Promise.all([readTestTemplatesSecondary()])
   return {
     testTemplates
   }
 }
 
-export default function MetaRoute({
-  loaderData: { testTemplates }
+export default function TestTemplatesRoute({
+  loaderData: { testTemplates: initialTestTemplates }
 }: Route.ComponentProps) {
   const notifier = useNotifier()
   const meta = useMeta()
+
+  const [testTemplates, setTestTemplates] = React.useState<
+    TestTemplateSecondary[] | null
+  >(initialTestTemplates)
+
+  useTestTemplatesSubscription('UP_TO_SECONDARY_PROPS', setTestTemplates)
 
   React.useEffect(() => {
     if (
@@ -51,7 +45,7 @@ export default function MetaRoute({
   return meta.status === 'AUTHENTICATED' &&
     meta.selfMeta.rights.includes('READ_TEST_TEMPLATE') === false ? (
     <ForbiddenScreen />
-  ) : (
-    <TestTemplatesScreen initialTestTemplates={testTemplates ?? []} />
-  )
+  ) : testTemplates !== null ? (
+    <TestTemplatesScreen testTemplates={testTemplates} />
+  ) : null
 }

@@ -1,5 +1,6 @@
 // Project
 import { serverConnector } from '~/server-connector'
+import { readRequirementsSecondary } from '~/readers'
 import { useNotifier } from '~/providers/notifier'
 import { useMeta } from '~/providers/meta'
 import { ForbiddenScreen } from '~/components/screens/problem/forbidden'
@@ -12,28 +13,13 @@ import * as React from 'react'
 
 export async function clientLoader() {
   await serverConnector.connect()
-  const [requirements] = await (async () => {
-    if (serverConnector.meta.status !== 'AUTHENTICATED') {
-      return [null]
-    } else {
-      const rights = serverConnector.meta.selfMeta.rights
-      return await Promise.all([
-        rights.includes('READ_REQUIREMENT')
-          ? serverConnector
-              .readRequirements({
-                scope: 'UP_TO_SECONDARY_PROPS'
-              })
-              .catch(() => null)
-          : Promise.resolve(null)
-      ])
-    }
-  })()
+  const [requirements] = await Promise.all([readRequirementsSecondary()])
   return {
     requirements
   }
 }
 
-export default function MetaRoute({
+export default function RequirementsHierarchyLayoutRoute({
   loaderData: { requirements }
 }: Route.ComponentProps) {
   const notifier = useNotifier()

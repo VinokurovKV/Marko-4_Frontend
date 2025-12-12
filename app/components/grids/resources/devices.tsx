@@ -1,12 +1,10 @@
 // Project
 import { convertMediaTypeToFileExtension } from '@common/formats'
-import type { ReadDevicesWithUpToSecondaryPropsSuccessResultItemDto } from '@common/dtos/server-api/devices.dto'
-import type { DtoWithoutEnums } from '@common/dto-without-enums'
+import type { DeviceSecondary } from '~/types'
 import { downloadFileFromBlob } from '~/utilities/download-file'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
 import { useMeta } from '~/providers/meta'
-import { useDevicesSubscription } from '~/hooks/resources'
 import { CreateDeviceFormDialog } from '~/components/forms/resources/create-device'
 import { type GridProps, Grid } from '../grid'
 import {
@@ -25,11 +23,8 @@ import { type GridColDef, type GridValidRowModel } from '@mui/x-data-grid'
 
 const MAX_DEVICES_IN_MESSAGES = 3
 
-type Device =
-  DtoWithoutEnums<ReadDevicesWithUpToSecondaryPropsSuccessResultItemDto>
-
 export interface DevicesGridProps {
-  initialDevices: Device[]
+  devices: DeviceSecondary[]
   navigationMode?: boolean
 }
 
@@ -45,16 +40,12 @@ export function DevicesGrid(props: DevicesGridProps) {
 
   const [createModeIsActive, setCreateModeIsActive] = React.useState(false)
 
-  const [devices, setDevices] = React.useState<Device[]>(props.initialDevices)
-
-  useDevicesSubscription('UP_TO_SECONDARY_PROPS', setDevices)
-
   const deviceCodeForId = React.useMemo(
-    () => new Map(devices.map((device) => [device.id, device.code])),
-    [devices]
+    () => new Map(props.devices.map((device) => [device.id, device.code])),
+    [props.devices]
   )
 
-  const rows: GridValidRowModel[] = devices
+  const rows: GridValidRowModel[] = props.devices
 
   const readCols = [
     useCodeCol('id', true, '/devices'),
@@ -149,7 +140,10 @@ export function DevicesGrid(props: DevicesGridProps) {
     [readCols, actionsCol]
   )
 
-  const defaultHiddenFields = React.useMemo(() => [] as (keyof Device)[], [])
+  const defaultHiddenFields = React.useMemo(
+    () => [] as (keyof DeviceSecondary)[],
+    []
+  )
 
   const createProps: GridProps['create'] = React.useMemo(
     () =>

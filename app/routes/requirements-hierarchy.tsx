@@ -1,5 +1,6 @@
 // Project
 import { serverConnector } from '~/server-connector'
+import { readRequirementsPrimary, readRequirementTertiary } from '~/readers'
 import { useNotifier } from '~/providers/notifier'
 import { useMeta } from '~/providers/meta'
 import { ForbiddenScreen } from '~/components/screens/problem/forbidden'
@@ -11,47 +12,18 @@ import * as React from 'react'
 
 export async function clientLoader() {
   await serverConnector.connect()
-  const [requirementsPrimary] = await (async () => {
-    if (serverConnector.meta.status !== 'AUTHENTICATED') {
-      return [null]
-    } else {
-      const rights = serverConnector.meta.selfMeta.rights
-      return await Promise.all([
-        rights.includes('READ_REQUIREMENT')
-          ? serverConnector
-              .readRequirements({
-                scope: 'PRIMARY_PROPS'
-              })
-              .catch(() => null)
-          : Promise.resolve(null)
-      ])
-    }
-  })()
+  const [requirementsPrimary] = await Promise.all([readRequirementsPrimary()])
   const requirementIds =
     requirementsPrimary?.map((requirement) => requirement.id) ?? null
-  const requirements = await (async () => {
-    if (
-      serverConnector.meta.status !== 'AUTHENTICATED' ||
-      serverConnector.meta.selfMeta.rights.includes('READ_REQUIREMENT') ===
-        false ||
-      requirementIds === null
-    ) {
-      return null
-    } else {
-      return await Promise.all(
-        requirementIds.map((requirementId) =>
-          serverConnector
-            .readRequirement(
-              { id: requirementId },
-              {
-                scope: 'UP_TO_TERTIARY_PROPS'
-              }
-            )
-            .catch(() => null)
+  const [requirements] = await Promise.all([
+    requirementIds !== null
+      ? Promise.all(
+          requirementIds.map((requirementId) =>
+            readRequirementTertiary(requirementId)
+          )
         )
-      )
-    }
-  })()
+      : Promise.resolve(null)
+  ])
   return {
     requirements:
       requirements !== null &&
@@ -61,7 +33,7 @@ export async function clientLoader() {
   }
 }
 
-export default function MetaRoute({
+export default function RequirementsHierarchyRoute({
   loaderData: { requirements }
 }: Route.ComponentProps) {
   const notifier = useNotifier()

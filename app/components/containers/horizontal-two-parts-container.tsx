@@ -7,13 +7,15 @@ import Typography from '@mui/material/Typography'
 // Other
 import capitalize from 'capitalize'
 
-export interface TwoPartsContainerProps {
+export interface HorizontalTwoPartsContainerProps {
   proportions: 'EQUAL' | 'ONE_TWO' | 'ONE_THREE' | 'ONE_ZERO'
   title?: string
   children: [React.ReactNode, React.ReactNode]
 }
 
-export function TwoPartsContainer(props: TwoPartsContainerProps) {
+export function HorizontalTwoPartsContainer(
+  props: HorizontalTwoPartsContainerProps
+) {
   return (
     <Stack spacing={1} p={0} sx={{ height: '100%', overflow: 'hidden' }}>
       {props.title !== undefined ? (

@@ -66,28 +66,28 @@ export function TaskStatusIcon({ status }: TaskStatusIconProps) {
       title={capitalize(localizationForTaskStatus.get(status) ?? status ?? '')}
     >
       {status === 'CREATED' ? (
-        <WatchLaterIcon sx={{ color: 'lightskyblue' }} />
+        <WatchLaterIcon sx={{ fontSize: '25px', color: 'lightskyblue' }} />
       ) : status === 'CREATED_PAUSED' ? (
         <Stack direction="row">
-          <WatchLaterIcon sx={{ color: 'lightskyblue' }} />
-          <PauseCircleIcon sx={{ color: 'burlywood' }} />
+          <WatchLaterIcon sx={{ fontSize: '25px', color: 'lightskyblue' }} />
+          <PauseCircleIcon sx={{ fontSize: '25px', color: 'burlywood' }} />
         </Stack>
       ) : status === 'CANCELED' ? (
-        <DoNotDisturbOnIcon sx={{ color: 'indianred' }} />
+        <DoNotDisturbOnIcon sx={{ fontSize: '25px', color: 'indianred' }} />
       ) : status === 'LAUNCHED' ? (
         <CircularProgress
-          size={22}
+          size={25}
           thickness={7}
           sx={{ color: 'lightskyblue' }}
         />
       ) : status === 'LAUNCHED_PAUSED' ? (
-        <PauseCircleIcon sx={{ color: 'burlywood' }} />
+        <PauseCircleIcon sx={{ fontSize: '25px', color: 'burlywood' }} />
       ) : status === 'ABORTED_BY_USER' ? (
-        <CancelIcon sx={{ color: 'tomato' }} />
+        <CancelIcon sx={{ fontSize: '25px', color: 'tomato' }} />
       ) : status === 'ABORTED_DUE_TO_NOT_PASSED' ? (
-        <ErrorIcon sx={{ color: 'red' }} />
+        <ErrorIcon sx={{ fontSize: '25px', color: 'red' }} />
       ) : status === 'COMPLETED' ? (
-        <CheckCircleIcon sx={{ color: 'mediumaquamarine' }} />
+        <CheckCircleIcon sx={{ fontSize: '25px', color: 'mediumaquamarine' }} />
       ) : (
         <></>
       )}

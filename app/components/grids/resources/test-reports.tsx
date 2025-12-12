@@ -1,7 +1,5 @@
 // Project
-import type { ReadTestWithPrimaryPropsSuccessResultDto } from '@common/dtos/server-api/tests.dto'
-import type { ReadTestReportsWithUpToSecondaryPropsSuccessResultItemDto } from '@common/dtos/server-api/test-reports.dto'
-import type { DtoWithoutEnums } from '@common/dto-without-enums'
+import type { TestPrimary, TestReportSecondary } from '~/types'
 import { Grid } from '../grid'
 import {
   useTestReportHeaderCol,
@@ -16,13 +14,9 @@ import * as React from 'react'
 // Material UI
 import { type GridColDef, type GridValidRowModel } from '@mui/x-data-grid'
 
-type Test = DtoWithoutEnums<ReadTestWithPrimaryPropsSuccessResultDto>
-type TestReport =
-  DtoWithoutEnums<ReadTestReportsWithUpToSecondaryPropsSuccessResultItemDto>
-
 export interface TestReportsGridProps {
-  tests: Test[]
-  testReports: TestReport[]
+  tests: TestPrimary[]
+  testReports: TestReportSecondary[]
   navigationMode?: boolean
   navigationModeSelectedRowId?: number
 }
@@ -58,7 +52,7 @@ export function TestReportsGrid(props: TestReportsGridProps) {
   )
 
   const defaultHiddenFields = React.useMemo(
-    () => [] as (keyof TestReport)[],
+    () => [] as (keyof TestReportSecondary)[],
     []
   )
 
@@ -73,6 +67,7 @@ export function TestReportsGrid(props: TestReportsGridProps) {
     },
     [props.navigationModeSelectedRowId, navigate, testReportForId]
   )
+
   return (
     <>
       <Grid

@@ -1,7 +1,7 @@
 // Project
 import { SetupForm } from '../forms/setup'
 import { ScreenCard } from '../cards/screen-card'
-import { IsolatedScreenContainer } from '../containers/isolated-screen-container'
+import { IsolatedScreenContainer } from '../containers'
 
 export function SetupScreen() {
   return (

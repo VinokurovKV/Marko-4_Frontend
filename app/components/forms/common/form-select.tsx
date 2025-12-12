@@ -27,10 +27,11 @@ export interface FormSelectProps<Value extends number | string>
 
 const InputLabelStyled = styled(InputLabel)({
   '&': {
-    transform: 'translate(14px, 8.5px) scale(0.85)'
+    fontSize: '0.85rem',
+    transform: 'translate(13px, 6.5px)'
   },
   '&.Mui-focused, &.MuiFormLabel-filled': {
-    transform: 'translate(14px, -7px) scale(0.65)'
+    transform: 'translate(14px, -6.5px) scale(0.65)'
   },
   '&:not(.Mui-focused):not(.MuiFormLabel-filled)': {
     opacity: 0.55
@@ -55,7 +56,7 @@ export function FormSelect<Value extends number | string>({
           fontSize: '0.85rem !important'
         },
         '& legend': {
-          fontSize: '0.65rem !important'
+          fontSize: '0.54rem !important' // '0.65rem !important'
         }
       }),
     []

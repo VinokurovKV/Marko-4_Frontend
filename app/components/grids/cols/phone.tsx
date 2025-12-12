@@ -8,7 +8,7 @@ export function usePhoneCol() {
     () => ({
       field: 'phone',
       headerName: 'Телефон',
-      minWidth: 150,
+      minWidth: 140,
       flex: 1
     }),
     []

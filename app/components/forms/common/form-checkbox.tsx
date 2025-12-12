@@ -22,7 +22,7 @@ export function FormCheckbox(props: FormCheckboxProps) {
   return (
     <Container
       sx={{
-        height: '35px',
+        height: '25px',
         paddingLeft: '0px !important',
         transform: 'translateY(-10px)'
       }}

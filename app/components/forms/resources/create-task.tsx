@@ -1,8 +1,8 @@
 // Project
 import { allTaskModes, allTaskResultsToSave } from '@common/enums'
-import type { ReadCommonTopologiesWithPrimaryPropsSuccessResultItemDto } from '@common/dtos/server-api/common-topologies.dto'
 import type { CreateTaskSuccessResultDto } from '@common/dtos/server-api/tasks.dto'
 import type { DtoWithoutEnums } from '@common/dto-without-enums'
+import type { CommonTopologyPrimary } from '~/types'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
 import { useChangeDetector } from '~/hooks/change-detector'
@@ -73,16 +73,15 @@ const DEFAULT_FIELDS_WITH_NOT_IGNORED_ERRORS_BEFORE_SUBMIT: Field<CreateTaskForm
     'remarkText'
   ]
 
-type CommonTopology =
-  DtoWithoutEnums<ReadCommonTopologiesWithPrimaryPropsSuccessResultItemDto>
-
 const CREATE_TASK_FORM_PROPS_JOINED = createTaskFormValidator.getPromptsJoined()
 
 export interface CreateTaskFormDialogProps {
-  commonTopologies: CommonTopology[] | null
+  commonTopologies: CommonTopologyPrimary[] | null
   createModeIsActive: boolean
   setCreateModeIsActive: React.Dispatch<React.SetStateAction<boolean>>
-  onSuccessCreateTask?: (createTaskResult: CreateTaskSuccessResultDto) => void
+  onSuccessCreateTask?: (
+    createTaskResult: DtoWithoutEnums<CreateTaskSuccessResultDto>
+  ) => void
   onCancelClick?: () => void
 }
 
@@ -292,7 +291,7 @@ export function CreateTaskFormDialog(props: CreateTaskFormDialogProps) {
   const onSuccessSubmit = React.useCallback(
     (
       data: CreateTaskFormData,
-      createTaskResult: CreateTaskSuccessResultDto
+      createTaskResult: DtoWithoutEnums<CreateTaskSuccessResultDto>
     ) => {
       notifier.showSuccess(
         `задание тестирования '${createTaskResult.result.code}' создано`
@@ -314,7 +313,7 @@ export function CreateTaskFormDialog(props: CreateTaskFormDialogProps) {
     handleAutocompleteMultipleSelectChange,
     handleAutocompleteMultipleSelectFreeItemsChange
     // handleDateTimeChange
-  } = useForm<CreateTaskFormData, CreateTaskSuccessResultDto>({
+  } = useForm<CreateTaskFormData, DtoWithoutEnums<CreateTaskSuccessResultDto>>({
     INITIAL_FORM_DATA: INITIAL_CREATE_TASK_FORM_DATA,
     validator: createTaskFormValidator,
     fieldsWithNotIgnoredErrorsBeforeSubmit,

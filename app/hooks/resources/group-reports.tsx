@@ -1,35 +1,28 @@
 // Project
 import type { ReadOneResourceScope, ReadManyResourceScope } from '@common/enums'
 import type {
-  ReadGroupReportWithPrimaryPropsSuccessResultDto,
-  ReadGroupReportWithUpToSecondaryPropsSuccessResultDto,
-  ReadGroupReportWithUpToTertiaryPropsSuccessResultDto,
-  ReadGroupReportWithAllPropsSuccessResultDto,
-  ReadGroupReportsWithPrimaryPropsSuccessResultItemDto,
-  ReadGroupReportsWithUpToSecondaryPropsSuccessResultItemDto
-} from '@common/dtos/server-api/group-reports.dto'
-import type { DtoWithoutEnums } from '@common/dto-without-enums'
+  GroupReportPrimary,
+  GroupReportSecondary,
+  GroupReportTertiary,
+  GroupReportAll
+} from '~/types'
 import { serverConnector } from '~/server-connector'
 import { useChangeDetector } from '../change-detector'
 import { useNotifier } from '~/providers/notifier'
 // React
 import * as React from 'react'
 
-type ReadOneGroupReport<Scope extends ReadOneResourceScope> = DtoWithoutEnums<
+type ReadOneGroupReport<Scope extends ReadOneResourceScope> =
   Scope extends 'PRIMARY_PROPS'
-    ? ReadGroupReportWithPrimaryPropsSuccessResultDto
+    ? GroupReportPrimary
     : Scope extends 'UP_TO_SECONDARY_PROPS'
-      ? ReadGroupReportWithUpToSecondaryPropsSuccessResultDto
+      ? GroupReportSecondary
       : Scope extends 'UP_TO_TERTIARY_PROPS'
-        ? ReadGroupReportWithUpToTertiaryPropsSuccessResultDto
-        : ReadGroupReportWithAllPropsSuccessResultDto
->
+        ? GroupReportTertiary
+        : GroupReportAll
 
-type ReadManyGroupReport<Scope extends ReadManyResourceScope> = DtoWithoutEnums<
-  Scope extends 'PRIMARY_PROPS'
-    ? ReadGroupReportsWithPrimaryPropsSuccessResultItemDto
-    : ReadGroupReportsWithUpToSecondaryPropsSuccessResultItemDto
->
+type ReadManyGroupReport<Scope extends ReadManyResourceScope> =
+  Scope extends 'PRIMARY_PROPS' ? GroupReportPrimary : GroupReportSecondary
 
 function useGroupReportSubscriptionInner<Scope extends ReadOneResourceScope>(
   scope: Scope,

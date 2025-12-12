@@ -1,6 +1,5 @@
 // Project
-import type { ReadTopologiesWithPrimaryPropsSuccessResultItemDto } from '@common/dtos/server-api/topologies.dto'
-import type { DtoWithoutEnums } from '@common/dto-without-enums'
+import type { TopologyPrimary } from '~/types'
 import { GridRefCell } from '../cells/grid-ref-cell'
 // React
 import * as React from 'react'
@@ -9,10 +8,9 @@ import type { GridColDef, GridRenderCellParams } from '@mui/x-data-grid'
 // Other
 import capitalize from 'capitalize'
 
-type Topology =
-  DtoWithoutEnums<ReadTopologiesWithPrimaryPropsSuccessResultItemDto>
-
-export function useTopologyCol(topologies: Topology[] | null | undefined) {
+export function useTopologyCol(
+  topologies: TopologyPrimary[] | null | undefined
+) {
   const topologyCodeForId = React.useMemo(
     () =>
       new Map(
@@ -39,7 +37,7 @@ export function useTopologyCol(topologies: Topology[] | null | undefined) {
           hrefPath={params.row.topologyId}
         />
       ),
-      minWidth: 150,
+      minWidth: 140,
       flex: 1
     }),
     []

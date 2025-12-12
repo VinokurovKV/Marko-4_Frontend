@@ -1,10 +1,8 @@
 // Project
-import type { ReadCommonTopologiesWithUpToSecondaryPropsSuccessResultItemDto } from '@common/dtos/server-api/common-topologies.dto'
-import type { DtoWithoutEnums } from '@common/dto-without-enums'
+import type { CommonTopologySecondary } from '~/types'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
 import { useMeta } from '~/providers/meta'
-import { useCommonTopologiesSubscription } from '~/hooks/resources'
 import { CreateCommonTopologyFormDialog } from '~/components/forms/resources/create-common-topology'
 import { type GridProps, Grid } from '../grid'
 import {
@@ -23,11 +21,8 @@ import { type GridColDef, type GridValidRowModel } from '@mui/x-data-grid'
 
 const MAX_COMMON_TOPOLOGIES_IN_MESSAGES = 3
 
-type CommonTopology =
-  DtoWithoutEnums<ReadCommonTopologiesWithUpToSecondaryPropsSuccessResultItemDto>
-
 export interface CommonTopologiesGridProps {
-  initialCommonTopologies: CommonTopology[]
+  commonTopologies: CommonTopologySecondary[]
   navigationMode?: boolean
 }
 
@@ -43,24 +38,18 @@ export function CommonTopologiesGrid(props: CommonTopologiesGridProps) {
 
   const [createModeIsActive, setCreateModeIsActive] = React.useState(false)
 
-  const [commonTopologies, setCommonTopologies] = React.useState<
-    CommonTopology[]
-  >(props.initialCommonTopologies)
-
-  useCommonTopologiesSubscription('UP_TO_SECONDARY_PROPS', setCommonTopologies)
-
   const commonTopologyCodeForId = React.useMemo(
     () =>
       new Map(
-        commonTopologies.map((commonTopology) => [
+        props.commonTopologies.map((commonTopology) => [
           commonTopology.id,
           commonTopology.code
         ])
       ),
-    [commonTopologies]
+    [props.commonTopologies]
   )
 
-  const rows: GridValidRowModel[] = commonTopologies
+  const rows: GridValidRowModel[] = props.commonTopologies
 
   const readCols = [
     useCodeCol('id', true, '/common-topologies'),
@@ -108,7 +97,7 @@ export function CommonTopologiesGrid(props: CommonTopologiesGridProps) {
   )
 
   const defaultHiddenFields = React.useMemo(
-    () => [] as (keyof CommonTopology)[],
+    () => [] as (keyof CommonTopologySecondary)[],
     []
   )
 

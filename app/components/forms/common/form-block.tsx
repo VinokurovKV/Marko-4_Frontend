@@ -37,7 +37,7 @@ export function FormBlock(props: FormBlockProps) {
               }
             >
               <IconButton
-                size="small"
+                size="medium"
                 tabIndex={-1}
                 onClick={() => {
                   button.onClick(button.id)

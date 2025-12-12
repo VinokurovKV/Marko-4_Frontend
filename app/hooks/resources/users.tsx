@@ -1,35 +1,23 @@
 // Project
 import type { ReadOneResourceScope, ReadManyResourceScope } from '@common/enums'
-import type {
-  ReadUserWithPrimaryPropsSuccessResultDto,
-  ReadUserWithUpToSecondaryPropsSuccessResultDto,
-  ReadUserWithUpToTertiaryPropsSuccessResultDto,
-  ReadUserWithAllPropsSuccessResultDto,
-  ReadUsersWithPrimaryPropsSuccessResultItemDto,
-  ReadUsersWithUpToSecondaryPropsSuccessResultItemDto
-} from '@common/dtos/server-api/users.dto'
-import type { DtoWithoutEnums } from '@common/dto-without-enums'
+import type { UserPrimary, UserSecondary, UserTertiary, UserAll } from '~/types'
 import { serverConnector } from '~/server-connector'
 import { useChangeDetector } from '../change-detector'
 import { useNotifier } from '~/providers/notifier'
 // React
 import * as React from 'react'
 
-type ReadOneUser<Scope extends ReadOneResourceScope> = DtoWithoutEnums<
+type ReadOneUser<Scope extends ReadOneResourceScope> =
   Scope extends 'PRIMARY_PROPS'
-    ? ReadUserWithPrimaryPropsSuccessResultDto
+    ? UserPrimary
     : Scope extends 'UP_TO_SECONDARY_PROPS'
-      ? ReadUserWithUpToSecondaryPropsSuccessResultDto
+      ? UserSecondary
       : Scope extends 'UP_TO_TERTIARY_PROPS'
-        ? ReadUserWithUpToTertiaryPropsSuccessResultDto
-        : ReadUserWithAllPropsSuccessResultDto
->
+        ? UserTertiary
+        : UserAll
 
-type ReadManyUser<Scope extends ReadManyResourceScope> = DtoWithoutEnums<
-  Scope extends 'PRIMARY_PROPS'
-    ? ReadUsersWithPrimaryPropsSuccessResultItemDto
-    : ReadUsersWithUpToSecondaryPropsSuccessResultItemDto
->
+type ReadManyUser<Scope extends ReadManyResourceScope> =
+  Scope extends 'PRIMARY_PROPS' ? UserPrimary : UserSecondary
 
 function useUserSubscriptionInner<Scope extends ReadOneResourceScope>(
   scope: Scope,

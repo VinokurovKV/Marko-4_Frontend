@@ -1,6 +1,5 @@
 // Project
-import type { ReadCommonTopologiesWithPrimaryPropsSuccessResultItemDto } from '@common/dtos/server-api/common-topologies.dto'
-import type { DtoWithoutEnums } from '@common/dto-without-enums'
+import type { CommonTopologyPrimary } from '~/types'
 import { GridRefCell } from '../cells/grid-ref-cell'
 // React
 import * as React from 'react'
@@ -9,11 +8,8 @@ import type { GridColDef, GridRenderCellParams } from '@mui/x-data-grid'
 // Other
 import capitalize from 'capitalize'
 
-type CommonTopology =
-  DtoWithoutEnums<ReadCommonTopologiesWithPrimaryPropsSuccessResultItemDto>
-
 export function useCommonTopologyVersionCol(
-  commonTopologies: CommonTopology[] | null | undefined
+  commonTopologies: CommonTopologyPrimary[] | null | undefined
 ) {
   const commonTopologyCodeForId = React.useMemo(() => {
     const map = new Map(
@@ -44,7 +40,7 @@ export function useCommonTopologyVersionCol(
           hrefPath={`${params.row.commonTopology.id}/versions/${params.row.commonTopology.transitionNum}`}
         />
       ),
-      minWidth: 150,
+      minWidth: 140,
       flex: 1
     }),
     []

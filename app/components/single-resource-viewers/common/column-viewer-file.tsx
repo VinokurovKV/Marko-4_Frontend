@@ -1,7 +1,6 @@
 // Project
 import { type FileFormat, convertFileFormatToExtension } from '@common/formats'
-import type { ReadTestReportWithUpToTertiaryPropsSuccessResultDto } from '@common/dtos/server-api/test-reports.dto'
-import type { DtoWithoutEnums } from '@common/dto-without-enums'
+import type { TestReportTertiary } from '~/types'
 import { downloadFileFromBlob } from '~/utilities/download-file'
 // React
 import * as React from 'react'
@@ -14,8 +13,7 @@ import Typography from '@mui/material/Typography'
 // Other
 import capitalize from 'capitalize'
 
-type Item =
-  DtoWithoutEnums<ReadTestReportWithUpToTertiaryPropsSuccessResultDto>['items'][0]
+type Item = TestReportTertiary['items'][0]
 
 export interface ColumnViewerFileProps extends Omit<Item, 'size' | 'time'> {
   getFileBlob: (id: number) => Promise<Blob | null>
@@ -50,7 +48,7 @@ export function ColumnViewerFile(props: ColumnViewerFileProps) {
       </Typography>
       <Stack direction="row" alignItems="center" spacing={0} p={0}>
         <Tooltip title="Скачать">
-          <IconButton onClick={handleClick} size="small">
+          <IconButton onClick={handleClick} size="medium">
             <FileDownloadIcon sx={{ width: 27, height: 27 }} />
           </IconButton>
         </Tooltip>

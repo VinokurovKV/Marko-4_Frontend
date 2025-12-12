@@ -1,9 +1,45 @@
 // Project
+import type {
+  TagPrimary,
+  RequirementPrimary,
+  CoverageSecondary,
+  CommonTopologyTertiary,
+  TopologyTertiary,
+  DbcPrimary,
+  TestTemplatePrimary,
+  TestTertiary,
+  SubgroupSecondary,
+  GroupPrimary
+} from '~/types'
 import { serverConnector } from '~/server-connector'
+import {
+  readTestTertiary,
+  readTagsPrimaryFiltered,
+  readCoveragesSecondaryFiltered,
+  readTopologyTertiary,
+  readDbcsPrimaryFiltered,
+  readTestTemplatePrimary,
+  readSubgroupSecondary,
+  readRequirementsPrimaryFiltered,
+  readCommonTopologyTertiary,
+  readGroupPrimary
+} from '~/readers'
 import { useNotifier } from '~/providers/notifier'
 import { useMeta } from '~/providers/meta'
+import {
+  useTagsFilteredSubscription,
+  useRequirementsFilteredSubscription,
+  useCoveragesFilteredSubscription,
+  useCommonTopologySubscription,
+  useTopologySubscription,
+  useDbcsFilteredSubscription,
+  useTestTemplateSubscription,
+  useTestSubscription,
+  useSubgroupSubscription,
+  useGroupSubscription
+} from '~/hooks/resources'
+import { TestViewer } from '~/components/single-resource-viewers/resources/test'
 import { ForbiddenScreen } from '~/components/screens/problem/forbidden'
-import { TestScreen } from '~/components/screens/test'
 // React router
 import type { Route } from './+types/test'
 // React
@@ -15,140 +51,28 @@ export async function clientLoader({ params }: Route.ClientLoaderArgs) {
     return isNaN(parsed) ? null : parsed
   })()
   await serverConnector.connect()
-  const [test] = await (async () => {
-    if (testId === null || serverConnector.meta.status !== 'AUTHENTICATED') {
-      return [null]
-    } else {
-      const rights = serverConnector.meta.selfMeta.rights
-      return await Promise.all([
-        rights.includes('READ_TEST')
-          ? serverConnector
-              .readTest(
-                {
-                  id: testId
-                },
-                {
-                  scope: 'UP_TO_TERTIARY_PROPS'
-                }
-              )
-              .catch(() => null)
-          : Promise.resolve(null)
-      ])
-    }
-  })()
-  const tagIds = test?.tagIds ?? []
-  const coverageIds = test?.coverageIds ?? []
-  const dbcIds = test?.dbcIds ?? []
+  const [test] = await Promise.all([readTestTertiary(testId)])
+  const tagIds = test?.tagIds ?? null
+  const coverageIds = test?.coverageIds ?? null
+  const dbcIds = test?.dbcIds ?? null
   const [tags, coverages, topology, dbcs, testTemplate, subgroup] =
-    await (async () => {
-      if (serverConnector.meta.status !== 'AUTHENTICATED' || test === null) {
-        return [null, null, null, null, null, null]
-      } else {
-        const rights = serverConnector.meta.selfMeta.rights
-        return await Promise.all([
-          rights.includes('READ_TAG')
-            ? serverConnector
-                .readTags({
-                  ids: tagIds,
-                  scope: 'PRIMARY_PROPS'
-                })
-                .catch(() => null)
-            : Promise.resolve(null),
-          rights.includes('READ_COVERAGE')
-            ? serverConnector
-                .readCoverages({
-                  ids: coverageIds,
-                  scope: 'UP_TO_SECONDARY_PROPS'
-                })
-                .catch(() => null)
-            : Promise.resolve(null),
-          rights.includes('READ_TOPOLOGY')
-            ? serverConnector
-                .readTopology(
-                  { id: test.topologyId },
-                  {
-                    scope: 'UP_TO_TERTIARY_PROPS'
-                  }
-                )
-                .catch(() => null)
-            : Promise.resolve(null),
-          rights.includes('READ_DBC')
-            ? serverConnector
-                .readDbcs({
-                  ids: dbcIds,
-                  scope: 'PRIMARY_PROPS'
-                })
-                .catch(() => null)
-            : Promise.resolve(null),
-          rights.includes('READ_TEST_TEMPLATE') && test.testTemplateId !== null
-            ? serverConnector
-                .readTestTemplate(
-                  { id: test.testTemplateId },
-                  {
-                    scope: 'PRIMARY_PROPS'
-                  }
-                )
-                .catch(() => null)
-            : Promise.resolve(null),
-          rights.includes('READ_SUBGROUP') && test.subgroupId !== null
-            ? serverConnector
-                .readSubgroup(
-                  { id: test.subgroupId },
-                  {
-                    scope: 'UP_TO_SECONDARY_PROPS'
-                  }
-                )
-                .catch(() => null)
-            : Promise.resolve(null)
-        ])
-      }
-    })()
-  const requirementIds = Array.from(
-    new Set((coverages ?? []).map((coverage) => coverage.requirementId))
-  )
-  const [requirements, commonTopology, group] = await (async () => {
-    if (serverConnector.meta.status !== 'AUTHENTICATED') {
-      return [null, null, null]
-    } else {
-      const rights = serverConnector.meta.selfMeta.rights
-      return await Promise.all([
-        rights.includes('READ_REQUIREMENT')
-          ? serverConnector
-              .readRequirements({
-                ids: requirementIds,
-                scope: 'PRIMARY_PROPS'
-              })
-              .catch(() => null)
-          : Promise.resolve(null),
-        rights.includes('READ_COMMON_TOPOLOGY') && topology !== null
-          ? serverConnector
-              .readCommonTopology(
-                {
-                  id: topology.commonTopologyId
-                },
-                {
-                  scope: 'UP_TO_TERTIARY_PROPS'
-                }
-              )
-              .catch(() => null)
-          : Promise.resolve(null),
-        rights.includes('READ_GROUP') &&
-        subgroup !== null &&
-        subgroup.groupId !== null
-          ? serverConnector
-              .readGroup(
-                {
-                  id: subgroup.groupId
-                },
-                {
-                  scope: 'PRIMARY_PROPS'
-                }
-              )
-              .catch(() => null)
-          : Promise.resolve(null)
-      ])
-    }
-  })()
+    await Promise.all([
+      readTagsPrimaryFiltered(tagIds),
+      readCoveragesSecondaryFiltered(coverageIds),
+      readTopologyTertiary(test?.topologyId ?? null),
+      readDbcsPrimaryFiltered(dbcIds),
+      readTestTemplatePrimary(test?.testTemplateId ?? null),
+      readSubgroupSecondary(test?.subgroupId ?? null)
+    ])
+  const requirementIds =
+    coverages !== null
+      ? Array.from(new Set(coverages.map((coverage) => coverage.requirementId)))
+      : null
+  const [requirements, commonTopology, group] = await Promise.all([
+    readRequirementsPrimaryFiltered(requirementIds),
+    readCommonTopologyTertiary(topology?.commonTopologyId ?? null),
+    readGroupPrimary(subgroup?.groupId ?? null)
+  ])
   return {
     testId,
     tags,
@@ -164,27 +88,96 @@ export async function clientLoader({ params }: Route.ClientLoaderArgs) {
   }
 }
 
-export default function MetaRoute({
+function TestRouteInner({
   loaderData: {
     testId,
-    tags,
-    requirements,
-    coverages,
-    commonTopology,
-    topology,
-    dbcs,
-    testTemplate,
-    test,
-    subgroup,
-    group
+    tags: initialTags,
+    requirements: initialRequirements,
+    coverages: initialCoverages,
+    commonTopology: initialCommonTopology,
+    topology: initialTopology,
+    dbcs: initialDbcs,
+    testTemplate: initialTestTemplate,
+    test: initialTest,
+    subgroup: initialSubgroup,
+    group: initialGroup
   }
 }: Route.ComponentProps) {
   const notifier = useNotifier()
   const meta = useMeta()
 
+  const [tags, setTags] = React.useState<TagPrimary[] | null>(initialTags)
+  const [requirements, setRequirements] = React.useState<
+    RequirementPrimary[] | null
+  >(initialRequirements)
+  const [coverages, setCoverages] = React.useState<CoverageSecondary[] | null>(
+    initialCoverages
+  )
+  const [commonTopology, setCommonTopology] =
+    React.useState<CommonTopologyTertiary | null>(initialCommonTopology)
+  const [topology, setTopology] = React.useState<TopologyTertiary | null>(
+    initialTopology
+  )
+  const [dbcs, setDbcs] = React.useState<DbcPrimary[] | null>(initialDbcs)
+  const [testTemplate, setTestTemplate] =
+    React.useState<TestTemplatePrimary | null>(initialTestTemplate)
+  const [test, setTest] = React.useState<TestTertiary | null>(initialTest)
+  const [subgroup, setSubgroup] = React.useState<SubgroupSecondary | null>(
+    initialSubgroup
+  )
+  const [group, setGroup] = React.useState<GroupPrimary | null>(initialGroup)
+
+  const tagIds = React.useMemo(() => test?.tagIds ?? null, [test])
+  const requirementIds = React.useMemo(
+    () =>
+      coverages !== null
+        ? Array.from(
+            new Set(coverages.map((coverage) => coverage.requirementId))
+          )
+        : null,
+    [coverages]
+  )
+  const coverageIds = React.useMemo(() => test?.coverageIds ?? null, [test])
+  const dbcIds = React.useMemo(() => test?.dbcIds ?? null, [test])
+
+  useTagsFilteredSubscription('PRIMARY_PROPS', tagIds, setTags)
+  useRequirementsFilteredSubscription(
+    'PRIMARY_PROPS',
+    requirementIds,
+    setRequirements
+  )
+  useCoveragesFilteredSubscription(
+    'UP_TO_SECONDARY_PROPS',
+    coverageIds,
+    setCoverages
+  )
+  useCommonTopologySubscription(
+    'UP_TO_TERTIARY_PROPS',
+    topology?.commonTopologyId ?? null,
+    setCommonTopology
+  )
+  useTopologySubscription(
+    'UP_TO_TERTIARY_PROPS',
+    test?.topologyId ?? null,
+    setTopology
+  )
+  useDbcsFilteredSubscription('PRIMARY_PROPS', dbcIds, setDbcs)
+  useTestTemplateSubscription(
+    'PRIMARY_PROPS',
+    test?.testTemplateId ?? null,
+    setTestTemplate
+  )
+  useTestSubscription('UP_TO_TERTIARY_PROPS', testId, setTest)
+  useSubgroupSubscription(
+    'UP_TO_SECONDARY_PROPS',
+    test?.subgroupId ?? null,
+    setSubgroup
+  )
+  useGroupSubscription('PRIMARY_PROPS', subgroup?.groupId ?? null, setGroup)
+
   React.useEffect(() => {
     if (testId === null) {
-      notifier.showError('указан некорректный идентификатор при загрузке теста')
+      notifier.showError('указан некорректный идентификатор теста в URL')
     } else if (
       test === null &&
       serverConnector.meta.status === 'AUTHENTICATED' &&
@@ -200,19 +193,21 @@ export default function MetaRoute({
     meta.selfMeta.rights.includes('READ_TEST') === false ? (
     <ForbiddenScreen />
   ) : testId !== null && test !== null ? (
-    <TestScreen
+    <TestViewer
       key={testId}
-      testId={testId}
-      initialTags={tags}
-      initialRequirements={requirements}
-      initialCoverages={coverages}
-      initialCommonTopology={commonTopology}
-      initialTopology={topology}
-      initialDbcs={dbcs}
-      initialTestTemplate={testTemplate}
-      initialTest={test}
-      initialSubgroup={subgroup}
-      initialGroup={group}
+      tags={tags}
+      requirements={requirements}
+      commonTopology={commonTopology}
+      topology={topology}
+      dbcs={dbcs}
+      testTemplate={testTemplate}
+      test={test}
+      subgroup={subgroup}
+      group={group}
     />
   ) : null
+}
+
+export default function TestRoute(props: Route.ComponentProps) {
+  return <TestRouteInner key={props.loaderData.testId} {...props} />
 }

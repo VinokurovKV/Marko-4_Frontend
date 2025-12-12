@@ -8,7 +8,7 @@ export function useNameCol() {
     () => ({
       field: 'name',
       headerName: 'Название',
-      minWidth: 150,
+      minWidth: 140,
       flex: 1
     }),
     []

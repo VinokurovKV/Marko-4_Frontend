@@ -1,6 +1,5 @@
 // Project
-import type { ReadTestTemplatesWithPrimaryPropsSuccessResultItemDto } from '@common/dtos/server-api/test-templates.dto'
-import type { DtoWithoutEnums } from '@common/dto-without-enums'
+import type { TestTemplatePrimary } from '~/types'
 import { GridRefCell } from '../cells/grid-ref-cell'
 // React
 import * as React from 'react'
@@ -9,11 +8,8 @@ import type { GridColDef, GridRenderCellParams } from '@mui/x-data-grid'
 // Other
 import capitalize from 'capitalize'
 
-type TestTemplate =
-  DtoWithoutEnums<ReadTestTemplatesWithPrimaryPropsSuccessResultItemDto>
-
 export function useTestTemplateCol(
-  testTemplates: TestTemplate[] | null | undefined
+  testTemplates: TestTemplatePrimary[] | null | undefined
 ) {
   const testTemplateCodeForId = React.useMemo(
     () =>
@@ -42,7 +38,7 @@ export function useTestTemplateCol(
           hrefPath={params.row.testTemplateId}
         />
       ),
-      minWidth: 150,
+      minWidth: 140,
       flex: 1
     }),
     []

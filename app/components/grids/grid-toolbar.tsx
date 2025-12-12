@@ -104,7 +104,7 @@ export function ProjGridToolbar(props: ProjGridToolbarProps) {
           >
             <ToolbarButton onClick={props.changeModeButton.onClick}>
               <KeyboardDoubleArrowLeftIcon
-                fontSize="small"
+                fontSize="medium"
                 color={props.changeModeButton.active ? 'primary' : undefined}
               />
             </ToolbarButton>
@@ -120,7 +120,7 @@ export function ProjGridToolbar(props: ProjGridToolbarProps) {
           >
             <ToolbarButton onClick={props.createButton.onClick}>
               <AddIcon
-                fontSize="small"
+                fontSize="medium"
                 color={props.createButton.active ? 'primary' : undefined}
               />
             </ToolbarButton>
@@ -132,7 +132,7 @@ export function ProjGridToolbar(props: ProjGridToolbarProps) {
       {props.navigationMode === false ? (
         <Tooltip title="Столбцы">
           <ColumnsPanelTrigger render={<ToolbarButton />}>
-            <ViewColumnIcon fontSize="small" />
+            <ViewColumnIcon fontSize="medium" />
           </ColumnsPanelTrigger>
         </Tooltip>
       ) : null}
@@ -146,7 +146,7 @@ export function ProjGridToolbar(props: ProjGridToolbarProps) {
                 color="primary"
                 variant="dot"
               >
-                <FilterListIcon fontSize="small" />
+                <FilterListIcon fontSize="medium" />
               </Badge>
             </ToolbarButton>
           )}
@@ -162,7 +162,7 @@ export function ProjGridToolbar(props: ProjGridToolbarProps) {
             id="export-menu-trigger"
             onClick={() => setExportMenuOpen(true)}
           >
-            <FileDownloadIcon fontSize="small" />
+            <FileDownloadIcon fontSize="medium" />
           </ToolbarButton>
         </Tooltip>
       ) : null}
@@ -198,7 +198,7 @@ export function ProjGridToolbar(props: ProjGridToolbarProps) {
                 ownerState={{ expanded: state.expanded }}
                 color="default"
               >
-                <SearchIcon fontSize="small" />
+                <SearchIcon fontSize="medium" />
               </StyledToolbarButton>
             </Tooltip>
           )}
@@ -215,17 +215,17 @@ export function ProjGridToolbar(props: ProjGridToolbarProps) {
                 input: {
                   startAdornment: (
                     <InputAdornment position="start">
-                      <SearchIcon fontSize="small" />
+                      <SearchIcon fontSize="medium" />
                     </InputAdornment>
                   ),
                   endAdornment: state.value ? (
                     <InputAdornment position="end">
                       <QuickFilterClear
                         edge="end"
-                        size="small"
+                        size="medium"
                         material={{ sx: { marginRight: -0.75 } }}
                       >
-                        <CancelIcon fontSize="small" />
+                        <CancelIcon fontSize="medium" />
                       </QuickFilterClear>
                     </InputAdornment>
                   ) : null,
@@ -250,7 +250,7 @@ export function ProjGridToolbar(props: ProjGridToolbarProps) {
           >
             <ToolbarButton onClick={props.deleteManyButton.onClick}>
               <DeleteIcon
-                fontSize="small"
+                fontSize="medium"
                 color={props.deleteManyButton.active ? 'primary' : undefined}
               />
             </ToolbarButton>

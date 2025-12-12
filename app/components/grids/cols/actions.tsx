@@ -35,7 +35,7 @@ export function ExportMenu(props: ExportMenuProps) {
       <Tooltip title="Скачать">
         <GridActionsCellItem
           ref={ref}
-          icon={<DownloadIcon />}
+          icon={<DownloadIcon sx={{ fontSize: 20 }} />}
           label="Скачать"
           onClick={() => {
             setOpen((open) => !open)
@@ -170,7 +170,7 @@ export function useActionsCol(props: ActionsColProps) {
           ? [
               <Tooltip title="Скачать">
                 <GridActionsCellItem
-                  icon={<DownloadIcon />}
+                  icon={<DownloadIcon sx={{ fontSize: 20 }} />}
                   label="Скачать"
                   onClick={() => {
                     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access
@@ -191,7 +191,7 @@ export function useActionsCol(props: ActionsColProps) {
           ? [
               <Tooltip title="Приостановить">
                 <GridActionsCellItem
-                  icon={<PauseIcon />}
+                  icon={<PauseIcon sx={{ fontSize: 20 }} />}
                   label="Приостановить"
                   onClick={() => {
                     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access
@@ -208,7 +208,7 @@ export function useActionsCol(props: ActionsColProps) {
           ? [
               <Tooltip title="Возобновить">
                 <GridActionsCellItem
-                  icon={<PlayArrowIcon />}
+                  icon={<PlayArrowIcon sx={{ fontSize: 20 }} />}
                   label="Возобновить"
                   onClick={() => {
                     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access
@@ -225,7 +225,7 @@ export function useActionsCol(props: ActionsColProps) {
           ? [
               <Tooltip title="Отменить">
                 <GridActionsCellItem
-                  icon={<StopIcon />}
+                  icon={<StopIcon sx={{ fontSize: 20 }} />}
                   label="Отменить"
                   onClick={() => {
                     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access
@@ -242,7 +242,7 @@ export function useActionsCol(props: ActionsColProps) {
           ? [
               <Tooltip title="Прервать">
                 <GridActionsCellItem
-                  icon={<StopIcon />}
+                  icon={<StopIcon sx={{ fontSize: 20 }} />}
                   label="Прервать"
                   onClick={() => {
                     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access
@@ -259,7 +259,7 @@ export function useActionsCol(props: ActionsColProps) {
           ? [
               <Tooltip title="Удалить">
                 <GridActionsCellItem
-                  icon={<DeleteIcon />}
+                  icon={<DeleteIcon sx={{ fontSize: 20 }} />}
                   label="Удалить"
                   onClick={() => {
                     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access

@@ -1,7 +1,10 @@
 // Project
+import type { DocumentSecondary } from '~/types'
 import { serverConnector } from '~/server-connector'
+import { readDocumentsSecondary } from '~/readers'
 import { useNotifier } from '~/providers/notifier'
 import { useMeta } from '~/providers/meta'
+import { useDocumentsSubscription } from '~/hooks/resources'
 import { ForbiddenScreen } from '~/components/screens/problem/forbidden'
 import { DocumentsScreen } from '~/components/screens/documents'
 // React router
@@ -11,32 +14,23 @@ import * as React from 'react'
 
 export async function clientLoader() {
   await serverConnector.connect()
-  const [documents] = await (async () => {
-    if (serverConnector.meta.status !== 'AUTHENTICATED') {
-      return [null]
-    } else {
-      const rights = serverConnector.meta.selfMeta.rights
-      return await Promise.all([
-        rights.includes('READ_DOCUMENT')
-          ? serverConnector
-              .readDocuments({
-                scope: 'UP_TO_SECONDARY_PROPS'
-              })
-              .catch(() => null)
-          : Promise.resolve(null)
-      ])
-    }
-  })()
+  const [documents] = await Promise.all([readDocumentsSecondary()])
   return {
     documents
   }
 }
 
-export default function MetaRoute({
-  loaderData: { documents }
+export default function DocumentsRoute({
+  loaderData: { documents: initialDocuments }
 }: Route.ComponentProps) {
   const notifier = useNotifier()
   const meta = useMeta()
+
+  const [documents, setDocuments] = React.useState<DocumentSecondary[] | null>(
+    initialDocuments
+  )
+
+  useDocumentsSubscription('UP_TO_SECONDARY_PROPS', setDocuments)
 
   React.useEffect(() => {
     if (
@@ -51,7 +45,7 @@ export default function MetaRoute({
   return meta.status === 'AUTHENTICATED' &&
     meta.selfMeta.rights.includes('READ_DOCUMENT') === false ? (
     <ForbiddenScreen />
-  ) : (
-    <DocumentsScreen initialDocuments={documents ?? []} />
-  )
+  ) : documents !== null ? (
+    <DocumentsScreen documents={documents} />
+  ) : null
 }

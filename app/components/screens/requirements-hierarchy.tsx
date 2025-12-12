@@ -1,6 +1,5 @@
 // Project
-import type { ReadRequirementWithUpToTertiaryPropsSuccessResultDto } from '@common/dtos/server-api/requirements.dto'
-import type { DtoWithoutEnums } from '@common/dto-without-enums'
+import type { RequirementTertiary } from '~/types'
 // import { serverConnector } from '~/server-connector'
 // import { useNotifier } from '~/providers/notifier'
 import { blurredNodeIndexes } from '../requirements-hierarchy/TechSpec/nodes'
@@ -10,18 +9,15 @@ import { TopologyGraph } from '../requirements-hierarchy/graph'
 // React
 // import * as React from 'react'
 
-type Requirement =
-  DtoWithoutEnums<ReadRequirementWithUpToTertiaryPropsSuccessResultDto>
-
 export interface RequirementsHierarchyScreenProps {
-  initialRequirements: Requirement[]
+  initialRequirements: RequirementTertiary[]
 }
 
 export function RequirementsHierarchyScreen() {
   // props: RequirementsHierarchyScreenProps
   // const notifier = useNotifier()
 
-  // const [requirements, setRequirements] = React.useState<Requirement[]>(
+  // const [requirements, setRequirements] = React.useState<RequirementTertiary[]>(
   //   props.initialRequirements
   // )
 

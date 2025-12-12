@@ -23,23 +23,23 @@ export function TestStatusIcon({ status }: TestStatusIconProps) {
       title={capitalize(localizationForTestStatus.get(status) ?? status ?? '')}
     >
       {status === 'WAITING' ? (
-        <WatchLaterIcon sx={{ color: 'lightskyblue' }} />
+        <WatchLaterIcon sx={{ fontSize: '25px', color: 'lightskyblue' }} />
       ) : status === 'CANCELED' ? (
-        <DoNotDisturbOnIcon sx={{ color: 'indianred' }} />
+        <DoNotDisturbOnIcon sx={{ fontSize: '25px', color: 'indianred' }} />
       ) : status === 'LAUNCHED' ? (
         <CircularProgress
-          size={22}
+          size={25}
           thickness={7}
-          sx={{ color: 'lightskyblue' }}
+          sx={{ fontSize: '25px', color: 'lightskyblue' }}
         />
       ) : status === 'ABORTED' ? (
-        <CancelIcon sx={{ color: 'tomato' }} />
+        <CancelIcon sx={{ fontSize: '25px', color: 'tomato' }} />
       ) : status === 'ERROR' ? (
-        <PriorityHighIcon sx={{ color: 'red' }} />
+        <PriorityHighIcon sx={{ fontSize: '25px', color: 'red' }} />
       ) : status === 'FAILED' ? (
-        <CloseIcon color="error" />
+        <CloseIcon color="error" sx={{ fontSize: '25px' }} />
       ) : status === 'PASSED' ? (
-        <DoneIcon color="success" />
+        <DoneIcon color="success" sx={{ fontSize: '25px' }} />
       ) : (
         <></>
       )}

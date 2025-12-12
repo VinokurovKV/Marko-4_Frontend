@@ -1,35 +1,23 @@
 // Project
 import type { ReadOneResourceScope, ReadManyResourceScope } from '@common/enums'
-import type {
-  ReadRoleWithPrimaryPropsSuccessResultDto,
-  ReadRoleWithUpToSecondaryPropsSuccessResultDto,
-  ReadRoleWithUpToTertiaryPropsSuccessResultDto,
-  ReadRoleWithAllPropsSuccessResultDto,
-  ReadRolesWithPrimaryPropsSuccessResultItemDto,
-  ReadRolesWithUpToSecondaryPropsSuccessResultItemDto
-} from '@common/dtos/server-api/roles.dto'
-import type { DtoWithoutEnums } from '@common/dto-without-enums'
+import type { RolePrimary, RoleSecondary, RoleTertiary, RoleAll } from '~/types'
 import { serverConnector } from '~/server-connector'
 import { useChangeDetector } from '../change-detector'
 import { useNotifier } from '~/providers/notifier'
 // React
 import * as React from 'react'
 
-type ReadOneRole<Scope extends ReadOneResourceScope> = DtoWithoutEnums<
+type ReadOneRole<Scope extends ReadOneResourceScope> =
   Scope extends 'PRIMARY_PROPS'
-    ? ReadRoleWithPrimaryPropsSuccessResultDto
+    ? RolePrimary
     : Scope extends 'UP_TO_SECONDARY_PROPS'
-      ? ReadRoleWithUpToSecondaryPropsSuccessResultDto
+      ? RoleSecondary
       : Scope extends 'UP_TO_TERTIARY_PROPS'
-        ? ReadRoleWithUpToTertiaryPropsSuccessResultDto
-        : ReadRoleWithAllPropsSuccessResultDto
->
+        ? RoleTertiary
+        : RoleAll
 
-type ReadManyRole<Scope extends ReadManyResourceScope> = DtoWithoutEnums<
-  Scope extends 'PRIMARY_PROPS'
-    ? ReadRolesWithPrimaryPropsSuccessResultItemDto
-    : ReadRolesWithUpToSecondaryPropsSuccessResultItemDto
->
+type ReadManyRole<Scope extends ReadManyResourceScope> =
+  Scope extends 'PRIMARY_PROPS' ? RolePrimary : RoleSecondary
 
 function useRoleSubscriptionInner<Scope extends ReadOneResourceScope>(
   scope: Scope,

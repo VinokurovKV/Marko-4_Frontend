@@ -48,7 +48,10 @@ export function ColumnViewerChipsBlock(props: ColumnViewerChipsBlockProps) {
             sx={{
               borderColor: theme.palette.primary.dark,
               ':hover': {
-                bgcolor: 'rgb(239, 244, 251) !important'
+                bgcolor:
+                  theme.palette.mode === 'light'
+                    ? 'rgb(239, 244, 251) !important'
+                    : 'rgb(40, 47, 54) !important'
               }
             }}
           />

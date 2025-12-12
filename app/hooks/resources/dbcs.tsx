@@ -1,14 +1,6 @@
 // Project
 import type { ReadOneResourceScope, ReadManyResourceScope } from '@common/enums'
-import type {
-  ReadDbcWithPrimaryPropsSuccessResultDto,
-  ReadDbcWithUpToSecondaryPropsSuccessResultDto,
-  ReadDbcWithUpToTertiaryPropsSuccessResultDto,
-  ReadDbcWithAllPropsSuccessResultDto,
-  ReadDbcsWithPrimaryPropsSuccessResultItemDto,
-  ReadDbcsWithUpToSecondaryPropsSuccessResultItemDto
-} from '@common/dtos/server-api/dbcs.dto'
-import type { DtoWithoutEnums } from '@common/dto-without-enums'
+import type { DbcPrimary, DbcSecondary, DbcTertiary, DbcAll } from '~/types'
 import { serverConnector } from '~/server-connector'
 import { useChangeDetector } from '../change-detector'
 import { useNotifier } from '~/providers/notifier'
@@ -17,21 +9,19 @@ import * as React from 'react'
 // Other
 import { isEqual } from 'lodash'
 
-type ReadOneDbc<Scope extends ReadOneResourceScope> = DtoWithoutEnums<
+type ReadOneDbc<Scope extends ReadOneResourceScope> =
   Scope extends 'PRIMARY_PROPS'
-    ? ReadDbcWithPrimaryPropsSuccessResultDto
+    ? DbcPrimary
     : Scope extends 'UP_TO_SECONDARY_PROPS'
-      ? ReadDbcWithUpToSecondaryPropsSuccessResultDto
+      ? DbcSecondary
       : Scope extends 'UP_TO_TERTIARY_PROPS'
-        ? ReadDbcWithUpToTertiaryPropsSuccessResultDto
-        : ReadDbcWithAllPropsSuccessResultDto
->
+        ? DbcTertiary
+        : DbcAll
 
-type ReadManyDbc<Scope extends ReadManyResourceScope> = DtoWithoutEnums<
-  Scope extends 'PRIMARY_PROPS'
-    ? ReadDbcsWithPrimaryPropsSuccessResultItemDto
-    : ReadDbcsWithUpToSecondaryPropsSuccessResultItemDto
->
+type ReadManyDbc<Scope extends ReadManyResourceScope> =
+  Scope extends 'PRIMARY_PROPS' ? DbcPrimary : DbcSecondary
+
+const EMPTY_DBCS_ARR: DbcAll[] = []
 
 function useDbcSubscriptionInner<Scope extends ReadOneResourceScope>(
   scope: Scope,
@@ -316,10 +306,10 @@ export function useDbcs<Scope extends ReadManyResourceScope>(
 
 function useDbcsFilteredSubscriptionInner<Scope extends ReadManyResourceScope>(
   scope: Scope,
-  dbcIds: number[],
+  dbcIds: number[] | null,
   setDbcsPair: React.Dispatch<
     React.SetStateAction<{
-      dbcIds: number[]
+      dbcIds: number[] | null
       dbcs?: ReadManyDbc<Scope>[] | null
     }>
   >,
@@ -334,10 +324,13 @@ function useDbcsFilteredSubscriptionInner<Scope extends ReadManyResourceScope>(
   const load = React.useCallback(
     async (notifyAboutProblems: boolean) => {
       try {
-        const dbcs = (await serverConnector.readDbcs({
-          ids: dbcIds,
-          scope: scope
-        })) as ReadManyDbc<Scope>[]
+        const dbcs =
+          dbcIds !== null
+            ? ((await serverConnector.readDbcs({
+                ids: dbcIds,
+                scope: scope
+              })) as ReadManyDbc<Scope>[])
+            : EMPTY_DBCS_ARR
         setDbcsPair((oldPair) =>
           isEqual(oldPair.dbcIds, dbcIds)
             ? {
@@ -414,14 +407,14 @@ export function useDbcsFilteredSubscription<
   Scope extends ReadManyResourceScope
 >(
   scope: Scope,
-  dbcIds: number[],
+  dbcIds: number[] | null,
   setDbcs: React.Dispatch<React.SetStateAction<ReadManyDbc<Scope>[] | null>>,
   withInitialLoad: boolean = false,
   notifyAboutInitialLoadProblems: boolean = false,
   active: boolean = true
 ) {
   const [dbcsPair, setDbcsPair] = React.useState<{
-    dbcIds: number[]
+    dbcIds: number[] | null
     dbcs?: ReadManyDbc<Scope>[] | null
   }>({
     dbcIds: dbcIds,
@@ -451,12 +444,12 @@ export function useDbcsFilteredSubscription<
 /** Subscribe to dbcs updates with initial load */
 export function useDbcsFiltered<Scope extends ReadManyResourceScope>(
   scope: Scope,
-  dbcIds: number[],
+  dbcIds: number[] | null,
   notifyAboutInitialLoadProblems: boolean = false,
   active: boolean = true
 ) {
   const [dbcsPair, setDbcsPair] = React.useState<{
-    dbcIds: number[]
+    dbcIds: number[] | null
     dbcs?: ReadManyDbc<Scope>[] | null
   }>({
     dbcIds: dbcIds,

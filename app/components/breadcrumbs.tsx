@@ -38,7 +38,7 @@ const BreadcrumbsStyled = styled(Breadcrumbs)(({ theme }) => ({
 export function ProjBreadcrumbs(props: ProjBreadcrumbsProps) {
   return (
     <BreadcrumbsStyled
-      separator={<NavigateNextIcon fontSize="small" />}
+      separator={<NavigateNextIcon fontSize="medium" />}
       sx={{ m: 0 }}
     >
       <Typography sx={{ color: 'text.primary' }}>{''}</Typography>

@@ -1,36 +1,28 @@
 // Project
 import type { ReadOneResourceScope, ReadManyResourceScope } from '@common/enums'
 import type {
-  ReadTestTemplateWithPrimaryPropsSuccessResultDto,
-  ReadTestTemplateWithUpToSecondaryPropsSuccessResultDto,
-  ReadTestTemplateWithUpToTertiaryPropsSuccessResultDto,
-  ReadTestTemplateWithAllPropsSuccessResultDto,
-  ReadTestTemplatesWithPrimaryPropsSuccessResultItemDto,
-  ReadTestTemplatesWithUpToSecondaryPropsSuccessResultItemDto
-} from '@common/dtos/server-api/test-templates.dto'
-import type { DtoWithoutEnums } from '@common/dto-without-enums'
+  TestTemplatePrimary,
+  TestTemplateSecondary,
+  TestTemplateTertiary,
+  TestTemplateAll
+} from '~/types'
 import { serverConnector } from '~/server-connector'
 import { useChangeDetector } from '../change-detector'
 import { useNotifier } from '~/providers/notifier'
 // React
 import * as React from 'react'
 
-type ReadOneTestTemplate<Scope extends ReadOneResourceScope> = DtoWithoutEnums<
+type ReadOneTestTemplate<Scope extends ReadOneResourceScope> =
   Scope extends 'PRIMARY_PROPS'
-    ? ReadTestTemplateWithPrimaryPropsSuccessResultDto
+    ? TestTemplatePrimary
     : Scope extends 'UP_TO_SECONDARY_PROPS'
-      ? ReadTestTemplateWithUpToSecondaryPropsSuccessResultDto
+      ? TestTemplateSecondary
       : Scope extends 'UP_TO_TERTIARY_PROPS'
-        ? ReadTestTemplateWithUpToTertiaryPropsSuccessResultDto
-        : ReadTestTemplateWithAllPropsSuccessResultDto
->
+        ? TestTemplateTertiary
+        : TestTemplateAll
 
 type ReadManyTestTemplate<Scope extends ReadManyResourceScope> =
-  DtoWithoutEnums<
-    Scope extends 'PRIMARY_PROPS'
-      ? ReadTestTemplatesWithPrimaryPropsSuccessResultItemDto
-      : ReadTestTemplatesWithUpToSecondaryPropsSuccessResultItemDto
-  >
+  Scope extends 'PRIMARY_PROPS' ? TestTemplatePrimary : TestTemplateSecondary
 
 function useTestTemplateSubscriptionInner<Scope extends ReadOneResourceScope>(
   scope: Scope,

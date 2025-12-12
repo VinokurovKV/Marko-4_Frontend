@@ -1,14 +1,8 @@
 // Project
-import type { ReadRequirementsWithPrimaryPropsSuccessResultItemDto } from '@common/dtos/server-api/requirements.dto'
-import type { ReadCoveragesWithUpToSecondaryPropsSuccessResultItemDto } from '@common/dtos/server-api/coverages.dto'
-import type { DtoWithoutEnums } from '@common/dto-without-enums'
+import type { RequirementPrimary, CoverageSecondary } from '~/types'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
 import { useMeta } from '~/providers/meta'
-import {
-  useCoveragesSubscription,
-  useRequirementsSubscription
-} from '~/hooks/resources'
 import { CreateCoverageFormDialog } from '~/components/forms/resources/create-coverage'
 import { type GridProps, Grid } from '../grid'
 import {
@@ -28,14 +22,9 @@ import { type GridColDef, type GridValidRowModel } from '@mui/x-data-grid'
 
 const MAX_COVERAGES_IN_MESSAGES = 3
 
-type Requirement =
-  DtoWithoutEnums<ReadRequirementsWithPrimaryPropsSuccessResultItemDto>
-type Coverage =
-  DtoWithoutEnums<ReadCoveragesWithUpToSecondaryPropsSuccessResultItemDto>
-
 export interface CoveragesGridProps {
-  initialRequirements: Requirement[] | null
-  initialCoverages: Coverage[]
+  requirements: RequirementPrimary[] | null
+  coverages: CoverageSecondary[]
   navigationMode?: boolean
 }
 
@@ -51,43 +40,34 @@ export function CoveragesGrid(props: CoveragesGridProps) {
 
   const [createModeIsActive, setCreateModeIsActive] = React.useState(false)
 
-  const [requirements, setRequirements] = React.useState<Requirement[] | null>(
-    props.initialRequirements
-  )
-  const [coverages, setCoverages] = React.useState<Coverage[]>(
-    props.initialCoverages
-  )
-
-  useRequirementsSubscription('PRIMARY_PROPS', setRequirements)
-  useCoveragesSubscription('UP_TO_SECONDARY_PROPS', setCoverages)
-
   const requirementCodeForId = React.useMemo(
     () =>
       new Map(
-        (requirements ?? []).map((requirement) => [
+        (props.requirements ?? []).map((requirement) => [
           requirement.id,
           requirement.code
         ])
       ),
-    [requirements]
+    [props.requirements]
   )
 
   const coverageForId = React.useMemo(
-    () => new Map(coverages.map((coverage) => [coverage.id, coverage])),
-    [coverages]
+    () => new Map(props.coverages.map((coverage) => [coverage.id, coverage])),
+    [props.coverages]
   )
 
   const coverageCodeForId = React.useMemo(
-    () => new Map(coverages.map((coverage) => [coverage.id, coverage.code])),
-    [coverages]
+    () =>
+      new Map(props.coverages.map((coverage) => [coverage.id, coverage.code])),
+    [props.coverages]
   )
 
-  const rows: GridValidRowModel[] = coverages
+  const rows: GridValidRowModel[] = props.coverages
 
   const readCols = [
     useCodeCol('id', true, '/coverages'),
     useNameCol(),
-    useRequirementCol(requirements),
+    useRequirementCol(props.requirements),
     useCoverageTypeCol(),
     useTestsCountCol(),
     useCoveragePercentCol()
@@ -144,7 +124,10 @@ export function CoveragesGrid(props: CoveragesGridProps) {
     [rightsSet, readCols, actionsCol]
   )
 
-  const defaultHiddenFields = React.useMemo(() => [] as (keyof Coverage)[], [])
+  const defaultHiddenFields = React.useMemo(
+    () => [] as (keyof CoverageSecondary)[],
+    []
+  )
 
   const createProps: GridProps['create'] = React.useMemo(
     () =>
@@ -213,7 +196,7 @@ export function CoveragesGrid(props: CoveragesGridProps) {
         deleteMany={deleteManyProps}
       />
       <CreateCoverageFormDialog
-        requirements={requirements}
+        requirements={props.requirements}
         createModeIsActive={createModeIsActive}
         setCreateModeIsActive={setCreateModeIsActive}
         onSuccessCreateCoverage={cancelCreateForm}

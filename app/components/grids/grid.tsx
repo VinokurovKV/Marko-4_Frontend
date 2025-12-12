@@ -26,8 +26,8 @@ import { ruRU as ruRuDataGrid } from '@mui/x-data-grid/locales'
 // Other
 import capitalize from 'capitalize'
 
-const ROW_HEIGHT = 36
-const TOOLBAR_INPUT_HEIGHT = 32
+const ROW_HEIGHT = 32 // 36
+const TOOLBAR_INPUT_HEIGHT = 28 // 32
 const PAGE_SIZE_OPTIONS = [10, 25, 100]
 const LS_GRID_STATE_KEY_SUFFIX = 'DATA_GRID_STATE'
 const gridInitialState: GridInitialState = {
@@ -57,7 +57,10 @@ const DataGridStyled = styled(DataGrid)(({ theme }) => [
     '&.navigation-mode .MuiDataGrid-row': {
       cursor: 'pointer',
       ':hover': {
-        backgroundColor: 'rgb(239, 244, 251)'
+        backgroundColor:
+          theme.palette.mode === 'light'
+            ? 'rgb(239, 244, 251)'
+            : 'rgb(40, 47, 54)'
       }
     }
   },
@@ -299,10 +302,13 @@ export function Grid(props: GridProps) {
           {
             toolbar: {
               navigationMode: props.navigationMode,
-              changeModeButton: {
-                active: props.navigationMode,
-                onClick: props.onChangeModeClick
-              },
+              changeModeButton:
+                props.onChangeModeClick !== undefined
+                  ? {
+                      active: props.navigationMode,
+                      onClick: props.onChangeModeClick
+                    }
+                  : undefined,
               createButton: props.create
                 ? {
                     active: props.create.createModeIsActive,

@@ -1,12 +1,10 @@
 // Project
 import { convertMediaTypeToFileExtension } from '@common/formats'
-import type { ReadTestTemplatesWithUpToSecondaryPropsSuccessResultItemDto } from '@common/dtos/server-api/test-templates.dto'
-import type { DtoWithoutEnums } from '@common/dto-without-enums'
+import type { TestTemplateSecondary } from '~/types'
 import { downloadFileFromBlob } from '~/utilities/download-file'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
 import { useMeta } from '~/providers/meta'
-import { useTestTemplatesSubscription } from '~/hooks/resources'
 import { CreateTestTemplateFormDialog } from '~/components/forms/resources/create-test-template'
 import { type GridProps, Grid } from '../grid'
 import {
@@ -23,11 +21,8 @@ import { type GridColDef, type GridValidRowModel } from '@mui/x-data-grid'
 
 const MAX_TEST_TEMPLATES_IN_MESSAGES = 3
 
-type TestTemplate =
-  DtoWithoutEnums<ReadTestTemplatesWithUpToSecondaryPropsSuccessResultItemDto>
-
 export interface TestTemplatesGridProps {
-  initialTestTemplates: TestTemplate[]
+  testTemplates: TestTemplateSecondary[]
   navigationMode?: boolean
 }
 
@@ -43,24 +38,18 @@ export function TestTemplatesGrid(props: TestTemplatesGridProps) {
 
   const [createModeIsActive, setCreateModeIsActive] = React.useState(false)
 
-  const [testTemplates, setTestTemplates] = React.useState<TestTemplate[]>(
-    props.initialTestTemplates
-  )
-
-  useTestTemplatesSubscription('UP_TO_SECONDARY_PROPS', setTestTemplates)
-
   const testTemplateCodeForId = React.useMemo(
     () =>
       new Map(
-        testTemplates.map((testTemplate) => [
+        props.testTemplates.map((testTemplate) => [
           testTemplate.id,
           testTemplate.code
         ])
       ),
-    [testTemplates]
+    [props.testTemplates]
   )
 
-  const rows: GridValidRowModel[] = testTemplates
+  const rows: GridValidRowModel[] = props.testTemplates
 
   const readCols = [
     useCodeCol('id', true, '/test-templates'),
@@ -119,7 +108,7 @@ export function TestTemplatesGrid(props: TestTemplatesGridProps) {
   )
 
   const defaultHiddenFields = React.useMemo(
-    () => [] as (keyof TestTemplate)[],
+    () => [] as (keyof TestTemplateSecondary)[],
     []
   )
 

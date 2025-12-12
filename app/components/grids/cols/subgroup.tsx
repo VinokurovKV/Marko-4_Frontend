@@ -1,6 +1,5 @@
 // Project
-import type { ReadSubgroupsWithPrimaryPropsSuccessResultItemDto } from '@common/dtos/server-api/subgroups.dto'
-import type { DtoWithoutEnums } from '@common/dto-without-enums'
+import type { SubgroupPrimary } from '~/types'
 import { GridRefCell } from '../cells/grid-ref-cell'
 // React
 import * as React from 'react'
@@ -9,10 +8,9 @@ import type { GridColDef, GridRenderCellParams } from '@mui/x-data-grid'
 // Other
 import capitalize from 'capitalize'
 
-type Subgroup =
-  DtoWithoutEnums<ReadSubgroupsWithPrimaryPropsSuccessResultItemDto>
-
-export function useSubgroupCol(subgroups: Subgroup[] | null | undefined) {
+export function useSubgroupCol(
+  subgroups: SubgroupPrimary[] | null | undefined
+) {
   const subgroupCodeForId = React.useMemo(
     () =>
       new Map(
@@ -39,7 +37,7 @@ export function useSubgroupCol(subgroups: Subgroup[] | null | undefined) {
           hrefPath={params.row.subgroupId}
         />
       ),
-      minWidth: 150,
+      minWidth: 140,
       flex: 1
     }),
     []

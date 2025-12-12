@@ -1,6 +1,5 @@
 // Project
-import type { ReadTestReportWithUpToTertiaryPropsSuccessResultDto } from '@common/dtos/server-api/test-reports.dto'
-import type { DtoWithoutEnums } from '@common/dto-without-enums'
+import type { TestReportTertiary } from '~/types'
 import { formatTime } from '~/utilities/format-date'
 // Material UI
 import Stack from '@mui/material/Stack'
@@ -8,8 +7,7 @@ import Typography from '@mui/material/Typography'
 // Other
 import capitalize from 'capitalize'
 
-type Message =
-  DtoWithoutEnums<ReadTestReportWithUpToTertiaryPropsSuccessResultDto>['messages'][0]
+type Message = TestReportTertiary['messages'][0]
 
 export interface ColumnViewerMessageProps {
   message: Message

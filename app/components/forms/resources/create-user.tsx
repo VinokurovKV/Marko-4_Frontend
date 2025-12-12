@@ -1,7 +1,7 @@
 // Project
-import type { ReadRolesWithPrimaryPropsSuccessResultItemDto } from '@common/dtos/server-api/roles.dto'
 import type { CreateUserSuccessResultDto } from '@common/dtos/server-api/users.dto'
 import type { DtoWithoutEnums } from '@common/dto-without-enums'
+import type { RolePrimary } from '~/types'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
 import {
@@ -24,15 +24,15 @@ import {
 // React
 import * as React from 'react'
 
-type Role = DtoWithoutEnums<ReadRolesWithPrimaryPropsSuccessResultItemDto>
-
 const CREATE_USER_FORM_PROPS_JOINED = createUserFormValidator.getPromptsJoined()
 
 export interface CreateUserFormDialogProps {
-  roles: Role[] | null
+  roles: RolePrimary[] | null
   createModeIsActive: boolean
   setCreateModeIsActive: React.Dispatch<React.SetStateAction<boolean>>
-  onSuccessCreateUser?: (createUserResult: CreateUserSuccessResultDto) => void
+  onSuccessCreateUser?: (
+    createUserResult: DtoWithoutEnums<CreateUserSuccessResultDto>
+  ) => void
   onCancelClick?: () => void
 }
 
@@ -61,7 +61,7 @@ export function CreateUserFormDialog(props: CreateUserFormDialogProps) {
   const onSuccessSubmit = React.useCallback(
     (
       data: CreateUserFormData,
-      createUserResult: CreateUserSuccessResultDto
+      createUserResult: DtoWithoutEnums<CreateUserSuccessResultDto>
     ) => {
       notifier.showSuccess(`пользователь '${data.login}' создан`)
       props.onSuccessCreateUser?.(createUserResult)
@@ -75,7 +75,7 @@ export function CreateUserFormDialog(props: CreateUserFormDialogProps) {
     errors,
     handleTextFieldChange,
     handleNumSelectChange
-  } = useForm<CreateUserFormData, CreateUserSuccessResultDto>({
+  } = useForm<CreateUserFormData, DtoWithoutEnums<CreateUserSuccessResultDto>>({
     INITIAL_FORM_DATA: INITIAL_CREATE_USER_FORM_DATA,
     validator: createUserFormValidator,
     submitAction: submitAction,

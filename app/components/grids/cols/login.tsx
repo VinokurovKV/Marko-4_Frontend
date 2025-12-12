@@ -21,7 +21,7 @@ export function useLoginCol(userIdField: string, header: boolean) {
           disableCapitalize
         />
       ),
-      minWidth: 150,
+      minWidth: 140,
       flex: 1
     }),
     []

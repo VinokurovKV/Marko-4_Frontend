@@ -1,12 +1,10 @@
 // Project
-import type { ReadTestWithPrimaryPropsSuccessResultDto } from '@common/dtos/server-api/tests.dto'
-import type { ReadTestReportWithUpToTertiaryPropsSuccessResultDto } from '@common/dtos/server-api/test-reports.dto'
-import type { DtoWithoutEnums } from '@common/dto-without-enums'
+import type { TestPrimary, TestReportTertiary } from '~/types'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
 import { localizationForTestStatus } from '~/localization'
 import { TestStatusIcon } from '~/components/icons'
-import { TwoPartsContainer } from '~/components/containers/two-parts-container'
+import { HorizontalTwoPartsContainer } from '~/components/containers'
 import {
   ColumnViewer,
   ColumnViewerBlock,
@@ -19,14 +17,11 @@ import {
 // React
 import * as React from 'react'
 
-type Test = DtoWithoutEnums<ReadTestWithPrimaryPropsSuccessResultDto>
-type TestReport =
-  DtoWithoutEnums<ReadTestReportWithUpToTertiaryPropsSuccessResultDto>
-
 export interface TestReportViewerProps {
   // testTransitionNum: number
-  test: Test | null
-  testReport: TestReport
+  // TODO: change server api to load testTransitionNum
+  test: TestPrimary | null
+  testReport: TestReportTertiary
 }
 
 export function TestReportViewer(props: TestReportViewerProps) {
@@ -51,7 +46,7 @@ export function TestReportViewer(props: TestReportViewerProps) {
   )
 
   return (
-    <TwoPartsContainer
+    <HorizontalTwoPartsContainer
       proportions="EQUAL"
       title={`Тест ${test?.code ?? 'УДАЛЕН'}`}
     >
@@ -94,6 +89,6 @@ export function TestReportViewer(props: TestReportViewerProps) {
           ))}
         </ColumnViewerBlock>
       </ColumnViewer>
-    </TwoPartsContainer>
+    </HorizontalTwoPartsContainer>
   )
 }

@@ -35,7 +35,7 @@ export function FormAutocompleteSingleSelect<Value extends number | string>(
     () =>
       styled(Autocomplete<Value, false, false, false>)({
         '& .MuiInputBase-root': {
-          height: '36px'
+          height: '32px' // '36px'
         }
       }),
     []

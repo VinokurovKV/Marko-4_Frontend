@@ -29,11 +29,14 @@ export function RequirementModifierIcon({
       )}
     >
       {modifier === 'MUST' ? (
-        <LockIcon color="error" sx={{ opacity: 0.8 }} />
+        <LockIcon color="error" sx={{ fontSize: '25px', opacity: 0.8 }} />
       ) : modifier === 'SHOULD' ? (
-        <PanToolAltIcon color="warning" sx={{ opacity: 0.8 }} />
+        <PanToolAltIcon
+          color="warning"
+          sx={{ fontSize: '25px', opacity: 0.8 }}
+        />
       ) : modifier === 'MAY' ? (
-        <LockOpenIcon color="success" sx={{ opacity: 0.8 }} />
+        <LockOpenIcon color="success" sx={{ fontSize: '25px', opacity: 0.8 }} />
       ) : (
         <></>
       )}

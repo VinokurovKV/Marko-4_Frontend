@@ -21,7 +21,7 @@ export function useDeviceTypeCol() {
       type: 'singleSelect',
       valueOptions: allDeviceTypes.map(getValue),
       valueGetter: getValue,
-      minWidth: 150,
+      minWidth: 140,
       flex: 1
     }),
     []

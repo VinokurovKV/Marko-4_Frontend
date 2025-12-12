@@ -1,35 +1,28 @@
 // Project
 import type { ReadOneResourceScope, ReadManyResourceScope } from '@common/enums'
 import type {
-  ReadTopologyWithPrimaryPropsSuccessResultDto,
-  ReadTopologyWithUpToSecondaryPropsSuccessResultDto,
-  ReadTopologyWithUpToTertiaryPropsSuccessResultDto,
-  ReadTopologyWithAllPropsSuccessResultDto,
-  ReadTopologiesWithPrimaryPropsSuccessResultItemDto,
-  ReadTopologiesWithUpToSecondaryPropsSuccessResultItemDto
-} from '@common/dtos/server-api/topologies.dto'
-import type { DtoWithoutEnums } from '@common/dto-without-enums'
+  TopologyPrimary,
+  TopologySecondary,
+  TopologyTertiary,
+  TopologyAll
+} from '~/types'
 import { serverConnector } from '~/server-connector'
 import { useChangeDetector } from '../change-detector'
 import { useNotifier } from '~/providers/notifier'
 // React
 import * as React from 'react'
 
-type ReadOneTopology<Scope extends ReadOneResourceScope> = DtoWithoutEnums<
+type ReadOneTopology<Scope extends ReadOneResourceScope> =
   Scope extends 'PRIMARY_PROPS'
-    ? ReadTopologyWithPrimaryPropsSuccessResultDto
+    ? TopologyPrimary
     : Scope extends 'UP_TO_SECONDARY_PROPS'
-      ? ReadTopologyWithUpToSecondaryPropsSuccessResultDto
+      ? TopologySecondary
       : Scope extends 'UP_TO_TERTIARY_PROPS'
-        ? ReadTopologyWithUpToTertiaryPropsSuccessResultDto
-        : ReadTopologyWithAllPropsSuccessResultDto
->
+        ? TopologyTertiary
+        : TopologyAll
 
-type ReadManyTopology<Scope extends ReadManyResourceScope> = DtoWithoutEnums<
-  Scope extends 'PRIMARY_PROPS'
-    ? ReadTopologiesWithPrimaryPropsSuccessResultItemDto
-    : ReadTopologiesWithUpToSecondaryPropsSuccessResultItemDto
->
+type ReadManyTopology<Scope extends ReadManyResourceScope> =
+  Scope extends 'PRIMARY_PROPS' ? TopologyPrimary : TopologySecondary
 
 function useTopologySubscriptionInner<Scope extends ReadOneResourceScope>(
   scope: Scope,

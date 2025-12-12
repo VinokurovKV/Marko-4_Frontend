@@ -1,7 +1,7 @@
 // Project
-import type { CommonTopologyConfigDto } from '@common/dtos'
 import type { CreateCommonTopologySuccessResultDto } from '@common/dtos/server-api/common-topologies.dto'
 import type { DtoWithoutEnums } from '@common/dto-without-enums'
+import type { CommonTopologyConfig } from '~/types'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
 import { useChangeDetector } from '~/hooks/change-detector'
@@ -42,8 +42,6 @@ import * as React from 'react'
 // Material UI
 import ClearIcon from '@mui/icons-material/Clear'
 
-type CommonTopologyConfig = DtoWithoutEnums<CommonTopologyConfigDto>
-
 const EMPTY_TAG_IDS_ARR: number[] = []
 const EMPTY_TAG_CODES_ARR: string[] = []
 const EMPTY_VERTEX_IFACE_NAMES_ARR: string[] = []
@@ -67,7 +65,7 @@ export interface CreateCommonTopologyFormDialogProps {
   createModeIsActive: boolean
   setCreateModeIsActive: React.Dispatch<React.SetStateAction<boolean>>
   onSuccessCreateCommonTopology?: (
-    createCommonTopologyResult: CreateCommonTopologySuccessResultDto
+    createCommonTopologyResult: DtoWithoutEnums<CreateCommonTopologySuccessResultDto>
   ) => void
   onCancelClick?: () => void
 }
@@ -212,7 +210,7 @@ export function CreateCommonTopologyFormDialog(
   const onSuccessSubmit = React.useCallback(
     (
       data: CreateCommonTopologyFormData,
-      createCommonTopologyResult: CreateCommonTopologySuccessResultDto
+      createCommonTopologyResult: DtoWithoutEnums<CreateCommonTopologySuccessResultDto>
     ) => {
       notifier.showSuccess(`общая топология '${data.code}' создана`)
       props.onSuccessCreateCommonTopology?.(createCommonTopologyResult)
@@ -234,7 +232,7 @@ export function CreateCommonTopologyFormDialog(
     handleAutocompleteMultipleSelectFreeItemsChange
   } = useForm<
     CreateCommonTopologyFormData,
-    CreateCommonTopologySuccessResultDto
+    DtoWithoutEnums<CreateCommonTopologySuccessResultDto>
   >({
     INITIAL_FORM_DATA: INITIAL_CREATE_COMMON_TOPOLOGY_FORM_DATA,
     validator: createCommonTopologyFormValidator,

@@ -1,6 +1,5 @@
 // Project
-import type { CommonTopologyConfigDto } from '@common/dtos'
-import type { DtoWithoutEnums } from '@common/dto-without-enums'
+import type { CommonTopologyConfig } from '~/types'
 import { TopologyViewerButton } from './topology-viewer-button'
 // React
 import * as React from 'react'
@@ -26,8 +25,6 @@ const ELEMENT_SIZES = {
   }
 }
 
-type TopologyConfig = DtoWithoutEnums<CommonTopologyConfigDto>
-
 const THEME = {
   background: {
     backgroundColor: '#f5f5f5',
@@ -51,7 +48,7 @@ declare global {
 }
 
 interface TopologyViewerProps {
-  config: TopologyConfig
+  config: CommonTopologyConfig
   vertexNames?: string[]
   showButtons: boolean
 }
@@ -141,7 +138,9 @@ function placeVertex(
   }
 }
 
-function buildConnectivityGraph(config: TopologyConfig): ConnectivityGraph {
+function buildConnectivityGraph(
+  config: CommonTopologyConfig
+): ConnectivityGraph {
   const vertices = config.vertexes.map((v) => v.name)
   const edgesSet = new Set<string>()
   const edgePairs: Array<[string, string]> = []
@@ -427,7 +426,7 @@ const RENDERING_CONFIG = {
   maxZoom: 3.0
 }
 
-function convertConfig(config: TopologyConfig) {
+function convertConfig(config: CommonTopologyConfig) {
   const elements: cytoscape.ElementDefinition[] = []
 
   config.vertexes.forEach((vertex) => {
@@ -480,7 +479,7 @@ function convertConfig(config: TopologyConfig) {
 function getOptimalInterfaceSide(
   vertexName: string,
   ifaceName: string,
-  config: TopologyConfig,
+  config: CommonTopologyConfig,
   positions: { [key: string]: { x: number; y: number } }
 ): 'left' | 'right' | 'top' | 'bottom' {
   const vertex = config.vertexes.find((v) => v.name === vertexName)
@@ -554,9 +553,9 @@ function getOptimalInterfaceSide(
 
 function calculateVertexSize(
   vertexName: string,
-  vertex: TopologyConfig['vertexes'][0],
+  vertex: CommonTopologyConfig['vertexes'][0],
   positions: { [key: string]: { x: number; y: number } },
-  config: TopologyConfig
+  config: CommonTopologyConfig
 ): { width: number; height: number } {
   const BASE_WIDTH = 400
   const BASE_HEIGHT = 200
@@ -620,7 +619,7 @@ function calculateVertexSize(
   return { width: requiredWidth, height: requiredHeight }
 }
 
-function calculateAllPositions(config: TopologyConfig) {
+function calculateAllPositions(config: CommonTopologyConfig) {
   const positions: { [key: string]: { x: number; y: number } } = {}
 
   const connectivityGraph = buildConnectivityGraph(config)
@@ -781,7 +780,7 @@ function calculateAllPositions(config: TopologyConfig) {
   return positions
 }
 
-function calculateFallbackPositions(config: TopologyConfig) {
+function calculateFallbackPositions(config: CommonTopologyConfig) {
   const positions: { [key: string]: { x: number; y: number } } = {}
 
   const centerX = 800

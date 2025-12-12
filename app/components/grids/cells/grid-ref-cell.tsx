@@ -59,7 +59,10 @@ export function GridRefCell(props: GridRefCellProps) {
           fontWeight: props.header ? 'bold' : undefined,
           color: props.header ? theme.palette.text.primary : undefined,
           ':hover': {
-            bgcolor: 'rgb(239, 244, 251)'
+            bgcolor:
+              theme.palette.mode === 'light'
+                ? 'rgb(239, 244, 251)'
+                : 'rgb(40, 47, 54)'
           }
         }}
       >

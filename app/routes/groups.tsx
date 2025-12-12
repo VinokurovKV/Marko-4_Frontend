@@ -1,7 +1,10 @@
 // Project
+import type { GroupSecondary } from '~/types'
 import { serverConnector } from '~/server-connector'
+import { readGroupsSecondary } from '~/readers'
 import { useNotifier } from '~/providers/notifier'
 import { useMeta } from '~/providers/meta'
+import { useGroupsSubscription } from '~/hooks/resources'
 import { ForbiddenScreen } from '~/components/screens/problem/forbidden'
 import { GroupsScreen } from '~/components/screens/groups'
 // React router
@@ -11,32 +14,23 @@ import * as React from 'react'
 
 export async function clientLoader() {
   await serverConnector.connect()
-  const [groups] = await (async () => {
-    if (serverConnector.meta.status !== 'AUTHENTICATED') {
-      return [null]
-    } else {
-      const rights = serverConnector.meta.selfMeta.rights
-      return await Promise.all([
-        rights.includes('READ_GROUP')
-          ? serverConnector
-              .readGroups({
-                scope: 'UP_TO_SECONDARY_PROPS'
-              })
-              .catch(() => null)
-          : Promise.resolve(null)
-      ])
-    }
-  })()
+  const [groups] = await Promise.all([readGroupsSecondary()])
   return {
     groups
   }
 }
 
-export default function MetaRoute({
-  loaderData: { groups }
+export default function GroupsRoute({
+  loaderData: { groups: initialGroups }
 }: Route.ComponentProps) {
   const notifier = useNotifier()
   const meta = useMeta()
+
+  const [groups, setGroups] = React.useState<GroupSecondary[] | null>(
+    initialGroups
+  )
+
+  useGroupsSubscription('UP_TO_SECONDARY_PROPS', setGroups)
 
   React.useEffect(() => {
     if (
@@ -51,7 +45,7 @@ export default function MetaRoute({
   return meta.status === 'AUTHENTICATED' &&
     meta.selfMeta.rights.includes('READ_GROUP') === false ? (
     <ForbiddenScreen />
-  ) : (
-    <GroupsScreen initialGroups={groups ?? []} />
-  )
+  ) : groups !== null ? (
+    <GroupsScreen groups={groups} />
+  ) : null
 }

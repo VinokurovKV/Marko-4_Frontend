@@ -1,14 +1,8 @@
 // Project
-import type { ReadCommonTopologiesWithPrimaryPropsSuccessResultItemDto } from '@common/dtos/server-api/common-topologies.dto'
-import type { ReadTasksWithUpToSecondaryPropsSuccessResultItemDto } from '@common/dtos/server-api/tasks.dto'
-import type { DtoWithoutEnums } from '@common/dto-without-enums'
+import type { CommonTopologyPrimary, TaskSecondary } from '~/types'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
 import { useMeta } from '~/providers/meta'
-import {
-  useCommonTopologiesSubscription,
-  useTasksSubscription
-} from '~/hooks/resources'
 import { CreateTaskFormDialog } from '~/components/forms/resources/create-task'
 import { type GridProps, Grid } from '../grid'
 import {
@@ -40,13 +34,9 @@ import { type GridColDef, type GridValidRowModel } from '@mui/x-data-grid'
 
 // const MAX_TASKS_IN_MESSAGES = 3
 
-type CommonTopology =
-  DtoWithoutEnums<ReadCommonTopologiesWithPrimaryPropsSuccessResultItemDto>
-type Task = DtoWithoutEnums<ReadTasksWithUpToSecondaryPropsSuccessResultItemDto>
-
 export interface TasksGridProps {
-  initialCommonTopologies: CommonTopology[] | null
-  initialTasks: Task[]
+  commonTopologies: CommonTopologyPrimary[] | null
+  tasks: TaskSecondary[]
   navigationMode?: boolean
   navigationModeSelectedRowId?: number
 }
@@ -64,25 +54,17 @@ export function TasksGrid(props: TasksGridProps) {
 
   const [createModeIsActive, setCreateModeIsActive] = React.useState(false)
 
-  const [commonTopologies, setCommonTopologies] = React.useState<
-    CommonTopology[] | null
-  >(props.initialCommonTopologies)
-  const [tasks, setTasks] = React.useState<Task[]>(props.initialTasks)
-
-  useCommonTopologiesSubscription('PRIMARY_PROPS', setCommonTopologies)
-  useTasksSubscription('UP_TO_SECONDARY_PROPS', setTasks)
-
   const taskForId = React.useMemo(
-    () => new Map(tasks.map((task) => [task.id, task])),
-    [tasks]
+    () => new Map(props.tasks.map((task) => [task.id, task])),
+    [props.tasks]
   )
 
   const taskCodeForId = React.useMemo(
-    () => new Map(tasks.map((task) => [task.id, task.code])),
-    [tasks]
+    () => new Map(props.tasks.map((task) => [task.id, task.code])),
+    [props.tasks]
   )
 
-  const rows: GridValidRowModel[] = tasks
+  const rows: GridValidRowModel[] = props.tasks
 
   const readCols = [
     useCodeCol('id', true, '/tasks', navigationMode),
@@ -90,7 +72,7 @@ export function TasksGrid(props: TasksGridProps) {
     useTaskStatusCol(),
     useCreateTimeCol(),
     useTaskModeCol(),
-    useCommonTopologyVersionCol(commonTopologies),
+    useCommonTopologyVersionCol(props.commonTopologies),
     useAllTestsCountCol(),
     useTestsCountCol(),
     useAllSubgroupsCountCol(),
@@ -253,7 +235,7 @@ export function TasksGrid(props: TasksGridProps) {
         'priority',
         'paused',
         'minLaunchTime'
-      ] as (keyof Task)[],
+      ] as (keyof TaskSecondary)[],
     []
   )
 
@@ -337,9 +319,10 @@ export function TasksGrid(props: TasksGridProps) {
         navigationModeOnRowClick={handleNavigationModeRowClick}
         create={createProps}
         // deleteMany={deleteManyProps}
+        compactFooter={navigationMode}
       />
       <CreateTaskFormDialog
-        commonTopologies={commonTopologies}
+        commonTopologies={props.commonTopologies}
         createModeIsActive={createModeIsActive}
         setCreateModeIsActive={setCreateModeIsActive}
         onSuccessCreateTask={cancelCreateForm}

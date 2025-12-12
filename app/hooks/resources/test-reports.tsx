@@ -1,35 +1,28 @@
 // Project
 import type { ReadOneResourceScope, ReadManyResourceScope } from '@common/enums'
 import type {
-  ReadTestReportWithPrimaryPropsSuccessResultDto,
-  ReadTestReportWithUpToSecondaryPropsSuccessResultDto,
-  ReadTestReportWithUpToTertiaryPropsSuccessResultDto,
-  ReadTestReportWithAllPropsSuccessResultDto,
-  ReadTestReportsWithPrimaryPropsSuccessResultItemDto,
-  ReadTestReportsWithUpToSecondaryPropsSuccessResultItemDto
-} from '@common/dtos/server-api/test-reports.dto'
-import type { DtoWithoutEnums } from '@common/dto-without-enums'
+  TestReportPrimary,
+  TestReportSecondary,
+  TestReportTertiary,
+  TestReportAll
+} from '~/types'
 import { serverConnector } from '~/server-connector'
 import { useChangeDetector } from '../change-detector'
 import { useNotifier } from '~/providers/notifier'
 // React
 import * as React from 'react'
 
-type ReadOneTestReport<Scope extends ReadOneResourceScope> = DtoWithoutEnums<
+type ReadOneTestReport<Scope extends ReadOneResourceScope> =
   Scope extends 'PRIMARY_PROPS'
-    ? ReadTestReportWithPrimaryPropsSuccessResultDto
+    ? TestReportPrimary
     : Scope extends 'UP_TO_SECONDARY_PROPS'
-      ? ReadTestReportWithUpToSecondaryPropsSuccessResultDto
+      ? TestReportSecondary
       : Scope extends 'UP_TO_TERTIARY_PROPS'
-        ? ReadTestReportWithUpToTertiaryPropsSuccessResultDto
-        : ReadTestReportWithAllPropsSuccessResultDto
->
+        ? TestReportTertiary
+        : TestReportAll
 
-type ReadManyTestReport<Scope extends ReadManyResourceScope> = DtoWithoutEnums<
-  Scope extends 'PRIMARY_PROPS'
-    ? ReadTestReportsWithPrimaryPropsSuccessResultItemDto
-    : ReadTestReportsWithUpToSecondaryPropsSuccessResultItemDto
->
+type ReadManyTestReport<Scope extends ReadManyResourceScope> =
+  Scope extends 'PRIMARY_PROPS' ? TestReportPrimary : TestReportSecondary
 
 function useTestReportSubscriptionInner<Scope extends ReadOneResourceScope>(
   scope: Scope,

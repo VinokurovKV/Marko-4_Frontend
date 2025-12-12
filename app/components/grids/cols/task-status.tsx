@@ -60,7 +60,7 @@ export function useTaskStatusCol() {
       ),
       headerAlign: 'center',
       align: 'center',
-      minWidth: 100,
+      minWidth: 80,
       flex: 0.01
     }),
     []

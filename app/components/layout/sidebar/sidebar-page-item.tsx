@@ -126,7 +126,7 @@ export function SidebarPageItem({
           selected={selected}
           disabled={disabled}
           sx={{
-            height: mini ? 50 : 'auto'
+            height: mini ? 45 : 'auto'
           }}
           {...(nestedNavigation && !mini
             ? {

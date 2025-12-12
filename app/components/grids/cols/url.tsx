@@ -17,7 +17,7 @@ export function useUrlCol() {
           disableCapitalize={true}
         />
       ),
-      minWidth: 150,
+      minWidth: 140,
       flex: 1
     }),
     []

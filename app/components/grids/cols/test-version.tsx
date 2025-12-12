@@ -1,7 +1,5 @@
 // Project
-import type { ReadTestsWithPrimaryPropsSuccessResultItemDto } from '@common/dtos/server-api/tests.dto'
-import type { ReadTaskWithUpToTertiaryPropsSuccessResultDto } from '@common/dtos/server-api/tasks.dto'
-import type { DtoWithoutEnums } from '@common/dto-without-enums'
+import type { TestPrimary, TaskTertiary } from '~/types'
 import { GridRefCell } from '../cells/grid-ref-cell'
 // React
 import * as React from 'react'
@@ -10,12 +8,9 @@ import type { GridColDef, GridRenderCellParams } from '@mui/x-data-grid'
 // Other
 import capitalize from 'capitalize'
 
-type Test = DtoWithoutEnums<ReadTestsWithPrimaryPropsSuccessResultItemDto>
-type Task = DtoWithoutEnums<ReadTaskWithUpToTertiaryPropsSuccessResultDto>
-
 export function useFlatTestVersionCol(
-  tests: Test[] | null | undefined,
-  task: Task
+  tests: TestPrimary[] | null | undefined,
+  task: TaskTertiary
 ) {
   const testCodeForId = React.useMemo(() => {
     const map = new Map(
@@ -62,7 +57,7 @@ export function useFlatTestVersionCol(
           hrefPath={`${params.row.testId}/versions/${testTransitionNumForId.get(params.row.testId) ?? -1}`}
         />
       ),
-      minWidth: 150,
+      minWidth: 140,
       flex: 1
     }),
     []

@@ -21,7 +21,7 @@ export function useDocumentTypeCol() {
       type: 'singleSelect',
       valueOptions: allDocumentTypes.map(getValue),
       valueGetter: getValue,
-      minWidth: 150,
+      minWidth: 140,
       flex: 1
     }),
     []

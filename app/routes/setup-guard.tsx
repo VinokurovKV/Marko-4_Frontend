@@ -1,7 +1,10 @@
 // Project
 import { serverConnector } from '~/server-connector'
+import { useMeta } from '~/providers/meta'
 // React router
-import { redirect, Outlet } from 'react-router'
+import { redirect, useNavigate, Outlet } from 'react-router'
+// React
+import * as React from 'react'
 
 export async function clientLoader() {
   await serverConnector.connect()
@@ -12,5 +15,14 @@ export async function clientLoader() {
 }
 
 export default function SetupGuardRoute() {
+  const navigate = useNavigate()
+  const meta = useMeta()
+
+  React.useEffect(() => {
+    if (meta.status === 'NOT_SETUP') {
+      void navigate('/setup')
+    }
+  }, [navigate, meta])
+
   return <Outlet />
 }

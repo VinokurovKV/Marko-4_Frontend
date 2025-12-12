@@ -1,10 +1,8 @@
 // Project
-import type { ReadTagsWithUpToSecondaryPropsSuccessResultItemDto } from '@common/dtos/server-api/tags.dto'
-import type { DtoWithoutEnums } from '@common/dto-without-enums'
+import type { TagSecondary } from '~/types'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
 import { useMeta } from '~/providers/meta'
-import { useTagsSubscription } from '~/hooks/resources'
 import { CreateTagFormDialog } from '~/components/forms/resources/create-tag'
 import { type GridProps, Grid } from '../grid'
 import { useCodeCol, type ActionsColProps, useActionsCol } from '../cols'
@@ -15,10 +13,8 @@ import { type GridColDef, type GridValidRowModel } from '@mui/x-data-grid'
 
 const MAX_TAGS_IN_MESSAGES = 3
 
-type Tag = DtoWithoutEnums<ReadTagsWithUpToSecondaryPropsSuccessResultItemDto>
-
 export interface TagsGridProps {
-  initialTags: Tag[]
+  tags: TagSecondary[]
   navigationMode?: boolean
 }
 
@@ -34,16 +30,12 @@ export function TagsGrid(props: TagsGridProps) {
 
   const [createModeIsActive, setCreateModeIsActive] = React.useState(false)
 
-  const [tags, setTags] = React.useState<Tag[]>(props.initialTags)
-
-  useTagsSubscription('UP_TO_SECONDARY_PROPS', setTags)
-
   const tagCodeForId = React.useMemo(
-    () => new Map(tags.map((tag) => [tag.id, tag.code])),
-    [tags]
+    () => new Map(props.tags.map((tag) => [tag.id, tag.code])),
+    [props.tags]
   )
 
-  const rows: GridValidRowModel[] = tags
+  const rows: GridValidRowModel[] = props.tags
 
   const readCols = [useCodeCol('id', true, '/tags')]
 
@@ -83,7 +75,10 @@ export function TagsGrid(props: TagsGridProps) {
     [rightsSet, readCols, actionsCol]
   )
 
-  const defaultHiddenFields = React.useMemo(() => [] as (keyof Tag)[], [])
+  const defaultHiddenFields = React.useMemo(
+    () => [] as (keyof TagSecondary)[],
+    []
+  )
 
   const createProps: GridProps['create'] = React.useMemo(
     () =>

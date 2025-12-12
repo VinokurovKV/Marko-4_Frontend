@@ -1,7 +1,7 @@
 // Project
-import type { ReadGroupsWithPrimaryPropsSuccessResultItemDto } from '@common/dtos/server-api/groups.dto'
 import type { CreateSubgroupSuccessResultDto } from '@common/dtos/server-api/subgroups.dto'
 import type { DtoWithoutEnums } from '@common/dto-without-enums'
+import type { GroupPrimary } from '~/types'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
 import { useTags, useTests } from '~/hooks/resources'
@@ -28,17 +28,15 @@ const EMPTY_TAG_IDS_ARR: number[] = []
 const EMPTY_TAG_CODES_ARR: string[] = []
 const EMPTY_TEST_IDS_ARR: number[] = []
 
-type Group = DtoWithoutEnums<ReadGroupsWithPrimaryPropsSuccessResultItemDto>
-
 const CREATE_SUBGROUP_FORM_PROPS_JOINED =
   createSubgroupFormValidator.getPromptsJoined()
 
 export interface CreateSubgroupFormDialogProps {
-  groups: Group[] | null
+  groups: GroupPrimary[] | null
   createModeIsActive: boolean
   setCreateModeIsActive: React.Dispatch<React.SetStateAction<boolean>>
   onSuccessCreateSubgroup?: (
-    createSubgroupResult: CreateSubgroupSuccessResultDto
+    createSubgroupResult: DtoWithoutEnums<CreateSubgroupSuccessResultDto>
   ) => void
   onCancelClick?: () => void
 }
@@ -134,7 +132,7 @@ export function CreateSubgroupFormDialog(props: CreateSubgroupFormDialogProps) {
   const onSuccessSubmit = React.useCallback(
     (
       data: CreateSubgroupFormData,
-      createSubgroupResult: CreateSubgroupSuccessResultDto
+      createSubgroupResult: DtoWithoutEnums<CreateSubgroupSuccessResultDto>
     ) => {
       notifier.showSuccess(`подгруппа тестов '${data.code}' создана`)
       props.onSuccessCreateSubgroup?.(createSubgroupResult)
@@ -150,7 +148,10 @@ export function CreateSubgroupFormDialog(props: CreateSubgroupFormDialogProps) {
     handleAutocompleteSingleSelectChange,
     handleAutocompleteMultipleSelectChange,
     handleAutocompleteMultipleSelectFreeItemsChange
-  } = useForm<CreateSubgroupFormData, CreateSubgroupSuccessResultDto>({
+  } = useForm<
+    CreateSubgroupFormData,
+    DtoWithoutEnums<CreateSubgroupSuccessResultDto>
+  >({
     INITIAL_FORM_DATA: INITIAL_CREATE_SUBGROUP_FORM_DATA,
     validator: createSubgroupFormValidator,
     submitAction: submitAction,

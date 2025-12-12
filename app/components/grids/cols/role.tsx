@@ -1,6 +1,5 @@
 // Project
-import type { ReadRolesWithPrimaryPropsSuccessResultItemDto } from '@common/dtos/server-api/roles.dto'
-import type { DtoWithoutEnums } from '@common/dto-without-enums'
+import type { RolePrimary } from '~/types'
 import { GridRefCell } from '../cells/grid-ref-cell'
 // React
 import * as React from 'react'
@@ -9,9 +8,7 @@ import type { GridColDef, GridRenderCellParams } from '@mui/x-data-grid'
 // Other
 import capitalize from 'capitalize'
 
-type Role = DtoWithoutEnums<ReadRolesWithPrimaryPropsSuccessResultItemDto>
-
-export function useRoleCol(roles: Role[] | null | undefined) {
+export function useRoleCol(roles: RolePrimary[] | null | undefined) {
   const roleNameForId = React.useMemo(
     () =>
       new Map(
@@ -35,7 +32,7 @@ export function useRoleCol(roles: Role[] | null | undefined) {
           hrefPath={params.row.roleId}
         />
       ),
-      minWidth: 150,
+      minWidth: 140,
       flex: 1
     }),
     []

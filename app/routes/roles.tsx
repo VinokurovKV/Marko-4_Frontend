@@ -1,7 +1,10 @@
 // Project
+import type { RoleSecondary } from '~/types'
 import { serverConnector } from '~/server-connector'
+import { readRolesSecondary } from '~/readers'
 import { useNotifier } from '~/providers/notifier'
 import { useMeta } from '~/providers/meta'
+import { useRolesSubscription } from '~/hooks/resources'
 import { ForbiddenScreen } from '~/components/screens/problem/forbidden'
 import { RolesScreen } from '~/components/screens/roles'
 // React router
@@ -11,32 +14,21 @@ import * as React from 'react'
 
 export async function clientLoader() {
   await serverConnector.connect()
-  const [roles] = await (async () => {
-    if (serverConnector.meta.status !== 'AUTHENTICATED') {
-      return [null, null]
-    } else {
-      const rights = serverConnector.meta.selfMeta.rights
-      return await Promise.all([
-        rights.includes('READ_ROLE')
-          ? serverConnector
-              .readRoles({
-                scope: 'UP_TO_SECONDARY_PROPS'
-              })
-              .catch(() => null)
-          : Promise.resolve(null)
-      ])
-    }
-  })()
+  const [roles] = await Promise.all([readRolesSecondary()])
   return {
     roles
   }
 }
 
-export default function MetaRoute({
-  loaderData: { roles }
+export default function RolesRoute({
+  loaderData: { roles: initialRoles }
 }: Route.ComponentProps) {
   const notifier = useNotifier()
   const meta = useMeta()
+
+  const [roles, setRoles] = React.useState<RoleSecondary[] | null>(initialRoles)
+
+  useRolesSubscription('UP_TO_SECONDARY_PROPS', setRoles)
 
   React.useEffect(() => {
     if (
@@ -51,7 +43,7 @@ export default function MetaRoute({
   return meta.status === 'AUTHENTICATED' &&
     meta.selfMeta.rights.includes('READ_ROLE') === false ? (
     <ForbiddenScreen />
-  ) : (
-    <RolesScreen initialRoles={roles ?? []} />
-  )
+  ) : roles !== null ? (
+    <RolesScreen roles={roles} />
+  ) : null
 }

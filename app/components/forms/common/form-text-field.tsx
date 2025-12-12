@@ -11,21 +11,25 @@ function FormTextFieldUnstyled(props: FormTextFieldProps) {
 }
 
 export const FormTextField = styled(FormTextFieldUnstyled)({
+  '& .MuiInputBase-root': {
+    height: '32px' // '36px'
+  },
   '& label': {
-    transform: 'translate(14px, 8.5px) scale(0.85)'
+    fontSize: '0.85rem',
+    transform: 'translate(13px, 6.5px)'
   },
   '& label.Mui-focused, & label.MuiFormLabel-filled': {
-    transform: 'translate(14px, -7px) scale(0.65)'
+    transform: 'translate(14px, -6.5px) scale(0.65)'
   },
   '& label:not(.Mui-focused):not(.MuiFormLabel-filled)': {
     opacity: 0.55
   },
   '& .MuiFormHelperText-root': {
-    fontSize: '0.55rem',
+    fontSize: '0.54rem',
     transform: 'translate(0, -4px)'
   },
   '& .MuiInputBase-root legend': {
-    fontSize: '0.65rem'
+    fontSize: '0.54rem' // '0.65rem'
   },
   '& .MuiInputBase-input': {
     paddingTop: '8.0px',

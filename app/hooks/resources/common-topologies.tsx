@@ -1,14 +1,11 @@
 // Project
 import type { ReadOneResourceScope, ReadManyResourceScope } from '@common/enums'
 import type {
-  ReadCommonTopologyWithPrimaryPropsSuccessResultDto,
-  ReadCommonTopologyWithUpToSecondaryPropsSuccessResultDto,
-  ReadCommonTopologyWithUpToTertiaryPropsSuccessResultDto,
-  ReadCommonTopologyWithAllPropsSuccessResultDto,
-  ReadCommonTopologiesWithPrimaryPropsSuccessResultItemDto,
-  ReadCommonTopologiesWithUpToSecondaryPropsSuccessResultItemDto
-} from '@common/dtos/server-api/common-topologies.dto'
-import type { DtoWithoutEnums } from '@common/dto-without-enums'
+  CommonTopologyPrimary,
+  CommonTopologySecondary,
+  CommonTopologyTertiary,
+  CommonTopologyAll
+} from '~/types'
 import { serverConnector } from '~/server-connector'
 import { useChangeDetector } from '../change-detector'
 import { useNotifier } from '~/providers/notifier'
@@ -16,22 +13,18 @@ import { useNotifier } from '~/providers/notifier'
 import * as React from 'react'
 
 type ReadOneCommonTopology<Scope extends ReadOneResourceScope> =
-  DtoWithoutEnums<
-    Scope extends 'PRIMARY_PROPS'
-      ? ReadCommonTopologyWithPrimaryPropsSuccessResultDto
-      : Scope extends 'UP_TO_SECONDARY_PROPS'
-        ? ReadCommonTopologyWithUpToSecondaryPropsSuccessResultDto
-        : Scope extends 'UP_TO_TERTIARY_PROPS'
-          ? ReadCommonTopologyWithUpToTertiaryPropsSuccessResultDto
-          : ReadCommonTopologyWithAllPropsSuccessResultDto
-  >
+  Scope extends 'PRIMARY_PROPS'
+    ? CommonTopologyPrimary
+    : Scope extends 'UP_TO_SECONDARY_PROPS'
+      ? CommonTopologySecondary
+      : Scope extends 'UP_TO_TERTIARY_PROPS'
+        ? CommonTopologyTertiary
+        : CommonTopologyAll
 
 type ReadManyCommonTopology<Scope extends ReadManyResourceScope> =
-  DtoWithoutEnums<
-    Scope extends 'PRIMARY_PROPS'
-      ? ReadCommonTopologiesWithPrimaryPropsSuccessResultItemDto
-      : ReadCommonTopologiesWithUpToSecondaryPropsSuccessResultItemDto
-  >
+  Scope extends 'PRIMARY_PROPS'
+    ? CommonTopologyPrimary
+    : CommonTopologySecondary
 
 function useCommonTopologySubscriptionInner<Scope extends ReadOneResourceScope>(
   scope: Scope,

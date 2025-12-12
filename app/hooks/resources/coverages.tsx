@@ -1,14 +1,11 @@
 // Project
 import type { ReadOneResourceScope, ReadManyResourceScope } from '@common/enums'
 import type {
-  ReadCoverageWithPrimaryPropsSuccessResultDto,
-  ReadCoverageWithUpToSecondaryPropsSuccessResultDto,
-  ReadCoverageWithUpToTertiaryPropsSuccessResultDto,
-  ReadCoverageWithAllPropsSuccessResultDto,
-  ReadCoveragesWithPrimaryPropsSuccessResultItemDto,
-  ReadCoveragesWithUpToSecondaryPropsSuccessResultItemDto
-} from '@common/dtos/server-api/coverages.dto'
-import type { DtoWithoutEnums } from '@common/dto-without-enums'
+  CoveragePrimary,
+  CoverageSecondary,
+  CoverageTertiary,
+  CoverageAll
+} from '~/types'
 import { serverConnector } from '~/server-connector'
 import { useChangeDetector } from '../change-detector'
 import { useNotifier } from '~/providers/notifier'
@@ -17,21 +14,19 @@ import * as React from 'react'
 // Other
 import { isEqual } from 'lodash'
 
-type ReadOneCoverage<Scope extends ReadOneResourceScope> = DtoWithoutEnums<
+type ReadOneCoverage<Scope extends ReadOneResourceScope> =
   Scope extends 'PRIMARY_PROPS'
-    ? ReadCoverageWithPrimaryPropsSuccessResultDto
+    ? CoveragePrimary
     : Scope extends 'UP_TO_SECONDARY_PROPS'
-      ? ReadCoverageWithUpToSecondaryPropsSuccessResultDto
+      ? CoverageSecondary
       : Scope extends 'UP_TO_TERTIARY_PROPS'
-        ? ReadCoverageWithUpToTertiaryPropsSuccessResultDto
-        : ReadCoverageWithAllPropsSuccessResultDto
->
+        ? CoverageTertiary
+        : CoverageAll
 
-type ReadManyCoverage<Scope extends ReadManyResourceScope> = DtoWithoutEnums<
-  Scope extends 'PRIMARY_PROPS'
-    ? ReadCoveragesWithPrimaryPropsSuccessResultItemDto
-    : ReadCoveragesWithUpToSecondaryPropsSuccessResultItemDto
->
+type ReadManyCoverage<Scope extends ReadManyResourceScope> =
+  Scope extends 'PRIMARY_PROPS' ? CoveragePrimary : CoverageSecondary
+
+const EMPTY_COVERAGES_ARR: CoverageAll[] = []
 
 function useCoverageSubscriptionInner<Scope extends ReadOneResourceScope>(
   scope: Scope,
@@ -322,10 +317,10 @@ function useCoveragesFilteredSubscriptionInner<
   Scope extends ReadManyResourceScope
 >(
   scope: Scope,
-  coverageIds: number[],
+  coverageIds: number[] | null,
   setCoveragesPair: React.Dispatch<
     React.SetStateAction<{
-      coverageIds: number[]
+      coverageIds: number[] | null
       coverages?: ReadManyCoverage<Scope>[] | null
     }>
   >,
@@ -340,10 +335,13 @@ function useCoveragesFilteredSubscriptionInner<
   const load = React.useCallback(
     async (notifyAboutProblems: boolean) => {
       try {
-        const coverages = (await serverConnector.readCoverages({
-          ids: coverageIds,
-          scope: scope
-        })) as ReadManyCoverage<Scope>[]
+        const coverages =
+          coverageIds !== null
+            ? ((await serverConnector.readCoverages({
+                ids: coverageIds,
+                scope: scope
+              })) as ReadManyCoverage<Scope>[])
+            : EMPTY_COVERAGES_ARR
         setCoveragesPair((oldPair) =>
           isEqual(oldPair.coverageIds, coverageIds)
             ? {
@@ -420,7 +418,7 @@ export function useCoveragesFilteredSubscription<
   Scope extends ReadManyResourceScope
 >(
   scope: Scope,
-  coverageIds: number[],
+  coverageIds: number[] | null,
   setCoverages: React.Dispatch<
     React.SetStateAction<ReadManyCoverage<Scope>[] | null>
   >,
@@ -429,7 +427,7 @@ export function useCoveragesFilteredSubscription<
   active: boolean = true
 ) {
   const [coveragesPair, setCoveragesPair] = React.useState<{
-    coverageIds: number[]
+    coverageIds: number[] | null
     coverages?: ReadManyCoverage<Scope>[] | null
   }>({
     coverageIds: coverageIds,
@@ -459,12 +457,12 @@ export function useCoveragesFilteredSubscription<
 /** Subscribe to coverages updates with initial load */
 export function useCoveragesFiltered<Scope extends ReadManyResourceScope>(
   scope: Scope,
-  coverageIds: number[],
+  coverageIds: number[] | null,
   notifyAboutInitialLoadProblems: boolean = false,
   active: boolean = true
 ) {
   const [coveragesPair, setCoveragesPair] = React.useState<{
-    coverageIds: number[]
+    coverageIds: number[] | null
     coverages?: ReadManyCoverage<Scope>[] | null
   }>({
     coverageIds: coverageIds,

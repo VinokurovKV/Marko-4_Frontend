@@ -1,7 +1,10 @@
 // Project
+import type { TagSecondary } from '~/types'
 import { serverConnector } from '~/server-connector'
+import { readTagsSecondary } from '~/readers'
 import { useNotifier } from '~/providers/notifier'
 import { useMeta } from '~/providers/meta'
+import { useTagsSubscription } from '~/hooks/resources'
 import { ForbiddenScreen } from '~/components/screens/problem/forbidden'
 import { TagsScreen } from '~/components/screens/tags'
 // React router
@@ -11,32 +14,21 @@ import * as React from 'react'
 
 export async function clientLoader() {
   await serverConnector.connect()
-  const [tags] = await (async () => {
-    if (serverConnector.meta.status !== 'AUTHENTICATED') {
-      return [null, null]
-    } else {
-      const rights = serverConnector.meta.selfMeta.rights
-      return await Promise.all([
-        rights.includes('READ_TAG')
-          ? serverConnector
-              .readTags({
-                scope: 'UP_TO_SECONDARY_PROPS'
-              })
-              .catch(() => null)
-          : Promise.resolve(null)
-      ])
-    }
-  })()
+  const [tags] = await Promise.all([readTagsSecondary()])
   return {
     tags
   }
 }
 
-export default function MetaRoute({
-  loaderData: { tags }
+export default function TagsRoute({
+  loaderData: { tags: initialTags }
 }: Route.ComponentProps) {
   const notifier = useNotifier()
   const meta = useMeta()
+
+  const [tags, setTags] = React.useState<TagSecondary[] | null>(initialTags)
+
+  useTagsSubscription('UP_TO_SECONDARY_PROPS', setTags)
 
   React.useEffect(() => {
     if (
@@ -51,7 +43,7 @@ export default function MetaRoute({
   return meta.status === 'AUTHENTICATED' &&
     meta.selfMeta.rights.includes('READ_TAG') === false ? (
     <ForbiddenScreen />
-  ) : (
-    <TagsScreen initialTags={tags ?? []} />
-  )
+  ) : tags !== null ? (
+    <TagsScreen tags={tags} />
+  ) : null
 }

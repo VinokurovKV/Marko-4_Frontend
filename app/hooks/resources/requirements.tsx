@@ -1,14 +1,11 @@
 // Project
 import type { ReadOneResourceScope, ReadManyResourceScope } from '@common/enums'
 import type {
-  ReadRequirementWithPrimaryPropsSuccessResultDto,
-  ReadRequirementWithUpToSecondaryPropsSuccessResultDto,
-  ReadRequirementWithUpToTertiaryPropsSuccessResultDto,
-  ReadRequirementWithAllPropsSuccessResultDto,
-  ReadRequirementsWithPrimaryPropsSuccessResultItemDto,
-  ReadRequirementsWithUpToSecondaryPropsSuccessResultItemDto
-} from '@common/dtos/server-api/requirements.dto'
-import type { DtoWithoutEnums } from '@common/dto-without-enums'
+  RequirementPrimary,
+  RequirementSecondary,
+  RequirementTertiary,
+  RequirementAll
+} from '~/types'
 import { serverConnector } from '~/server-connector'
 import { useChangeDetector } from '../change-detector'
 import { useNotifier } from '~/providers/notifier'
@@ -17,21 +14,19 @@ import * as React from 'react'
 // Other
 import { isEqual } from 'lodash'
 
-type ReadOneRequirement<Scope extends ReadOneResourceScope> = DtoWithoutEnums<
+type ReadOneRequirement<Scope extends ReadOneResourceScope> =
   Scope extends 'PRIMARY_PROPS'
-    ? ReadRequirementWithPrimaryPropsSuccessResultDto
+    ? RequirementPrimary
     : Scope extends 'UP_TO_SECONDARY_PROPS'
-      ? ReadRequirementWithUpToSecondaryPropsSuccessResultDto
+      ? RequirementSecondary
       : Scope extends 'UP_TO_TERTIARY_PROPS'
-        ? ReadRequirementWithUpToTertiaryPropsSuccessResultDto
-        : ReadRequirementWithAllPropsSuccessResultDto
->
+        ? RequirementTertiary
+        : RequirementAll
 
-type ReadManyRequirement<Scope extends ReadManyResourceScope> = DtoWithoutEnums<
-  Scope extends 'PRIMARY_PROPS'
-    ? ReadRequirementsWithPrimaryPropsSuccessResultItemDto
-    : ReadRequirementsWithUpToSecondaryPropsSuccessResultItemDto
->
+type ReadManyRequirement<Scope extends ReadManyResourceScope> =
+  Scope extends 'PRIMARY_PROPS' ? RequirementPrimary : RequirementSecondary
+
+const EMPTY_REQUIREMENTS_ARR: RequirementAll[] = []
 
 function useRequirementSubscriptionInner<Scope extends ReadOneResourceScope>(
   scope: Scope,
@@ -326,10 +321,10 @@ function useRequirementsFilteredSubscriptionInner<
   Scope extends ReadManyResourceScope
 >(
   scope: Scope,
-  requirementIds: number[],
+  requirementIds: number[] | null,
   setRequirementsPair: React.Dispatch<
     React.SetStateAction<{
-      requirementIds: number[]
+      requirementIds: number[] | null
       requirements?: ReadManyRequirement<Scope>[] | null
     }>
   >,
@@ -344,10 +339,13 @@ function useRequirementsFilteredSubscriptionInner<
   const load = React.useCallback(
     async (notifyAboutProblems: boolean) => {
       try {
-        const requirements = (await serverConnector.readRequirements({
-          ids: requirementIds,
-          scope: scope
-        })) as ReadManyRequirement<Scope>[]
+        const requirements =
+          requirementIds !== null
+            ? ((await serverConnector.readRequirements({
+                ids: requirementIds,
+                scope: scope
+              })) as ReadManyRequirement<Scope>[])
+            : EMPTY_REQUIREMENTS_ARR
         setRequirementsPair((oldPair) =>
           isEqual(oldPair.requirementIds, requirementIds)
             ? {
@@ -424,7 +422,7 @@ export function useRequirementsFilteredSubscription<
   Scope extends ReadManyResourceScope
 >(
   scope: Scope,
-  requirementIds: number[],
+  requirementIds: number[] | null,
   setRequirements: React.Dispatch<
     React.SetStateAction<ReadManyRequirement<Scope>[] | null>
   >,
@@ -433,7 +431,7 @@ export function useRequirementsFilteredSubscription<
   active: boolean = true
 ) {
   const [requirementsPair, setRequirementsPair] = React.useState<{
-    requirementIds: number[]
+    requirementIds: number[] | null
     requirements?: ReadManyRequirement<Scope>[] | null
   }>({
     requirementIds: requirementIds,
@@ -463,12 +461,12 @@ export function useRequirementsFilteredSubscription<
 /** Subscribe to requirements updates with initial load */
 export function useRequirementsFiltered<Scope extends ReadManyResourceScope>(
   scope: Scope,
-  requirementIds: number[],
+  requirementIds: number[] | null,
   notifyAboutInitialLoadProblems: boolean = false,
   active: boolean = true
 ) {
   const [requirementsPair, setRequirementsPair] = React.useState<{
-    requirementIds: number[]
+    requirementIds: number[] | null
     requirements?: ReadManyRequirement<Scope>[] | null
   }>({
     requirementIds: requirementIds,

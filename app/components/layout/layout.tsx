@@ -1,5 +1,5 @@
 // Project
-import { Background } from '../containers/background'
+import { Background } from '../containers'
 import { BrandLabel } from '../brand/brand-label'
 import { Header } from './header/header'
 import { Sidebar } from './sidebar/sidebar'

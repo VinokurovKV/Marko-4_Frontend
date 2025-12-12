@@ -1,14 +1,8 @@
 // Project
-import type { ReadGroupsWithPrimaryPropsSuccessResultItemDto } from '@common/dtos/server-api/groups.dto'
-import type { ReadSubgroupsWithUpToSecondaryPropsSuccessResultItemDto } from '@common/dtos/server-api/subgroups.dto'
-import type { DtoWithoutEnums } from '@common/dto-without-enums'
+import type { GroupPrimary, SubgroupSecondary } from '~/types'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
 import { useMeta } from '~/providers/meta'
-import {
-  useSubgroupsSubscription,
-  useGroupsSubscription
-} from '~/hooks/resources'
 import { CreateSubgroupFormDialog } from '~/components/forms/resources/create-subgroup'
 import { type GridProps, Grid } from '../grid'
 import {
@@ -27,13 +21,9 @@ import { type GridColDef, type GridValidRowModel } from '@mui/x-data-grid'
 
 const MAX_SUBGROUPS_IN_MESSAGES = 3
 
-type Group = DtoWithoutEnums<ReadGroupsWithPrimaryPropsSuccessResultItemDto>
-type Subgroup =
-  DtoWithoutEnums<ReadSubgroupsWithUpToSecondaryPropsSuccessResultItemDto>
-
 export interface SubgroupsGridProps {
-  initialGroups: Group[] | null
-  initialSubgroups: Subgroup[]
+  subgroups: SubgroupSecondary[]
+  groups: GroupPrimary[] | null
   navigationMode?: boolean
 }
 
@@ -49,27 +39,18 @@ export function SubgroupsGrid(props: SubgroupsGridProps) {
 
   const [createModeIsActive, setCreateModeIsActive] = React.useState(false)
 
-  const [groups, setGroups] = React.useState<Group[] | null>(
-    props.initialGroups
-  )
-  const [subgroups, setSubgroups] = React.useState<Subgroup[]>(
-    props.initialSubgroups
-  )
-
-  useGroupsSubscription('PRIMARY_PROPS', setGroups)
-  useSubgroupsSubscription('UP_TO_SECONDARY_PROPS', setSubgroups)
-
   const subgroupCodeForId = React.useMemo(
-    () => new Map(subgroups.map((subgroup) => [subgroup.id, subgroup.code])),
-    [subgroups]
+    () =>
+      new Map(props.subgroups.map((subgroup) => [subgroup.id, subgroup.code])),
+    [props.subgroups]
   )
 
-  const rows: GridValidRowModel[] = subgroups
+  const rows: GridValidRowModel[] = props.subgroups
 
   const readCols = [
     useCodeCol('id', true, '/subgroups'),
     useNameCol(),
-    useGroupCol(groups),
+    useGroupCol(props.groups),
     useNumInGroupCol(),
     useTestsCountCol()
   ]
@@ -111,7 +92,10 @@ export function SubgroupsGrid(props: SubgroupsGridProps) {
     [rightsSet, readCols, actionsCol]
   )
 
-  const defaultHiddenFields = React.useMemo(() => [] as (keyof Subgroup)[], [])
+  const defaultHiddenFields = React.useMemo(
+    () => [] as (keyof SubgroupSecondary)[],
+    []
+  )
 
   const createProps: GridProps['create'] = React.useMemo(
     () =>
@@ -180,7 +164,7 @@ export function SubgroupsGrid(props: SubgroupsGridProps) {
         deleteMany={deleteManyProps}
       />
       <CreateSubgroupFormDialog
-        groups={groups}
+        groups={props.groups}
         createModeIsActive={createModeIsActive}
         setCreateModeIsActive={setCreateModeIsActive}
         onSuccessCreateSubgroup={cancelCreateForm}

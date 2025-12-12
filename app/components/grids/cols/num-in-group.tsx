@@ -9,7 +9,7 @@ export function useNumInGroupCol() {
       field: 'numInGroup',
       headerName: 'Номер в группе',
       type: 'number',
-      minWidth: 150,
+      minWidth: 140,
       flex: 0.01
     }),
     []

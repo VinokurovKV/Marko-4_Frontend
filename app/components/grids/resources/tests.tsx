@@ -1,22 +1,16 @@
 // Project
 import { convertMediaTypeToFileExtension } from '@common/formats'
-import type { ReadTopologiesWithPrimaryPropsSuccessResultItemDto } from '@common/dtos/server-api/topologies.dto'
-import type { ReadDbcsWithPrimaryPropsSuccessResultItemDto } from '@common/dtos/server-api/dbcs.dto'
-import type { ReadTestTemplatesWithPrimaryPropsSuccessResultItemDto } from '@common/dtos/server-api/test-templates.dto'
-import type { ReadTestsWithUpToSecondaryPropsSuccessResultItemDto } from '@common/dtos/server-api/tests.dto'
-import type { ReadSubgroupsWithPrimaryPropsSuccessResultItemDto } from '@common/dtos/server-api/subgroups.dto'
-import type { DtoWithoutEnums } from '@common/dto-without-enums'
+import type {
+  TopologyPrimary,
+  DbcPrimary,
+  TestTemplatePrimary,
+  TestSecondary,
+  SubgroupPrimary
+} from '~/types'
 import { downloadFileFromBlob } from '~/utilities/download-file'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
 import { useMeta } from '~/providers/meta'
-import {
-  useTopologiesSubscription,
-  useDbcsSubscription,
-  useTestTemplatesSubscription,
-  useTestsSubscription,
-  useSubgroupsSubscription
-} from '~/hooks/resources'
 import { CreateTestFormDialog } from '~/components/forms/resources/create-test'
 import { type GridProps, Grid } from '../grid'
 import {
@@ -43,21 +37,12 @@ import { type GridColDef, type GridValidRowModel } from '@mui/x-data-grid'
 
 const MAX_TESTS_IN_MESSAGES = 3
 
-type Topology =
-  DtoWithoutEnums<ReadTopologiesWithPrimaryPropsSuccessResultItemDto>
-type Dbc = DtoWithoutEnums<ReadDbcsWithPrimaryPropsSuccessResultItemDto>
-type TestTemplate =
-  DtoWithoutEnums<ReadTestTemplatesWithPrimaryPropsSuccessResultItemDto>
-type Test = DtoWithoutEnums<ReadTestsWithUpToSecondaryPropsSuccessResultItemDto>
-type Subgroup =
-  DtoWithoutEnums<ReadSubgroupsWithPrimaryPropsSuccessResultItemDto>
-
 export interface TestsGridProps {
-  initialTopologies: Topology[] | null
-  initialDbcs: Dbc[] | null
-  initialTestTemplates: TestTemplate[] | null
-  initialTests: Test[]
-  initialSubgroups: Subgroup[] | null
+  topologies: TopologyPrimary[] | null
+  dbcs: DbcPrimary[] | null
+  testTemplates: TestTemplatePrimary[] | null
+  tests: TestSecondary[]
+  subgroups: SubgroupPrimary[] | null
   navigationMode?: boolean
   navigationModeSelectedRowId?: number
 }
@@ -75,39 +60,21 @@ export function TestsGrid(props: TestsGridProps) {
 
   const [createModeIsActive, setCreateModeIsActive] = React.useState(false)
 
-  const [topologies, setTopologies] = React.useState<Topology[] | null>(
-    props.initialTopologies
-  )
-  const [dbcs, setDbcs] = React.useState<Dbc[] | null>(props.initialDbcs)
-  const [testTemplates, setTestTemplates] = React.useState<
-    TestTemplate[] | null
-  >(props.initialTestTemplates)
-  const [tests, setTests] = React.useState<Test[]>(props.initialTests)
-  const [subgroups, setSubgroups] = React.useState<Subgroup[] | null>(
-    props.initialSubgroups
-  )
-
-  useTopologiesSubscription('PRIMARY_PROPS', setTopologies)
-  useDbcsSubscription('PRIMARY_PROPS', setDbcs)
-  useTestTemplatesSubscription('PRIMARY_PROPS', setTestTemplates)
-  useTestsSubscription('UP_TO_SECONDARY_PROPS', setTests)
-  useSubgroupsSubscription('PRIMARY_PROPS', setSubgroups)
-
   const testCodeForId = React.useMemo(
-    () => new Map(tests.map((test) => [test.id, test.code])),
-    [tests]
+    () => new Map(props.tests.map((test) => [test.id, test.code])),
+    [props.tests]
   )
 
-  const rows: GridValidRowModel[] = tests
+  const rows: GridValidRowModel[] = props.tests
 
   const readCols = [
     useCodeCol('id', true, '/tests', navigationMode),
     useNameCol(),
-    useSubgroupCol(subgroups),
+    useSubgroupCol(props.subgroups),
     useNumInSubgroupCol(),
     useCoveragesCountCol(),
-    useTopologyCol(topologies),
-    useTestTemplateCol(testTemplates),
+    useTopologyCol(props.topologies),
+    useTestTemplateCol(props.testTemplates),
     usePreparedCol(
       'MALE',
       'все необходимые конфигурации загружены',
@@ -170,7 +137,8 @@ export function TestsGrid(props: TestsGridProps) {
   )
 
   const defaultHiddenFields = React.useMemo(
-    () => ['dbcsCount', 'dsefsCount'] as (keyof Test)[],
+    () =>
+      ['numInSubgroup', 'dbcsCount', 'dsefsCount'] as (keyof TestSecondary)[],
     []
   )
 
@@ -257,10 +225,10 @@ export function TestsGrid(props: TestsGridProps) {
         compactFooter={navigationMode}
       />
       <CreateTestFormDialog
-        topologies={topologies}
-        dbcs={dbcs}
-        testTemplates={testTemplates}
-        subgroups={subgroups}
+        topologies={props.topologies}
+        dbcs={props.dbcs}
+        testTemplates={props.testTemplates}
+        subgroups={props.subgroups}
         createModeIsActive={createModeIsActive}
         setCreateModeIsActive={setCreateModeIsActive}
         onSuccessCreateTest={cancelCreateForm}

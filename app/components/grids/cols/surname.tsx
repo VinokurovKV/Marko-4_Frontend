@@ -8,7 +8,7 @@ export function useSurnameCol() {
     () => ({
       field: 'surname',
       headerName: 'Фамилия',
-      minWidth: 150,
+      minWidth: 140,
       flex: 1
     }),
     []

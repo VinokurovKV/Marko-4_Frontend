@@ -3,6 +3,7 @@ import { Link } from 'react-router'
 // React
 import * as React from 'react'
 // Material UI
+import { useTheme } from '@mui/material/styles'
 import Button from '@mui/material/Button'
 import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
@@ -17,6 +18,8 @@ export interface ColumnViewerRefProps {
 }
 
 export function ColumnViewerRef(props: ColumnViewerRefProps) {
+  const theme = useTheme()
+
   const handleClick = React.useCallback(
     (event: React.MouseEvent<HTMLAnchorElement, MouseEvent>) => {
       event.stopPropagation()
@@ -43,7 +46,10 @@ export function ColumnViewerRef(props: ColumnViewerRefProps) {
             justifyContent: 'start',
             textTransform: 'none',
             ':hover': {
-              bgcolor: 'rgb(239, 244, 251)'
+              bgcolor:
+                theme.palette.mode === 'light'
+                  ? 'rgb(239, 244, 251)'
+                  : 'rgb(40, 47, 54)'
             }
           }}
         >

@@ -24,13 +24,13 @@ export function TaskModeIcon({ mode }: TaskModeIconProps) {
       title={capitalize(localizationForTaskMode.get(mode) ?? mode ?? '')}
     >
       {mode === 'TEST' ? (
-        <FlakyIcon sx={{ color: 'orchid' }} />
+        <FlakyIcon sx={{ fontSize: '25px', color: 'orchid' }} />
       ) : mode === 'GENERATE_PASS_CRITERIA_WITHOUT_UPDATE' ? (
-        <StarIcon sx={{ color: 'mediumslateblue' }} />
+        <StarIcon sx={{ fontSize: '25px', color: 'mediumslateblue' }} />
       ) : mode === 'GENERATE_PASS_CRITERIA_WITH_UPDATE' ? (
         <Stack direction="row">
-          <StarIcon sx={{ color: 'mediumslateblue' }} />
-          <SwapHorizIcon sx={{ color: 'orchid' }} />
+          <StarIcon sx={{ fontSize: '25px', color: 'mediumslateblue' }} />
+          <SwapHorizIcon sx={{ fontSize: '25px', color: 'orchid' }} />
         </Stack>
       ) : (
         <></>

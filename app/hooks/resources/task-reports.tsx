@@ -1,35 +1,28 @@
 // Project
 import type { ReadOneResourceScope, ReadManyResourceScope } from '@common/enums'
 import type {
-  ReadTaskReportWithPrimaryPropsSuccessResultDto,
-  ReadTaskReportWithUpToSecondaryPropsSuccessResultDto,
-  ReadTaskReportWithUpToTertiaryPropsSuccessResultDto,
-  ReadTaskReportWithAllPropsSuccessResultDto,
-  ReadTaskReportsWithPrimaryPropsSuccessResultItemDto,
-  ReadTaskReportsWithUpToSecondaryPropsSuccessResultItemDto
-} from '@common/dtos/server-api/task-reports.dto'
-import type { DtoWithoutEnums } from '@common/dto-without-enums'
+  TaskReportPrimary,
+  TaskReportSecondary,
+  TaskReportTertiary,
+  TaskReportAll
+} from '~/types'
 import { serverConnector } from '~/server-connector'
 import { useChangeDetector } from '../change-detector'
 import { useNotifier } from '~/providers/notifier'
 // React
 import * as React from 'react'
 
-type ReadOneTaskReport<Scope extends ReadOneResourceScope> = DtoWithoutEnums<
+type ReadOneTaskReport<Scope extends ReadOneResourceScope> =
   Scope extends 'PRIMARY_PROPS'
-    ? ReadTaskReportWithPrimaryPropsSuccessResultDto
+    ? TaskReportPrimary
     : Scope extends 'UP_TO_SECONDARY_PROPS'
-      ? ReadTaskReportWithUpToSecondaryPropsSuccessResultDto
+      ? TaskReportSecondary
       : Scope extends 'UP_TO_TERTIARY_PROPS'
-        ? ReadTaskReportWithUpToTertiaryPropsSuccessResultDto
-        : ReadTaskReportWithAllPropsSuccessResultDto
->
+        ? TaskReportTertiary
+        : TaskReportAll
 
-type ReadManyTaskReport<Scope extends ReadManyResourceScope> = DtoWithoutEnums<
-  Scope extends 'PRIMARY_PROPS'
-    ? ReadTaskReportsWithPrimaryPropsSuccessResultItemDto
-    : ReadTaskReportsWithUpToSecondaryPropsSuccessResultItemDto
->
+type ReadManyTaskReport<Scope extends ReadManyResourceScope> =
+  Scope extends 'PRIMARY_PROPS' ? TaskReportPrimary : TaskReportSecondary
 
 function useTaskReportSubscriptionInner<Scope extends ReadOneResourceScope>(
   scope: Scope,

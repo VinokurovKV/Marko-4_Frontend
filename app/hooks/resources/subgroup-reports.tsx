@@ -1,14 +1,11 @@
 // Project
 import type { ReadOneResourceScope, ReadManyResourceScope } from '@common/enums'
 import type {
-  ReadSubgroupReportWithPrimaryPropsSuccessResultDto,
-  ReadSubgroupReportWithUpToSecondaryPropsSuccessResultDto,
-  ReadSubgroupReportWithUpToTertiaryPropsSuccessResultDto,
-  ReadSubgroupReportWithAllPropsSuccessResultDto,
-  ReadSubgroupReportsWithPrimaryPropsSuccessResultItemDto,
-  ReadSubgroupReportsWithUpToSecondaryPropsSuccessResultItemDto
-} from '@common/dtos/server-api/subgroup-reports.dto'
-import type { DtoWithoutEnums } from '@common/dto-without-enums'
+  SubgroupReportPrimary,
+  SubgroupReportSecondary,
+  SubgroupReportTertiary,
+  SubgroupReportAll
+} from '~/types'
 import { serverConnector } from '~/server-connector'
 import { useChangeDetector } from '../change-detector'
 import { useNotifier } from '~/providers/notifier'
@@ -16,22 +13,18 @@ import { useNotifier } from '~/providers/notifier'
 import * as React from 'react'
 
 type ReadOneSubgroupReport<Scope extends ReadOneResourceScope> =
-  DtoWithoutEnums<
-    Scope extends 'PRIMARY_PROPS'
-      ? ReadSubgroupReportWithPrimaryPropsSuccessResultDto
-      : Scope extends 'UP_TO_SECONDARY_PROPS'
-        ? ReadSubgroupReportWithUpToSecondaryPropsSuccessResultDto
-        : Scope extends 'UP_TO_TERTIARY_PROPS'
-          ? ReadSubgroupReportWithUpToTertiaryPropsSuccessResultDto
-          : ReadSubgroupReportWithAllPropsSuccessResultDto
-  >
+  Scope extends 'PRIMARY_PROPS'
+    ? SubgroupReportPrimary
+    : Scope extends 'UP_TO_SECONDARY_PROPS'
+      ? SubgroupReportSecondary
+      : Scope extends 'UP_TO_TERTIARY_PROPS'
+        ? SubgroupReportTertiary
+        : SubgroupReportAll
 
 type ReadManySubgroupReport<Scope extends ReadManyResourceScope> =
-  DtoWithoutEnums<
-    Scope extends 'PRIMARY_PROPS'
-      ? ReadSubgroupReportsWithPrimaryPropsSuccessResultItemDto
-      : ReadSubgroupReportsWithUpToSecondaryPropsSuccessResultItemDto
-  >
+  Scope extends 'PRIMARY_PROPS'
+    ? SubgroupReportPrimary
+    : SubgroupReportSecondary
 
 function useSubgroupReportSubscriptionInner<Scope extends ReadOneResourceScope>(
   scope: Scope,

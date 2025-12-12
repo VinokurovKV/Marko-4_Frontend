@@ -1,14 +1,6 @@
 // Project
 import type { ReadOneResourceScope, ReadManyResourceScope } from '@common/enums'
-import type {
-  ReadTagWithPrimaryPropsSuccessResultDto,
-  ReadTagWithUpToSecondaryPropsSuccessResultDto,
-  ReadTagWithUpToTertiaryPropsSuccessResultDto,
-  ReadTagWithAllPropsSuccessResultDto,
-  ReadTagsWithPrimaryPropsSuccessResultItemDto,
-  ReadTagsWithUpToSecondaryPropsSuccessResultItemDto
-} from '@common/dtos/server-api/tags.dto'
-import type { DtoWithoutEnums } from '@common/dto-without-enums'
+import type { TagPrimary, TagSecondary, TagTertiary, TagAll } from '~/types'
 import { serverConnector } from '~/server-connector'
 import { useChangeDetector } from '../change-detector'
 import { useNotifier } from '~/providers/notifier'
@@ -17,21 +9,19 @@ import * as React from 'react'
 // Other
 import { isEqual } from 'lodash'
 
-type ReadOneTag<Scope extends ReadOneResourceScope> = DtoWithoutEnums<
+type ReadOneTag<Scope extends ReadOneResourceScope> =
   Scope extends 'PRIMARY_PROPS'
-    ? ReadTagWithPrimaryPropsSuccessResultDto
+    ? TagPrimary
     : Scope extends 'UP_TO_SECONDARY_PROPS'
-      ? ReadTagWithUpToSecondaryPropsSuccessResultDto
+      ? TagSecondary
       : Scope extends 'UP_TO_TERTIARY_PROPS'
-        ? ReadTagWithUpToTertiaryPropsSuccessResultDto
-        : ReadTagWithAllPropsSuccessResultDto
->
+        ? TagTertiary
+        : TagAll
 
-type ReadManyTag<Scope extends ReadManyResourceScope> = DtoWithoutEnums<
-  Scope extends 'PRIMARY_PROPS'
-    ? ReadTagsWithPrimaryPropsSuccessResultItemDto
-    : ReadTagsWithUpToSecondaryPropsSuccessResultItemDto
->
+type ReadManyTag<Scope extends ReadManyResourceScope> =
+  Scope extends 'PRIMARY_PROPS' ? TagPrimary : TagSecondary
+
+const EMPTY_TAGS_ARR: TagAll[] = []
 
 function useTagSubscriptionInner<Scope extends ReadOneResourceScope>(
   scope: Scope,
@@ -314,10 +304,10 @@ export function useTags<Scope extends ReadManyResourceScope>(
 
 function useTagsFilteredSubscriptionInner<Scope extends ReadManyResourceScope>(
   scope: Scope,
-  tagIds: number[],
+  tagIds: number[] | null,
   setTagsPair: React.Dispatch<
     React.SetStateAction<{
-      tagIds: number[]
+      tagIds: number[] | null
       tags?: ReadManyTag<Scope>[] | null
     }>
   >,
@@ -332,10 +322,13 @@ function useTagsFilteredSubscriptionInner<Scope extends ReadManyResourceScope>(
   const load = React.useCallback(
     async (notifyAboutProblems: boolean) => {
       try {
-        const tags = (await serverConnector.readTags({
-          ids: tagIds,
-          scope: scope
-        })) as ReadManyTag<Scope>[]
+        const tags =
+          tagIds !== null
+            ? ((await serverConnector.readTags({
+                ids: tagIds,
+                scope: scope
+              })) as ReadManyTag<Scope>[])
+            : EMPTY_TAGS_ARR
         setTagsPair((oldPair) =>
           isEqual(oldPair.tagIds, tagIds)
             ? {
@@ -410,14 +403,14 @@ export function useTagsFilteredSubscription<
   Scope extends ReadManyResourceScope
 >(
   scope: Scope,
-  tagIds: number[],
+  tagIds: number[] | null,
   setTags: React.Dispatch<React.SetStateAction<ReadManyTag<Scope>[] | null>>,
   withInitialLoad: boolean = false,
   notifyAboutInitialLoadProblems: boolean = false,
   active: boolean = true
 ) {
   const [tagsPair, setTagsPair] = React.useState<{
-    tagIds: number[]
+    tagIds: number[] | null
     tags?: ReadManyTag<Scope>[] | null
   }>({
     tagIds: tagIds,
@@ -447,12 +440,12 @@ export function useTagsFilteredSubscription<
 /** Subscribe to tags updates with initial load */
 export function useTagsFiltered<Scope extends ReadManyResourceScope>(
   scope: Scope,
-  tagIds: number[],
+  tagIds: number[] | null,
   notifyAboutInitialLoadProblems: boolean = false,
   active: boolean = true
 ) {
   const [tagsPair, setTagsPair] = React.useState<{
-    tagIds: number[]
+    tagIds: number[] | null
     tags?: ReadManyTag<Scope>[] | null
   }>({
     tagIds: tagIds,

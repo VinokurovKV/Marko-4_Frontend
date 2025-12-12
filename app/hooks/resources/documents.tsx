@@ -1,35 +1,28 @@
 // Project
 import type { ReadOneResourceScope, ReadManyResourceScope } from '@common/enums'
 import type {
-  ReadDocumentWithPrimaryPropsSuccessResultDto,
-  ReadDocumentWithUpToSecondaryPropsSuccessResultDto,
-  ReadDocumentWithUpToTertiaryPropsSuccessResultDto,
-  ReadDocumentWithAllPropsSuccessResultDto,
-  ReadDocumentsWithPrimaryPropsSuccessResultItemDto,
-  ReadDocumentsWithUpToSecondaryPropsSuccessResultItemDto
-} from '@common/dtos/server-api/documents.dto'
-import type { DtoWithoutEnums } from '@common/dto-without-enums'
+  DocumentPrimary,
+  DocumentSecondary,
+  DocumentTertiary,
+  DocumentAll
+} from '~/types'
 import { serverConnector } from '~/server-connector'
 import { useChangeDetector } from '../change-detector'
 import { useNotifier } from '~/providers/notifier'
 // React
 import * as React from 'react'
 
-type ReadOneDocument<Scope extends ReadOneResourceScope> = DtoWithoutEnums<
+type ReadOneDocument<Scope extends ReadOneResourceScope> =
   Scope extends 'PRIMARY_PROPS'
-    ? ReadDocumentWithPrimaryPropsSuccessResultDto
+    ? DocumentPrimary
     : Scope extends 'UP_TO_SECONDARY_PROPS'
-      ? ReadDocumentWithUpToSecondaryPropsSuccessResultDto
+      ? DocumentSecondary
       : Scope extends 'UP_TO_TERTIARY_PROPS'
-        ? ReadDocumentWithUpToTertiaryPropsSuccessResultDto
-        : ReadDocumentWithAllPropsSuccessResultDto
->
+        ? DocumentTertiary
+        : DocumentAll
 
-type ReadManyDocument<Scope extends ReadManyResourceScope> = DtoWithoutEnums<
-  Scope extends 'PRIMARY_PROPS'
-    ? ReadDocumentsWithPrimaryPropsSuccessResultItemDto
-    : ReadDocumentsWithUpToSecondaryPropsSuccessResultItemDto
->
+type ReadManyDocument<Scope extends ReadManyResourceScope> =
+  Scope extends 'PRIMARY_PROPS' ? DocumentPrimary : DocumentSecondary
 
 function useDocumentSubscriptionInner<Scope extends ReadOneResourceScope>(
   scope: Scope,

@@ -1,8 +1,8 @@
 // Project
-import type { ReadCommonTopologiesWithPrimaryPropsSuccessResultItemDto } from '@common/dtos/server-api/common-topologies.dto'
 import type { CreateTopologySuccessResultDto } from '@common/dtos/server-api/topologies.dto'
 import type { DtoWithoutEnums } from '@common/dto-without-enums'
 import { calculateTopologyConfig } from '@common/utilities'
+import type { CommonTopologyPrimary } from '~/types'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
 import { useChangeDetector } from '~/hooks/change-detector'
@@ -31,18 +31,15 @@ const EMPTY_TAG_IDS_ARR: number[] = []
 const EMPTY_TAG_CODES_ARR: string[] = []
 const EMPTY_VERTEX_NAMES_ARR: string[] = []
 
-type CommonTopology =
-  DtoWithoutEnums<ReadCommonTopologiesWithPrimaryPropsSuccessResultItemDto>
-
 const CREATE_TOPOLOGY_FORM_PROPS_JOINED =
   createTopologyFormValidator.getPromptsJoined()
 
 export interface CreateTopologyFormDialogProps {
-  commonTopologies: CommonTopology[] | null
+  commonTopologies: CommonTopologyPrimary[] | null
   createModeIsActive: boolean
   setCreateModeIsActive: React.Dispatch<React.SetStateAction<boolean>>
   onSuccessCreateTopology?: (
-    createTopologyResult: CreateTopologySuccessResultDto
+    createTopologyResult: DtoWithoutEnums<CreateTopologySuccessResultDto>
   ) => void
   onCancelClick?: () => void
 }
@@ -138,7 +135,7 @@ export function CreateTopologyFormDialog(props: CreateTopologyFormDialogProps) {
   const onSuccessSubmit = React.useCallback(
     (
       data: CreateTopologyFormData,
-      createTopologyResult: CreateTopologySuccessResultDto
+      createTopologyResult: DtoWithoutEnums<CreateTopologySuccessResultDto>
     ) => {
       notifier.showSuccess(`топология '${data.code}' создана`)
       props.onSuccessCreateTopology?.(createTopologyResult)
@@ -155,7 +152,10 @@ export function CreateTopologyFormDialog(props: CreateTopologyFormDialogProps) {
     handleAutocompleteSingleSelectChange,
     handleAutocompleteMultipleSelectChange,
     handleAutocompleteMultipleSelectFreeItemsChange
-  } = useForm<CreateTopologyFormData, CreateTopologySuccessResultDto>({
+  } = useForm<
+    CreateTopologyFormData,
+    DtoWithoutEnums<CreateTopologySuccessResultDto>
+  >({
     INITIAL_FORM_DATA: INITIAL_CREATE_TOPOLOGY_FORM_DATA,
     validator: createTopologyFormValidator,
     submitAction: submitAction,

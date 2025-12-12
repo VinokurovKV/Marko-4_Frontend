@@ -1,50 +1,47 @@
 // Project
+import type { CommonTopologyPrimary, TaskSecondary } from '~/types'
 import { serverConnector } from '~/server-connector'
+import { readCommonTopologiesPrimary, readTasksSecondary } from '~/readers'
 import { useNotifier } from '~/providers/notifier'
 import { useMeta } from '~/providers/meta'
+import {
+  useCommonTopologiesSubscription,
+  useTasksSubscription
+} from '~/hooks/resources'
 import { ForbiddenScreen } from '~/components/screens/problem/forbidden'
 import { TasksScreen } from '~/components/screens/tasks'
 // React router
 import type { Route } from './+types/tasks'
+import { useOutlet } from 'react-router'
 // React
 import * as React from 'react'
 
 export async function clientLoader() {
   await serverConnector.connect()
-  const [commonTopologies, tasks] = await (async () => {
-    if (serverConnector.meta.status !== 'AUTHENTICATED') {
-      return [null, null]
-    } else {
-      const rights = serverConnector.meta.selfMeta.rights
-      return await Promise.all([
-        rights.includes('READ_COMMON_TOPOLOGY')
-          ? serverConnector
-              .readCommonTopologies({
-                scope: 'PRIMARY_PROPS'
-              })
-              .catch(() => null)
-          : Promise.resolve(null),
-        rights.includes('READ_TASK')
-          ? serverConnector
-              .readTasks({
-                scope: 'UP_TO_SECONDARY_PROPS'
-              })
-              .catch(() => null)
-          : Promise.resolve(null)
-      ])
-    }
-  })()
+  const [commonTopologies, tasks] = await Promise.all([
+    readCommonTopologiesPrimary(),
+    readTasksSecondary()
+  ])
   return {
     commonTopologies,
     tasks
   }
 }
 
-export default function MetaRoute({
-  loaderData: { commonTopologies, tasks }
+export default function TasksRoute({
+  loaderData: { commonTopologies: initialCommonTopologies, tasks: initialTasks }
 }: Route.ComponentProps) {
   const notifier = useNotifier()
   const meta = useMeta()
+  const outlet = useOutlet()
+
+  const [commonTopologies, setCommonTopologies] = React.useState<
+    CommonTopologyPrimary[] | null
+  >(initialCommonTopologies)
+  const [tasks, setTasks] = React.useState<TaskSecondary[] | null>(initialTasks)
+
+  useCommonTopologiesSubscription('PRIMARY_PROPS', setCommonTopologies)
+  useTasksSubscription('UP_TO_SECONDARY_PROPS', setTasks)
 
   React.useEffect(() => {
     if (
@@ -59,10 +56,9 @@ export default function MetaRoute({
   return meta.status === 'AUTHENTICATED' &&
     meta.selfMeta.rights.includes('READ_TASK') === false ? (
     <ForbiddenScreen />
-  ) : (
-    <TasksScreen
-      initialCommonTopologies={commonTopologies}
-      initialTasks={tasks ?? []}
-    />
-  )
+  ) : tasks !== null ? (
+    <TasksScreen commonTopologies={commonTopologies} tasks={tasks}>
+      {outlet !== null ? outlet : null}
+    </TasksScreen>
+  ) : null
 }

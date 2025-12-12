@@ -1,6 +1,6 @@
 // Project
 import { ScreenCard } from '../../cards/screen-card'
-import { IsolatedScreenContainer } from '../../containers/isolated-screen-container'
+import { IsolatedScreenContainer } from '~/components/containers'
 // Material UI
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'

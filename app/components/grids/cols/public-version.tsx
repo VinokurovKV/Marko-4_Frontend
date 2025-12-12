@@ -8,7 +8,7 @@ export function usePublicVersionCol() {
     () => ({
       field: 'publicVersion',
       headerName: 'Версия',
-      minWidth: 150,
+      minWidth: 140,
       flex: 1
     }),
     []

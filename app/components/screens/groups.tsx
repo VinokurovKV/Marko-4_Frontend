@@ -1,6 +1,6 @@
 // Project
 import { type ProjBreadcrumbsProps } from '../breadcrumbs'
-import { LayoutScreenContainer } from '../containers/layout-screen-container'
+import { LayoutScreenContainer } from '../containers'
 import { type GroupsGridProps, GroupsGrid } from '../grids/resources/groups'
 // React
 import * as React from 'react'

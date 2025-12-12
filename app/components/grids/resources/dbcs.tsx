@@ -1,12 +1,10 @@
 // Project
 import { convertMediaTypeToFileExtension } from '@common/formats'
-import type { ReadDbcsWithUpToSecondaryPropsSuccessResultItemDto } from '@common/dtos/server-api/dbcs.dto'
-import type { DtoWithoutEnums } from '@common/dto-without-enums'
+import type { DbcSecondary } from '~/types'
 import { downloadFileFromBlob } from '~/utilities/download-file'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
 import { useMeta } from '~/providers/meta'
-import { useDbcsSubscription } from '~/hooks/resources'
 import { CreateDbcFormDialog } from '~/components/forms/resources/create-dbc'
 import { type GridProps, Grid } from '../grid'
 import {
@@ -24,10 +22,8 @@ import { type GridColDef, type GridValidRowModel } from '@mui/x-data-grid'
 
 const MAX_DBCS_IN_MESSAGES = 3
 
-type Dbc = DtoWithoutEnums<ReadDbcsWithUpToSecondaryPropsSuccessResultItemDto>
-
 export interface DbcsGridProps {
-  initialDbcs: Dbc[]
+  dbcs: DbcSecondary[]
   navigationMode?: boolean
 }
 
@@ -43,16 +39,12 @@ export function DbcsGrid(props: DbcsGridProps) {
 
   const [createModeIsActive, setCreateModeIsActive] = React.useState(false)
 
-  const [dbcs, setDbcs] = React.useState<Dbc[]>(props.initialDbcs)
-
-  useDbcsSubscription('UP_TO_SECONDARY_PROPS', setDbcs)
-
   const dbcCodeForId = React.useMemo(
-    () => new Map(dbcs.map((dbc) => [dbc.id, dbc.code])),
-    [dbcs]
+    () => new Map(props.dbcs.map((dbc) => [dbc.id, dbc.code])),
+    [props.dbcs]
   )
 
-  const rows: GridValidRowModel[] = dbcs
+  const rows: GridValidRowModel[] = props.dbcs
 
   const readCols = [
     useCodeCol('id', true, '/dbcs'),
@@ -111,7 +103,10 @@ export function DbcsGrid(props: DbcsGridProps) {
     [readCols, actionsCol]
   )
 
-  const defaultHiddenFields = React.useMemo(() => [] as (keyof Dbc)[], [])
+  const defaultHiddenFields = React.useMemo(
+    () => [] as (keyof DbcSecondary)[],
+    []
+  )
 
   const createProps: GridProps['create'] = React.useMemo(
     () =>

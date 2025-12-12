@@ -1,11 +1,37 @@
 // Project
 import { serverConnector } from '~/server-connector'
+import type {
+  TagPrimary,
+  CommonTopologyPrimary,
+  TestPrimary,
+  TaskTertiary,
+  TestReportSecondary,
+  TaskReportTertiary
+} from '~/types'
+import {
+  readTaskTertiary,
+  readTestReportsSecondaryForTask,
+  readTaskReportSecondaryForTask,
+  readTagsPrimaryFiltered,
+  readCommonTopologyPrimary,
+  readCommonTopologyVersion,
+  readTestsPrimaryFiltered
+} from '~/readers'
 import { useNotifier } from '~/providers/notifier'
 import { useMeta } from '~/providers/meta'
+import {
+  useTagsFilteredSubscription,
+  useCommonTopologySubscription,
+  useTestsFilteredSubscription,
+  useTaskSubscription,
+  useTestReportsSubscription,
+  useTaskReportSubscription
+} from '~/hooks/resources'
+import { TaskViewer } from '~/components/single-resource-viewers/resources/task'
 import { ForbiddenScreen } from '~/components/screens/problem/forbidden'
-import { TaskScreen } from '~/components/screens/task'
 // React router
 import type { Route } from './+types/task'
+import { useOutlet } from 'react-router'
 // React
 import * as React from 'react'
 
@@ -15,102 +41,23 @@ export async function clientLoader({ params }: Route.ClientLoaderArgs) {
     return isNaN(parsed) ? null : parsed
   })()
   await serverConnector.connect()
-  const [task, testReports, taskReports] = await (async () => {
-    if (taskId === null || serverConnector.meta.status !== 'AUTHENTICATED') {
-      return [null, null, null]
-    } else {
-      const rights = serverConnector.meta.selfMeta.rights
-      return await Promise.all([
-        rights.includes('READ_TASK')
-          ? serverConnector
-              .readTask(
-                {
-                  id: taskId
-                },
-                {
-                  scope: 'UP_TO_TERTIARY_PROPS'
-                }
-              )
-              .catch(() => null)
-          : Promise.resolve(null),
-        rights.includes('READ_TEST_REPORT')
-          ? serverConnector
-              .readTestReports({
-                taskIds: [taskId],
-                scope: 'UP_TO_SECONDARY_PROPS'
-              })
-              .catch(() => null)
-          : Promise.resolve(null),
-        rights.includes('READ_TASK_REPORT')
-          ? serverConnector
-              .readTaskReports({
-                taskIds: [taskId],
-                scope: 'UP_TO_SECONDARY_PROPS'
-              })
-              .catch(() => null)
-          : Promise.resolve(null)
-      ])
-    }
-  })()
-  const tagIds = task?.tagIds ?? []
-  const testIds = (testReports ?? []).map((testReport) => testReport.testId)
+  const [task, testReports, taskReport] = await Promise.all([
+    readTaskTertiary(taskId),
+    readTestReportsSecondaryForTask(taskId),
+    readTaskReportSecondaryForTask(taskId)
+  ])
+  const tagIds = task?.tagIds ?? null
+  const testIds = testReports?.map((testReport) => testReport.testId) ?? null
   const [tags, commonTopology, commonTopologyVersion, tests] =
-    await (async () => {
-      if (serverConnector.meta.status !== 'AUTHENTICATED' || task === null) {
-        return [null, null, null, null]
-      } else {
-        const rights = serverConnector.meta.selfMeta.rights
-        return await Promise.all([
-          rights.includes('READ_TAG')
-            ? serverConnector
-                .readTags({
-                  ids: tagIds,
-                  scope: 'PRIMARY_PROPS'
-                })
-                .catch(() => null)
-            : Promise.resolve(null),
-          rights.includes('READ_COMMON_TOPOLOGY')
-            ? serverConnector
-                .readCommonTopology(
-                  { id: task.commonTopology.id },
-                  {
-                    scope: 'PRIMARY_PROPS'
-                  }
-                )
-                .catch(() => null)
-            : Promise.resolve(null),
-          rights.includes('READ_COMMON_TOPOLOGY')
-            ? serverConnector
-                .readCommonTopologyVersion(task.commonTopology)
-                .catch(() => null)
-            : Promise.resolve(null),
-          rights.includes('READ_TEST')
-            ? serverConnector
-                .readTests({
-                  ids: testIds,
-                  scope: 'PRIMARY_PROPS'
-                })
-                .catch(() => null)
-            : Promise.resolve(null)
-        ])
-      }
-    })()
+    await Promise.all([
+      readTagsPrimaryFiltered(tagIds),
+      readCommonTopologyPrimary(task?.commonTopology.id ?? null),
+      readCommonTopologyVersion(task?.commonTopology ?? null),
+      readTestsPrimaryFiltered(testIds)
+    ])
   return {
     taskId,
-    tags,
-    commonTopology,
-    commonTopologyVersion,
-    tests,
-    task,
-    testReports,
-    taskReport:
-      taskReports !== null && taskReports.length === 1 ? taskReports[0] : null
-  }
-}
-
-export default function MetaRoute({
-  loaderData: {
-    taskId,
+    taskReportId: taskReport?.id ?? null,
     tags,
     commonTopology,
     commonTopologyVersion,
@@ -119,14 +66,59 @@ export default function MetaRoute({
     testReports,
     taskReport
   }
+}
+
+function TaskRouteInner({
+  loaderData: {
+    taskId,
+    taskReportId,
+    tags: initialTags,
+    commonTopology: initialCommonTopology,
+    commonTopologyVersion,
+    tests: initialTests,
+    task: initialTask,
+    testReports: initialTestReports,
+    taskReport: initialTaskReport
+  }
 }: Route.ComponentProps) {
   const notifier = useNotifier()
   const meta = useMeta()
+  const outlet = useOutlet()
+
+  const [tags, setTags] = React.useState<TagPrimary[] | null>(initialTags)
+  const [commonTopology, setCommonTopology] =
+    React.useState<CommonTopologyPrimary | null>(initialCommonTopology)
+  const [tests, setTests] = React.useState<TestPrimary[] | null>(initialTests)
+  const [task, setTask] = React.useState<TaskTertiary | null>(initialTask)
+  const [testReports, setTestReports] = React.useState<
+    TestReportSecondary[] | null
+  >(initialTestReports)
+  const [taskReport, setTaskReport] = React.useState<TaskReportTertiary | null>(
+    initialTaskReport
+  )
+
+  const tagIds = React.useMemo(() => task?.tagIds ?? null, [task])
+
+  const testIds = React.useMemo(
+    () => testReports?.map((testReport) => testReport.testId) ?? null,
+    [testReports]
+  )
+
+  useTagsFilteredSubscription('PRIMARY_PROPS', tagIds, setTags)
+  useCommonTopologySubscription(
+    'PRIMARY_PROPS',
+    task?.commonTopology.id ?? null,
+    setCommonTopology
+  )
+  useTestsFilteredSubscription('PRIMARY_PROPS', testIds, setTests)
+  useTaskSubscription('UP_TO_TERTIARY_PROPS', taskId, setTask)
+  useTestReportsSubscription('UP_TO_SECONDARY_PROPS', taskId, setTestReports)
+  useTaskReportSubscription('UP_TO_TERTIARY_PROPS', taskReportId, setTaskReport)
 
   React.useEffect(() => {
     if (taskId === null) {
       notifier.showError(
-        'указан некорректный идентификатор при загрузке задания тестирования'
+        'указан некорректный идентификатор задания тестирования в URL'
       )
     } else if (
       task === null &&
@@ -151,18 +143,25 @@ export default function MetaRoute({
     (meta.selfMeta.rights.includes('READ_TASK') === false ||
       meta.selfMeta.rights.includes('READ_TASK_REPORT') === false) ? (
     <ForbiddenScreen />
-  ) : taskId !== null && task !== null && taskReport !== null ? (
-    <TaskScreen
+  ) : taskId !== null &&
+    taskReportId !== null &&
+    task !== null &&
+    taskReport !== null ? (
+    <TaskViewer
       key={taskId}
-      taskId={taskId}
-      taskReportId={taskReport.id}
-      initialTags={tags}
-      initialCommonTopology={commonTopology}
+      tags={tags}
+      commonTopology={commonTopology}
       commonTopologyVersion={commonTopologyVersion}
-      initialTests={tests}
-      initialTask={task}
-      initialTestReports={testReports}
-      initialTaskReport={taskReport}
-    />
+      tests={tests}
+      task={task}
+      testReports={testReports}
+      taskReport={taskReport}
+    >
+      {outlet !== null ? outlet : null}
+    </TaskViewer>
   ) : null
+}
+
+export default function TestRoute(props: Route.ComponentProps) {
+  return <TaskRouteInner key={props.loaderData.taskId} {...props} />
 }

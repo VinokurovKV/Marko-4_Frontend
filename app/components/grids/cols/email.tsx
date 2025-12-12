@@ -11,7 +11,7 @@ export function useEmailCol() {
       field: 'email',
       headerName: 'E-mail',
       renderCell: GridEmailCell,
-      minWidth: 150,
+      minWidth: 140,
       flex: 1
     }),
     []

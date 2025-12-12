@@ -1,7 +1,10 @@
 // Project
+import type { RequirementSecondary } from '~/types'
 import { serverConnector } from '~/server-connector'
+import { readRequirementsSecondary } from '~/readers'
 import { useNotifier } from '~/providers/notifier'
 import { useMeta } from '~/providers/meta'
+import { useRequirementsSubscription } from '~/hooks/resources'
 import { ForbiddenScreen } from '~/components/screens/problem/forbidden'
 import { RequirementsScreen } from '~/components/screens/requirements'
 // React router
@@ -11,32 +14,23 @@ import * as React from 'react'
 
 export async function clientLoader() {
   await serverConnector.connect()
-  const [requirements] = await (async () => {
-    if (serverConnector.meta.status !== 'AUTHENTICATED') {
-      return [null]
-    } else {
-      const rights = serverConnector.meta.selfMeta.rights
-      return await Promise.all([
-        rights.includes('READ_REQUIREMENT')
-          ? serverConnector
-              .readRequirements({
-                scope: 'UP_TO_SECONDARY_PROPS'
-              })
-              .catch(() => null)
-          : Promise.resolve(null)
-      ])
-    }
-  })()
+  const [requirements] = await Promise.all([readRequirementsSecondary()])
   return {
     requirements
   }
 }
 
-export default function MetaRoute({
-  loaderData: { requirements }
+export default function RequirementsRoute({
+  loaderData: { requirements: initialRequirements }
 }: Route.ComponentProps) {
   const notifier = useNotifier()
   const meta = useMeta()
+
+  const [requirements, setRequirements] = React.useState<
+    RequirementSecondary[] | null
+  >(initialRequirements)
+
+  useRequirementsSubscription('UP_TO_SECONDARY_PROPS', setRequirements)
 
   React.useEffect(() => {
     if (
@@ -51,7 +45,7 @@ export default function MetaRoute({
   return meta.status === 'AUTHENTICATED' &&
     meta.selfMeta.rights.includes('READ_REQUIREMENT') === false ? (
     <ForbiddenScreen />
-  ) : (
-    <RequirementsScreen initialRequirements={requirements ?? []} />
-  )
+  ) : requirements !== null ? (
+    <RequirementsScreen requirements={requirements} />
+  ) : null
 }

@@ -1,10 +1,8 @@
 // Project
-import type { ReadGroupsWithUpToSecondaryPropsSuccessResultItemDto } from '@common/dtos/server-api/groups.dto'
-import type { DtoWithoutEnums } from '@common/dto-without-enums'
+import type { GroupSecondary } from '~/types'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
 import { useMeta } from '~/providers/meta'
-import { useGroupsSubscription } from '~/hooks/resources'
 import { CreateGroupFormDialog } from '~/components/forms/resources/create-group'
 import { type GridProps, Grid } from '../grid'
 import {
@@ -22,11 +20,8 @@ import { type GridColDef, type GridValidRowModel } from '@mui/x-data-grid'
 
 const MAX_GROUPS_IN_MESSAGES = 3
 
-type Group =
-  DtoWithoutEnums<ReadGroupsWithUpToSecondaryPropsSuccessResultItemDto>
-
 export interface GroupsGridProps {
-  initialGroups: Group[]
+  groups: GroupSecondary[]
   navigationMode?: boolean
 }
 
@@ -42,16 +37,12 @@ export function GroupsGrid(props: GroupsGridProps) {
 
   const [createModeIsActive, setCreateModeIsActive] = React.useState(false)
 
-  const [groups, setGroups] = React.useState<Group[]>(props.initialGroups)
-
-  useGroupsSubscription('UP_TO_SECONDARY_PROPS', setGroups)
-
   const groupCodeForId = React.useMemo(
-    () => new Map(groups.map((group) => [group.id, group.code])),
-    [groups]
+    () => new Map(props.groups.map((group) => [group.id, group.code])),
+    [props.groups]
   )
 
-  const rows: GridValidRowModel[] = groups
+  const rows: GridValidRowModel[] = props.groups
 
   const readCols = [
     useCodeCol('id', true, '/groups'),
@@ -97,7 +88,10 @@ export function GroupsGrid(props: GroupsGridProps) {
     [rightsSet, readCols, actionsCol]
   )
 
-  const defaultHiddenFields = React.useMemo(() => [] as (keyof Group)[], [])
+  const defaultHiddenFields = React.useMemo(
+    () => [] as (keyof GroupSecondary)[],
+    []
+  )
 
   const createProps: GridProps['create'] = React.useMemo(
     () =>

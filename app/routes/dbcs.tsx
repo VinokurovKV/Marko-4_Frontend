@@ -1,7 +1,10 @@
 // Project
+import type { DbcSecondary } from '~/types'
 import { serverConnector } from '~/server-connector'
+import { readDbcsSecondary } from '~/readers'
 import { useNotifier } from '~/providers/notifier'
 import { useMeta } from '~/providers/meta'
+import { useDbcsSubscription } from '~/hooks/resources'
 import { ForbiddenScreen } from '~/components/screens/problem/forbidden'
 import { DbcsScreen } from '~/components/screens/dbcs'
 // React router
@@ -11,32 +14,21 @@ import * as React from 'react'
 
 export async function clientLoader() {
   await serverConnector.connect()
-  const [dbcs] = await (async () => {
-    if (serverConnector.meta.status !== 'AUTHENTICATED') {
-      return [null]
-    } else {
-      const rights = serverConnector.meta.selfMeta.rights
-      return await Promise.all([
-        rights.includes('READ_DBC')
-          ? serverConnector
-              .readDbcs({
-                scope: 'UP_TO_SECONDARY_PROPS'
-              })
-              .catch(() => null)
-          : Promise.resolve(null)
-      ])
-    }
-  })()
+  const [dbcs] = await Promise.all([readDbcsSecondary()])
   return {
     dbcs
   }
 }
 
-export default function MetaRoute({
-  loaderData: { dbcs }
+export default function DbcsRoute({
+  loaderData: { dbcs: initialDbcs }
 }: Route.ComponentProps) {
   const notifier = useNotifier()
   const meta = useMeta()
+
+  const [dbcs, setDbcs] = React.useState<DbcSecondary[] | null>(initialDbcs)
+
+  useDbcsSubscription('UP_TO_SECONDARY_PROPS', setDbcs)
 
   React.useEffect(() => {
     if (
@@ -51,7 +43,7 @@ export default function MetaRoute({
   return meta.status === 'AUTHENTICATED' &&
     meta.selfMeta.rights.includes('READ_DBC') === false ? (
     <ForbiddenScreen />
-  ) : (
-    <DbcsScreen initialDbcs={dbcs ?? []} />
-  )
+  ) : dbcs !== null ? (
+    <DbcsScreen dbcs={dbcs} />
+  ) : null
 }

@@ -83,11 +83,17 @@ const theme = createTheme(
     colorSchemes: {
       light: true,
       dark: true
-    }
+    },
+    typography: {
+      fontSize: 12
+    },
+    spacing: 6
   },
   ruRuDataGrid,
   ruRuDatePickers
 )
+
+// theme.spacing(10)
 
 export default function App() {
   return (

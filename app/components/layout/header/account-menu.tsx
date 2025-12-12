@@ -70,7 +70,7 @@ export function AccountMenu() {
   return (
     <React.Fragment>
       <Tooltip title="Управление аккаунтом">
-        <IconButton onClick={handleMenuClick} size="small" sx={{ ml: 2 }}>
+        <IconButton onClick={handleMenuClick} size="medium" sx={{ ml: 2 }}>
           <Avatar sx={{ width: 32, height: 32 }} />
         </IconButton>
       </Tooltip>
@@ -133,14 +133,14 @@ export function AccountMenu() {
         {restrictedAcountMenuConfig.map((item) => (
           <MenuItem key={item.href} component={Link} to={item.href}>
             <ListItemIcon>
-              <item.Icon fontSize="small" />
+              <item.Icon fontSize="medium" />
             </ListItemIcon>
             {capitalize(item.title, true)}
           </MenuItem>
         ))}
         <MenuItem onClick={handleLogoutClick}>
           <ListItemIcon>
-            <LogoutIcon fontSize="small" />
+            <LogoutIcon fontSize="medium" />
           </ListItemIcon>
           Выйти
         </MenuItem>

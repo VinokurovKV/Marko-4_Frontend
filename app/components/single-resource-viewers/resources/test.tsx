@@ -1,20 +1,24 @@
 // Project
-import type { ReadTagWithPrimaryPropsSuccessResultDto } from '@common/dtos/server-api/tags.dto'
-import type { ReadRequirementsWithPrimaryPropsSuccessResultItemDto } from '@common/dtos/server-api/requirements.dto'
-import type { ReadCommonTopologyWithUpToTertiaryPropsSuccessResultDto } from '@common/dtos/server-api/common-topologies.dto'
-import type { ReadTopologyWithUpToTertiaryPropsSuccessResultDto } from '@common/dtos/server-api/topologies.dto'
-import type { ReadDbcsWithPrimaryPropsSuccessResultItemDto } from '@common/dtos/server-api/dbcs.dto'
-import type { ReadTestTemplateWithPrimaryPropsSuccessResultDto } from '@common/dtos/server-api/test-templates.dto'
-import type { ReadTestWithUpToTertiaryPropsSuccessResultDto } from '@common/dtos/server-api/tests.dto'
-import type { ReadSubgroupWithPrimaryPropsSuccessResultDto } from '@common/dtos/server-api/subgroups.dto'
-import type { ReadGroupWithPrimaryPropsSuccessResultDto } from '@common/dtos/server-api/groups.dto'
-import type { DtoWithoutEnums } from '@common/dto-without-enums'
+import type {
+  TagPrimary,
+  RequirementPrimary,
+  CommonTopologyTertiary,
+  TopologyTertiary,
+  DbcPrimary,
+  TestTemplatePrimary,
+  TestTertiary,
+  SubgroupPrimary,
+  GroupPrimary
+} from '~/types'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
 import { calculateTopologyConfig } from '@common/utilities'
 import { FlagIcon } from '~/components/icons'
 import { MarkdownView } from '~/components/markdown-view'
-import { TwoPartsContainer } from '~/components/containers/two-parts-container'
+import {
+  HorizontalTwoPartsContainer,
+  VerticalTwoPartsContainer
+} from '~/components/containers'
 import { TopologyConfigSchema } from '~/components/topologies/topology-config-schema'
 import { type FormSelectProps, FormSelect } from '~/components/forms/common'
 import {
@@ -29,34 +33,19 @@ import {
 // React
 import * as React from 'react'
 // Material UI
-import Container from '@mui/material/Container'
 import type { SelectChangeEvent } from '@mui/material/Select'
 import Stack from '@mui/material/Stack'
 
-type Tag = DtoWithoutEnums<ReadTagWithPrimaryPropsSuccessResultDto>
-type Requirement =
-  DtoWithoutEnums<ReadRequirementsWithPrimaryPropsSuccessResultItemDto>
-type CommonTopology =
-  DtoWithoutEnums<ReadCommonTopologyWithUpToTertiaryPropsSuccessResultDto>
-type Topology =
-  DtoWithoutEnums<ReadTopologyWithUpToTertiaryPropsSuccessResultDto>
-type Dbc = DtoWithoutEnums<ReadDbcsWithPrimaryPropsSuccessResultItemDto>
-type TestTemplate =
-  DtoWithoutEnums<ReadTestTemplateWithPrimaryPropsSuccessResultDto>
-type Test = DtoWithoutEnums<ReadTestWithUpToTertiaryPropsSuccessResultDto>
-type Subgroup = DtoWithoutEnums<ReadSubgroupWithPrimaryPropsSuccessResultDto>
-type Group = DtoWithoutEnums<ReadGroupWithPrimaryPropsSuccessResultDto>
-
 export interface TestViewerProps {
-  tags: Tag[] | null
-  requirements: Requirement[] | null
-  commonTopology: CommonTopology | null
-  topology: Topology | null
-  dbcs: Dbc[] | null
-  testTemplate: TestTemplate | null
-  test: Test
-  subgroup: Subgroup | null
-  group: Group | null
+  tags: TagPrimary[] | null
+  requirements: RequirementPrimary[] | null
+  commonTopology: CommonTopologyTertiary | null
+  topology: TopologyTertiary | null
+  dbcs: DbcPrimary[] | null
+  testTemplate: TestTemplatePrimary | null
+  test: TestTertiary
+  subgroup: SubgroupPrimary | null
+  group: GroupPrimary | null
 }
 
 export function TestViewer({
@@ -221,160 +210,134 @@ export function TestViewer({
   }, [commonTopology, topology])
 
   return (
-    <TwoPartsContainer
+    <HorizontalTwoPartsContainer
       proportions="EQUAL"
       title={`Тест ${test.code}${test.name !== null ? ` (${test.name})` : ''}`}
     >
-      <Stack sx={{ height: '100%', overflow: 'hidden' }}>
-        <Container
-          sx={{
-            height: '50%',
-            pl: '0px !important',
-            pb: '1rem',
-            pr: '0px !important'
-          }}
-        >
-          <ColumnViewer>
-            <ColumnViewerBlock title="основная информация">
-              <ColumnViewerItem field="код" val={test.code} />
-              <ColumnViewerItem field="название" val={test.name ?? ''} />
+      <VerticalTwoPartsContainer proportions="50_50">
+        <ColumnViewer>
+          <ColumnViewerBlock title="основная информация">
+            <ColumnViewerItem field="код" val={test.code} />
+            <ColumnViewerItem field="название" val={test.name ?? ''} />
+            <ColumnViewerItem
+              field="готовность"
+              Icon={<FlagIcon flag={test.prepared} />}
+            />
+            <ColumnViewerRef
+              field="группа"
+              text={group?.code}
+              href={group !== null ? `/groups/${group.id}` : undefined}
+            />
+            <ColumnViewerRef
+              field="подгруппа"
+              text={subgroup?.code}
+              href={
+                test.subgroupId !== null
+                  ? `/subgroups/${test.subgroupId}`
+                  : undefined
+              }
+            />
+            <ColumnViewerItem
+              field="номер в подгруппе"
+              val={test.numInSubgroup ?? undefined}
+            />
+            <ColumnViewerRef
+              field="общая топология"
+              text={commonTopology?.code ?? '???'}
+              href={
+                commonTopology !== null
+                  ? `/common-topologies/${commonTopology?.id}`
+                  : undefined
+              }
+            />
+            <ColumnViewerRef
+              field="топология"
+              text={topology?.code ?? '???'}
+              href={`/topologies/${test.topologyId}`}
+            />
+            <ColumnViewerRef
+              field="шаблон"
+              text={testTemplate?.code}
+              href={
+                test.testTemplateId !== null
+                  ? `/test-templates/${test.testTemplateId}`
+                  : undefined
+              }
+            />
+            {test.config !== null ? (
+              <ColumnViewerFile
+                id={test.id}
+                field="конфигурация"
+                name={`${test.code}-config`}
+                size={test.config.size}
+                format={test.config.format}
+                getFileBlob={getConfigBlob}
+              />
+            ) : (
               <ColumnViewerItem
                 field="готовность"
                 Icon={<FlagIcon flag={test.prepared} />}
               />
-              <ColumnViewerRef
-                field="группа"
-                text={group?.code}
-                href={group !== null ? `/groups/${group.id}` : undefined}
-              />
-              <ColumnViewerRef
-                field="подгруппа"
-                text={subgroup?.code}
-                href={
-                  test.subgroupId !== null
-                    ? `/subgroups/${test.subgroupId}`
-                    : undefined
-                }
-              />
-              <ColumnViewerItem
-                field="номер в подгруппе"
-                val={test.numInSubgroup ?? undefined}
-              />
-              <ColumnViewerRef
-                field="общая топология"
-                text={commonTopology?.code ?? '???'}
-                href={
-                  commonTopology !== null
-                    ? `/common-topologies/${commonTopology?.id}`
-                    : undefined
-                }
-              />
-              <ColumnViewerRef
-                field="топология"
-                text={topology?.code ?? '???'}
-                href={`/topologies/${test.topologyId}`}
-              />
-              <ColumnViewerRef
-                field="шаблон"
-                text={testTemplate?.code}
-                href={
-                  test.testTemplateId !== null
-                    ? `/test-templates/${test.testTemplateId}`
-                    : undefined
-                }
-              />
-              {test.config !== null ? (
-                <ColumnViewerFile
-                  id={test.id}
-                  field="конфигурация"
-                  name={`${test.code}-config`}
-                  size={test.config.size}
-                  format={test.config.format}
-                  getFileBlob={getConfigBlob}
-                />
-              ) : (
-                <ColumnViewerItem
-                  field="готовность"
-                  Icon={<FlagIcon flag={test.prepared} />}
-                />
-              )}
-            </ColumnViewerBlock>
-            {test.vertexes.map((vertex, vertexIndex) => (
-              <ColumnViewerBlock
-                key={vertex.vertexName}
-                title={`вершина ${vertex.vertexName}`}
-              >
-                <>
-                  {vertex.dbcId !== null ? (
-                    <>
-                      <ColumnViewerRef
-                        field="базовая конфигурация"
-                        text={dbcCodeForId.get(vertex.dbcId) ?? '???'}
-                        href={`/topologies/${test.topologyId}`}
-                      />
-                      <ColumnViewerFile
-                        id={vertexIndex}
-                        field="файл базовой конфигурации"
-                        name={`${dbcCodeForId.get(vertex.dbcId) ?? '???'}`}
-                        format="ZIP"
-                        getFileBlob={getDbcConfigBlob}
-                      />
-                    </>
-                  ) : (
-                    <ColumnViewerItem field="базовая конфигурация" val="нет" />
-                  )}
-                  {vertex.delta !== null ? (
+            )}
+          </ColumnViewerBlock>
+          {test.vertexes.map((vertex, vertexIndex) => (
+            <ColumnViewerBlock
+              key={vertex.vertexName}
+              title={`вершина ${vertex.vertexName}`}
+            >
+              <>
+                {vertex.dbcId !== null ? (
+                  <>
+                    <ColumnViewerRef
+                      field="базовая конфигурация"
+                      text={dbcCodeForId.get(vertex.dbcId) ?? '???'}
+                      href={`/topologies/${test.topologyId}`}
+                    />
                     <ColumnViewerFile
                       id={vertexIndex}
-                      field="delta-конфигурация"
-                      name={`${test.code}-${vertex.vertexName}-delta`}
-                      size={vertex.delta.size}
-                      format={vertex.delta.format}
-                      getFileBlob={getDeltaBlob}
+                      field="файл базовой конфигурации"
+                      name={`${dbcCodeForId.get(vertex.dbcId) ?? '???'}`}
+                      format="ZIP"
+                      getFileBlob={getDbcConfigBlob}
                     />
-                  ) : (
-                    <ColumnViewerItem field="delta-конфигурация" val="нет" />
-                  )}
-                </>
-              </ColumnViewerBlock>
-            ))}
-            <ColumnViewerBlock title="теги">
-              <ColumnViewerChipsBlock
-                emptyText="нет"
-                items={test.tagIds.map((tagId) => ({
-                  text: tagCodeForId.get(tagId) ?? '',
-                  href: `/tags/${tagId}`
-                }))}
-              />
+                  </>
+                ) : (
+                  <ColumnViewerItem field="базовая конфигурация" val="нет" />
+                )}
+                {vertex.delta !== null ? (
+                  <ColumnViewerFile
+                    id={vertexIndex}
+                    field="delta-конфигурация"
+                    name={`${test.code}-${vertex.vertexName}-delta`}
+                    size={vertex.delta.size}
+                    format={vertex.delta.format}
+                    getFileBlob={getDeltaBlob}
+                  />
+                ) : (
+                  <ColumnViewerItem field="delta-конфигурация" val="нет" />
+                )}
+              </>
             </ColumnViewerBlock>
-          </ColumnViewer>
-        </Container>
-        <Container
-          sx={{
-            height: '50%',
-            pl: '0px !important',
-            pb: '1rem',
-            pr: '0px !important'
-          }}
-        >
-          <TopologyConfigSchema
-            config={topologyConfig}
-            nullConfigTitle="схема топологии"
-          />
-        </Container>
-      </Stack>
-      <Stack sx={{ height: '100%', overflow: 'hidden' }}>
-        <Container
-          sx={{
-            height: '30%',
-            pl: '0px !important',
-            pb: '1rem',
-            pr: '0px !important'
-          }}
-        >
-          <ColumnViewer>
-            <Stack spacing={-2}>
-              {/* <FormAutocompleteSingleSelect
+          ))}
+          <ColumnViewerBlock title="теги">
+            <ColumnViewerChipsBlock
+              emptyText="нет"
+              items={test.tagIds.map((tagId) => ({
+                text: tagCodeForId.get(tagId) ?? '',
+                href: `/tags/${tagId}`
+              }))}
+            />
+          </ColumnViewerBlock>
+        </ColumnViewer>
+        <TopologyConfigSchema
+          config={topologyConfig}
+          nullConfigTitle="схема топологии"
+        />
+      </VerticalTwoPartsContainer>
+      <VerticalTwoPartsContainer proportions="30_70">
+        <ColumnViewer>
+          <Stack spacing={-2}>
+            {/* <FormAutocompleteSingleSelect
                 name="requirementId"
                 label="отображаемое в описании требование"
                 possibleValues={requirementIds}
@@ -382,44 +345,35 @@ export function TestViewer({
                 value={requirementId}
                 onChange={handleRequirementChange}
               /> */}
-              <FormSelect
-                name="requirementId"
-                label="отображаемое в описании требование"
-                items={requirementSelectItems}
-                value={requirementId ?? ''}
-                onChange={handleRequirementChange}
-              />
-            </Stack>
-            <ColumnViewerBlock title="покрываемые требования">
-              <ColumnViewerChipsBlock
-                emptyText="нет"
-                items={requirementIds.map((requirementId) => ({
-                  text: requirementCodeForId.get(requirementId) ?? '',
-                  href: `/requirements/${requirementId}`
-                }))}
-              />
-            </ColumnViewerBlock>
-          </ColumnViewer>
-        </Container>
-        <Container
-          sx={{
-            height: '70%',
-            pl: '0px !important',
-            pb: '1rem',
-            pr: '0px !important'
-          }}
-        >
-          <ColumnViewer>
-            <ColumnViewerBlock title="описание">
-              {filteredDescriptionText !== null ? (
-                <MarkdownView text={filteredDescriptionText} />
-              ) : (
-                <ColumnViewerText emptyText="нет" />
-              )}
-            </ColumnViewerBlock>
-          </ColumnViewer>
-        </Container>
-      </Stack>
-    </TwoPartsContainer>
+            <FormSelect
+              name="requirementId"
+              label="отображаемое в описании требование"
+              items={requirementSelectItems}
+              value={requirementId ?? ''}
+              onChange={handleRequirementChange}
+            />
+          </Stack>
+          <ColumnViewerBlock title="покрываемые требования">
+            <ColumnViewerChipsBlock
+              emptyText="нет"
+              items={requirementIds.map((requirementId) => ({
+                text: requirementCodeForId.get(requirementId) ?? '',
+                href: `/requirements/${requirementId}`
+              }))}
+            />
+          </ColumnViewerBlock>
+        </ColumnViewer>
+
+        <ColumnViewer>
+          <ColumnViewerBlock title="описание">
+            {filteredDescriptionText !== null ? (
+              <MarkdownView text={filteredDescriptionText} />
+            ) : (
+              <ColumnViewerText emptyText="нет" />
+            )}
+          </ColumnViewerBlock>
+        </ColumnViewer>
+      </VerticalTwoPartsContainer>
+    </HorizontalTwoPartsContainer>
   )
 }

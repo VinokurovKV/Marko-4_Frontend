@@ -8,7 +8,7 @@ export function usePatronymicCol() {
     () => ({
       field: 'patronymic',
       headerName: 'Отчество',
-      minWidth: 150,
+      minWidth: 140,
       flex: 1
     }),
     []

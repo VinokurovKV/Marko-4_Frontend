@@ -36,7 +36,7 @@ function ToggleIconButtonWithoutTooltipUnstyled({
   }, [active, onToggle])
 
   return (
-    <IconButton {...props} size="small" onClick={handleClick}>
+    <IconButton {...props} size="medium" onClick={handleClick}>
       {active ? <ActiveIcon /> : <InactiveIcon />}
     </IconButton>
   )
@@ -46,8 +46,8 @@ const ToggleIconButtonWithoutTooltip = styled(
   ToggleIconButtonWithoutTooltipUnstyled
 )(({ theme }) => ({
   '&.MuiButtonBase-root': {
-    height: '2rem',
-    width: '2rem',
+    height: '1.8rem',
+    width: '1.8rem',
     borderWidth: 1.2,
     borderStyle: 'solid',
     borderColor: theme.palette.grey[600],

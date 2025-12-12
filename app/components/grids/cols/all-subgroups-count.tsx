@@ -9,7 +9,7 @@ export function useAllSubgroupsCountCol() {
       field: 'allSubgroupsCount',
       headerName: 'Все подгруппы',
       type: 'number',
-      minWidth: 150,
+      minWidth: 140,
       flex: 0.01
     }),
     []

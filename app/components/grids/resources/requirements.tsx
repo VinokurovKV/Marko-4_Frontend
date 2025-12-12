@@ -1,10 +1,8 @@
 // Project
-import type { ReadRequirementsWithUpToSecondaryPropsSuccessResultItemDto } from '@common/dtos/server-api/requirements.dto'
-import type { DtoWithoutEnums } from '@common/dto-without-enums'
+import type { RequirementSecondary } from '~/types'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
 import { useMeta } from '~/providers/meta'
-import { useRequirementsSubscription } from '~/hooks/resources'
 import { CreateRequirementFormDialog } from '~/components/forms/resources/create-requirement'
 import { type GridProps, Grid } from '../grid'
 import {
@@ -28,11 +26,8 @@ import { type GridColDef, type GridValidRowModel } from '@mui/x-data-grid'
 
 const MAX_REQUIREMENTS_IN_MESSAGES = 3
 
-type Requirement =
-  DtoWithoutEnums<ReadRequirementsWithUpToSecondaryPropsSuccessResultItemDto>
-
 export interface RequirementsGridProps {
-  initialRequirements: Requirement[]
+  requirements: RequirementSecondary[]
   navigationMode?: boolean
 }
 
@@ -49,21 +44,18 @@ export function RequirementsGrid(props: RequirementsGridProps) {
 
   const [createModeIsActive, setCreateModeIsActive] = React.useState(false)
 
-  const [requirements, setRequirements] = React.useState<Requirement[]>(
-    props.initialRequirements
-  )
-
-  useRequirementsSubscription('UP_TO_SECONDARY_PROPS', setRequirements)
-
   const requirementCodeForId = React.useMemo(
     () =>
       new Map(
-        requirements.map((requirement) => [requirement.id, requirement.code])
+        props.requirements.map((requirement) => [
+          requirement.id,
+          requirement.code
+        ])
       ),
-    [requirements]
+    [props.requirements]
   )
 
-  const rows: GridValidRowModel[] = requirements
+  const rows: GridValidRowModel[] = props.requirements
 
   const readCols = [
     useCodeCol('id', true, '/requirements'),
@@ -119,7 +111,8 @@ export function RequirementsGrid(props: RequirementsGridProps) {
   )
 
   const defaultHiddenFields = React.useMemo(
-    () => ['fragmentsCount', 'coveragesCount'] as (keyof Requirement)[],
+    () =>
+      ['fragmentsCount', 'coveragesCount'] as (keyof RequirementSecondary)[],
     []
   )
 
@@ -198,7 +191,7 @@ export function RequirementsGrid(props: RequirementsGridProps) {
         compactFooter={navigationMode}
       />
       <CreateRequirementFormDialog
-        requirements={requirements}
+        requirements={props.requirements}
         createModeIsActive={createModeIsActive}
         setCreateModeIsActive={setCreateModeIsActive}
         onSuccessCreateRequirement={cancelCreateForm}

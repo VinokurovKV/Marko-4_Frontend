@@ -1,14 +1,6 @@
 // Project
 import type { ReadOneResourceScope, ReadManyResourceScope } from '@common/enums'
-import type {
-  ReadTestWithPrimaryPropsSuccessResultDto,
-  ReadTestWithUpToSecondaryPropsSuccessResultDto,
-  ReadTestWithUpToTertiaryPropsSuccessResultDto,
-  ReadTestWithAllPropsSuccessResultDto,
-  ReadTestsWithPrimaryPropsSuccessResultItemDto,
-  ReadTestsWithUpToSecondaryPropsSuccessResultItemDto
-} from '@common/dtos/server-api/tests.dto'
-import type { DtoWithoutEnums } from '@common/dto-without-enums'
+import type { TestPrimary, TestSecondary, TestTertiary, TestAll } from '~/types'
 import { serverConnector } from '~/server-connector'
 import { useChangeDetector } from '../change-detector'
 import { useNotifier } from '~/providers/notifier'
@@ -17,21 +9,19 @@ import * as React from 'react'
 // Other
 import { isEqual } from 'lodash'
 
-type ReadOneTest<Scope extends ReadOneResourceScope> = DtoWithoutEnums<
+type ReadOneTest<Scope extends ReadOneResourceScope> =
   Scope extends 'PRIMARY_PROPS'
-    ? ReadTestWithPrimaryPropsSuccessResultDto
+    ? TestPrimary
     : Scope extends 'UP_TO_SECONDARY_PROPS'
-      ? ReadTestWithUpToSecondaryPropsSuccessResultDto
+      ? TestSecondary
       : Scope extends 'UP_TO_TERTIARY_PROPS'
-        ? ReadTestWithUpToTertiaryPropsSuccessResultDto
-        : ReadTestWithAllPropsSuccessResultDto
->
+        ? TestTertiary
+        : TestAll
 
-type ReadManyTest<Scope extends ReadManyResourceScope> = DtoWithoutEnums<
-  Scope extends 'PRIMARY_PROPS'
-    ? ReadTestsWithPrimaryPropsSuccessResultItemDto
-    : ReadTestsWithUpToSecondaryPropsSuccessResultItemDto
->
+type ReadManyTest<Scope extends ReadManyResourceScope> =
+  Scope extends 'PRIMARY_PROPS' ? TestPrimary : TestSecondary
+
+const EMPTY_TESTS_ARR: TestAll[] = []
 
 function useTestSubscriptionInner<Scope extends ReadOneResourceScope>(
   scope: Scope,
@@ -314,10 +304,10 @@ export function useTests<Scope extends ReadManyResourceScope>(
 
 function useTestsFilteredSubscriptionInner<Scope extends ReadManyResourceScope>(
   scope: Scope,
-  testIds: number[],
+  testIds: number[] | null,
   setTestsPair: React.Dispatch<
     React.SetStateAction<{
-      testIds: number[]
+      testIds: number[] | null
       tests?: ReadManyTest<Scope>[] | null
     }>
   >,
@@ -332,10 +322,13 @@ function useTestsFilteredSubscriptionInner<Scope extends ReadManyResourceScope>(
   const load = React.useCallback(
     async (notifyAboutProblems: boolean) => {
       try {
-        const tests = (await serverConnector.readTests({
-          ids: testIds,
-          scope: scope
-        })) as ReadManyTest<Scope>[]
+        const tests =
+          testIds !== null
+            ? ((await serverConnector.readTests({
+                ids: testIds,
+                scope: scope
+              })) as ReadManyTest<Scope>[])
+            : EMPTY_TESTS_ARR
         setTestsPair((oldPair) =>
           isEqual(oldPair.testIds, testIds)
             ? {
@@ -410,14 +403,14 @@ export function useTestsFilteredSubscription<
   Scope extends ReadManyResourceScope
 >(
   scope: Scope,
-  testIds: number[],
+  testIds: number[] | null,
   setTests: React.Dispatch<React.SetStateAction<ReadManyTest<Scope>[] | null>>,
   withInitialLoad: boolean = false,
   notifyAboutInitialLoadProblems: boolean = false,
   active: boolean = true
 ) {
   const [testsPair, setTestsPair] = React.useState<{
-    testIds: number[]
+    testIds: number[] | null
     tests?: ReadManyTest<Scope>[] | null
   }>({
     testIds: testIds,
@@ -447,12 +440,12 @@ export function useTestsFilteredSubscription<
 /** Subscribe to tests updates with initial load */
 export function useTestsFiltered<Scope extends ReadManyResourceScope>(
   scope: Scope,
-  testIds: number[],
+  testIds: number[] | null,
   notifyAboutInitialLoadProblems: boolean = false,
   active: boolean = true
 ) {
   const [testsPair, setTestsPair] = React.useState<{
-    testIds: number[]
+    testIds: number[] | null
     tests?: ReadManyTest<Scope>[] | null
   }>({
     testIds: testIds,

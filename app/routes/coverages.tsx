@@ -1,7 +1,13 @@
 // Project
+import type { RequirementPrimary, CoverageSecondary } from '~/types'
 import { serverConnector } from '~/server-connector'
+import { readRequirementsPrimary, readCoveragesSecondary } from '~/readers'
 import { useNotifier } from '~/providers/notifier'
 import { useMeta } from '~/providers/meta'
+import {
+  useCoveragesSubscription,
+  useRequirementsSubscription
+} from '~/hooks/resources'
 import { ForbiddenScreen } from '~/components/screens/problem/forbidden'
 import { CoveragesScreen } from '~/components/screens/coverages'
 // React router
@@ -11,40 +17,31 @@ import * as React from 'react'
 
 export async function clientLoader() {
   await serverConnector.connect()
-  const [requirements, coverages] = await (async () => {
-    if (serverConnector.meta.status !== 'AUTHENTICATED') {
-      return [null, null]
-    } else {
-      const rights = serverConnector.meta.selfMeta.rights
-      return await Promise.all([
-        rights.includes('READ_REQUIREMENT')
-          ? serverConnector
-              .readRequirements({
-                scope: 'PRIMARY_PROPS'
-              })
-              .catch(() => null)
-          : Promise.resolve(null),
-        rights.includes('READ_COVERAGE')
-          ? serverConnector
-              .readCoverages({
-                scope: 'UP_TO_SECONDARY_PROPS'
-              })
-              .catch(() => null)
-          : Promise.resolve(null)
-      ])
-    }
-  })()
+  const [requirements, coverages] = await Promise.all([
+    readRequirementsPrimary(),
+    readCoveragesSecondary()
+  ])
   return {
     requirements,
     coverages
   }
 }
 
-export default function MetaRoute({
-  loaderData: { requirements, coverages }
+export default function CoveragesRoute({
+  loaderData: { requirements: initialRequirements, coverages: initialCoverages }
 }: Route.ComponentProps) {
   const notifier = useNotifier()
   const meta = useMeta()
+
+  const [requirements, setRequirements] = React.useState<
+    RequirementPrimary[] | null
+  >(initialRequirements)
+  const [coverages, setCoverages] = React.useState<CoverageSecondary[] | null>(
+    initialCoverages
+  )
+
+  useRequirementsSubscription('PRIMARY_PROPS', setRequirements)
+  useCoveragesSubscription('UP_TO_SECONDARY_PROPS', setCoverages)
 
   React.useEffect(() => {
     if (
@@ -59,10 +56,7 @@ export default function MetaRoute({
   return meta.status === 'AUTHENTICATED' &&
     meta.selfMeta.rights.includes('READ_COVERAGE') === false ? (
     <ForbiddenScreen />
-  ) : (
-    <CoveragesScreen
-      initialRequirements={requirements}
-      initialCoverages={coverages ?? []}
-    />
-  )
+  ) : coverages !== null ? (
+    <CoveragesScreen requirements={requirements} coverages={coverages} />
+  ) : null
 }
