@@ -162,7 +162,8 @@ export function TaskViewer(props: TaskViewerProps) {
             <ColumnViewerRef
               field="общая топология"
               text={props.commonTopology?.code ?? 'УДАЛЕНА'}
-              href={`/common-topologies/${props.commonTopologyVersion?.resourceId}/versions/${props.commonTopologyVersion?.transitionNum}`}
+              href={`/common-topologies/${props.commonTopologyVersion?.resourceId}`}
+              // href={`/common-topologies/${props.commonTopologyVersion?.resourceId}/versions/${props.commonTopologyVersion?.transitionNum}`}
             />
             {/* <ColumnViewerItem
                 field="приостановлено"
