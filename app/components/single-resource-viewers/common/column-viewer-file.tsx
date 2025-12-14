@@ -1,4 +1,5 @@
 // Project
+import { convertNumberOfBytesToStr } from '@common/utilities'
 import { type FileFormat, convertFileFormatToExtension } from '@common/formats'
 import type { TestReportTertiary } from '~/types'
 import { downloadFileFromBlob } from '~/utilities/download-file'
@@ -20,6 +21,7 @@ export interface ColumnViewerFileProps extends Omit<Item, 'size' | 'time'> {
   field?: string
   size?: number
   time?: Date
+  hideTitle?: boolean
 }
 
 export function ColumnViewerFile(props: ColumnViewerFileProps) {
@@ -35,17 +37,21 @@ export function ColumnViewerFile(props: ColumnViewerFileProps) {
   }, [props])
 
   return (
-    <Stack spacing={-0.5} p={0}>
-      <Typography
-        sx={{
-          fontWeight: 'bold'
-        }}
-      >
-        {capitalize(
-          props.field !== undefined ? `${props.field}:` : props.name,
-          true
-        )}
-      </Typography>
+    <Stack spacing={-0.5} mt={props.hideTitle ? -1.5 : undefined} p={0}>
+      {props.hideTitle !== true ? (
+        <Typography
+          sx={{
+            fontWeight: 'bold'
+          }}
+        >
+          {capitalize(
+            props.field !== undefined ? `${props.field}:` : props.name,
+            true
+          )}
+        </Typography>
+      ) : (
+        false
+      )}
       <Stack direction="row" alignItems="center" spacing={0} p={0}>
         <Tooltip title="Скачать">
           <IconButton onClick={handleClick} size="medium">
@@ -53,7 +59,7 @@ export function ColumnViewerFile(props: ColumnViewerFileProps) {
           </IconButton>
         </Tooltip>
         {props.size !== undefined ? (
-          <Typography>{`(${props.size} байт)`}</Typography>
+          <Typography>{convertNumberOfBytesToStr(props.size)}</Typography>
         ) : null}
       </Stack>
     </Stack>

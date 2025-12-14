@@ -11,6 +11,8 @@ import { useChangeDetector } from '../change-detector'
 import { useNotifier } from '~/providers/notifier'
 // React
 import * as React from 'react'
+// Other
+import { isEqual } from 'lodash'
 
 type ReadOneGroup<Scope extends ReadOneResourceScope> =
   Scope extends 'PRIMARY_PROPS'
@@ -23,6 +25,8 @@ type ReadOneGroup<Scope extends ReadOneResourceScope> =
 
 type ReadManyGroup<Scope extends ReadManyResourceScope> =
   Scope extends 'PRIMARY_PROPS' ? GroupPrimary : GroupSecondary
+
+const EMPTY_GROUPS_ARR: GroupAll[] = []
 
 function useGroupSubscriptionInner<Scope extends ReadOneResourceScope>(
   scope: Scope,
@@ -305,4 +309,176 @@ export function useGroups<Scope extends ReadManyResourceScope>(
     active
   )
   return groups
+}
+
+function useGroupsFilteredSubscriptionInner<
+  Scope extends ReadManyResourceScope
+>(
+  scope: Scope,
+  groupIds: number[] | null,
+  setGroupsPair: React.Dispatch<
+    React.SetStateAction<{
+      groupIds: number[] | null
+      groups?: ReadManyGroup<Scope>[] | null
+    }>
+  >,
+  withInitialLoad: boolean = false,
+  notifyAboutInitialLoadProblems: boolean = false,
+  active: boolean = true
+) {
+  const notifier = useNotifier()
+
+  const [initialized, setInitialized] = React.useState(false)
+
+  const load = React.useCallback(
+    async (notifyAboutProblems: boolean) => {
+      try {
+        const groups =
+          groupIds !== null
+            ? ((await serverConnector.readGroups({
+                ids: groupIds,
+                scope: scope
+              })) as ReadManyGroup<Scope>[])
+            : EMPTY_GROUPS_ARR
+        setGroupsPair((oldPair) =>
+          isEqual(oldPair.groupIds, groupIds)
+            ? {
+                ...oldPair,
+                groups: groups
+              }
+            : oldPair
+        )
+      } catch {
+        if (notifyAboutProblems) {
+          notifier.showWarning(
+            'не удалось загрузить актуальный список групп тестов'
+          )
+        }
+      }
+    },
+    [scope, groupIds, setGroupsPair, notifier]
+  )
+
+  // Initial load
+  React.useEffect(() => {
+    setInitialized(true)
+    if (active === false || withInitialLoad === false || initialized) {
+      return
+    }
+    void load(notifyAboutInitialLoadProblems)
+  }, [
+    scope,
+    withInitialLoad,
+    notifyAboutInitialLoadProblems,
+    active,
+    initialized,
+    setInitialized,
+    load
+  ])
+
+  // Process group ids change or active flag change to true
+  useChangeDetector({
+    detectedObjects: [groupIds, active],
+    otherDependencies: [notifyAboutInitialLoadProblems, load],
+    onChange: () => {
+      if (active) {
+        void load(notifyAboutInitialLoadProblems)
+      }
+    }
+  })
+
+  // Subscribe
+  React.useEffect(() => {
+    const subscriptionId = serverConnector.subscribeToResources(
+      {
+        type: 'GROUP'
+      },
+      (data) => {
+        ;(() => {
+          const updateScope = data.updateScope
+          if (
+            updateScope.primaryProps ||
+            (updateScope.secondaryProps && scope === 'UP_TO_SECONDARY_PROPS')
+          ) {
+            void load(true)
+          }
+        })()
+      }
+    ).subscriptionId
+    return () => {
+      serverConnector.unsubscribe(subscriptionId)
+    }
+  }, [scope, groupIds, load])
+}
+
+/** Subscribe to groups updates for existing groups state */
+export function useGroupsFilteredSubscription<
+  Scope extends ReadManyResourceScope
+>(
+  scope: Scope,
+  groupIds: number[] | null,
+  setGroups: React.Dispatch<
+    React.SetStateAction<ReadManyGroup<Scope>[] | null>
+  >,
+  withInitialLoad: boolean = false,
+  notifyAboutInitialLoadProblems: boolean = false,
+  active: boolean = true
+) {
+  const [groupsPair, setGroupsPair] = React.useState<{
+    groupIds: number[] | null
+    groups?: ReadManyGroup<Scope>[] | null
+  }>({
+    groupIds: groupIds,
+    groups: undefined
+  })
+  React.useEffect(() => {
+    setGroupsPair((oldPair) => ({
+      groupIds: groupIds,
+      groups: oldPair.groups
+    }))
+  }, [groupIds, setGroupsPair])
+  useGroupsFilteredSubscriptionInner(
+    scope,
+    groupsPair.groupIds,
+    setGroupsPair,
+    withInitialLoad,
+    notifyAboutInitialLoadProblems,
+    active
+  )
+  React.useEffect(() => {
+    if (groupsPair.groups !== undefined) {
+      setGroups(groupsPair.groups)
+    }
+  }, [setGroups, groupsPair.groups])
+}
+
+/** Subscribe to groups updates with initial load */
+export function useGroupsFiltered<Scope extends ReadManyResourceScope>(
+  scope: Scope,
+  groupIds: number[] | null,
+  notifyAboutInitialLoadProblems: boolean = false,
+  active: boolean = true
+) {
+  const [groupsPair, setGroupsPair] = React.useState<{
+    groupIds: number[] | null
+    groups?: ReadManyGroup<Scope>[] | null
+  }>({
+    groupIds: groupIds,
+    groups: null
+  })
+  React.useEffect(() => {
+    setGroupsPair((oldPair) => ({
+      groupIds: groupIds,
+      groups: oldPair.groups
+    }))
+  }, [groupIds, setGroupsPair])
+  useGroupsFilteredSubscriptionInner(
+    scope,
+    groupsPair.groupIds,
+    setGroupsPair,
+    true,
+    notifyAboutInitialLoadProblems,
+    active
+  )
+  return groupsPair.groups ?? null
 }

@@ -1,4 +1,5 @@
 // Project
+import { calculateTopologyConfig } from '@common/utilities'
 import type {
   TagPrimary,
   RequirementPrimary,
@@ -12,7 +13,6 @@ import type {
 } from '~/types'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
-import { calculateTopologyConfig } from '@common/utilities'
 import { FlagIcon } from '~/components/icons'
 import { MarkdownView } from '~/components/markdown-view'
 import {
@@ -62,16 +62,6 @@ export function TestViewer({
   const notifier = useNotifier()
 
   const [requirementId, setRequirementId] = React.useState<number | null>(null)
-
-  const tagCodeForId = React.useMemo(
-    () => new Map((tags ?? []).map((tag) => [tag.id, tag.code])),
-    [tags]
-  )
-
-  const requirementIds = React.useMemo(
-    () => (requirements ?? []).map((requirement) => requirement.id),
-    [requirements]
-  )
 
   const requirementCodeForId = React.useMemo(
     () =>
@@ -196,11 +186,11 @@ export function TestViewer({
   const requirementSelectItems: FormSelectProps<number>['items'] =
     React.useMemo(
       () =>
-        requirementIds.map((requirementId) => ({
-          value: requirementId,
-          title: requirementCodeForId.get(requirementId) ?? ''
+        (requirements ?? []).map((requirement) => ({
+          value: requirement.id,
+          title: requirement.code
         })),
-      [requirementIds, requirementCodeForId]
+      [requirements, requirementCodeForId]
     )
 
   const topologyConfig = React.useMemo(() => {
@@ -212,7 +202,7 @@ export function TestViewer({
   return (
     <HorizontalTwoPartsContainer
       proportions="EQUAL"
-      title={`Тест ${test.code}${test.name !== null ? ` (${test.name})` : ''}`}
+      title={['Тест', `${test.code}`]}
     >
       <VerticalTwoPartsContainer proportions="50_50">
         <ColumnViewer>
@@ -221,7 +211,13 @@ export function TestViewer({
             <ColumnViewerItem field="название" val={test.name ?? ''} />
             <ColumnViewerItem
               field="готовность"
-              Icon={<FlagIcon flag={test.prepared} />}
+              Icon={
+                <FlagIcon
+                  flag={test.prepared}
+                  truePrompt="все необходимые конфигурации загружены"
+                  falsePrompt="не все необходимые конфигурации загружены"
+                />
+              }
             />
             <ColumnViewerRef
               field="группа"
@@ -274,10 +270,7 @@ export function TestViewer({
                 getFileBlob={getConfigBlob}
               />
             ) : (
-              <ColumnViewerItem
-                field="готовность"
-                Icon={<FlagIcon flag={test.prepared} />}
-              />
+              <ColumnViewerItem field="конфигурация" />
             )}
           </ColumnViewerBlock>
           {test.vertexes.map((vertex, vertexIndex) => (
@@ -291,14 +284,14 @@ export function TestViewer({
                     <ColumnViewerRef
                       field="базовая конфигурация"
                       text={dbcCodeForId.get(vertex.dbcId) ?? '???'}
-                      href={`/topologies/${test.topologyId}`}
+                      href={`/dbcs/${test.topologyId}`}
                     />
                     <ColumnViewerFile
                       id={vertexIndex}
-                      field="файл базовой конфигурации"
                       name={`${dbcCodeForId.get(vertex.dbcId) ?? '???'}`}
                       format="ZIP"
                       getFileBlob={getDbcConfigBlob}
+                      hideTitle
                     />
                   </>
                 ) : (
@@ -321,10 +314,10 @@ export function TestViewer({
           ))}
           <ColumnViewerBlock title="теги">
             <ColumnViewerChipsBlock
-              emptyText="нет"
-              items={test.tagIds.map((tagId) => ({
-                text: tagCodeForId.get(tagId) ?? '',
-                href: `/tags/${tagId}`
+              emptyText={tags !== null ? 'нет' : '???'}
+              items={(tags ?? []).map((tag) => ({
+                text: tag.code,
+                href: `/tags/${tag.id}`
               }))}
             />
           </ColumnViewerBlock>
@@ -356,9 +349,9 @@ export function TestViewer({
           <ColumnViewerBlock title="покрываемые требования">
             <ColumnViewerChipsBlock
               emptyText="нет"
-              items={requirementIds.map((requirementId) => ({
-                text: requirementCodeForId.get(requirementId) ?? '',
-                href: `/requirements/${requirementId}`
+              items={(requirements ?? []).map((requirement) => ({
+                text: requirement.code,
+                href: `/requirements/${requirement.id}`
               }))}
             />
           </ColumnViewerBlock>

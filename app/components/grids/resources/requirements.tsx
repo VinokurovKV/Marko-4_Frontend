@@ -29,6 +29,7 @@ const MAX_REQUIREMENTS_IN_MESSAGES = 3
 export interface RequirementsGridProps {
   requirements: RequirementSecondary[]
   navigationMode?: boolean
+  navigationModeSelectedRowId?: number
 }
 
 export function RequirementsGrid(props: RequirementsGridProps) {
@@ -58,7 +59,7 @@ export function RequirementsGrid(props: RequirementsGridProps) {
   const rows: GridValidRowModel[] = props.requirements
 
   const readCols = [
-    useCodeCol('id', true, '/requirements'),
+    useCodeCol('id', true, '/requirements', navigationMode),
     useNameCol(),
     useRequirementModifierCol(),
     useRequirementOriginCol(),
@@ -173,9 +174,20 @@ export function RequirementsGrid(props: RequirementsGridProps) {
     setCreateModeIsActive(false)
   }, [setCreateModeIsActive])
 
-  const handleChangeModeClick = React.useCallback(() => {
-    void navigate(navigationMode ? '/requirements' : '/requirements/hierarchy')
-  }, [navigationMode, navigate])
+  // const handleChangeModeClick = React.useCallback(() => {
+  //   void navigate(navigationMode ? '/requirements' : '/requirements/hierarchy')
+  // }, [navigationMode, navigate])
+
+  const handleNavigationModeRowClick = React.useCallback(
+    (rowId: number) => {
+      void navigate(
+        props.navigationModeSelectedRowId !== rowId
+          ? `/requirements/${rowId}`
+          : '/requirements'
+      )
+    },
+    [props.navigationModeSelectedRowId, navigate]
+  )
 
   return (
     <>
@@ -185,7 +197,11 @@ export function RequirementsGrid(props: RequirementsGridProps) {
         rows={rows}
         defaultHiddenFields={defaultHiddenFields}
         navigationMode={navigationMode}
-        onChangeModeClick={handleChangeModeClick}
+        selectedRowId={
+          navigationMode ? props.navigationModeSelectedRowId : undefined
+        }
+        navigationModeOnRowClick={handleNavigationModeRowClick}
+        // onChangeModeClick={handleChangeModeClick}
         create={createProps}
         deleteMany={deleteManyProps}
         compactFooter={navigationMode}

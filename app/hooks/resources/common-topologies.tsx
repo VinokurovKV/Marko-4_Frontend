@@ -11,6 +11,8 @@ import { useChangeDetector } from '../change-detector'
 import { useNotifier } from '~/providers/notifier'
 // React
 import * as React from 'react'
+// Other
+import { isEqual } from 'lodash'
 
 type ReadOneCommonTopology<Scope extends ReadOneResourceScope> =
   Scope extends 'PRIMARY_PROPS'
@@ -25,6 +27,8 @@ type ReadManyCommonTopology<Scope extends ReadManyResourceScope> =
   Scope extends 'PRIMARY_PROPS'
     ? CommonTopologyPrimary
     : CommonTopologySecondary
+
+const EMPTY_COMMON_TOPOLOGIES_ARR: CommonTopologyAll[] = []
 
 function useCommonTopologySubscriptionInner<Scope extends ReadOneResourceScope>(
   scope: Scope,
@@ -317,4 +321,178 @@ export function useCommonTopologies<Scope extends ReadManyResourceScope>(
     active
   )
   return commonTopologies
+}
+
+function useCommonTopologiesFilteredSubscriptionInner<
+  Scope extends ReadManyResourceScope
+>(
+  scope: Scope,
+  commonTopologyIds: number[] | null,
+  setCommonTopologiesPair: React.Dispatch<
+    React.SetStateAction<{
+      commonTopologyIds: number[] | null
+      commonTopologies?: ReadManyCommonTopology<Scope>[] | null
+    }>
+  >,
+  withInitialLoad: boolean = false,
+  notifyAboutInitialLoadProblems: boolean = false,
+  active: boolean = true
+) {
+  const notifier = useNotifier()
+
+  const [initialized, setInitialized] = React.useState(false)
+
+  const load = React.useCallback(
+    async (notifyAboutProblems: boolean) => {
+      try {
+        const commonTopologies =
+          commonTopologyIds !== null
+            ? ((await serverConnector.readCommonTopologies({
+                ids: commonTopologyIds,
+                scope: scope
+              })) as ReadManyCommonTopology<Scope>[])
+            : EMPTY_COMMON_TOPOLOGIES_ARR
+        setCommonTopologiesPair((oldPair) =>
+          isEqual(oldPair.commonTopologyIds, commonTopologyIds)
+            ? {
+                ...oldPair,
+                commonTopologies: commonTopologies
+              }
+            : oldPair
+        )
+      } catch {
+        if (notifyAboutProblems) {
+          notifier.showWarning(
+            'не удалось загрузить актуальный список общих топологий'
+          )
+        }
+      }
+    },
+    [scope, commonTopologyIds, setCommonTopologiesPair, notifier]
+  )
+
+  // Initial load
+  React.useEffect(() => {
+    setInitialized(true)
+    if (active === false || withInitialLoad === false || initialized) {
+      return
+    }
+    void load(notifyAboutInitialLoadProblems)
+  }, [
+    scope,
+    withInitialLoad,
+    notifyAboutInitialLoadProblems,
+    active,
+    initialized,
+    setInitialized,
+    load
+  ])
+
+  // Process commonTopology ids change or active flag change to true
+  useChangeDetector({
+    detectedObjects: [commonTopologyIds, active],
+    otherDependencies: [notifyAboutInitialLoadProblems, load],
+    onChange: () => {
+      if (active) {
+        void load(notifyAboutInitialLoadProblems)
+      }
+    }
+  })
+
+  // Subscribe
+  React.useEffect(() => {
+    const subscriptionId = serverConnector.subscribeToResources(
+      {
+        type: 'COMMON_TOPOLOGY'
+      },
+      (data) => {
+        ;(() => {
+          const updateScope = data.updateScope
+          if (
+            updateScope.primaryProps ||
+            (updateScope.secondaryProps && scope === 'UP_TO_SECONDARY_PROPS')
+          ) {
+            void load(true)
+          }
+        })()
+      }
+    ).subscriptionId
+    return () => {
+      serverConnector.unsubscribe(subscriptionId)
+    }
+  }, [scope, commonTopologyIds, load])
+}
+
+/** Subscribe to commonTopologies updates for existing commonTopologies state */
+export function useCommonTopologiesFilteredSubscription<
+  Scope extends ReadManyResourceScope
+>(
+  scope: Scope,
+  commonTopologyIds: number[] | null,
+  setCommonTopologies: React.Dispatch<
+    React.SetStateAction<ReadManyCommonTopology<Scope>[] | null>
+  >,
+  withInitialLoad: boolean = false,
+  notifyAboutInitialLoadProblems: boolean = false,
+  active: boolean = true
+) {
+  const [commonTopologiesPair, setCommonTopologiesPair] = React.useState<{
+    commonTopologyIds: number[] | null
+    commonTopologies?: ReadManyCommonTopology<Scope>[] | null
+  }>({
+    commonTopologyIds: commonTopologyIds,
+    commonTopologies: undefined
+  })
+  React.useEffect(() => {
+    setCommonTopologiesPair((oldPair) => ({
+      commonTopologyIds: commonTopologyIds,
+      commonTopologies: oldPair.commonTopologies
+    }))
+  }, [commonTopologyIds, setCommonTopologiesPair])
+  useCommonTopologiesFilteredSubscriptionInner(
+    scope,
+    commonTopologiesPair.commonTopologyIds,
+    setCommonTopologiesPair,
+    withInitialLoad,
+    notifyAboutInitialLoadProblems,
+    active
+  )
+  React.useEffect(() => {
+    if (commonTopologiesPair.commonTopologies !== undefined) {
+      setCommonTopologies(commonTopologiesPair.commonTopologies)
+    }
+  }, [setCommonTopologies, commonTopologiesPair.commonTopologies])
+}
+
+/** Subscribe to commonTopologies updates with initial load */
+export function useCommonTopologiesFiltered<
+  Scope extends ReadManyResourceScope
+>(
+  scope: Scope,
+  commonTopologyIds: number[] | null,
+  notifyAboutInitialLoadProblems: boolean = false,
+  active: boolean = true
+) {
+  const [commonTopologiesPair, setCommonTopologiesPair] = React.useState<{
+    commonTopologyIds: number[] | null
+    commonTopologies?: ReadManyCommonTopology<Scope>[] | null
+  }>({
+    commonTopologyIds: commonTopologyIds,
+    commonTopologies: null
+  })
+  React.useEffect(() => {
+    setCommonTopologiesPair((oldPair) => ({
+      commonTopologyIds: commonTopologyIds,
+      commonTopologies: oldPair.commonTopologies
+    }))
+  }, [commonTopologyIds, setCommonTopologiesPair])
+  useCommonTopologiesFilteredSubscriptionInner(
+    scope,
+    commonTopologiesPair.commonTopologyIds,
+    setCommonTopologiesPair,
+    true,
+    notifyAboutInitialLoadProblems,
+    active
+  )
+  return commonTopologiesPair.commonTopologies ?? null
 }

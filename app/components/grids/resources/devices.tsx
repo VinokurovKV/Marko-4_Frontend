@@ -16,6 +16,8 @@ import {
   useNameCol,
   usePreparedCol
 } from '../cols'
+// React router
+import { useNavigate } from 'react-router'
 // React
 import * as React from 'react'
 // Material UI
@@ -26,10 +28,12 @@ const MAX_DEVICES_IN_MESSAGES = 3
 export interface DevicesGridProps {
   devices: DeviceSecondary[]
   navigationMode?: boolean
+  navigationModeSelectedRowId?: number
 }
 
 export function DevicesGrid(props: DevicesGridProps) {
   const navigationMode = props.navigationMode ?? false
+  const navigate = useNavigate()
   const notifier = useNotifier()
   const meta = useMeta()
   const rightsSet = React.useMemo(
@@ -48,7 +52,7 @@ export function DevicesGrid(props: DevicesGridProps) {
   const rows: GridValidRowModel[] = props.devices
 
   const readCols = [
-    useCodeCol('id', true, '/devices'),
+    useCodeCol('id', true, '/devices', navigationMode),
     useNameCol(),
     useDeviceTypeCol(),
     usePreparedCol(
@@ -58,6 +62,8 @@ export function DevicesGrid(props: DevicesGridProps) {
     ),
     useDsefsCountCol()
   ]
+
+  const navigationModeReadCols = React.useMemo(() => [readCols[0]], [readCols])
 
   const actionsColProps: ActionsColProps = React.useMemo(
     () => ({
@@ -136,8 +142,8 @@ export function DevicesGrid(props: DevicesGridProps) {
   const actionsCol = useActionsCol(actionsColProps)
 
   const cols: GridColDef[] = React.useMemo(
-    () => [...readCols, actionsCol],
-    [readCols, actionsCol]
+    () => (navigationMode ? navigationModeReadCols : [...readCols, actionsCol]),
+    [navigationMode, readCols, navigationModeReadCols, actionsCol]
   )
 
   const defaultHiddenFields = React.useMemo(
@@ -200,6 +206,17 @@ export function DevicesGrid(props: DevicesGridProps) {
     setCreateModeIsActive(false)
   }, [setCreateModeIsActive])
 
+  const handleNavigationModeRowClick = React.useCallback(
+    (rowId: number) => {
+      void navigate(
+        props.navigationModeSelectedRowId !== rowId
+          ? `/devices/${rowId}`
+          : '/devices'
+      )
+    },
+    [props.navigationModeSelectedRowId, navigate]
+  )
+
   return (
     <>
       <Grid
@@ -208,6 +225,10 @@ export function DevicesGrid(props: DevicesGridProps) {
         rows={rows}
         defaultHiddenFields={defaultHiddenFields}
         navigationMode={navigationMode}
+        selectedRowId={
+          navigationMode ? props.navigationModeSelectedRowId : undefined
+        }
+        navigationModeOnRowClick={handleNavigationModeRowClick}
         create={createProps}
         deleteMany={deleteManyProps}
       />

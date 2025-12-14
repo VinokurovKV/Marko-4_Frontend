@@ -40,11 +40,12 @@ export function GridRefCell(props: GridRefCellProps) {
         <Typography
           variant="button"
           sx={{
+            textTransform: 'none',
             fontWeight: props.header ? 'bold' : undefined,
             color: props.header ? theme.palette.text.primary : undefined
           }}
         >
-          {capitalize(props.text, true)}
+          {props.disableCapitalize ? props.text : capitalize(props.text, true)}
         </Typography>
       </Button>
     ) : (

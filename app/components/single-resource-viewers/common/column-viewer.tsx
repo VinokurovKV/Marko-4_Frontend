@@ -29,10 +29,21 @@ export function ColumnViewer(props: ColumnViewerProps) {
       ) : null}
       <Stack
         spacing={1}
-        border={`1px solid ${theme.palette.grey[300]}`}
+        border={`1px solid ${
+          theme.palette.mode === 'light'
+            ? theme.palette.grey[300]
+            : theme.palette.grey.A700
+        }`}
         borderRadius="5px"
         p={0}
-        sx={{ height: '100%', overflow: 'auto', backgroundColor: 'white' }}
+        sx={{
+          height: '100%',
+          overflow: 'auto',
+          backgroundColor:
+            theme.palette.mode === 'light'
+              ? 'white'
+              : theme.palette.background.default
+        }}
       >
         <Paper elevation={0} sx={{ p: 2 }}>
           {props.children}

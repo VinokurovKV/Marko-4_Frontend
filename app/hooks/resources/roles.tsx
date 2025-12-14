@@ -6,6 +6,8 @@ import { useChangeDetector } from '../change-detector'
 import { useNotifier } from '~/providers/notifier'
 // React
 import * as React from 'react'
+// Other
+import { isEqual } from 'lodash'
 
 type ReadOneRole<Scope extends ReadOneResourceScope> =
   Scope extends 'PRIMARY_PROPS'
@@ -18,6 +20,8 @@ type ReadOneRole<Scope extends ReadOneResourceScope> =
 
 type ReadManyRole<Scope extends ReadManyResourceScope> =
   Scope extends 'PRIMARY_PROPS' ? RolePrimary : RoleSecondary
+
+const EMPTY_ROLES_ARR: RoleAll[] = []
 
 function useRoleSubscriptionInner<Scope extends ReadOneResourceScope>(
   scope: Scope,
@@ -296,4 +300,170 @@ export function useRoles<Scope extends ReadManyResourceScope>(
     active
   )
   return roles
+}
+
+function useRolesFilteredSubscriptionInner<Scope extends ReadManyResourceScope>(
+  scope: Scope,
+  roleIds: number[] | null,
+  setRolesPair: React.Dispatch<
+    React.SetStateAction<{
+      roleIds: number[] | null
+      roles?: ReadManyRole<Scope>[] | null
+    }>
+  >,
+  withInitialLoad: boolean = false,
+  notifyAboutInitialLoadProblems: boolean = false,
+  active: boolean = true
+) {
+  const notifier = useNotifier()
+
+  const [initialized, setInitialized] = React.useState(false)
+
+  const load = React.useCallback(
+    async (notifyAboutProblems: boolean) => {
+      try {
+        const roles =
+          roleIds !== null
+            ? ((await serverConnector.readRoles({
+                ids: roleIds,
+                scope: scope
+              })) as ReadManyRole<Scope>[])
+            : EMPTY_ROLES_ARR
+        setRolesPair((oldPair) =>
+          isEqual(oldPair.roleIds, roleIds)
+            ? {
+                ...oldPair,
+                roles: roles
+              }
+            : oldPair
+        )
+      } catch {
+        if (notifyAboutProblems) {
+          notifier.showWarning('не удалось загрузить актуальный список ролей')
+        }
+      }
+    },
+    [scope, roleIds, setRolesPair, notifier]
+  )
+
+  // Initial load
+  React.useEffect(() => {
+    setInitialized(true)
+    if (active === false || withInitialLoad === false || initialized) {
+      return
+    }
+    void load(notifyAboutInitialLoadProblems)
+  }, [
+    scope,
+    withInitialLoad,
+    notifyAboutInitialLoadProblems,
+    active,
+    initialized,
+    setInitialized,
+    load
+  ])
+
+  // Process role ids change or active flag change to true
+  useChangeDetector({
+    detectedObjects: [roleIds, active],
+    otherDependencies: [notifyAboutInitialLoadProblems, load],
+    onChange: () => {
+      if (active) {
+        void load(notifyAboutInitialLoadProblems)
+      }
+    }
+  })
+
+  // Subscribe
+  React.useEffect(() => {
+    const subscriptionId = serverConnector.subscribeToResources(
+      {
+        type: 'ROLE'
+      },
+      (data) => {
+        ;(() => {
+          const updateScope = data.updateScope
+          if (
+            updateScope.primaryProps ||
+            (updateScope.secondaryProps && scope === 'UP_TO_SECONDARY_PROPS')
+          ) {
+            void load(true)
+          }
+        })()
+      }
+    ).subscriptionId
+    return () => {
+      serverConnector.unsubscribe(subscriptionId)
+    }
+  }, [scope, roleIds, load])
+}
+
+/** Subscribe to roles updates for existing roles state */
+export function useRolesFilteredSubscription<
+  Scope extends ReadManyResourceScope
+>(
+  scope: Scope,
+  roleIds: number[] | null,
+  setRoles: React.Dispatch<React.SetStateAction<ReadManyRole<Scope>[] | null>>,
+  withInitialLoad: boolean = false,
+  notifyAboutInitialLoadProblems: boolean = false,
+  active: boolean = true
+) {
+  const [rolesPair, setRolesPair] = React.useState<{
+    roleIds: number[] | null
+    roles?: ReadManyRole<Scope>[] | null
+  }>({
+    roleIds: roleIds,
+    roles: undefined
+  })
+  React.useEffect(() => {
+    setRolesPair((oldPair) => ({
+      roleIds: roleIds,
+      roles: oldPair.roles
+    }))
+  }, [roleIds, setRolesPair])
+  useRolesFilteredSubscriptionInner(
+    scope,
+    rolesPair.roleIds,
+    setRolesPair,
+    withInitialLoad,
+    notifyAboutInitialLoadProblems,
+    active
+  )
+  React.useEffect(() => {
+    if (rolesPair.roles !== undefined) {
+      setRoles(rolesPair.roles)
+    }
+  }, [setRoles, rolesPair.roles])
+}
+
+/** Subscribe to roles updates with initial load */
+export function useRolesFiltered<Scope extends ReadManyResourceScope>(
+  scope: Scope,
+  roleIds: number[] | null,
+  notifyAboutInitialLoadProblems: boolean = false,
+  active: boolean = true
+) {
+  const [rolesPair, setRolesPair] = React.useState<{
+    roleIds: number[] | null
+    roles?: ReadManyRole<Scope>[] | null
+  }>({
+    roleIds: roleIds,
+    roles: null
+  })
+  React.useEffect(() => {
+    setRolesPair((oldPair) => ({
+      roleIds: roleIds,
+      roles: oldPair.roles
+    }))
+  }, [roleIds, setRolesPair])
+  useRolesFilteredSubscriptionInner(
+    scope,
+    rolesPair.roleIds,
+    setRolesPair,
+    true,
+    notifyAboutInitialLoadProblems,
+    active
+  )
+  return rolesPair.roles ?? null
 }

@@ -236,7 +236,7 @@ export function Sidebar({
                                       icon={<item.Icon />}
                                       href={item.href}
                                       selected={
-                                        !!matchPath(item.href, pathname)
+                                        !!matchPath(`${item.href}/*`, pathname)
                                       }
                                     />
                                   ))}

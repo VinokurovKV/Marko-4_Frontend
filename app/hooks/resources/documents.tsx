@@ -11,6 +11,8 @@ import { useChangeDetector } from '../change-detector'
 import { useNotifier } from '~/providers/notifier'
 // React
 import * as React from 'react'
+// Other
+import { isEqual } from 'lodash'
 
 type ReadOneDocument<Scope extends ReadOneResourceScope> =
   Scope extends 'PRIMARY_PROPS'
@@ -23,6 +25,8 @@ type ReadOneDocument<Scope extends ReadOneResourceScope> =
 
 type ReadManyDocument<Scope extends ReadManyResourceScope> =
   Scope extends 'PRIMARY_PROPS' ? DocumentPrimary : DocumentSecondary
+
+const EMPTY_DOCUMENTS_ARR: DocumentAll[] = []
 
 function useDocumentSubscriptionInner<Scope extends ReadOneResourceScope>(
   scope: Scope,
@@ -307,4 +311,176 @@ export function useDocuments<Scope extends ReadManyResourceScope>(
     active
   )
   return documents
+}
+
+function useDocumentsFilteredSubscriptionInner<
+  Scope extends ReadManyResourceScope
+>(
+  scope: Scope,
+  documentIds: number[] | null,
+  setDocumentsPair: React.Dispatch<
+    React.SetStateAction<{
+      documentIds: number[] | null
+      documents?: ReadManyDocument<Scope>[] | null
+    }>
+  >,
+  withInitialLoad: boolean = false,
+  notifyAboutInitialLoadProblems: boolean = false,
+  active: boolean = true
+) {
+  const notifier = useNotifier()
+
+  const [initialized, setInitialized] = React.useState(false)
+
+  const load = React.useCallback(
+    async (notifyAboutProblems: boolean) => {
+      try {
+        const documents =
+          documentIds !== null
+            ? ((await serverConnector.readDocuments({
+                ids: documentIds,
+                scope: scope
+              })) as ReadManyDocument<Scope>[])
+            : EMPTY_DOCUMENTS_ARR
+        setDocumentsPair((oldPair) =>
+          isEqual(oldPair.documentIds, documentIds)
+            ? {
+                ...oldPair,
+                documents: documents
+              }
+            : oldPair
+        )
+      } catch {
+        if (notifyAboutProblems) {
+          notifier.showWarning(
+            'не удалось загрузить актуальный список документов'
+          )
+        }
+      }
+    },
+    [scope, documentIds, setDocumentsPair, notifier]
+  )
+
+  // Initial load
+  React.useEffect(() => {
+    setInitialized(true)
+    if (active === false || withInitialLoad === false || initialized) {
+      return
+    }
+    void load(notifyAboutInitialLoadProblems)
+  }, [
+    scope,
+    withInitialLoad,
+    notifyAboutInitialLoadProblems,
+    active,
+    initialized,
+    setInitialized,
+    load
+  ])
+
+  // Process document ids change or active flag change to true
+  useChangeDetector({
+    detectedObjects: [documentIds, active],
+    otherDependencies: [notifyAboutInitialLoadProblems, load],
+    onChange: () => {
+      if (active) {
+        void load(notifyAboutInitialLoadProblems)
+      }
+    }
+  })
+
+  // Subscribe
+  React.useEffect(() => {
+    const subscriptionId = serverConnector.subscribeToResources(
+      {
+        type: 'DOCUMENT'
+      },
+      (data) => {
+        ;(() => {
+          const updateScope = data.updateScope
+          if (
+            updateScope.primaryProps ||
+            (updateScope.secondaryProps && scope === 'UP_TO_SECONDARY_PROPS')
+          ) {
+            void load(true)
+          }
+        })()
+      }
+    ).subscriptionId
+    return () => {
+      serverConnector.unsubscribe(subscriptionId)
+    }
+  }, [scope, documentIds, load])
+}
+
+/** Subscribe to documents updates for existing documents state */
+export function useDocumentsFilteredSubscription<
+  Scope extends ReadManyResourceScope
+>(
+  scope: Scope,
+  documentIds: number[] | null,
+  setDocuments: React.Dispatch<
+    React.SetStateAction<ReadManyDocument<Scope>[] | null>
+  >,
+  withInitialLoad: boolean = false,
+  notifyAboutInitialLoadProblems: boolean = false,
+  active: boolean = true
+) {
+  const [documentsPair, setDocumentsPair] = React.useState<{
+    documentIds: number[] | null
+    documents?: ReadManyDocument<Scope>[] | null
+  }>({
+    documentIds: documentIds,
+    documents: undefined
+  })
+  React.useEffect(() => {
+    setDocumentsPair((oldPair) => ({
+      documentIds: documentIds,
+      documents: oldPair.documents
+    }))
+  }, [documentIds, setDocumentsPair])
+  useDocumentsFilteredSubscriptionInner(
+    scope,
+    documentsPair.documentIds,
+    setDocumentsPair,
+    withInitialLoad,
+    notifyAboutInitialLoadProblems,
+    active
+  )
+  React.useEffect(() => {
+    if (documentsPair.documents !== undefined) {
+      setDocuments(documentsPair.documents)
+    }
+  }, [setDocuments, documentsPair.documents])
+}
+
+/** Subscribe to documents updates with initial load */
+export function useDocumentsFiltered<Scope extends ReadManyResourceScope>(
+  scope: Scope,
+  documentIds: number[] | null,
+  notifyAboutInitialLoadProblems: boolean = false,
+  active: boolean = true
+) {
+  const [documentsPair, setDocumentsPair] = React.useState<{
+    documentIds: number[] | null
+    documents?: ReadManyDocument<Scope>[] | null
+  }>({
+    documentIds: documentIds,
+    documents: null
+  })
+  React.useEffect(() => {
+    setDocumentsPair((oldPair) => ({
+      documentIds: documentIds,
+      documents: oldPair.documents
+    }))
+  }, [documentIds, setDocumentsPair])
+  useDocumentsFilteredSubscriptionInner(
+    scope,
+    documentsPair.documentIds,
+    setDocumentsPair,
+    true,
+    notifyAboutInitialLoadProblems,
+    active
+  )
+  return documentsPair.documents ?? null
 }

@@ -12,6 +12,7 @@ import { ForbiddenScreen } from '~/components/screens/problem/forbidden'
 import { SubgroupsScreen } from '~/components/screens/subgroups'
 // React router
 import type { Route } from './+types/subgroups'
+import { useOutlet } from 'react-router'
 // React
 import * as React from 'react'
 
@@ -32,6 +33,7 @@ export default function SubgroupsRoute({
 }: Route.ComponentProps) {
   const notifier = useNotifier()
   const meta = useMeta()
+  const outlet = useOutlet()
 
   const [groups, setGroups] = React.useState<GroupPrimary[] | null>(
     initialGroups
@@ -57,6 +59,8 @@ export default function SubgroupsRoute({
     meta.selfMeta.rights.includes('READ_SUBGROUP') === false ? (
     <ForbiddenScreen />
   ) : subgroups !== null ? (
-    <SubgroupsScreen subgroups={subgroups} groups={groups} />
+    <SubgroupsScreen subgroups={subgroups} groups={groups}>
+      {outlet !== null ? outlet : null}
+    </SubgroupsScreen>
   ) : null
 }

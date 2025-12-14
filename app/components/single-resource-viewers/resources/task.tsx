@@ -74,11 +74,6 @@ export function TaskViewer(props: TaskViewerProps) {
     [props.testReports, testId]
   )
 
-  const tagCodeForId = React.useMemo(
-    () => new Map((props.tags ?? []).map((tag) => [tag.id, tag.code])),
-    [props.tags]
-  )
-
   const testsCountsItems = React.useMemo(() => {
     const items: ColumnViewerIconsBlockProps['items'] = []
     if (taskReport.waitingCount > 0) {
@@ -130,7 +125,10 @@ export function TaskViewer(props: TaskViewerProps) {
     <VerticalTwoPartsContainer proportions="45_55">
       <HorizontalTwoPartsContainer
         proportions="EQUAL"
-        title={`Задание ${task.code}${task.name !== null ? ` (${task.name})` : ''}`}
+        title={[
+          'Задание',
+          `${task.code}${task.name !== null ? ` (${task.name})` : ''}`
+        ]}
       >
         <ColumnViewer>
           <ColumnViewerBlock title="основная информация">
@@ -180,12 +178,12 @@ export function TaskViewer(props: TaskViewerProps) {
           </ColumnViewerBlock>
           <ColumnViewerBlock title="тестовая иерархия">
             <ColumnViewerItem
-              field="число всех тестов"
+              field="число всех тестов (с вложенными)"
               val={task.allTestsCount}
             />
             <ColumnViewerItem field="число тестов" val={task.testsCount} />
             <ColumnViewerItem
-              field="число всех подгрупп"
+              field="число всех подгрупп (с вложенными)"
               val={task.allSubgroupsCount}
             />
             <ColumnViewerItem
@@ -215,10 +213,10 @@ export function TaskViewer(props: TaskViewerProps) {
           </ColumnViewerBlock>
           <ColumnViewerBlock title="теги">
             <ColumnViewerChipsBlock
-              emptyText="нет"
-              items={task.tagIds.map((tagId) => ({
-                text: tagCodeForId.get(tagId) ?? '',
-                href: `/tags/${tagId}`
+              emptyText={props.tags !== null ? 'нет' : '???'}
+              items={(props.tags ?? []).map((tag) => ({
+                text: tag.code,
+                href: `/tags/${tag.id}`
               }))}
             />
           </ColumnViewerBlock>

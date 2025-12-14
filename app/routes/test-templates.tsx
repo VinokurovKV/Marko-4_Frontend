@@ -9,6 +9,7 @@ import { ForbiddenScreen } from '~/components/screens/problem/forbidden'
 import { TestTemplatesScreen } from '~/components/screens/test-templates'
 // React router
 import type { Route } from './+types/test-templates'
+import { useOutlet } from 'react-router'
 // React
 import * as React from 'react'
 
@@ -25,6 +26,7 @@ export default function TestTemplatesRoute({
 }: Route.ComponentProps) {
   const notifier = useNotifier()
   const meta = useMeta()
+  const outlet = useOutlet()
 
   const [testTemplates, setTestTemplates] = React.useState<
     TestTemplateSecondary[] | null
@@ -46,6 +48,8 @@ export default function TestTemplatesRoute({
     meta.selfMeta.rights.includes('READ_TEST_TEMPLATE') === false ? (
     <ForbiddenScreen />
   ) : testTemplates !== null ? (
-    <TestTemplatesScreen testTemplates={testTemplates} />
+    <TestTemplatesScreen testTemplates={testTemplates}>
+      {outlet !== null ? outlet : null}
+    </TestTemplatesScreen>
   ) : null
 }

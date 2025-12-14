@@ -11,6 +11,8 @@ import { useChangeDetector } from '../change-detector'
 import { useNotifier } from '~/providers/notifier'
 // React
 import * as React from 'react'
+// Other
+import { isEqual } from 'lodash'
 
 type ReadOneFragment<Scope extends ReadOneResourceScope> =
   Scope extends 'PRIMARY_PROPS'
@@ -23,6 +25,8 @@ type ReadOneFragment<Scope extends ReadOneResourceScope> =
 
 type ReadManyFragment<Scope extends ReadManyResourceScope> =
   Scope extends 'PRIMARY_PROPS' ? FragmentPrimary : FragmentSecondary
+
+const EMPTY_FRAGMENTS_ARR: FragmentAll[] = []
 
 function useFragmentSubscriptionInner<Scope extends ReadOneResourceScope>(
   scope: Scope,
@@ -307,4 +311,176 @@ export function useFragments<Scope extends ReadManyResourceScope>(
     active
   )
   return fragments
+}
+
+function useFragmentsFilteredSubscriptionInner<
+  Scope extends ReadManyResourceScope
+>(
+  scope: Scope,
+  fragmentIds: number[] | null,
+  setFragmentsPair: React.Dispatch<
+    React.SetStateAction<{
+      fragmentIds: number[] | null
+      fragments?: ReadManyFragment<Scope>[] | null
+    }>
+  >,
+  withInitialLoad: boolean = false,
+  notifyAboutInitialLoadProblems: boolean = false,
+  active: boolean = true
+) {
+  const notifier = useNotifier()
+
+  const [initialized, setInitialized] = React.useState(false)
+
+  const load = React.useCallback(
+    async (notifyAboutProblems: boolean) => {
+      try {
+        const fragments =
+          fragmentIds !== null
+            ? ((await serverConnector.readFragments({
+                ids: fragmentIds,
+                scope: scope
+              })) as ReadManyFragment<Scope>[])
+            : EMPTY_FRAGMENTS_ARR
+        setFragmentsPair((oldPair) =>
+          isEqual(oldPair.fragmentIds, fragmentIds)
+            ? {
+                ...oldPair,
+                fragments: fragments
+              }
+            : oldPair
+        )
+      } catch {
+        if (notifyAboutProblems) {
+          notifier.showWarning(
+            'не удалось загрузить актуальный список фрагментов документов'
+          )
+        }
+      }
+    },
+    [scope, fragmentIds, setFragmentsPair, notifier]
+  )
+
+  // Initial load
+  React.useEffect(() => {
+    setInitialized(true)
+    if (active === false || withInitialLoad === false || initialized) {
+      return
+    }
+    void load(notifyAboutInitialLoadProblems)
+  }, [
+    scope,
+    withInitialLoad,
+    notifyAboutInitialLoadProblems,
+    active,
+    initialized,
+    setInitialized,
+    load
+  ])
+
+  // Process fragment ids change or active flag change to true
+  useChangeDetector({
+    detectedObjects: [fragmentIds, active],
+    otherDependencies: [notifyAboutInitialLoadProblems, load],
+    onChange: () => {
+      if (active) {
+        void load(notifyAboutInitialLoadProblems)
+      }
+    }
+  })
+
+  // Subscribe
+  React.useEffect(() => {
+    const subscriptionId = serverConnector.subscribeToResources(
+      {
+        type: 'FRAGMENT'
+      },
+      (data) => {
+        ;(() => {
+          const updateScope = data.updateScope
+          if (
+            updateScope.primaryProps ||
+            (updateScope.secondaryProps && scope === 'UP_TO_SECONDARY_PROPS')
+          ) {
+            void load(true)
+          }
+        })()
+      }
+    ).subscriptionId
+    return () => {
+      serverConnector.unsubscribe(subscriptionId)
+    }
+  }, [scope, fragmentIds, load])
+}
+
+/** Subscribe to fragments updates for existing fragments state */
+export function useFragmentsFilteredSubscription<
+  Scope extends ReadManyResourceScope
+>(
+  scope: Scope,
+  fragmentIds: number[] | null,
+  setFragments: React.Dispatch<
+    React.SetStateAction<ReadManyFragment<Scope>[] | null>
+  >,
+  withInitialLoad: boolean = false,
+  notifyAboutInitialLoadProblems: boolean = false,
+  active: boolean = true
+) {
+  const [fragmentsPair, setFragmentsPair] = React.useState<{
+    fragmentIds: number[] | null
+    fragments?: ReadManyFragment<Scope>[] | null
+  }>({
+    fragmentIds: fragmentIds,
+    fragments: undefined
+  })
+  React.useEffect(() => {
+    setFragmentsPair((oldPair) => ({
+      fragmentIds: fragmentIds,
+      fragments: oldPair.fragments
+    }))
+  }, [fragmentIds, setFragmentsPair])
+  useFragmentsFilteredSubscriptionInner(
+    scope,
+    fragmentsPair.fragmentIds,
+    setFragmentsPair,
+    withInitialLoad,
+    notifyAboutInitialLoadProblems,
+    active
+  )
+  React.useEffect(() => {
+    if (fragmentsPair.fragments !== undefined) {
+      setFragments(fragmentsPair.fragments)
+    }
+  }, [setFragments, fragmentsPair.fragments])
+}
+
+/** Subscribe to fragments updates with initial load */
+export function useFragmentsFiltered<Scope extends ReadManyResourceScope>(
+  scope: Scope,
+  fragmentIds: number[] | null,
+  notifyAboutInitialLoadProblems: boolean = false,
+  active: boolean = true
+) {
+  const [fragmentsPair, setFragmentsPair] = React.useState<{
+    fragmentIds: number[] | null
+    fragments?: ReadManyFragment<Scope>[] | null
+  }>({
+    fragmentIds: fragmentIds,
+    fragments: null
+  })
+  React.useEffect(() => {
+    setFragmentsPair((oldPair) => ({
+      fragmentIds: fragmentIds,
+      fragments: oldPair.fragments
+    }))
+  }, [fragmentIds, setFragmentsPair])
+  useFragmentsFilteredSubscriptionInner(
+    scope,
+    fragmentsPair.fragmentIds,
+    setFragmentsPair,
+    true,
+    notifyAboutInitialLoadProblems,
+    active
+  )
+  return fragmentsPair.fragments ?? null
 }

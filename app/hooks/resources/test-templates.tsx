@@ -11,6 +11,8 @@ import { useChangeDetector } from '../change-detector'
 import { useNotifier } from '~/providers/notifier'
 // React
 import * as React from 'react'
+// Other
+import { isEqual } from 'lodash'
 
 type ReadOneTestTemplate<Scope extends ReadOneResourceScope> =
   Scope extends 'PRIMARY_PROPS'
@@ -23,6 +25,8 @@ type ReadOneTestTemplate<Scope extends ReadOneResourceScope> =
 
 type ReadManyTestTemplate<Scope extends ReadManyResourceScope> =
   Scope extends 'PRIMARY_PROPS' ? TestTemplatePrimary : TestTemplateSecondary
+
+const EMPTY_TEST_TEMPLATES_ARR: TestTemplateAll[] = []
 
 function useTestTemplateSubscriptionInner<Scope extends ReadOneResourceScope>(
   scope: Scope,
@@ -313,4 +317,176 @@ export function useTestTemplates<Scope extends ReadManyResourceScope>(
     active
   )
   return testTemplates
+}
+
+function useTestTemplatesFilteredSubscriptionInner<
+  Scope extends ReadManyResourceScope
+>(
+  scope: Scope,
+  testTemplateIds: number[] | null,
+  setTestTemplatesPair: React.Dispatch<
+    React.SetStateAction<{
+      testTemplateIds: number[] | null
+      testTemplates?: ReadManyTestTemplate<Scope>[] | null
+    }>
+  >,
+  withInitialLoad: boolean = false,
+  notifyAboutInitialLoadProblems: boolean = false,
+  active: boolean = true
+) {
+  const notifier = useNotifier()
+
+  const [initialized, setInitialized] = React.useState(false)
+
+  const load = React.useCallback(
+    async (notifyAboutProblems: boolean) => {
+      try {
+        const testTemplates =
+          testTemplateIds !== null
+            ? ((await serverConnector.readTestTemplates({
+                ids: testTemplateIds,
+                scope: scope
+              })) as ReadManyTestTemplate<Scope>[])
+            : EMPTY_TEST_TEMPLATES_ARR
+        setTestTemplatesPair((oldPair) =>
+          isEqual(oldPair.testTemplateIds, testTemplateIds)
+            ? {
+                ...oldPair,
+                testTemplates: testTemplates
+              }
+            : oldPair
+        )
+      } catch {
+        if (notifyAboutProblems) {
+          notifier.showWarning(
+            'не удалось загрузить актуальный список шаблонов тестов'
+          )
+        }
+      }
+    },
+    [scope, testTemplateIds, setTestTemplatesPair, notifier]
+  )
+
+  // Initial load
+  React.useEffect(() => {
+    setInitialized(true)
+    if (active === false || withInitialLoad === false || initialized) {
+      return
+    }
+    void load(notifyAboutInitialLoadProblems)
+  }, [
+    scope,
+    withInitialLoad,
+    notifyAboutInitialLoadProblems,
+    active,
+    initialized,
+    setInitialized,
+    load
+  ])
+
+  // Process testTemplate ids change or active flag change to true
+  useChangeDetector({
+    detectedObjects: [testTemplateIds, active],
+    otherDependencies: [notifyAboutInitialLoadProblems, load],
+    onChange: () => {
+      if (active) {
+        void load(notifyAboutInitialLoadProblems)
+      }
+    }
+  })
+
+  // Subscribe
+  React.useEffect(() => {
+    const subscriptionId = serverConnector.subscribeToResources(
+      {
+        type: 'TEST_TEMPLATE'
+      },
+      (data) => {
+        ;(() => {
+          const updateScope = data.updateScope
+          if (
+            updateScope.primaryProps ||
+            (updateScope.secondaryProps && scope === 'UP_TO_SECONDARY_PROPS')
+          ) {
+            void load(true)
+          }
+        })()
+      }
+    ).subscriptionId
+    return () => {
+      serverConnector.unsubscribe(subscriptionId)
+    }
+  }, [scope, testTemplateIds, load])
+}
+
+/** Subscribe to testTemplates updates for existing testTemplates state */
+export function useTestTemplatesFilteredSubscription<
+  Scope extends ReadManyResourceScope
+>(
+  scope: Scope,
+  testTemplateIds: number[] | null,
+  setTestTemplates: React.Dispatch<
+    React.SetStateAction<ReadManyTestTemplate<Scope>[] | null>
+  >,
+  withInitialLoad: boolean = false,
+  notifyAboutInitialLoadProblems: boolean = false,
+  active: boolean = true
+) {
+  const [testTemplatesPair, setTestTemplatesPair] = React.useState<{
+    testTemplateIds: number[] | null
+    testTemplates?: ReadManyTestTemplate<Scope>[] | null
+  }>({
+    testTemplateIds: testTemplateIds,
+    testTemplates: undefined
+  })
+  React.useEffect(() => {
+    setTestTemplatesPair((oldPair) => ({
+      testTemplateIds: testTemplateIds,
+      testTemplates: oldPair.testTemplates
+    }))
+  }, [testTemplateIds, setTestTemplatesPair])
+  useTestTemplatesFilteredSubscriptionInner(
+    scope,
+    testTemplatesPair.testTemplateIds,
+    setTestTemplatesPair,
+    withInitialLoad,
+    notifyAboutInitialLoadProblems,
+    active
+  )
+  React.useEffect(() => {
+    if (testTemplatesPair.testTemplates !== undefined) {
+      setTestTemplates(testTemplatesPair.testTemplates)
+    }
+  }, [setTestTemplates, testTemplatesPair.testTemplates])
+}
+
+/** Subscribe to testTemplates updates with initial load */
+export function useTestTemplatesFiltered<Scope extends ReadManyResourceScope>(
+  scope: Scope,
+  testTemplateIds: number[] | null,
+  notifyAboutInitialLoadProblems: boolean = false,
+  active: boolean = true
+) {
+  const [testTemplatesPair, setTestTemplatesPair] = React.useState<{
+    testTemplateIds: number[] | null
+    testTemplates?: ReadManyTestTemplate<Scope>[] | null
+  }>({
+    testTemplateIds: testTemplateIds,
+    testTemplates: null
+  })
+  React.useEffect(() => {
+    setTestTemplatesPair((oldPair) => ({
+      testTemplateIds: testTemplateIds,
+      testTemplates: oldPair.testTemplates
+    }))
+  }, [testTemplateIds, setTestTemplatesPair])
+  useTestTemplatesFilteredSubscriptionInner(
+    scope,
+    testTemplatesPair.testTemplateIds,
+    setTestTemplatesPair,
+    true,
+    notifyAboutInitialLoadProblems,
+    active
+  )
+  return testTemplatesPair.testTemplates ?? null
 }

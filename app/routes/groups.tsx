@@ -7,6 +7,7 @@ import { useMeta } from '~/providers/meta'
 import { useGroupsSubscription } from '~/hooks/resources'
 import { ForbiddenScreen } from '~/components/screens/problem/forbidden'
 import { GroupsScreen } from '~/components/screens/groups'
+import { useOutlet } from 'react-router'
 // React router
 import type { Route } from './+types/groups'
 // React
@@ -25,6 +26,7 @@ export default function GroupsRoute({
 }: Route.ComponentProps) {
   const notifier = useNotifier()
   const meta = useMeta()
+  const outlet = useOutlet()
 
   const [groups, setGroups] = React.useState<GroupSecondary[] | null>(
     initialGroups
@@ -46,6 +48,8 @@ export default function GroupsRoute({
     meta.selfMeta.rights.includes('READ_GROUP') === false ? (
     <ForbiddenScreen />
   ) : groups !== null ? (
-    <GroupsScreen groups={groups} />
+    <GroupsScreen groups={groups}>
+      {outlet !== null ? outlet : null}
+    </GroupsScreen>
   ) : null
 }

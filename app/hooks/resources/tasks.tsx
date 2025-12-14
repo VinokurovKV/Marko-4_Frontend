@@ -6,6 +6,8 @@ import { useChangeDetector } from '../change-detector'
 import { useNotifier } from '~/providers/notifier'
 // React
 import * as React from 'react'
+// Other
+import { isEqual } from 'lodash'
 
 type ReadOneTask<Scope extends ReadOneResourceScope> =
   Scope extends 'PRIMARY_PROPS'
@@ -18,6 +20,8 @@ type ReadOneTask<Scope extends ReadOneResourceScope> =
 
 type ReadManyTask<Scope extends ReadManyResourceScope> =
   Scope extends 'PRIMARY_PROPS' ? TaskPrimary : TaskSecondary
+
+const EMPTY_TASKS_ARR: TaskAll[] = []
 
 function useTaskSubscriptionInner<Scope extends ReadOneResourceScope>(
   scope: Scope,
@@ -298,4 +302,170 @@ export function useTasks<Scope extends ReadManyResourceScope>(
     active
   )
   return tasks
+}
+
+function useTasksFilteredSubscriptionInner<Scope extends ReadManyResourceScope>(
+  scope: Scope,
+  taskIds: number[] | null,
+  setTasksPair: React.Dispatch<
+    React.SetStateAction<{
+      taskIds: number[] | null
+      tasks?: ReadManyTask<Scope>[] | null
+    }>
+  >,
+  withInitialLoad: boolean = false,
+  notifyAboutInitialLoadProblems: boolean = false,
+  active: boolean = true
+) {
+  const notifier = useNotifier()
+
+  const [initialized, setInitialized] = React.useState(false)
+
+  const load = React.useCallback(
+    async (notifyAboutProblems: boolean) => {
+      try {
+        const tasks =
+          taskIds !== null
+            ? ((await serverConnector.readTasks({
+                ids: taskIds,
+                scope: scope
+              })) as ReadManyTask<Scope>[])
+            : EMPTY_TASKS_ARR
+        setTasksPair((oldPair) =>
+          isEqual(oldPair.taskIds, taskIds)
+            ? {
+                ...oldPair,
+                tasks: tasks
+              }
+            : oldPair
+        )
+      } catch {
+        if (notifyAboutProblems) {
+          notifier.showWarning('не удалось загрузить актуальный список заданий')
+        }
+      }
+    },
+    [scope, taskIds, setTasksPair, notifier]
+  )
+
+  // Initial load
+  React.useEffect(() => {
+    setInitialized(true)
+    if (active === false || withInitialLoad === false || initialized) {
+      return
+    }
+    void load(notifyAboutInitialLoadProblems)
+  }, [
+    scope,
+    withInitialLoad,
+    notifyAboutInitialLoadProblems,
+    active,
+    initialized,
+    setInitialized,
+    load
+  ])
+
+  // Process task ids change or active flag change to true
+  useChangeDetector({
+    detectedObjects: [taskIds, active],
+    otherDependencies: [notifyAboutInitialLoadProblems, load],
+    onChange: () => {
+      if (active) {
+        void load(notifyAboutInitialLoadProblems)
+      }
+    }
+  })
+
+  // Subscribe
+  React.useEffect(() => {
+    const subscriptionId = serverConnector.subscribeToResources(
+      {
+        type: 'TASK'
+      },
+      (data) => {
+        ;(() => {
+          const updateScope = data.updateScope
+          if (
+            updateScope.primaryProps ||
+            (updateScope.secondaryProps && scope === 'UP_TO_SECONDARY_PROPS')
+          ) {
+            void load(true)
+          }
+        })()
+      }
+    ).subscriptionId
+    return () => {
+      serverConnector.unsubscribe(subscriptionId)
+    }
+  }, [scope, taskIds, load])
+}
+
+/** Subscribe to tasks updates for existing tasks state */
+export function useTasksFilteredSubscription<
+  Scope extends ReadManyResourceScope
+>(
+  scope: Scope,
+  taskIds: number[] | null,
+  setTasks: React.Dispatch<React.SetStateAction<ReadManyTask<Scope>[] | null>>,
+  withInitialLoad: boolean = false,
+  notifyAboutInitialLoadProblems: boolean = false,
+  active: boolean = true
+) {
+  const [tasksPair, setTasksPair] = React.useState<{
+    taskIds: number[] | null
+    tasks?: ReadManyTask<Scope>[] | null
+  }>({
+    taskIds: taskIds,
+    tasks: undefined
+  })
+  React.useEffect(() => {
+    setTasksPair((oldPair) => ({
+      taskIds: taskIds,
+      tasks: oldPair.tasks
+    }))
+  }, [taskIds, setTasksPair])
+  useTasksFilteredSubscriptionInner(
+    scope,
+    tasksPair.taskIds,
+    setTasksPair,
+    withInitialLoad,
+    notifyAboutInitialLoadProblems,
+    active
+  )
+  React.useEffect(() => {
+    if (tasksPair.tasks !== undefined) {
+      setTasks(tasksPair.tasks)
+    }
+  }, [setTasks, tasksPair.tasks])
+}
+
+/** Subscribe to tasks updates with initial load */
+export function useTasksFiltered<Scope extends ReadManyResourceScope>(
+  scope: Scope,
+  taskIds: number[] | null,
+  notifyAboutInitialLoadProblems: boolean = false,
+  active: boolean = true
+) {
+  const [tasksPair, setTasksPair] = React.useState<{
+    taskIds: number[] | null
+    tasks?: ReadManyTask<Scope>[] | null
+  }>({
+    taskIds: taskIds,
+    tasks: null
+  })
+  React.useEffect(() => {
+    setTasksPair((oldPair) => ({
+      taskIds: taskIds,
+      tasks: oldPair.tasks
+    }))
+  }, [taskIds, setTasksPair])
+  useTasksFilteredSubscriptionInner(
+    scope,
+    tasksPair.taskIds,
+    setTasksPair,
+    true,
+    notifyAboutInitialLoadProblems,
+    active
+  )
+  return tasksPair.tasks ?? null
 }

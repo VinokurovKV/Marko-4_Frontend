@@ -11,6 +11,8 @@ import { useChangeDetector } from '../change-detector'
 import { useNotifier } from '~/providers/notifier'
 // React
 import * as React from 'react'
+// Other
+import { isEqual } from 'lodash'
 
 type ReadOneDevice<Scope extends ReadOneResourceScope> =
   Scope extends 'PRIMARY_PROPS'
@@ -23,6 +25,8 @@ type ReadOneDevice<Scope extends ReadOneResourceScope> =
 
 type ReadManyDevice<Scope extends ReadManyResourceScope> =
   Scope extends 'PRIMARY_PROPS' ? DevicePrimary : DeviceSecondary
+
+const EMPTY_DEVICES_ARR: DeviceAll[] = []
 
 function useDeviceSubscriptionInner<Scope extends ReadOneResourceScope>(
   scope: Scope,
@@ -305,4 +309,176 @@ export function useDevices<Scope extends ReadManyResourceScope>(
     active
   )
   return devices
+}
+
+function useDevicesFilteredSubscriptionInner<
+  Scope extends ReadManyResourceScope
+>(
+  scope: Scope,
+  deviceIds: number[] | null,
+  setDevicesPair: React.Dispatch<
+    React.SetStateAction<{
+      deviceIds: number[] | null
+      devices?: ReadManyDevice<Scope>[] | null
+    }>
+  >,
+  withInitialLoad: boolean = false,
+  notifyAboutInitialLoadProblems: boolean = false,
+  active: boolean = true
+) {
+  const notifier = useNotifier()
+
+  const [initialized, setInitialized] = React.useState(false)
+
+  const load = React.useCallback(
+    async (notifyAboutProblems: boolean) => {
+      try {
+        const devices =
+          deviceIds !== null
+            ? ((await serverConnector.readDevices({
+                ids: deviceIds,
+                scope: scope
+              })) as ReadManyDevice<Scope>[])
+            : EMPTY_DEVICES_ARR
+        setDevicesPair((oldPair) =>
+          isEqual(oldPair.deviceIds, deviceIds)
+            ? {
+                ...oldPair,
+                devices: devices
+              }
+            : oldPair
+        )
+      } catch {
+        if (notifyAboutProblems) {
+          notifier.showWarning(
+            'не удалось загрузить актуальный список устройств'
+          )
+        }
+      }
+    },
+    [scope, deviceIds, setDevicesPair, notifier]
+  )
+
+  // Initial load
+  React.useEffect(() => {
+    setInitialized(true)
+    if (active === false || withInitialLoad === false || initialized) {
+      return
+    }
+    void load(notifyAboutInitialLoadProblems)
+  }, [
+    scope,
+    withInitialLoad,
+    notifyAboutInitialLoadProblems,
+    active,
+    initialized,
+    setInitialized,
+    load
+  ])
+
+  // Process device ids change or active flag change to true
+  useChangeDetector({
+    detectedObjects: [deviceIds, active],
+    otherDependencies: [notifyAboutInitialLoadProblems, load],
+    onChange: () => {
+      if (active) {
+        void load(notifyAboutInitialLoadProblems)
+      }
+    }
+  })
+
+  // Subscribe
+  React.useEffect(() => {
+    const subscriptionId = serverConnector.subscribeToResources(
+      {
+        type: 'DEVICE'
+      },
+      (data) => {
+        ;(() => {
+          const updateScope = data.updateScope
+          if (
+            updateScope.primaryProps ||
+            (updateScope.secondaryProps && scope === 'UP_TO_SECONDARY_PROPS')
+          ) {
+            void load(true)
+          }
+        })()
+      }
+    ).subscriptionId
+    return () => {
+      serverConnector.unsubscribe(subscriptionId)
+    }
+  }, [scope, deviceIds, load])
+}
+
+/** Subscribe to devices updates for existing devices state */
+export function useDevicesFilteredSubscription<
+  Scope extends ReadManyResourceScope
+>(
+  scope: Scope,
+  deviceIds: number[] | null,
+  setDevices: React.Dispatch<
+    React.SetStateAction<ReadManyDevice<Scope>[] | null>
+  >,
+  withInitialLoad: boolean = false,
+  notifyAboutInitialLoadProblems: boolean = false,
+  active: boolean = true
+) {
+  const [devicesPair, setDevicesPair] = React.useState<{
+    deviceIds: number[] | null
+    devices?: ReadManyDevice<Scope>[] | null
+  }>({
+    deviceIds: deviceIds,
+    devices: undefined
+  })
+  React.useEffect(() => {
+    setDevicesPair((oldPair) => ({
+      deviceIds: deviceIds,
+      devices: oldPair.devices
+    }))
+  }, [deviceIds, setDevicesPair])
+  useDevicesFilteredSubscriptionInner(
+    scope,
+    devicesPair.deviceIds,
+    setDevicesPair,
+    withInitialLoad,
+    notifyAboutInitialLoadProblems,
+    active
+  )
+  React.useEffect(() => {
+    if (devicesPair.devices !== undefined) {
+      setDevices(devicesPair.devices)
+    }
+  }, [setDevices, devicesPair.devices])
+}
+
+/** Subscribe to devices updates with initial load */
+export function useDevicesFiltered<Scope extends ReadManyResourceScope>(
+  scope: Scope,
+  deviceIds: number[] | null,
+  notifyAboutInitialLoadProblems: boolean = false,
+  active: boolean = true
+) {
+  const [devicesPair, setDevicesPair] = React.useState<{
+    deviceIds: number[] | null
+    devices?: ReadManyDevice<Scope>[] | null
+  }>({
+    deviceIds: deviceIds,
+    devices: null
+  })
+  React.useEffect(() => {
+    setDevicesPair((oldPair) => ({
+      deviceIds: deviceIds,
+      devices: oldPair.devices
+    }))
+  }, [deviceIds, setDevicesPair])
+  useDevicesFilteredSubscriptionInner(
+    scope,
+    devicesPair.deviceIds,
+    setDevicesPair,
+    true,
+    notifyAboutInitialLoadProblems,
+    active
+  )
+  return devicesPair.devices ?? null
 }

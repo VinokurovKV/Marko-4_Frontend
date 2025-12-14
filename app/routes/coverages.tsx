@@ -12,6 +12,7 @@ import { ForbiddenScreen } from '~/components/screens/problem/forbidden'
 import { CoveragesScreen } from '~/components/screens/coverages'
 // React router
 import type { Route } from './+types/coverages'
+import { useOutlet } from 'react-router'
 // React
 import * as React from 'react'
 
@@ -32,6 +33,7 @@ export default function CoveragesRoute({
 }: Route.ComponentProps) {
   const notifier = useNotifier()
   const meta = useMeta()
+  const outlet = useOutlet()
 
   const [requirements, setRequirements] = React.useState<
     RequirementPrimary[] | null
@@ -57,6 +59,8 @@ export default function CoveragesRoute({
     meta.selfMeta.rights.includes('READ_COVERAGE') === false ? (
     <ForbiddenScreen />
   ) : coverages !== null ? (
-    <CoveragesScreen requirements={requirements} coverages={coverages} />
+    <CoveragesScreen requirements={requirements} coverages={coverages}>
+      {outlet !== null ? outlet : null}
+    </CoveragesScreen>
   ) : null
 }

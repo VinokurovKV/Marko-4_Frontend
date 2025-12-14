@@ -12,6 +12,7 @@ import { ForbiddenScreen } from '~/components/screens/problem/forbidden'
 import { TopologiesScreen } from '~/components/screens/topologies'
 // React router
 import type { Route } from './+types/topologies'
+import { useOutlet } from 'react-router'
 // React
 import * as React from 'react'
 
@@ -35,6 +36,7 @@ export default function TopologiesRoute({
 }: Route.ComponentProps) {
   const notifier = useNotifier()
   const meta = useMeta()
+  const outlet = useOutlet()
 
   const [commonTopologies, setCommonTopologies] = React.useState<
     CommonTopologyPrimary[] | null
@@ -63,6 +65,8 @@ export default function TopologiesRoute({
     <TopologiesScreen
       commonTopologies={commonTopologies}
       topologies={topologies}
-    />
+    >
+      {outlet !== null ? outlet : null}
+    </TopologiesScreen>
   ) : null
 }

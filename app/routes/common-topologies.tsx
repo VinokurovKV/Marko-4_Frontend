@@ -9,6 +9,7 @@ import { ForbiddenScreen } from '~/components/screens/problem/forbidden'
 import { CommonTopologiesScreen } from '~/components/screens/common-topologies'
 // React router
 import type { Route } from './+types/common-topologies'
+import { useOutlet } from 'react-router'
 // React
 import * as React from 'react'
 
@@ -27,6 +28,7 @@ export default function CommonTopologiesRoute({
 }: Route.ComponentProps) {
   const notifier = useNotifier()
   const meta = useMeta()
+  const outlet = useOutlet()
 
   const [commonTopologies, setCommonTopologies] = React.useState<
     CommonTopologySecondary[] | null
@@ -48,6 +50,8 @@ export default function CommonTopologiesRoute({
     meta.selfMeta.rights.includes('READ_COMMON_TOPOLOGY') === false ? (
     <ForbiddenScreen />
   ) : commonTopologies !== null ? (
-    <CommonTopologiesScreen commonTopologies={commonTopologies} />
+    <CommonTopologiesScreen commonTopologies={commonTopologies}>
+      {outlet !== null ? outlet : null}
+    </CommonTopologiesScreen>
   ) : null
 }

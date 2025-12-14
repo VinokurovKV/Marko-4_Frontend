@@ -19,6 +19,8 @@ import {
   usePublicVersionCol,
   useUrlCol
 } from '../cols'
+// React router
+import { useNavigate } from 'react-router'
 // React
 import * as React from 'react'
 // Material UI
@@ -29,10 +31,12 @@ const MAX_DOCUMENTS_IN_MESSAGES = 3
 export interface DocumentsGridProps {
   documents: DocumentSecondary[]
   navigationMode?: boolean
+  navigationModeSelectedRowId?: number
 }
 
 export function DocumentsGrid(props: DocumentsGridProps) {
   const navigationMode = props.navigationMode ?? false
+  const navigate = useNavigate()
   const notifier = useNotifier()
   const meta = useMeta()
   const rightsSet = React.useMemo(
@@ -52,7 +56,7 @@ export function DocumentsGrid(props: DocumentsGridProps) {
   const rows: GridValidRowModel[] = props.documents
 
   const readCols = [
-    useCodeCol('id', true, '/documents'),
+    useCodeCol('id', true, '/documents', navigationMode),
     useNameCol(),
     useDocumentTypeCol(),
     useFormatCol(['PDF']),
@@ -61,6 +65,8 @@ export function DocumentsGrid(props: DocumentsGridProps) {
     useDocumentDateCol(),
     useUrlCol()
   ]
+
+  const navigationModeReadCols = React.useMemo(() => [readCols[0]], [readCols])
 
   const actionsColProps: ActionsColProps = React.useMemo(
     () => ({
@@ -104,8 +110,8 @@ export function DocumentsGrid(props: DocumentsGridProps) {
   const actionsCol = useActionsCol(actionsColProps)
 
   const cols: GridColDef[] = React.useMemo(
-    () => [...readCols, actionsCol],
-    [readCols, actionsCol]
+    () => (navigationMode ? navigationModeReadCols : [...readCols, actionsCol]),
+    [navigationMode, readCols, navigationModeReadCols, actionsCol]
   )
 
   const defaultHiddenFields = React.useMemo(
@@ -168,6 +174,17 @@ export function DocumentsGrid(props: DocumentsGridProps) {
     setCreateModeIsActive(false)
   }, [setCreateModeIsActive])
 
+  const handleNavigationModeRowClick = React.useCallback(
+    (rowId: number) => {
+      void navigate(
+        props.navigationModeSelectedRowId !== rowId
+          ? `/documents/${rowId}`
+          : '/documents'
+      )
+    },
+    [props.navigationModeSelectedRowId, navigate]
+  )
+
   return (
     <>
       <Grid
@@ -176,6 +193,10 @@ export function DocumentsGrid(props: DocumentsGridProps) {
         rows={rows}
         defaultHiddenFields={defaultHiddenFields}
         navigationMode={navigationMode}
+        selectedRowId={
+          navigationMode ? props.navigationModeSelectedRowId : undefined
+        }
+        navigationModeOnRowClick={handleNavigationModeRowClick}
         create={createProps}
         deleteMany={deleteManyProps}
       />

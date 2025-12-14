@@ -9,6 +9,7 @@ import { ForbiddenScreen } from '~/components/screens/problem/forbidden'
 import { DbcsScreen } from '~/components/screens/dbcs'
 // React router
 import type { Route } from './+types/dbcs'
+import { useOutlet } from 'react-router'
 // React
 import * as React from 'react'
 
@@ -25,6 +26,7 @@ export default function DbcsRoute({
 }: Route.ComponentProps) {
   const notifier = useNotifier()
   const meta = useMeta()
+  const outlet = useOutlet()
 
   const [dbcs, setDbcs] = React.useState<DbcSecondary[] | null>(initialDbcs)
 
@@ -44,6 +46,6 @@ export default function DbcsRoute({
     meta.selfMeta.rights.includes('READ_DBC') === false ? (
     <ForbiddenScreen />
   ) : dbcs !== null ? (
-    <DbcsScreen dbcs={dbcs} />
+    <DbcsScreen dbcs={dbcs}>{outlet !== null ? outlet : null}</DbcsScreen>
   ) : null
 }

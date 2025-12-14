@@ -5,7 +5,11 @@ import * as React from 'react'
 // Material UI
 import type { GridColDef, GridRenderCellParams } from '@mui/x-data-grid'
 
-export function useRoleNameCol(roleIdField: string, header: boolean) {
+export function useRoleNameCol(
+  roleIdField: string,
+  header: boolean,
+  disableRef?: boolean
+) {
   const col: GridColDef = React.useMemo(
     () => ({
       field: 'name',
@@ -18,12 +22,14 @@ export function useRoleNameCol(roleIdField: string, header: boolean) {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
           hrefPath={params.row[roleIdField]}
           header={header}
+          disableCapitalize
+          disableRef={disableRef}
         />
       ),
       minWidth: 140,
       flex: 1
     }),
-    []
+    [roleIdField, header, disableRef]
   )
   return col
 }

@@ -48,7 +48,7 @@ export function TestReportViewer(props: TestReportViewerProps) {
   return (
     <HorizontalTwoPartsContainer
       proportions="EQUAL"
-      title={`Тест ${test?.code ?? 'УДАЛЕН'}`}
+      title={['Тест', `${test?.code ?? 'УДАЛЕН'}`]}
     >
       <ColumnViewer>
         <ColumnViewerBlock title="основная информация">

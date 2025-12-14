@@ -9,6 +9,7 @@ import { ForbiddenScreen } from '~/components/screens/problem/forbidden'
 import { TagsScreen } from '~/components/screens/tags'
 // React router
 import type { Route } from './+types/tags'
+import { useOutlet } from 'react-router'
 // React
 import * as React from 'react'
 
@@ -25,6 +26,7 @@ export default function TagsRoute({
 }: Route.ComponentProps) {
   const notifier = useNotifier()
   const meta = useMeta()
+  const outlet = useOutlet()
 
   const [tags, setTags] = React.useState<TagSecondary[] | null>(initialTags)
 
@@ -44,6 +46,6 @@ export default function TagsRoute({
     meta.selfMeta.rights.includes('READ_TAG') === false ? (
     <ForbiddenScreen />
   ) : tags !== null ? (
-    <TagsScreen tags={tags} />
+    <TagsScreen tags={tags}>{outlet !== null ? outlet : null}</TagsScreen>
   ) : null
 }

@@ -14,6 +14,8 @@ import {
   useTopologiesCountCol,
   useVertexesCountCol
 } from '../cols'
+// React router
+import { useNavigate } from 'react-router'
 // React
 import * as React from 'react'
 // Material UI
@@ -24,10 +26,12 @@ const MAX_COMMON_TOPOLOGIES_IN_MESSAGES = 3
 export interface CommonTopologiesGridProps {
   commonTopologies: CommonTopologySecondary[]
   navigationMode?: boolean
+  navigationModeSelectedRowId?: number
 }
 
 export function CommonTopologiesGrid(props: CommonTopologiesGridProps) {
   const navigationMode = props.navigationMode ?? false
+  const navigate = useNavigate()
   const notifier = useNotifier()
   const meta = useMeta()
   const rightsSet = React.useMemo(
@@ -52,12 +56,14 @@ export function CommonTopologiesGrid(props: CommonTopologiesGridProps) {
   const rows: GridValidRowModel[] = props.commonTopologies
 
   const readCols = [
-    useCodeCol('id', true, '/common-topologies'),
+    useCodeCol('id', true, '/common-topologies', navigationMode),
     useNameCol(),
     useNumCol(),
     useVertexesCountCol(),
     useTopologiesCountCol()
   ]
+
+  const navigationModeReadCols = React.useMemo(() => [readCols[0]], [readCols])
 
   const actionsColProps: ActionsColProps = React.useMemo(
     () => ({
@@ -86,14 +92,17 @@ export function CommonTopologiesGrid(props: CommonTopologiesGridProps) {
   const actionsCol = useActionsCol(actionsColProps)
 
   const cols: GridColDef[] = React.useMemo(
-    () => [
-      ...readCols,
-      ...(rightsSet.has('UPDATE_COMMON_TOPOLOGY') ||
-      rightsSet.has('DELETE_COMMON_TOPOLOGY')
-        ? [actionsCol]
-        : [])
-    ],
-    [rightsSet, readCols, actionsCol]
+    () =>
+      navigationMode
+        ? navigationModeReadCols
+        : [
+            ...readCols,
+            ...(rightsSet.has('UPDATE_COMMON_TOPOLOGY') ||
+            rightsSet.has('DELETE_COMMON_TOPOLOGY')
+              ? [actionsCol]
+              : [])
+          ],
+    [navigationMode, rightsSet, readCols, navigationModeReadCols, actionsCol]
   )
 
   const defaultHiddenFields = React.useMemo(
@@ -158,6 +167,17 @@ export function CommonTopologiesGrid(props: CommonTopologiesGridProps) {
     setCreateModeIsActive(false)
   }, [setCreateModeIsActive])
 
+  const handleNavigationModeRowClick = React.useCallback(
+    (rowId: number) => {
+      void navigate(
+        props.navigationModeSelectedRowId !== rowId
+          ? `/common-topologies/${rowId}`
+          : '/common-topologies'
+      )
+    },
+    [props.navigationModeSelectedRowId, navigate]
+  )
+
   return (
     <>
       <Grid
@@ -166,6 +186,10 @@ export function CommonTopologiesGrid(props: CommonTopologiesGridProps) {
         rows={rows}
         defaultHiddenFields={defaultHiddenFields}
         navigationMode={navigationMode}
+        selectedRowId={
+          navigationMode ? props.navigationModeSelectedRowId : undefined
+        }
+        navigationModeOnRowClick={handleNavigationModeRowClick}
         create={createProps}
         deleteMany={deleteManyProps}
       />

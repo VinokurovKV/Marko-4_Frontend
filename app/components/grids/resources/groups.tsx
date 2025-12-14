@@ -13,6 +13,8 @@ import {
   useNumCol,
   useSubgroupsCountCol
 } from '../cols'
+// React router
+import { useNavigate } from 'react-router'
 // React
 import * as React from 'react'
 // Material UI
@@ -23,10 +25,12 @@ const MAX_GROUPS_IN_MESSAGES = 3
 export interface GroupsGridProps {
   groups: GroupSecondary[]
   navigationMode?: boolean
+  navigationModeSelectedRowId?: number
 }
 
 export function GroupsGrid(props: GroupsGridProps) {
   const navigationMode = props.navigationMode ?? false
+  const navigate = useNavigate()
   const notifier = useNotifier()
   const meta = useMeta()
   const rightsSet = React.useMemo(
@@ -45,11 +49,13 @@ export function GroupsGrid(props: GroupsGridProps) {
   const rows: GridValidRowModel[] = props.groups
 
   const readCols = [
-    useCodeCol('id', true, '/groups'),
+    useCodeCol('id', true, '/groups', navigationMode),
     useNameCol(),
     useNumCol(),
     useSubgroupsCountCol()
   ]
+
+  const navigationModeReadCols = React.useMemo(() => [readCols[0]], [readCols])
 
   const actionsColProps: ActionsColProps = React.useMemo(
     () => ({
@@ -79,13 +85,16 @@ export function GroupsGrid(props: GroupsGridProps) {
   const actionsCol = useActionsCol(actionsColProps)
 
   const cols: GridColDef[] = React.useMemo(
-    () => [
-      ...readCols,
-      ...(rightsSet.has('UPDATE_GROUP') || rightsSet.has('DELETE_GROUP')
-        ? [actionsCol]
-        : [])
-    ],
-    [rightsSet, readCols, actionsCol]
+    () =>
+      navigationMode
+        ? navigationModeReadCols
+        : [
+            ...readCols,
+            ...(rightsSet.has('UPDATE_GROUP') || rightsSet.has('DELETE_GROUP')
+              ? [actionsCol]
+              : [])
+          ],
+    [navigationMode, rightsSet, readCols, navigationModeReadCols, actionsCol]
   )
 
   const defaultHiddenFields = React.useMemo(
@@ -148,6 +157,17 @@ export function GroupsGrid(props: GroupsGridProps) {
     setCreateModeIsActive(false)
   }, [setCreateModeIsActive])
 
+  const handleNavigationModeRowClick = React.useCallback(
+    (rowId: number) => {
+      void navigate(
+        props.navigationModeSelectedRowId !== rowId
+          ? `/groups/${rowId}`
+          : '/groups'
+      )
+    },
+    [props.navigationModeSelectedRowId, navigate]
+  )
+
   return (
     <>
       <Grid
@@ -156,6 +176,10 @@ export function GroupsGrid(props: GroupsGridProps) {
         rows={rows}
         defaultHiddenFields={defaultHiddenFields}
         navigationMode={navigationMode}
+        selectedRowId={
+          navigationMode ? props.navigationModeSelectedRowId : undefined
+        }
+        navigationModeOnRowClick={handleNavigationModeRowClick}
         create={createProps}
         deleteMany={deleteManyProps}
       />

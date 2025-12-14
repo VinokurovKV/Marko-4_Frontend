@@ -6,6 +6,8 @@ import { useMeta } from '~/providers/meta'
 import { CreateRoleFormDialog } from '~/components/forms/resources/create-role'
 import { type GridProps, Grid } from '../grid'
 import { useRoleNameCol, type ActionsColProps, useActionsCol } from '../cols'
+// React router
+import { useNavigate } from 'react-router'
 // React
 import * as React from 'react'
 // Material UI
@@ -16,10 +18,12 @@ const MAX_ROLES_IN_MESSAGES = 3
 export interface RolesGridProps {
   roles: RoleSecondary[]
   navigationMode?: boolean
+  navigationModeSelectedRowId?: number
 }
 
 export function RolesGrid(props: RolesGridProps) {
   const navigationMode = props.navigationMode ?? false
+  const navigate = useNavigate()
   const notifier = useNotifier()
   const meta = useMeta()
   const rightsSet = React.useMemo(
@@ -37,7 +41,9 @@ export function RolesGrid(props: RolesGridProps) {
 
   const rows: GridValidRowModel[] = props.roles
 
-  const readCols = [useRoleNameCol('id', true)]
+  const readCols = [useRoleNameCol('id', true, navigationMode)]
+
+  const navigationModeReadCols = React.useMemo(() => [readCols[0]], [readCols])
 
   const actionsColProps: ActionsColProps = React.useMemo(
     () => ({
@@ -66,13 +72,16 @@ export function RolesGrid(props: RolesGridProps) {
   const actionsCol = useActionsCol(actionsColProps)
 
   const cols: GridColDef[] = React.useMemo(
-    () => [
-      ...readCols,
-      ...(rightsSet.has('UPDATE_ROLE') || rightsSet.has('DELETE_ROLE')
-        ? [actionsCol]
-        : [])
-    ],
-    [rightsSet, readCols, actionsCol]
+    () =>
+      navigationMode
+        ? navigationModeReadCols
+        : [
+            ...readCols,
+            ...(rightsSet.has('UPDATE_ROLE') || rightsSet.has('DELETE_ROLE')
+              ? [actionsCol]
+              : [])
+          ],
+    [navigationMode, rightsSet, readCols, navigationModeReadCols, actionsCol]
   )
 
   const defaultHiddenFields = React.useMemo(
@@ -135,6 +144,17 @@ export function RolesGrid(props: RolesGridProps) {
     setCreateModeIsActive(false)
   }, [setCreateModeIsActive])
 
+  const handleNavigationModeRowClick = React.useCallback(
+    (rowId: number) => {
+      void navigate(
+        props.navigationModeSelectedRowId !== rowId
+          ? `/roles/${rowId}`
+          : '/roles'
+      )
+    },
+    [props.navigationModeSelectedRowId, navigate]
+  )
+
   return (
     <>
       <Grid
@@ -143,6 +163,10 @@ export function RolesGrid(props: RolesGridProps) {
         rows={rows}
         defaultHiddenFields={defaultHiddenFields}
         navigationMode={navigationMode}
+        selectedRowId={
+          navigationMode ? props.navigationModeSelectedRowId : undefined
+        }
+        navigationModeOnRowClick={handleNavigationModeRowClick}
         create={createProps}
         deleteMany={deleteManyProps}
       />

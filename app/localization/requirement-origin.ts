@@ -7,5 +7,7 @@ export const localizationForRequirementOrigin = new Map<
 >([
   ['PICS_PROFORMA', 'PICS Proforma'],
   ['SECTION', 'раздел'],
+  ['STANDARD_SECTION', 'раздел стандарта'],
+  ['TECHNICAL_SPECIFICATION', 'техническая спецификация'],
   ['OTHER', 'другое']
 ])

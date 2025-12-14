@@ -9,6 +9,7 @@ import { ForbiddenScreen } from '~/components/screens/problem/forbidden'
 import { RequirementsScreen } from '~/components/screens/requirements'
 // React router
 import type { Route } from './+types/requirements'
+import { useOutlet } from 'react-router'
 // React
 import * as React from 'react'
 
@@ -25,6 +26,7 @@ export default function RequirementsRoute({
 }: Route.ComponentProps) {
   const notifier = useNotifier()
   const meta = useMeta()
+  const outlet = useOutlet()
 
   const [requirements, setRequirements] = React.useState<
     RequirementSecondary[] | null
@@ -46,6 +48,8 @@ export default function RequirementsRoute({
     meta.selfMeta.rights.includes('READ_REQUIREMENT') === false ? (
     <ForbiddenScreen />
   ) : requirements !== null ? (
-    <RequirementsScreen requirements={requirements} />
+    <RequirementsScreen requirements={requirements}>
+      {outlet !== null ? outlet : null}
+    </RequirementsScreen>
   ) : null
 }

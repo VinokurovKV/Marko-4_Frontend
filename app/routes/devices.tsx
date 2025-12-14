@@ -9,6 +9,7 @@ import { ForbiddenScreen } from '~/components/screens/problem/forbidden'
 import { DevicesScreen } from '~/components/screens/devices'
 // React router
 import type { Route } from './+types/devices'
+import { useOutlet } from 'react-router'
 // React
 import * as React from 'react'
 
@@ -25,6 +26,7 @@ export default function DevicesRoute({
 }: Route.ComponentProps) {
   const notifier = useNotifier()
   const meta = useMeta()
+  const outlet = useOutlet()
 
   const [devices, setDevices] = React.useState<DeviceSecondary[] | null>(
     initialDevices
@@ -46,6 +48,8 @@ export default function DevicesRoute({
     meta.selfMeta.rights.includes('READ_DEVICE') === false ? (
     <ForbiddenScreen />
   ) : devices !== null ? (
-    <DevicesScreen devices={devices} />
+    <DevicesScreen devices={devices}>
+      {outlet !== null ? outlet : null}
+    </DevicesScreen>
   ) : null
 }

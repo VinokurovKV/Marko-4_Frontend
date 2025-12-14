@@ -11,9 +11,9 @@ function FormTextFieldUnstyled(props: FormTextFieldProps) {
 }
 
 export const FormTextField = styled(FormTextFieldUnstyled)({
-  '& .MuiInputBase-root': {
-    height: '32px' // '36px'
-  },
+  // '& .MuiInputBase-root': {
+  //   height: '32px' // '36px'
+  // },
   '& label': {
     fontSize: '0.85rem',
     transform: 'translate(13px, 6.5px)'
@@ -32,6 +32,7 @@ export const FormTextField = styled(FormTextFieldUnstyled)({
     fontSize: '0.54rem' // '0.65rem'
   },
   '& .MuiInputBase-input': {
+    height: '15px',
     paddingTop: '8.0px',
     paddingBottom: '8.0px',
     fontSize: '0.85rem'

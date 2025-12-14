@@ -9,6 +9,7 @@ import { ForbiddenScreen } from '~/components/screens/problem/forbidden'
 import { DocumentsScreen } from '~/components/screens/documents'
 // React router
 import type { Route } from './+types/documents'
+import { useOutlet } from 'react-router'
 // React
 import * as React from 'react'
 
@@ -25,6 +26,7 @@ export default function DocumentsRoute({
 }: Route.ComponentProps) {
   const notifier = useNotifier()
   const meta = useMeta()
+  const outlet = useOutlet()
 
   const [documents, setDocuments] = React.useState<DocumentSecondary[] | null>(
     initialDocuments
@@ -46,6 +48,8 @@ export default function DocumentsRoute({
     meta.selfMeta.rights.includes('READ_DOCUMENT') === false ? (
     <ForbiddenScreen />
   ) : documents !== null ? (
-    <DocumentsScreen documents={documents} />
+    <DocumentsScreen documents={documents}>
+      {outlet !== null ? outlet : null}
+    </DocumentsScreen>
   ) : null
 }

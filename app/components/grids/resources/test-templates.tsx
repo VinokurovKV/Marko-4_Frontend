@@ -14,6 +14,8 @@ import {
   useNameCol,
   usePreparedCol
 } from '../cols'
+// React router
+import { useNavigate } from 'react-router'
 // React
 import * as React from 'react'
 // Material UI
@@ -24,10 +26,12 @@ const MAX_TEST_TEMPLATES_IN_MESSAGES = 3
 export interface TestTemplatesGridProps {
   testTemplates: TestTemplateSecondary[]
   navigationMode?: boolean
+  navigationModeSelectedRowId?: number
 }
 
 export function TestTemplatesGrid(props: TestTemplatesGridProps) {
   const navigationMode = props.navigationMode ?? false
+  const navigate = useNavigate()
   const notifier = useNotifier()
   const meta = useMeta()
   const rightsSet = React.useMemo(
@@ -52,7 +56,7 @@ export function TestTemplatesGrid(props: TestTemplatesGridProps) {
   const rows: GridValidRowModel[] = props.testTemplates
 
   const readCols = [
-    useCodeCol('id', true, '/test-templates'),
+    useCodeCol('id', true, '/test-templates', navigationMode),
     useNameCol(),
     usePreparedCol(
       'MALE',
@@ -60,6 +64,8 @@ export function TestTemplatesGrid(props: TestTemplatesGridProps) {
       'конфигурация не загружена'
     )
   ]
+
+  const navigationModeReadCols = React.useMemo(() => [readCols[0]], [readCols])
 
   const actionsColProps: ActionsColProps = React.useMemo(
     () => ({
@@ -103,8 +109,8 @@ export function TestTemplatesGrid(props: TestTemplatesGridProps) {
   const actionsCol = useActionsCol(actionsColProps)
 
   const cols: GridColDef[] = React.useMemo(
-    () => [...readCols, actionsCol],
-    [readCols, actionsCol]
+    () => (navigationMode ? navigationModeReadCols : [...readCols, actionsCol]),
+    [navigationMode, readCols, navigationModeReadCols, actionsCol]
   )
 
   const defaultHiddenFields = React.useMemo(
@@ -169,6 +175,17 @@ export function TestTemplatesGrid(props: TestTemplatesGridProps) {
     setCreateModeIsActive(false)
   }, [setCreateModeIsActive])
 
+  const handleNavigationModeRowClick = React.useCallback(
+    (rowId: number) => {
+      void navigate(
+        props.navigationModeSelectedRowId !== rowId
+          ? `/test-templates/${rowId}`
+          : '/test-templates'
+      )
+    },
+    [props.navigationModeSelectedRowId, navigate]
+  )
+
   return (
     <>
       <Grid
@@ -177,6 +194,10 @@ export function TestTemplatesGrid(props: TestTemplatesGridProps) {
         rows={rows}
         defaultHiddenFields={defaultHiddenFields}
         navigationMode={navigationMode}
+        selectedRowId={
+          navigationMode ? props.navigationModeSelectedRowId : undefined
+        }
+        navigationModeOnRowClick={handleNavigationModeRowClick}
         create={createProps}
         deleteMany={deleteManyProps}
       />

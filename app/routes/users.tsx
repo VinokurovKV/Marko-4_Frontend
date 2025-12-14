@@ -9,6 +9,7 @@ import { ForbiddenScreen } from '~/components/screens/problem/forbidden'
 import { UsersScreen } from '~/components/screens/users'
 // React router
 import type { Route } from './+types/users'
+import { useOutlet } from 'react-router'
 // React
 import * as React from 'react'
 
@@ -29,6 +30,7 @@ export default function UsersRoute({
 }: Route.ComponentProps) {
   const notifier = useNotifier()
   const meta = useMeta()
+  const outlet = useOutlet()
 
   const [roles, setRoles] = React.useState<RolePrimary[] | null>(initialRoles)
   const [users, setUsers] = React.useState<UserSecondary[] | null>(initialUsers)
@@ -50,6 +52,8 @@ export default function UsersRoute({
     meta.selfMeta.rights.includes('READ_USER') === false ? (
     <ForbiddenScreen />
   ) : users !== null ? (
-    <UsersScreen roles={roles} users={users} />
+    <UsersScreen roles={roles} users={users}>
+      {outlet !== null ? outlet : null}
+    </UsersScreen>
   ) : null
 }

@@ -15,6 +15,8 @@ import {
   useRequirementCol,
   useTestsCountCol
 } from '../cols'
+// React router
+import { useNavigate } from 'react-router'
 // React
 import * as React from 'react'
 // Material UI
@@ -26,10 +28,12 @@ export interface CoveragesGridProps {
   requirements: RequirementPrimary[] | null
   coverages: CoverageSecondary[]
   navigationMode?: boolean
+  navigationModeSelectedRowId?: number
 }
 
 export function CoveragesGrid(props: CoveragesGridProps) {
   const navigationMode = props.navigationMode ?? false
+  const navigate = useNavigate()
   const notifier = useNotifier()
   const meta = useMeta()
   const rightsSet = React.useMemo(
@@ -65,13 +69,15 @@ export function CoveragesGrid(props: CoveragesGridProps) {
   const rows: GridValidRowModel[] = props.coverages
 
   const readCols = [
-    useCodeCol('id', true, '/coverages'),
+    useCodeCol('id', true, '/coverages', navigationMode),
     useNameCol(),
     useRequirementCol(props.requirements),
     useCoverageTypeCol(),
     useTestsCountCol(),
     useCoveragePercentCol()
   ]
+
+  const navigationModeReadCols = React.useMemo(() => [readCols[0]], [readCols])
 
   const getRequirementCodeForCoverageId = React.useCallback(
     (coverageId: number) => {
@@ -115,13 +121,17 @@ export function CoveragesGrid(props: CoveragesGridProps) {
   const actionsCol = useActionsCol(actionsColProps)
 
   const cols: GridColDef[] = React.useMemo(
-    () => [
-      ...readCols,
-      ...(rightsSet.has('UPDATE_COVERAGE') || rightsSet.has('DELETE_COVERAGE')
-        ? [actionsCol]
-        : [])
-    ],
-    [rightsSet, readCols, actionsCol]
+    () =>
+      navigationMode
+        ? navigationModeReadCols
+        : [
+            ...readCols,
+            ...(rightsSet.has('UPDATE_COVERAGE') ||
+            rightsSet.has('DELETE_COVERAGE')
+              ? [actionsCol]
+              : [])
+          ],
+    [navigationMode, rightsSet, readCols, navigationModeReadCols, actionsCol]
   )
 
   const defaultHiddenFields = React.useMemo(
@@ -184,6 +194,17 @@ export function CoveragesGrid(props: CoveragesGridProps) {
     setCreateModeIsActive(false)
   }, [setCreateModeIsActive])
 
+  const handleNavigationModeRowClick = React.useCallback(
+    (rowId: number) => {
+      void navigate(
+        props.navigationModeSelectedRowId !== rowId
+          ? `/coverages/${rowId}`
+          : '/coverages'
+      )
+    },
+    [props.navigationModeSelectedRowId, navigate]
+  )
+
   return (
     <>
       <Grid
@@ -192,6 +213,10 @@ export function CoveragesGrid(props: CoveragesGridProps) {
         rows={rows}
         defaultHiddenFields={defaultHiddenFields}
         navigationMode={navigationMode}
+        selectedRowId={
+          navigationMode ? props.navigationModeSelectedRowId : undefined
+        }
+        navigationModeOnRowClick={handleNavigationModeRowClick}
         create={createProps}
         deleteMany={deleteManyProps}
       />

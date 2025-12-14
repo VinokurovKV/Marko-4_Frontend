@@ -16,6 +16,8 @@ import {
   useRoleCol,
   useSurnameCol
 } from '../cols'
+// React router
+import { useNavigate } from 'react-router'
 // React
 import * as React from 'react'
 // Material UI
@@ -27,10 +29,12 @@ export interface UsersGridProps {
   roles: RolePrimary[] | null
   users: UserSecondary[]
   navigationMode?: boolean
+  navigationModeSelectedRowId?: number
 }
 
 export function UsersGrid(props: UsersGridProps) {
   const navigationMode = props.navigationMode ?? false
+  const navigate = useNavigate()
   const notifier = useNotifier()
   const meta = useMeta()
   const rightsSet = React.useMemo(
@@ -49,7 +53,7 @@ export function UsersGrid(props: UsersGridProps) {
   const rows: GridValidRowModel[] = props.users
 
   const readCols = [
-    useLoginCol('id', true),
+    useLoginCol('id', true, navigationMode),
     useSurnameCol(),
     useForenameCol(),
     usePatronymicCol(),
@@ -57,6 +61,8 @@ export function UsersGrid(props: UsersGridProps) {
     usePhoneCol(),
     useRoleCol(props.roles)
   ]
+
+  const navigationModeReadCols = React.useMemo(() => [readCols[0]], [readCols])
 
   const actionsColProps: ActionsColProps = React.useMemo(
     () => ({
@@ -85,13 +91,16 @@ export function UsersGrid(props: UsersGridProps) {
   const actionsCol = useActionsCol(actionsColProps)
 
   const cols: GridColDef[] = React.useMemo(
-    () => [
-      ...readCols,
-      ...(rightsSet.has('UPDATE_USER') || rightsSet.has('DELETE_USER')
-        ? [actionsCol]
-        : [])
-    ],
-    [rightsSet, readCols, actionsCol]
+    () =>
+      navigationMode
+        ? navigationModeReadCols
+        : [
+            ...readCols,
+            ...(rightsSet.has('UPDATE_USER') || rightsSet.has('DELETE_USER')
+              ? [actionsCol]
+              : [])
+          ],
+    [navigationMode, rightsSet, readCols, navigationModeReadCols, actionsCol]
   )
 
   const defaultHiddenFields = React.useMemo(
@@ -154,6 +163,17 @@ export function UsersGrid(props: UsersGridProps) {
     setCreateModeIsActive(false)
   }, [setCreateModeIsActive])
 
+  const handleNavigationModeRowClick = React.useCallback(
+    (rowId: number) => {
+      void navigate(
+        props.navigationModeSelectedRowId !== rowId
+          ? `/users/${rowId}`
+          : '/users'
+      )
+    },
+    [props.navigationModeSelectedRowId, navigate]
+  )
+
   return (
     <>
       <Grid
@@ -162,6 +182,10 @@ export function UsersGrid(props: UsersGridProps) {
         rows={rows}
         defaultHiddenFields={defaultHiddenFields}
         navigationMode={navigationMode}
+        selectedRowId={
+          navigationMode ? props.navigationModeSelectedRowId : undefined
+        }
+        navigationModeOnRowClick={handleNavigationModeRowClick}
         create={createProps}
         deleteMany={deleteManyProps}
       />

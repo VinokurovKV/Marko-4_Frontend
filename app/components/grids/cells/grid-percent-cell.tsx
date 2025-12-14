@@ -1,5 +1,8 @@
+// Project
+import { PercentBar } from '~/components/progress-bar'
+// React
 import * as React from 'react'
-import clsx from 'clsx'
+// Material UI
 import {
   type GridRenderCellParams,
   type GridRenderEditCellParams,
@@ -9,67 +12,13 @@ import { alpha, styled } from '@mui/material/styles'
 import Slider, { type SliderProps, sliderClasses } from '@mui/material/Slider'
 import Tooltip from '@mui/material/Tooltip'
 import { debounce } from '@mui/material/utils'
-
-interface ProgressBarProps {
-  value: number
-}
+// Other
+import clsx from 'clsx'
 
 const Center = styled('div')({
   height: '100%',
   display: 'flex',
   alignItems: 'center'
-})
-
-const Element = styled('div')(({ theme }) => ({
-  border: `1px solid ${(theme.vars || theme).palette.divider}`,
-  position: 'relative',
-  overflow: 'hidden',
-  width: '100%',
-  height: 26,
-  borderRadius: 2
-}))
-
-const Value = styled('div')({
-  position: 'absolute',
-  lineHeight: '24px',
-  width: '100%',
-  display: 'flex',
-  justifyContent: 'center'
-})
-
-const Bar = styled('div')({
-  height: '100%',
-  '&.low': {
-    backgroundColor: '#f44336'
-  },
-  '&.medium': {
-    backgroundColor: '#efbb5aa3'
-  },
-  '&.high': {
-    backgroundColor: '#a2a83f'
-  },
-  '&.full': {
-    backgroundColor: '#088208a3'
-  }
-})
-
-const ProgressBar = React.memo(function ProgressBar(props: ProgressBarProps) {
-  const { value } = props
-
-  return (
-    <Element>
-      <Value>{`${parseFloat(value.toFixed(2))} %`}</Value>
-      <Bar
-        className={clsx({
-          low: value < 30,
-          medium: value >= 30 && value <= 70,
-          high: value > 70 && value < 100,
-          full: value === 100
-        })}
-        style={{ maxWidth: `${value}%` }}
-      />
-    </Element>
-  )
 })
 
 const StyledSlider = styled(Slider)(({ theme }) => ({
@@ -191,7 +140,7 @@ export function GridPercentCell(
 
   return (
     <Center>
-      <ProgressBar value={params.value} />
+      <PercentBar percent={params.value} />
     </Center>
   )
 }

@@ -6,7 +6,7 @@ import capitalize from 'capitalize'
 
 export interface ColumnViewerItemProps {
   field: string
-  val?: string | number
+  val?: string | number | null
   Icon?: React.ReactNode
 }
 
@@ -20,7 +20,9 @@ export function ColumnViewerItem(props: ColumnViewerItemProps) {
       >
         {capitalize(props.field, true) + ':'}
       </Typography>
-      {props.val !== undefined ? <Typography>{props.val}</Typography> : null}
+      {props.val !== undefined && props.val !== null ? (
+        <Typography>{props.val}</Typography>
+      ) : null}
       {props.Icon ? props.Icon : null}
     </Stack>
   )

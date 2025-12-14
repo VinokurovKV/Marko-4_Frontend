@@ -106,6 +106,7 @@ export function TasksScreen({ children, ...props }: TasksScreenProps) {
         proportions={withTask ? 'ONE_TWO' : 'ONE_ZERO'}
       >
         <TasksGrid
+          key={`${withTask}`}
           {...props}
           navigationMode={withTask}
           navigationModeSelectedRowId={

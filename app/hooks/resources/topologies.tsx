@@ -11,6 +11,8 @@ import { useChangeDetector } from '../change-detector'
 import { useNotifier } from '~/providers/notifier'
 // React
 import * as React from 'react'
+// Other
+import { isEqual } from 'lodash'
 
 type ReadOneTopology<Scope extends ReadOneResourceScope> =
   Scope extends 'PRIMARY_PROPS'
@@ -23,6 +25,8 @@ type ReadOneTopology<Scope extends ReadOneResourceScope> =
 
 type ReadManyTopology<Scope extends ReadManyResourceScope> =
   Scope extends 'PRIMARY_PROPS' ? TopologyPrimary : TopologySecondary
+
+const EMPTY_TOPOLOGIES_ARR: TopologyAll[] = []
 
 function useTopologySubscriptionInner<Scope extends ReadOneResourceScope>(
   scope: Scope,
@@ -307,4 +311,176 @@ export function useTopologies<Scope extends ReadManyResourceScope>(
     active
   )
   return topologies
+}
+
+function useTopologiesFilteredSubscriptionInner<
+  Scope extends ReadManyResourceScope
+>(
+  scope: Scope,
+  topologyIds: number[] | null,
+  setTopologiesPair: React.Dispatch<
+    React.SetStateAction<{
+      topologyIds: number[] | null
+      topologies?: ReadManyTopology<Scope>[] | null
+    }>
+  >,
+  withInitialLoad: boolean = false,
+  notifyAboutInitialLoadProblems: boolean = false,
+  active: boolean = true
+) {
+  const notifier = useNotifier()
+
+  const [initialized, setInitialized] = React.useState(false)
+
+  const load = React.useCallback(
+    async (notifyAboutProblems: boolean) => {
+      try {
+        const topologies =
+          topologyIds !== null
+            ? ((await serverConnector.readTopologies({
+                ids: topologyIds,
+                scope: scope
+              })) as ReadManyTopology<Scope>[])
+            : EMPTY_TOPOLOGIES_ARR
+        setTopologiesPair((oldPair) =>
+          isEqual(oldPair.topologyIds, topologyIds)
+            ? {
+                ...oldPair,
+                topologies: topologies
+              }
+            : oldPair
+        )
+      } catch {
+        if (notifyAboutProblems) {
+          notifier.showWarning(
+            'не удалось загрузить актуальный список топологий'
+          )
+        }
+      }
+    },
+    [scope, topologyIds, setTopologiesPair, notifier]
+  )
+
+  // Initial load
+  React.useEffect(() => {
+    setInitialized(true)
+    if (active === false || withInitialLoad === false || initialized) {
+      return
+    }
+    void load(notifyAboutInitialLoadProblems)
+  }, [
+    scope,
+    withInitialLoad,
+    notifyAboutInitialLoadProblems,
+    active,
+    initialized,
+    setInitialized,
+    load
+  ])
+
+  // Process topology ids change or active flag change to true
+  useChangeDetector({
+    detectedObjects: [topologyIds, active],
+    otherDependencies: [notifyAboutInitialLoadProblems, load],
+    onChange: () => {
+      if (active) {
+        void load(notifyAboutInitialLoadProblems)
+      }
+    }
+  })
+
+  // Subscribe
+  React.useEffect(() => {
+    const subscriptionId = serverConnector.subscribeToResources(
+      {
+        type: 'TOPOLOGY'
+      },
+      (data) => {
+        ;(() => {
+          const updateScope = data.updateScope
+          if (
+            updateScope.primaryProps ||
+            (updateScope.secondaryProps && scope === 'UP_TO_SECONDARY_PROPS')
+          ) {
+            void load(true)
+          }
+        })()
+      }
+    ).subscriptionId
+    return () => {
+      serverConnector.unsubscribe(subscriptionId)
+    }
+  }, [scope, topologyIds, load])
+}
+
+/** Subscribe to topologies updates for existing topologies state */
+export function useTopologiesFilteredSubscription<
+  Scope extends ReadManyResourceScope
+>(
+  scope: Scope,
+  topologyIds: number[] | null,
+  setTopologies: React.Dispatch<
+    React.SetStateAction<ReadManyTopology<Scope>[] | null>
+  >,
+  withInitialLoad: boolean = false,
+  notifyAboutInitialLoadProblems: boolean = false,
+  active: boolean = true
+) {
+  const [topologiesPair, setTopologiesPair] = React.useState<{
+    topologyIds: number[] | null
+    topologies?: ReadManyTopology<Scope>[] | null
+  }>({
+    topologyIds: topologyIds,
+    topologies: undefined
+  })
+  React.useEffect(() => {
+    setTopologiesPair((oldPair) => ({
+      topologyIds: topologyIds,
+      topologies: oldPair.topologies
+    }))
+  }, [topologyIds, setTopologiesPair])
+  useTopologiesFilteredSubscriptionInner(
+    scope,
+    topologiesPair.topologyIds,
+    setTopologiesPair,
+    withInitialLoad,
+    notifyAboutInitialLoadProblems,
+    active
+  )
+  React.useEffect(() => {
+    if (topologiesPair.topologies !== undefined) {
+      setTopologies(topologiesPair.topologies)
+    }
+  }, [setTopologies, topologiesPair.topologies])
+}
+
+/** Subscribe to topologies updates with initial load */
+export function useTopologiesFiltered<Scope extends ReadManyResourceScope>(
+  scope: Scope,
+  topologyIds: number[] | null,
+  notifyAboutInitialLoadProblems: boolean = false,
+  active: boolean = true
+) {
+  const [topologiesPair, setTopologiesPair] = React.useState<{
+    topologyIds: number[] | null
+    topologies?: ReadManyTopology<Scope>[] | null
+  }>({
+    topologyIds: topologyIds,
+    topologies: null
+  })
+  React.useEffect(() => {
+    setTopologiesPair((oldPair) => ({
+      topologyIds: topologyIds,
+      topologies: oldPair.topologies
+    }))
+  }, [topologyIds, setTopologiesPair])
+  useTopologiesFilteredSubscriptionInner(
+    scope,
+    topologiesPair.topologyIds,
+    setTopologiesPair,
+    true,
+    notifyAboutInitialLoadProblems,
+    active
+  )
+  return topologiesPair.topologies ?? null
 }

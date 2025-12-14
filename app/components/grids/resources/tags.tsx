@@ -6,6 +6,8 @@ import { useMeta } from '~/providers/meta'
 import { CreateTagFormDialog } from '~/components/forms/resources/create-tag'
 import { type GridProps, Grid } from '../grid'
 import { useCodeCol, type ActionsColProps, useActionsCol } from '../cols'
+// React router
+import { useNavigate } from 'react-router'
 // React
 import * as React from 'react'
 // Material UI
@@ -16,10 +18,12 @@ const MAX_TAGS_IN_MESSAGES = 3
 export interface TagsGridProps {
   tags: TagSecondary[]
   navigationMode?: boolean
+  navigationModeSelectedRowId?: number
 }
 
 export function TagsGrid(props: TagsGridProps) {
   const navigationMode = props.navigationMode ?? false
+  const navigate = useNavigate()
   const notifier = useNotifier()
   const meta = useMeta()
   const rightsSet = React.useMemo(
@@ -37,7 +41,9 @@ export function TagsGrid(props: TagsGridProps) {
 
   const rows: GridValidRowModel[] = props.tags
 
-  const readCols = [useCodeCol('id', true, '/tags')]
+  const readCols = [useCodeCol('id', true, '/tags', navigationMode)]
+
+  const navigationModeReadCols = React.useMemo(() => [readCols[0]], [readCols])
 
   const actionsColProps: ActionsColProps = React.useMemo(
     () => ({
@@ -66,13 +72,16 @@ export function TagsGrid(props: TagsGridProps) {
   const actionsCol = useActionsCol(actionsColProps)
 
   const cols: GridColDef[] = React.useMemo(
-    () => [
-      ...readCols,
-      ...(rightsSet.has('UPDATE_TAG') || rightsSet.has('DELETE_TAG')
-        ? [actionsCol]
-        : [])
-    ],
-    [rightsSet, readCols, actionsCol]
+    () =>
+      navigationMode
+        ? navigationModeReadCols
+        : [
+            ...readCols,
+            ...(rightsSet.has('UPDATE_TAG') || rightsSet.has('DELETE_TAG')
+              ? [actionsCol]
+              : [])
+          ],
+    [navigationMode, rightsSet, readCols, navigationModeReadCols, actionsCol]
   )
 
   const defaultHiddenFields = React.useMemo(
@@ -135,6 +144,15 @@ export function TagsGrid(props: TagsGridProps) {
     setCreateModeIsActive(false)
   }, [setCreateModeIsActive])
 
+  const handleNavigationModeRowClick = React.useCallback(
+    (rowId: number) => {
+      void navigate(
+        props.navigationModeSelectedRowId !== rowId ? `/tags/${rowId}` : '/tags'
+      )
+    },
+    [props.navigationModeSelectedRowId, navigate]
+  )
+
   return (
     <>
       <Grid
@@ -143,6 +161,10 @@ export function TagsGrid(props: TagsGridProps) {
         rows={rows}
         defaultHiddenFields={defaultHiddenFields}
         navigationMode={navigationMode}
+        selectedRowId={
+          navigationMode ? props.navigationModeSelectedRowId : undefined
+        }
+        navigationModeOnRowClick={handleNavigationModeRowClick}
         create={createProps}
         deleteMany={deleteManyProps}
       />

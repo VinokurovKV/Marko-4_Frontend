@@ -15,6 +15,13 @@ export interface ColumnViewerRefProps {
   text?: string
   href?: string
   disableCapitalize?: boolean
+  external?: boolean
+}
+
+function prepareHref(href: string) {
+  return href.startsWith('http://') || href.startsWith('https://')
+    ? href
+    : `https://${href}`
 }
 
 export function ColumnViewerRef(props: ColumnViewerRefProps) {
@@ -37,24 +44,50 @@ export function ColumnViewerRef(props: ColumnViewerRefProps) {
         {capitalize(props.field, true) + ':'}
       </Typography>
       {props.text !== undefined ? (
-        <Button
-          component={Link}
-          to={props.href ?? ''}
-          disabled={props.href === undefined}
-          onClick={handleClick}
-          sx={{
-            justifyContent: 'start',
-            textTransform: 'none',
-            ':hover': {
-              bgcolor:
-                theme.palette.mode === 'light'
-                  ? 'rgb(239, 244, 251)'
-                  : 'rgb(40, 47, 54)'
-            }
-          }}
-        >
-          {props.disableCapitalize ? props.text : capitalize(props.text, true)}
-        </Button>
+        props.external !== true ? (
+          <Button
+            component={Link}
+            to={props.href ?? ''}
+            disabled={props.href === undefined}
+            onClick={handleClick}
+            sx={{
+              justifyContent: 'start',
+              textTransform: 'none',
+              ':hover': {
+                bgcolor:
+                  theme.palette.mode === 'light'
+                    ? 'rgb(239, 244, 251)'
+                    : 'rgb(40, 47, 54)'
+              },
+              transform: 'translateY(0.1rem)'
+            }}
+          >
+            {props.disableCapitalize
+              ? props.text
+              : capitalize(props.text, true)}
+          </Button>
+        ) : (
+          <Button
+            component={'a'}
+            target="_blank"
+            rel="noopener noreferrer"
+            href={props.href !== undefined ? prepareHref(props.href) : ''}
+            onClick={handleClick}
+            sx={{
+              justifyContent: 'start',
+              textTransform: 'none',
+              ':hover': {
+                bgcolor:
+                  theme.palette.mode === 'light'
+                    ? 'rgb(239, 244, 251)'
+                    : 'rgb(40, 47, 54)'
+              },
+              transform: 'translateY(0.1rem)'
+            }}
+          >
+            {props.disableCapitalize ? props.href : props.text}
+          </Button>
+        )
       ) : null}
     </Stack>
   )

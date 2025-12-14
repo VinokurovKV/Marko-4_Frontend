@@ -67,6 +67,7 @@ export function TestsScreen({ children, ...props }: TestsScreenProps) {
         proportions={withTest ? 'ONE_THREE' : 'ONE_ZERO'}
       >
         <TestsGrid
+          key={`${withTest}`}
           {...props}
           navigationMode={withTest}
           navigationModeSelectedRowId={

@@ -15,6 +15,8 @@ import {
   useNameCol,
   usePreparedCol
 } from '../cols'
+// React router
+import { useNavigate } from 'react-router'
 // React
 import * as React from 'react'
 // Material UI
@@ -25,10 +27,12 @@ const MAX_DBCS_IN_MESSAGES = 3
 export interface DbcsGridProps {
   dbcs: DbcSecondary[]
   navigationMode?: boolean
+  navigationModeSelectedRowId?: number
 }
 
 export function DbcsGrid(props: DbcsGridProps) {
   const navigationMode = props.navigationMode ?? false
+  const navigate = useNavigate()
   const notifier = useNotifier()
   const meta = useMeta()
   const rightsSet = React.useMemo(
@@ -47,15 +51,17 @@ export function DbcsGrid(props: DbcsGridProps) {
   const rows: GridValidRowModel[] = props.dbcs
 
   const readCols = [
-    useCodeCol('id', true, '/dbcs'),
+    useCodeCol('id', true, '/dbcs', navigationMode),
     useNameCol(),
     usePreparedCol(
       'FEMALE',
-      'все необходимые конфигурации загружены',
-      'не все необходимые конфигурации загружены'
+      'конфигурация загружена',
+      'конфигурация не загружена'
     ),
     useDsefsCountCol()
   ]
+
+  const navigationModeReadCols = React.useMemo(() => [readCols[0]], [readCols])
 
   const actionsColProps: ActionsColProps = React.useMemo(
     () => ({
@@ -99,8 +105,8 @@ export function DbcsGrid(props: DbcsGridProps) {
   const actionsCol = useActionsCol(actionsColProps)
 
   const cols: GridColDef[] = React.useMemo(
-    () => [...readCols, actionsCol],
-    [readCols, actionsCol]
+    () => (navigationMode ? navigationModeReadCols : [...readCols, actionsCol]),
+    [navigationMode, readCols, navigationModeReadCols, actionsCol]
   )
 
   const defaultHiddenFields = React.useMemo(
@@ -163,6 +169,15 @@ export function DbcsGrid(props: DbcsGridProps) {
     setCreateModeIsActive(false)
   }, [setCreateModeIsActive])
 
+  const handleNavigationModeRowClick = React.useCallback(
+    (rowId: number) => {
+      void navigate(
+        props.navigationModeSelectedRowId !== rowId ? `/dbcs/${rowId}` : '/dbcs'
+      )
+    },
+    [props.navigationModeSelectedRowId, navigate]
+  )
+
   return (
     <>
       <Grid
@@ -171,6 +186,10 @@ export function DbcsGrid(props: DbcsGridProps) {
         rows={rows}
         defaultHiddenFields={defaultHiddenFields}
         navigationMode={navigationMode}
+        selectedRowId={
+          navigationMode ? props.navigationModeSelectedRowId : undefined
+        }
+        navigationModeOnRowClick={handleNavigationModeRowClick}
         create={createProps}
         deleteMany={deleteManyProps}
       />

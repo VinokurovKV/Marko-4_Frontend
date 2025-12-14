@@ -1,14 +1,10 @@
 // Project
 import { type CoverageType, allCoverageTypes } from '@common/enums'
 import { localizationForCoverageType } from '~/localization'
+import { CoverageTypeIcon } from '~/components/icons/coverage-type'
 // React
 import * as React from 'react'
 // Material UI
-import LockOpenIcon from '@mui/icons-material/LockOpenTwoTone'
-import LockIcon from '@mui/icons-material/LockTwoTone'
-import PanToolAltIcon from '@mui/icons-material/PanToolAltTwoTone'
-import Stack from '@mui/material/Stack'
-import Tooltip from '@mui/material/Tooltip'
 import type { GridColDef, GridRenderCellParams } from '@mui/x-data-grid'
 // Other
 import capitalize from 'capitalize'
@@ -17,35 +13,21 @@ function getValue(type: CoverageType) {
   return capitalize(localizationForCoverageType.get(type) ?? type ?? '')
 }
 
-interface CoverageTypeIconProps {
+interface IconProps {
   value?: string
 }
 
-function CoverageTypeIcon({ value }: CoverageTypeIconProps) {
-  const full = value === getValue('FULL')
-  const mustAndShould = value === getValue('MUST_AND_SHOULD')
-  const onlyMust = value === getValue('ONLY_MUST')
+function Icon({ value }: IconProps) {
   return (
-    <Tooltip title={value}>
-      <Stack
-        direction="row"
-        alignItems="center"
-        justifyContent="center"
-        sx={{ height: '100%' }}
-      >
-        <>
-          <LockIcon
-            color="error"
-            sx={{ opacity: full || mustAndShould || onlyMust ? 0.8 : 0 }}
-          />
-          <PanToolAltIcon
-            color="warning"
-            sx={{ opacity: full || mustAndShould ? 0.8 : 0 }}
-          />
-          <LockOpenIcon color="success" sx={{ opacity: full ? 0.8 : 0 }} />
-        </>
-      </Stack>
-    </Tooltip>
+    <CoverageTypeIcon
+      type={
+        value === getValue('FULL')
+          ? 'FULL'
+          : value === getValue('MUST_AND_SHOULD')
+            ? 'MUST_AND_SHOULD'
+            : 'ONLY_MUST'
+      }
+    />
   )
 }
 
@@ -58,7 +40,7 @@ export function useCoverageTypeCol() {
       valueOptions: allCoverageTypes.map(getValue),
       valueGetter: getValue,
       renderCell: (params: GridRenderCellParams<any, CoverageType>) => (
-        <CoverageTypeIcon value={params.value} />
+        <Icon value={params.value} />
       ),
       headerAlign: 'center',
       align: 'center',

@@ -14,6 +14,8 @@ import {
   useNumInGroupCol,
   useTestsCountCol
 } from '../cols'
+// React router
+import { useNavigate } from 'react-router'
 // React
 import * as React from 'react'
 // Material UI
@@ -25,10 +27,12 @@ export interface SubgroupsGridProps {
   subgroups: SubgroupSecondary[]
   groups: GroupPrimary[] | null
   navigationMode?: boolean
+  navigationModeSelectedRowId?: number
 }
 
 export function SubgroupsGrid(props: SubgroupsGridProps) {
   const navigationMode = props.navigationMode ?? false
+  const navigate = useNavigate()
   const notifier = useNotifier()
   const meta = useMeta()
   const rightsSet = React.useMemo(
@@ -48,12 +52,14 @@ export function SubgroupsGrid(props: SubgroupsGridProps) {
   const rows: GridValidRowModel[] = props.subgroups
 
   const readCols = [
-    useCodeCol('id', true, '/subgroups'),
+    useCodeCol('id', true, '/subgroups', navigationMode),
     useNameCol(),
     useGroupCol(props.groups),
     useNumInGroupCol(),
     useTestsCountCol()
   ]
+
+  const navigationModeReadCols = React.useMemo(() => [readCols[0]], [readCols])
 
   const actionsColProps: ActionsColProps = React.useMemo(
     () => ({
@@ -83,13 +89,17 @@ export function SubgroupsGrid(props: SubgroupsGridProps) {
   const actionsCol = useActionsCol(actionsColProps)
 
   const cols: GridColDef[] = React.useMemo(
-    () => [
-      ...readCols,
-      ...(rightsSet.has('UPDATE_SUBGROUP') || rightsSet.has('DELETE_SUBGROUP')
-        ? [actionsCol]
-        : [])
-    ],
-    [rightsSet, readCols, actionsCol]
+    () =>
+      navigationMode
+        ? navigationModeReadCols
+        : [
+            ...readCols,
+            ...(rightsSet.has('UPDATE_SUBGROUP') ||
+            rightsSet.has('DELETE_SUBGROUP')
+              ? [actionsCol]
+              : [])
+          ],
+    [navigationMode, rightsSet, readCols, navigationModeReadCols, actionsCol]
   )
 
   const defaultHiddenFields = React.useMemo(
@@ -152,6 +162,17 @@ export function SubgroupsGrid(props: SubgroupsGridProps) {
     setCreateModeIsActive(false)
   }, [setCreateModeIsActive])
 
+  const handleNavigationModeRowClick = React.useCallback(
+    (rowId: number) => {
+      void navigate(
+        props.navigationModeSelectedRowId !== rowId
+          ? `/subgroups/${rowId}`
+          : '/subgroups'
+      )
+    },
+    [props.navigationModeSelectedRowId, navigate]
+  )
+
   return (
     <>
       <Grid
@@ -160,6 +181,10 @@ export function SubgroupsGrid(props: SubgroupsGridProps) {
         rows={rows}
         defaultHiddenFields={defaultHiddenFields}
         navigationMode={navigationMode}
+        selectedRowId={
+          navigationMode ? props.navigationModeSelectedRowId : undefined
+        }
+        navigationModeOnRowClick={handleNavigationModeRowClick}
         create={createProps}
         deleteMany={deleteManyProps}
       />

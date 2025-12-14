@@ -6,6 +6,8 @@ import { useChangeDetector } from '../change-detector'
 import { useNotifier } from '~/providers/notifier'
 // React
 import * as React from 'react'
+// Other
+import { isEqual } from 'lodash'
 
 type ReadOneUser<Scope extends ReadOneResourceScope> =
   Scope extends 'PRIMARY_PROPS'
@@ -18,6 +20,8 @@ type ReadOneUser<Scope extends ReadOneResourceScope> =
 
 type ReadManyUser<Scope extends ReadManyResourceScope> =
   Scope extends 'PRIMARY_PROPS' ? UserPrimary : UserSecondary
+
+const EMPTY_USERS_ARR: UserAll[] = []
 
 function useUserSubscriptionInner<Scope extends ReadOneResourceScope>(
   scope: Scope,
@@ -298,4 +302,172 @@ export function useUsers<Scope extends ReadManyResourceScope>(
     active
   )
   return users
+}
+
+function useUsersFilteredSubscriptionInner<Scope extends ReadManyResourceScope>(
+  scope: Scope,
+  userIds: number[] | null,
+  setUsersPair: React.Dispatch<
+    React.SetStateAction<{
+      userIds: number[] | null
+      users?: ReadManyUser<Scope>[] | null
+    }>
+  >,
+  withInitialLoad: boolean = false,
+  notifyAboutInitialLoadProblems: boolean = false,
+  active: boolean = true
+) {
+  const notifier = useNotifier()
+
+  const [initialized, setInitialized] = React.useState(false)
+
+  const load = React.useCallback(
+    async (notifyAboutProblems: boolean) => {
+      try {
+        const users =
+          userIds !== null
+            ? ((await serverConnector.readUsers({
+                ids: userIds,
+                scope: scope
+              })) as ReadManyUser<Scope>[])
+            : EMPTY_USERS_ARR
+        setUsersPair((oldPair) =>
+          isEqual(oldPair.userIds, userIds)
+            ? {
+                ...oldPair,
+                users: users
+              }
+            : oldPair
+        )
+      } catch {
+        if (notifyAboutProblems) {
+          notifier.showWarning(
+            'не удалось загрузить актуальный список пользователей'
+          )
+        }
+      }
+    },
+    [scope, userIds, setUsersPair, notifier]
+  )
+
+  // Initial load
+  React.useEffect(() => {
+    setInitialized(true)
+    if (active === false || withInitialLoad === false || initialized) {
+      return
+    }
+    void load(notifyAboutInitialLoadProblems)
+  }, [
+    scope,
+    withInitialLoad,
+    notifyAboutInitialLoadProblems,
+    active,
+    initialized,
+    setInitialized,
+    load
+  ])
+
+  // Process user ids change or active flag change to true
+  useChangeDetector({
+    detectedObjects: [userIds, active],
+    otherDependencies: [notifyAboutInitialLoadProblems, load],
+    onChange: () => {
+      if (active) {
+        void load(notifyAboutInitialLoadProblems)
+      }
+    }
+  })
+
+  // Subscribe
+  React.useEffect(() => {
+    const subscriptionId = serverConnector.subscribeToResources(
+      {
+        type: 'USER'
+      },
+      (data) => {
+        ;(() => {
+          const updateScope = data.updateScope
+          if (
+            updateScope.primaryProps ||
+            (updateScope.secondaryProps && scope === 'UP_TO_SECONDARY_PROPS')
+          ) {
+            void load(true)
+          }
+        })()
+      }
+    ).subscriptionId
+    return () => {
+      serverConnector.unsubscribe(subscriptionId)
+    }
+  }, [scope, userIds, load])
+}
+
+/** Subscribe to users updates for existing users state */
+export function useUsersFilteredSubscription<
+  Scope extends ReadManyResourceScope
+>(
+  scope: Scope,
+  userIds: number[] | null,
+  setUsers: React.Dispatch<React.SetStateAction<ReadManyUser<Scope>[] | null>>,
+  withInitialLoad: boolean = false,
+  notifyAboutInitialLoadProblems: boolean = false,
+  active: boolean = true
+) {
+  const [usersPair, setUsersPair] = React.useState<{
+    userIds: number[] | null
+    users?: ReadManyUser<Scope>[] | null
+  }>({
+    userIds: userIds,
+    users: undefined
+  })
+  React.useEffect(() => {
+    setUsersPair((oldPair) => ({
+      userIds: userIds,
+      users: oldPair.users
+    }))
+  }, [userIds, setUsersPair])
+  useUsersFilteredSubscriptionInner(
+    scope,
+    usersPair.userIds,
+    setUsersPair,
+    withInitialLoad,
+    notifyAboutInitialLoadProblems,
+    active
+  )
+  React.useEffect(() => {
+    if (usersPair.users !== undefined) {
+      setUsers(usersPair.users)
+    }
+  }, [setUsers, usersPair.users])
+}
+
+/** Subscribe to users updates with initial load */
+export function useUsersFiltered<Scope extends ReadManyResourceScope>(
+  scope: Scope,
+  userIds: number[] | null,
+  notifyAboutInitialLoadProblems: boolean = false,
+  active: boolean = true
+) {
+  const [usersPair, setUsersPair] = React.useState<{
+    userIds: number[] | null
+    users?: ReadManyUser<Scope>[] | null
+  }>({
+    userIds: userIds,
+    users: null
+  })
+  React.useEffect(() => {
+    setUsersPair((oldPair) => ({
+      userIds: userIds,
+      users: oldPair.users
+    }))
+  }, [userIds, setUsersPair])
+  useUsersFilteredSubscriptionInner(
+    scope,
+    usersPair.userIds,
+    setUsersPair,
+    true,
+    notifyAboutInitialLoadProblems,
+    active
+  )
+  return usersPair.users ?? null
 }
