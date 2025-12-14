@@ -37,7 +37,8 @@ export function useCommonTopologyVersionCol(
           text={params.value}
           hrefPrefix="/common-topologies"
           // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-          hrefPath={`${params.row.commonTopology.id}/versions/${params.row.commonTopology.transitionNum}`}
+          hrefPath={`${params.row.commonTopology.id}`}
+          // hrefPath={`${params.row.commonTopology.id}/versions/${params.row.commonTopology.transitionNum}`}
         />
       ),
       minWidth: 140,

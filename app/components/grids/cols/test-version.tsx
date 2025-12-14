@@ -10,6 +10,7 @@ import capitalize from 'capitalize'
 
 export function useFlatTestVersionCol(
   tests: TestPrimary[] | null | undefined,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   task: TaskTertiary
 ) {
   const testCodeForId = React.useMemo(() => {
@@ -20,26 +21,26 @@ export function useFlatTestVersionCol(
     return map
   }, [tests])
 
-  const testTransitionNumForId = React.useMemo(() => {
-    const testTransitionNumForId = new Map<number, number>()
-    const hierarchy = task.hierarchy
-    for (const test of hierarchy.orphanTests) {
-      testTransitionNumForId.set(test.id, test.transitionNum)
-    }
-    for (const subgroup of hierarchy.orphanSubgroups) {
-      for (const test of subgroup.tests) {
-        testTransitionNumForId.set(test.id, test.transitionNum)
-      }
-    }
-    for (const group of hierarchy.groups) {
-      for (const subgroup of group.subgroups) {
-        for (const test of subgroup.tests) {
-          testTransitionNumForId.set(test.id, test.transitionNum)
-        }
-      }
-    }
-    return testTransitionNumForId
-  }, [task])
+  // const testTransitionNumForId = React.useMemo(() => {
+  //   const testTransitionNumForId = new Map<number, number>()
+  //   const hierarchy = task.hierarchy
+  //   for (const test of hierarchy.orphanTests) {
+  //     testTransitionNumForId.set(test.id, test.transitionNum)
+  //   }
+  //   for (const subgroup of hierarchy.orphanSubgroups) {
+  //     for (const test of subgroup.tests) {
+  //       testTransitionNumForId.set(test.id, test.transitionNum)
+  //     }
+  //   }
+  //   for (const group of hierarchy.groups) {
+  //     for (const subgroup of group.subgroups) {
+  //       for (const test of subgroup.tests) {
+  //         testTransitionNumForId.set(test.id, test.transitionNum)
+  //       }
+  //     }
+  //   }
+  //   return testTransitionNumForId
+  // }, [task])
 
   const col: GridColDef = React.useMemo(
     () => ({
@@ -53,8 +54,9 @@ export function useFlatTestVersionCol(
         <GridRefCell
           text={params.value}
           hrefPrefix="/tests"
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument
-          hrefPath={`${params.row.testId}/versions/${testTransitionNumForId.get(params.row.testId) ?? -1}`}
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          hrefPath={`${params.row.testId}`}
+          // hrefPath={`${params.row.testId}/versions/${testTransitionNumForId.get(params.row.testId) ?? -1}`}
         />
       ),
       minWidth: 140,
