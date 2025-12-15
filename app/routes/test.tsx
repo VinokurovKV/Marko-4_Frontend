@@ -2,7 +2,6 @@
 import type {
   TagPrimary,
   RequirementPrimary,
-  CoverageSecondary,
   CommonTopologyTertiary,
   TopologyTertiary,
   DbcPrimary,
@@ -15,13 +14,12 @@ import { serverConnector } from '~/server-connector'
 import {
   readTestTertiary,
   readTagsPrimaryFiltered,
-  readCoveragesSecondaryFiltered,
+  readRequirementsPrimaryFiltered,
+  readCommonTopologyTertiary,
   readTopologyTertiary,
   readDbcsPrimaryFiltered,
   readTestTemplatePrimary,
   readSubgroupSecondary,
-  readRequirementsPrimaryFiltered,
-  readCommonTopologyTertiary,
   readGroupPrimary
 } from '~/readers'
 import { useNotifier } from '~/providers/notifier'
@@ -29,7 +27,6 @@ import { useMeta } from '~/providers/meta'
 import {
   useTagsFilteredSubscription,
   useRequirementsFilteredSubscription,
-  useCoveragesFilteredSubscription,
   useCommonTopologySubscription,
   useTopologySubscription,
   useDbcsFilteredSubscription,
@@ -53,23 +50,17 @@ export async function clientLoader({ params }: Route.ClientLoaderArgs) {
   await serverConnector.connect()
   const [test] = await Promise.all([readTestTertiary(testId)])
   const tagIds = test?.tagIds ?? null
-  const coverageIds = test?.coverageIds ?? null
   const dbcIds = test?.dbcIds ?? null
-  const [tags, coverages, topology, dbcs, testTemplate, subgroup] =
+  const [tags, requirements, topology, dbcs, testTemplate, subgroup] =
     await Promise.all([
       readTagsPrimaryFiltered(tagIds),
-      readCoveragesSecondaryFiltered(coverageIds),
+      readRequirementsPrimaryFiltered(test?.requirementIds ?? null),
       readTopologyTertiary(test?.topologyId ?? null),
       readDbcsPrimaryFiltered(dbcIds),
       readTestTemplatePrimary(test?.testTemplateId ?? null),
       readSubgroupSecondary(test?.subgroupId ?? null)
     ])
-  const requirementIds =
-    coverages !== null
-      ? Array.from(new Set(coverages.map((coverage) => coverage.requirementId)))
-      : null
-  const [requirements, commonTopology, group] = await Promise.all([
-    readRequirementsPrimaryFiltered(requirementIds),
+  const [commonTopology, group] = await Promise.all([
     readCommonTopologyTertiary(topology?.commonTopologyId ?? null),
     readGroupPrimary(subgroup?.groupId ?? null)
   ])
@@ -77,7 +68,6 @@ export async function clientLoader({ params }: Route.ClientLoaderArgs) {
     testId,
     tags,
     requirements,
-    coverages,
     commonTopology,
     topology,
     dbcs,
@@ -93,7 +83,6 @@ function TestRouteInner({
     testId,
     tags: initialTags,
     requirements: initialRequirements,
-    coverages: initialCoverages,
     commonTopology: initialCommonTopology,
     topology: initialTopology,
     dbcs: initialDbcs,
@@ -110,9 +99,6 @@ function TestRouteInner({
   const [requirements, setRequirements] = React.useState<
     RequirementPrimary[] | null
   >(initialRequirements)
-  const [coverages, setCoverages] = React.useState<CoverageSecondary[] | null>(
-    initialCoverages
-  )
   const [commonTopology, setCommonTopology] =
     React.useState<CommonTopologyTertiary | null>(initialCommonTopology)
   const [topology, setTopology] = React.useState<TopologyTertiary | null>(
@@ -129,15 +115,9 @@ function TestRouteInner({
 
   const tagIds = React.useMemo(() => test?.tagIds ?? null, [test])
   const requirementIds = React.useMemo(
-    () =>
-      coverages !== null
-        ? Array.from(
-            new Set(coverages.map((coverage) => coverage.requirementId))
-          )
-        : null,
-    [coverages]
+    () => test?.requirementIds ?? null,
+    [test]
   )
-  const coverageIds = React.useMemo(() => test?.coverageIds ?? null, [test])
   const dbcIds = React.useMemo(() => test?.dbcIds ?? null, [test])
 
   useTagsFilteredSubscription('PRIMARY_PROPS', tagIds, setTags)
@@ -145,11 +125,6 @@ function TestRouteInner({
     'PRIMARY_PROPS',
     requirementIds,
     setRequirements
-  )
-  useCoveragesFilteredSubscription(
-    'UP_TO_SECONDARY_PROPS',
-    coverageIds,
-    setCoverages
   )
   useCommonTopologySubscription(
     'UP_TO_TERTIARY_PROPS',

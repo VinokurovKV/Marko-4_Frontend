@@ -4,7 +4,6 @@ import type {
   DocumentPrimary,
   FragmentPrimary,
   RequirementPrimary,
-  CoveragePrimary,
   CommonTopologyPrimary,
   TopologyPrimary,
   DbcPrimary,
@@ -35,7 +34,6 @@ export interface TagViewerProps {
   documentsForFragments: DocumentPrimary[] | null
   fragments: FragmentPrimary[] | null
   requirements: RequirementPrimary[] | null
-  coverages: CoveragePrimary[] | null
   commonTopologies: CommonTopologyPrimary[] | null
   topologies: TopologyPrimary[] | null
   dbcs: DbcPrimary[] | null
@@ -53,7 +51,6 @@ export function TagViewer({
   documentsForFragments,
   fragments,
   requirements,
-  coverages,
   commonTopologies,
   topologies,
   dbcs,
@@ -110,15 +107,6 @@ export function TagViewer({
               items={(requirements ?? []).map((requirement) => ({
                 text: requirement.code,
                 href: `/requirements/${requirement.id}`
-              }))}
-            />
-          </ColumnViewerBlock>
-          <ColumnViewerBlock title="покрытия требований">
-            <ColumnViewerChipsBlock
-              emptyText={coverages !== null ? 'нет' : '???'}
-              items={(coverages ?? []).map((coverage) => ({
-                text: coverage.code,
-                href: `/coverages/${coverage.id}`
               }))}
             />
           </ColumnViewerBlock>

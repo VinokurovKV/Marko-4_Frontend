@@ -6,7 +6,7 @@ import type {
   BigNameUndefinedWrapDto,
   RemarkTextUndefinedWrapDto,
   NumInSubgroupUndefinedWrapDto,
-  CoverageIdsUndefinedWrapDto,
+  RequirementIdsUndefinedWrapDto,
   TopologyIdUndefinedWrapDto,
   TestTemplateIdUndefinedWrapDto,
   TagIdsUndefinedWrapDto
@@ -28,7 +28,7 @@ export type CreateTestFormDataWithoutVertexes = DtoWithoutEnums<
     BigNameUndefinedWrapDto &
     SubgroupIdUndefinedWrapDto &
     NumInSubgroupUndefinedWrapDto &
-    CoverageIdsUndefinedWrapDto &
+    RequirementIdsUndefinedWrapDto &
     TestTemplateIdUndefinedWrapDto & {
       config?: File
     } & TopologyIdUndefinedWrapDto &
@@ -80,7 +80,7 @@ const formValidatorConfig: FormValidatorConfig<CreateTestFormData> = {
       transforms: ['TRIM', 'EMPTY_STR_TO_UNDEFINED', 'STR_TO_NUM'],
       rules: ['ALLOW_UNDEFINED', 'INT_NON_NEGATIVE']
     },
-    coverageIds: {
+    requirementIds: {
       transforms: ['EMPTY_ARR_TO_UNDEFINED']
     },
     testTemplateId: {

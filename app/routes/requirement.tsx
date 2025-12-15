@@ -5,7 +5,7 @@ import type {
   FragmentPrimary,
   RequirementPrimary,
   RequirementTertiary,
-  CoveragePrimary
+  TestPrimary
 } from '~/types'
 import { serverConnector } from '~/server-connector'
 import {
@@ -14,7 +14,7 @@ import {
   readFragmentsPrimaryFiltered,
   readRequirementsPrimaryFiltered,
   readRequirementTertiary,
-  readCoveragesPrimaryFiltered
+  readTestPrimary
 } from '~/readers'
 import { useNotifier } from '~/providers/notifier'
 import { useMeta } from '~/providers/meta'
@@ -24,7 +24,7 @@ import {
   useFragmentsFilteredSubscription,
   useRequirementsFilteredSubscription,
   useRequirementSubscription,
-  useCoveragesFilteredSubscription
+  useTestSubscription
 } from '~/hooks/resources'
 import { RequirementViewer } from '~/components/single-resource-viewers/resources/requirement'
 import { ForbiddenScreen } from '~/components/screens/problem/forbidden'
@@ -42,7 +42,7 @@ export async function clientLoader({ params }: Route.ClientLoaderArgs) {
   const [requirement] = await Promise.all([
     readRequirementTertiary(requirementId)
   ])
-  const [tags, fragments, parentRequirements, childRequirements, coverages] =
+  const [tags, fragments, parentRequirements, childRequirements, test] =
     await Promise.all([
       readTagsPrimaryFiltered(requirement?.tagIds ?? null),
       readFragmentsPrimaryFiltered(requirement?.fragmentIds ?? null),
@@ -50,7 +50,7 @@ export async function clientLoader({ params }: Route.ClientLoaderArgs) {
         requirement?.parentRequirementIds ?? null
       ),
       readRequirementsPrimaryFiltered(requirement?.childRequirementIds ?? null),
-      readCoveragesPrimaryFiltered(requirement?.coverageIds ?? null)
+      readTestPrimary(requirement?.testId ?? null)
     ])
   const documentIds =
     fragments !== null
@@ -67,7 +67,7 @@ export async function clientLoader({ params }: Route.ClientLoaderArgs) {
     requirement,
     parentRequirements,
     childRequirements,
-    coverages
+    test
   }
 }
 
@@ -80,7 +80,7 @@ function RequirementRouteInner({
     requirement: initialRequirement,
     parentRequirements: initialParentRequirements,
     childRequirements: initialChildRequirements,
-    coverages: initialCoverages
+    test: initialTest
   }
 }: Route.ComponentProps) {
   const notifier = useNotifier()
@@ -101,9 +101,7 @@ function RequirementRouteInner({
   const [childRequirements, setChildRequirements] = React.useState<
     RequirementPrimary[] | null
   >(initialChildRequirements)
-  const [coverages, setCoverages] = React.useState<CoveragePrimary[] | null>(
-    initialCoverages
-  )
+  const [test, setTest] = React.useState<TestPrimary | null>(initialTest)
 
   const tagIds = React.useMemo(() => requirement?.tagIds ?? null, [requirement])
   const documentIds = React.useMemo(
@@ -125,10 +123,6 @@ function RequirementRouteInner({
     () => requirement?.childRequirementIds ?? null,
     [requirement]
   )
-  const coverageIds = React.useMemo(
-    () => requirement?.coverageIds ?? null,
-    [requirement]
-  )
 
   useTagsFilteredSubscription('PRIMARY_PROPS', tagIds, setTags)
   useDocumentsFilteredSubscription('PRIMARY_PROPS', documentIds, setDocuments)
@@ -148,7 +142,7 @@ function RequirementRouteInner({
     childRequirementIds,
     setChildRequirements
   )
-  useCoveragesFilteredSubscription('PRIMARY_PROPS', coverageIds, setCoverages)
+  useTestSubscription('PRIMARY_PROPS', requirement?.testId ?? null, setTest)
 
   React.useEffect(() => {
     if (requirementId === null) {
@@ -176,7 +170,7 @@ function RequirementRouteInner({
       requirement={requirement}
       parentRequirements={parentRequirements}
       childRequirements={childRequirements}
-      coverages={coverages}
+      test={test}
     />
   ) : null
 }

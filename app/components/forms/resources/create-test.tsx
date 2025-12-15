@@ -12,7 +12,7 @@ import { useNotifier } from '~/providers/notifier'
 import { useChangeDetector } from '~/hooks/change-detector'
 import {
   useTags,
-  useCoverages,
+  useRequirements,
   useCommonTopology,
   useTopology
 } from '~/hooks/resources'
@@ -42,7 +42,8 @@ import * as React from 'react'
 
 const EMPTY_TAG_IDS_ARR: number[] = []
 const EMPTY_TAG_CODES_ARR: string[] = []
-const EMPTY_COVERAGE_IDS_ARR: number[] = []
+const EMPTY_REQUIREMENT_IDS_ARR: number[] = []
+// const EMPTY_COVERAGE_IDS_ARR: number[] = []
 const EMPTY_VERTEX_NAMES_ARR: string[] = []
 
 const CREATE_TEST_FORM_PROPS_JOINED = createTestFormValidator.getPromptsJoined()
@@ -64,13 +65,13 @@ export function CreateTestFormDialog(props: CreateTestFormDialogProps) {
   const notifier = useNotifier()
 
   const tags = useTags('PRIMARY_PROPS', false, props.createModeIsActive)
-  const coverages = useCoverages(
+
+  const tagIds = React.useMemo(() => tags?.map((tag) => tag.id) ?? [], [tags])
+  const requirements = useRequirements(
     'PRIMARY_PROPS',
     false,
     props.createModeIsActive
   )
-
-  const tagIds = React.useMemo(() => tags?.map((tag) => tag.id) ?? [], [tags])
 
   const tagCodeForId = React.useMemo(
     () => new Map((tags ?? []).map((tag) => [tag.id, tag.code])),
@@ -224,7 +225,6 @@ export function CreateTestFormDialog(props: CreateTestFormDialogProps) {
                   ...newCreatedTagIds
                 ]
               : undefined,
-          coverageIds: truncatedData.coverageIds,
           vertexes: vertexNamesSorted.map((vertexName, vertexIndex) => ({
             vertexName: vertexName,
             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
@@ -268,17 +268,20 @@ export function CreateTestFormDialog(props: CreateTestFormDialogProps) {
     onSuccessSubmit: onSuccessSubmit
   })
 
-  const coverageIds = React.useMemo(
-    () => coverages?.map((coverage) => coverage.id) ?? [],
-    [coverages]
+  const requirementIds = React.useMemo(
+    () => requirements?.map((requirement) => requirement.id) ?? [],
+    [requirements]
   )
 
-  const coverageCodeForId = React.useMemo(
+  const requirementCodeForId = React.useMemo(
     () =>
       new Map(
-        (coverages ?? []).map((coverage) => [coverage.id, coverage.code])
+        (requirements ?? []).map((requirement) => [
+          requirement.id,
+          requirement.code
+        ])
       ),
-    [coverages]
+    [requirements]
   )
 
   const topologyIds = React.useMemo(
@@ -447,17 +450,17 @@ export function CreateTestFormDialog(props: CreateTestFormDialogProps) {
           onChange={handleTextFieldChange}
         />
         <FormAutocompleteMultipleSelect
-          name="coverageIds"
-          label="покрытия"
-          possibleValues={coverageIds}
-          titleForValue={coverageCodeForId}
-          values={data.coverageIds ?? EMPTY_COVERAGE_IDS_ARR}
+          name="requirementIds"
+          label="покрываемые требования"
+          possibleValues={requirementIds}
+          titleForValue={requirementCodeForId}
+          values={data.requirementIds ?? EMPTY_REQUIREMENT_IDS_ARR}
           helperText={
-            errors?.coverageIds ??
-            CREATE_TEST_FORM_PROPS_JOINED.coverageIds ??
+            errors?.reqiuirementIds ??
+            CREATE_TEST_FORM_PROPS_JOINED.requirementIds ??
             ' '
           }
-          error={!!errors?.coverageIds}
+          error={!!errors?.requirementIds}
           onChange={handleAutocompleteMultipleSelectChange}
         />
         <FormAutocompleteSingleSelect

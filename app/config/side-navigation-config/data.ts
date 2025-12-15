@@ -16,7 +16,7 @@ import FoundationIcon from '@mui/icons-material/Foundation'
 // import GroupIcon from '@mui/icons-material/Group'
 import GroupsIcon from '@mui/icons-material/Groups'
 // import HistoryIcon from '@mui/icons-material/History'
-import HiveIcon from '@mui/icons-material/Hive'
+// import HiveIcon from '@mui/icons-material/Hive'
 // import HubIcon from '@mui/icons-material/Hub'
 import LanIcon from '@mui/icons-material/Lan'
 // import LayersIcon from '@mui/icons-material/Layers'
@@ -107,13 +107,13 @@ export const SIDE_NAVIGATION_CONFIG: SideNavigationConfig = [
           }
         ]
       },
-      {
-        id: 'coverages',
-        title: 'покрытия',
-        Icon: HiveIcon,
-        href: '/coverages',
-        requiredRights: ['READ_COVERAGE']
-      },
+      // {
+      //   id: 'coverages',
+      //   title: 'покрытия',
+      //   Icon: HiveIcon,
+      //   href: '/coverages',
+      //   requiredRights: ['READ_COVERAGE']
+      // },
       {
         id: 'topologies-block',
         title: 'топологии',

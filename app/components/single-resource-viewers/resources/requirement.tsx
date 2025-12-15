@@ -5,7 +5,7 @@ import type {
   FragmentPrimary,
   RequirementPrimary,
   RequirementTertiary,
-  CoveragePrimary
+  TestPrimary
 } from '~/types'
 import {
   localizationForRequirementModifier,
@@ -18,6 +18,7 @@ import {
   ColumnViewerBlock,
   ColumnViewerChipsBlock,
   ColumnViewerItem,
+  ColumnViewerRef,
   ColumnViewerText
 } from '../common'
 // React
@@ -30,7 +31,7 @@ export interface RequirementViewerProps {
   requirement: RequirementTertiary
   parentRequirements: RequirementPrimary[] | null
   childRequirements: RequirementPrimary[] | null
-  coverages: CoveragePrimary[] | null
+  test: TestPrimary | null
 }
 
 export function RequirementViewer({
@@ -40,7 +41,7 @@ export function RequirementViewer({
   requirement,
   parentRequirements,
   childRequirements,
-  coverages
+  test
 }: RequirementViewerProps) {
   const documentCodeForId = React.useMemo(
     () =>
@@ -66,6 +67,16 @@ export function RequirementViewer({
           <ColumnViewerItem
             field="происхождение"
             val={localizationForRequirementOrigin.get(requirement.origin)}
+          />
+          <ColumnViewerItem field="коэффициент" val={requirement.rate} />
+          <ColumnViewerRef
+            field="покрывающий тест"
+            text={test?.code}
+            href={
+              requirement.testId !== null
+                ? `/tests/${requirement.testId}`
+                : undefined
+            }
           />
         </ColumnViewerBlock>
         <ColumnViewerBlock
@@ -102,17 +113,6 @@ export function RequirementViewer({
             items={(childRequirements ?? []).map((requirement) => ({
               text: requirement.code,
               href: `/requirements/${requirement.id}`
-            }))}
-          />
-        </ColumnViewerBlock>
-        <ColumnViewerBlock
-          title={`покрытия${requirement.coveragesCount > 0 ? ` (${requirement.coveragesCount})` : ''}`}
-        >
-          <ColumnViewerChipsBlock
-            emptyText={coverages !== null ? 'нет' : '???'}
-            items={(coverages ?? []).map((coverage) => ({
-              text: coverage.code,
-              href: `/coverages/${coverage.id}`
             }))}
           />
         </ColumnViewerBlock>

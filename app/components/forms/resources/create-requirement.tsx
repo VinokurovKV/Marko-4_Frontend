@@ -2,7 +2,7 @@
 import { allRequirementModifiers, allRequirementOrigins } from '@common/enums'
 import type { CreateRequirementSuccessResultDto } from '@common/dtos/server-api/requirements.dto'
 import type { DtoWithoutEnums } from '@common/dto-without-enums'
-import type { RequirementPrimary } from '~/types'
+import type { RequirementPrimary, TestPrimary } from '~/types'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
 import { useTags, useDocuments, useFragments } from '~/hooks/resources'
@@ -20,9 +20,11 @@ import {
   useForm,
   FormAutocompleteFreeItemsMultipleSelect,
   FormAutocompleteMultipleSelect,
+  FormAutocompleteSingleSelect,
   FormBlock,
   FormDialog,
   FormMultilineTextField,
+  FormNumField,
   FormSelect,
   FormTextField
 } from '../common'
@@ -39,6 +41,7 @@ const CREATE_REQUIREMENT_FORM_PROPS_JOINED =
 
 export interface CreateRequirementFormDialogProps {
   requirements: RequirementPrimary[] | null
+  tests: TestPrimary[] | null
   createModeIsActive: boolean
   setCreateModeIsActive: React.Dispatch<React.SetStateAction<boolean>>
   onSuccessCreateRequirement?: (
@@ -122,6 +125,7 @@ export function CreateRequirementFormDialog(
         ...truncatedData,
         modifier: truncatedData.modifier!,
         origin: truncatedData.origin!,
+        testId: truncatedData.testId,
         description:
           descriptionText !== undefined
             ? {
@@ -165,6 +169,7 @@ export function CreateRequirementFormDialog(
     errors,
     handleTextFieldChange,
     handleStrSelectChange,
+    handleAutocompleteSingleSelectChange,
     handleAutocompleteMultipleSelectChange,
     handleAutocompleteMultipleSelectFreeItemsChange
   } = useForm<
@@ -235,6 +240,16 @@ export function CreateRequirementFormDialog(
     [props.requirements]
   )
 
+  const testIds = React.useMemo(
+    () => props.tests?.map((test) => test.id) ?? [],
+    [props.tests]
+  )
+
+  const testCodeForId = React.useMemo(
+    () => new Map((props.tests ?? []).map((test) => [test.id, test.code])),
+    [props.tests]
+  )
+
   return (
     <FormDialog
       formInternal={formInternal}
@@ -298,6 +313,17 @@ export function CreateRequirementFormDialog(
           error={!!errors?.origin}
           onChange={handleStrSelectChange}
         />
+        <FormNumField
+          required
+          name="rate"
+          label="коэффициент (для атомарных требований)"
+          value={data.rate}
+          helperText={
+            errors?.rate ?? CREATE_REQUIREMENT_FORM_PROPS_JOINED.rate ?? ' '
+          }
+          error={!!errors?.rate}
+          onChange={handleTextFieldChange}
+        />
         <FormAutocompleteMultipleSelect
           name="fragmentIds"
           label="фрагменты документов"
@@ -341,6 +367,20 @@ export function CreateRequirementFormDialog(
           }
           error={!!errors?.childRequirementIds}
           onChange={handleAutocompleteMultipleSelectChange}
+        />
+      </FormBlock>
+      <FormBlock title="покрытие (для атомарных требований)">
+        <FormAutocompleteSingleSelect
+          name="testId"
+          label="тест"
+          possibleValues={testIds}
+          titleForValue={testCodeForId}
+          value={data.testId ?? null}
+          helperText={
+            errors?.testId ?? CREATE_REQUIREMENT_FORM_PROPS_JOINED.testId ?? ' '
+          }
+          error={!!errors?.testId}
+          onChange={handleAutocompleteSingleSelectChange}
         />
       </FormBlock>
       <FormBlock title="дополнительная информация">

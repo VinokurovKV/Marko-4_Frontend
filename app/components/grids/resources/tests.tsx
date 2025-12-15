@@ -17,12 +17,12 @@ import {
   type ActionsColProps,
   useActionsCol,
   useCodeCol,
-  useCoveragesCountCol,
   useDbcsCountCol,
   useDsefsCountCol,
   useNameCol,
   useNumInSubgroupCol,
   usePreparedCol,
+  useCoveredRequirementsCountCol,
   useSubgroupCol,
   useTestTemplateCol,
   useTopologyCol
@@ -72,7 +72,7 @@ export function TestsGrid(props: TestsGridProps) {
     useNameCol(),
     useSubgroupCol(props.subgroups),
     useNumInSubgroupCol(),
-    useCoveragesCountCol(),
+    useCoveredRequirementsCountCol(),
     useTopologyCol(props.topologies),
     useTestTemplateCol(props.testTemplates),
     usePreparedCol(

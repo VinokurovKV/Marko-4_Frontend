@@ -19,6 +19,7 @@ type FormValidatorOneFieldRule =
   | 'FORENAME'
   | 'IFACE_NAME'
   | 'INT_NON_NEGATIVE'
+  | 'INT_POSITIVE'
   | 'LOGIN'
   | 'NAME'
   | 'NOT_EMPTY_STR'
@@ -153,6 +154,11 @@ export class FormValidator<Data extends FormData> {
         case 'INT_NON_NEGATIVE':
           ;(() => {
             props.push('целое неотрицательное число')
+          })()
+          break
+        case 'INT_POSITIVE':
+          ;(() => {
+            props.push('целое положительное число')
           })()
           break
         case 'LOGIN':
@@ -567,6 +573,15 @@ export class FormValidator<Data extends FormData> {
               errors.push('значение должно быть целым числом')
             } else if (val < 0) {
               errors.push('значение должно быть не меньше 0')
+            }
+          })()
+          break
+        case 'INT_POSITIVE':
+          ;(() => {
+            if (typeof val !== 'number' || Number.isInteger(val) === false) {
+              errors.push('значение должно быть целым числом')
+            } else if (val <= 0) {
+              errors.push('значение должно быть не меньше 1')
             }
           })()
           break

@@ -4,7 +4,6 @@ import type {
   DocumentPrimary,
   FragmentPrimary,
   RequirementPrimary,
-  CoveragePrimary,
   CommonTopologyPrimary,
   TopologyPrimary,
   DbcPrimary,
@@ -21,7 +20,6 @@ import {
   readDocumentsPrimaryFiltered,
   readFragmentsPrimaryFiltered,
   readRequirementsPrimaryFiltered,
-  readCoveragesPrimaryFiltered,
   readCommonTopologiesPrimaryFiltered,
   readTopologiesPrimaryFiltered,
   readDbcsPrimaryFiltered,
@@ -39,7 +37,6 @@ import {
   useDocumentsFilteredSubscription,
   useFragmentsFilteredSubscription,
   useRequirementsFilteredSubscription,
-  useCoveragesFilteredSubscription,
   useCommonTopologiesFilteredSubscription,
   useTopologiesFilteredSubscription,
   useDbcsFilteredSubscription,
@@ -68,7 +65,6 @@ export async function clientLoader({ params }: Route.ClientLoaderArgs) {
     documents,
     fragments,
     requirements,
-    coverages,
     commonTopologies,
     topologies,
     dbcs,
@@ -82,7 +78,6 @@ export async function clientLoader({ params }: Route.ClientLoaderArgs) {
     readDocumentsPrimaryFiltered(tag?.documentIds ?? null),
     readFragmentsPrimaryFiltered(tag?.fragmentIds ?? null),
     readRequirementsPrimaryFiltered(tag?.requirementIds ?? null),
-    readCoveragesPrimaryFiltered(tag?.coverageIds ?? null),
     readCommonTopologiesPrimaryFiltered(tag?.commonTopologyIds ?? null),
     readTopologiesPrimaryFiltered(tag?.topologyIds ?? null),
     readDbcsPrimaryFiltered(tag?.dbcIds ?? null),
@@ -107,7 +102,6 @@ export async function clientLoader({ params }: Route.ClientLoaderArgs) {
     documentsForFragments,
     fragments,
     requirements,
-    coverages,
     commonTopologies,
     topologies,
     dbcs,
@@ -128,7 +122,6 @@ function TagRouteInner({
     documentsForFragments: initialDocumentsForFragments,
     fragments: initialFragments,
     requirements: initialRequirements,
-    coverages: initialCoverages,
     commonTopologies: initialCommonTopologies,
     topologies: initialTopologies,
     dbcs: initialDbcs,
@@ -156,9 +149,6 @@ function TagRouteInner({
   const [requirements, setRequirements] = React.useState<
     RequirementPrimary[] | null
   >(initialRequirements)
-  const [coverages, setCoverages] = React.useState<CoveragePrimary[] | null>(
-    initialCoverages
-  )
   const [commonTopologies, setCommonTopologies] = React.useState<
     CommonTopologyPrimary[] | null
   >(initialCommonTopologies)
@@ -209,11 +199,6 @@ function TagRouteInner({
     'PRIMARY_PROPS',
     tag?.requirementIds ?? null,
     setRequirements
-  )
-  useCoveragesFilteredSubscription(
-    'PRIMARY_PROPS',
-    tag?.coverageIds ?? null,
-    setCoverages
   )
   useCommonTopologiesFilteredSubscription(
     'PRIMARY_PROPS',
@@ -272,7 +257,6 @@ function TagRouteInner({
       documentsForFragments={documentsForFragments}
       fragments={fragments}
       requirements={requirements}
-      coverages={coverages}
       commonTopologies={commonTopologies}
       topologies={topologies}
       dbcs={dbcs}

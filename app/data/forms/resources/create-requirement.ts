@@ -9,7 +9,9 @@ import type {
   RemarkTextUndefinedWrapDto,
   RequirementModifierUndefinedWrapDto,
   RequirementOriginUndefinedWrapDto,
-  TagIdsUndefinedWrapDto
+  RequirementRateWrapDto,
+  TagIdsUndefinedWrapDto,
+  TestIdUndefinedWrapDto
 } from '@common/dtos'
 import type { DtoWithoutEnums } from '@common/dto-without-enums'
 import {
@@ -25,9 +27,11 @@ export type CreateRequirementFormData = DtoWithoutEnums<
     BigNameUndefinedWrapDto &
     RequirementModifierUndefinedWrapDto &
     RequirementOriginUndefinedWrapDto &
+    RequirementRateWrapDto &
     FragmentIdsUndefinedWrapDto &
     ParentRequirementIdsUndefinedWrapDto &
     ChildRequirementIdsUndefinedWrapDto &
+    TestIdUndefinedWrapDto &
     DescriptionTextUndefinedWrapDto &
     TagIdsUndefinedWrapDto & {
       tagCodesToCreate?: string[]
@@ -39,7 +43,8 @@ export type CreateRequirementFormKey = FormKey<CreateRequirementFormData>
 export type CreateRequirementFormVal = FormVal<CreateRequirementFormData>
 
 export const INITIAL_CREATE_REQUIREMENT_FORM_DATA: CreateRequirementFormData = {
-  code: ''
+  code: '',
+  rate: 1
 }
 
 export type CreateRequirementFormErrors =
@@ -67,6 +72,10 @@ export const createRequirementFormValidator =
         transforms: ['EMPTY_STR_TO_UNDEFINED'],
         rules: ['NOT_UNDEFINED']
       },
+      rate: {
+        transforms: ['TRIM', 'EMPTY_STR_TO_UNDEFINED', 'STR_TO_NUM'],
+        rules: ['NOT_UNDEFINED', 'INT_POSITIVE']
+      },
       fragmentIds: {
         transforms: ['EMPTY_ARR_TO_UNDEFINED']
       },
@@ -75,6 +84,9 @@ export const createRequirementFormValidator =
       },
       childRequirementIds: {
         transforms: ['EMPTY_ARR_TO_UNDEFINED']
+      },
+      testId: {
+        transforms: ['EMPTY_STR_TO_UNDEFINED']
       },
       descriptionText: {
         transforms: ['TRIM', 'EMPTY_STR_TO_UNDEFINED'],

@@ -1,5 +1,5 @@
 // Project
-import type { RequirementSecondary } from '~/types'
+import type { RequirementSecondary, TestPrimary } from '~/types'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
 import { useMeta } from '~/providers/meta'
@@ -10,12 +10,13 @@ import {
   useActionsCol,
   useChildRequirementsCountCol,
   useCodeCol,
-  useCoveragesCountCol,
   useFragmentsCountCol,
   useNameCol,
   useParentRequirementsCountCol,
   useRequirementModifierCol,
-  useRequirementOriginCol
+  useRequirementOriginCol,
+  useRequirementRateCol,
+  useTestCol
 } from '../cols'
 // React router
 import { useNavigate } from 'react-router'
@@ -28,6 +29,7 @@ const MAX_REQUIREMENTS_IN_MESSAGES = 3
 
 export interface RequirementsGridProps {
   requirements: RequirementSecondary[]
+  tests: TestPrimary[] | null
   navigationMode?: boolean
   navigationModeSelectedRowId?: number
 }
@@ -63,10 +65,11 @@ export function RequirementsGrid(props: RequirementsGridProps) {
     useNameCol(),
     useRequirementModifierCol(),
     useRequirementOriginCol(),
+    useRequirementRateCol(),
     useFragmentsCountCol(),
     useParentRequirementsCountCol(),
     useChildRequirementsCountCol(),
-    useCoveragesCountCol()
+    useTestCol(props.tests)
   ]
 
   const navigationModeReadCols = React.useMemo(() => [readCols[0]], [readCols])
@@ -112,8 +115,7 @@ export function RequirementsGrid(props: RequirementsGridProps) {
   )
 
   const defaultHiddenFields = React.useMemo(
-    () =>
-      ['fragmentsCount', 'coveragesCount'] as (keyof RequirementSecondary)[],
+    () => ['fragmentsCount'] as (keyof RequirementSecondary)[],
     []
   )
 
@@ -208,6 +210,7 @@ export function RequirementsGrid(props: RequirementsGridProps) {
       />
       <CreateRequirementFormDialog
         requirements={props.requirements}
+        tests={props.tests}
         createModeIsActive={createModeIsActive}
         setCreateModeIsActive={setCreateModeIsActive}
         onSuccessCreateRequirement={cancelCreateForm}
