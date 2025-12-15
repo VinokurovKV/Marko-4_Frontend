@@ -27,6 +27,7 @@ export interface FormSelectProps<Value extends number | string>
 
 const InputLabelStyled = styled(InputLabel)({
   '&': {
+    height: '32px', // '36px'
     fontSize: '0.85rem',
     transform: 'translate(13px, 6.5px)'
   },
@@ -49,8 +50,11 @@ export function FormSelect<Value extends number | string>({
   const SelectStyled = React.useMemo(
     () =>
       styled(Select<Value>)({
+        '&': {
+          height: '32px'
+        },
         '& .MuiSelect-select': {
-          height: '1.4375em !important',
+          // height: '2.4375em !important',
           paddingTop: '7.0px !important',
           paddingBottom: '9.0px !important',
           fontSize: '0.85rem !important'
