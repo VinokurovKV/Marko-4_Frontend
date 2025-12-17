@@ -103,8 +103,8 @@ export function CreateUserFormDialog(props: CreateUserFormDialogProps) {
       clearButton={{
         title: 'очистить'
       }}
-      createModeIsActive={props.createModeIsActive}
-      setCreateModeIsActive={props.setCreateModeIsActive}
+      isActive={props.createModeIsActive}
+      setIsActive={props.setCreateModeIsActive}
     >
       <FormBlock title="основная информация">
         <FormTextField

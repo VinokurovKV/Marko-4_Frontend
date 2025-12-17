@@ -1,7 +1,7 @@
 // Project
 import { convertMediaTypeToFileExtension } from '@common/formats'
 import type { TestTemplateSecondary } from '~/types'
-import { downloadFileFromBlob } from '~/utilities/download-file'
+import { downloadFileFromBlob } from '~/utilities'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
 import { useMeta } from '~/providers/meta'

@@ -408,8 +408,8 @@ export function CreateTaskFormDialog(props: CreateTaskFormDialogProps) {
       clearButton={{
         title: 'очистить'
       }}
-      createModeIsActive={props.createModeIsActive}
-      setCreateModeIsActive={props.setCreateModeIsActive}
+      isActive={props.createModeIsActive}
+      setIsActive={props.setCreateModeIsActive}
     >
       <FormBlock title="основная информация">
         <FormTextField
@@ -533,11 +533,13 @@ export function CreateTaskFormDialog(props: CreateTaskFormDialogProps) {
         <FormCheckbox
           name="abortIfNotPassed"
           label="прерывать при непрохождении либо ошибке"
+          checked={data.abortIfNotPassed}
           onChange={handleCheckboxChange}
         />
         <FormCheckbox
           name="withoutDeviceConfig"
           label="отключить конфигурирование устройств перед запуском тестов"
+          checked={data.withoutDeviceConfig}
           onChange={handleCheckboxChange}
         />
         <FormNumField
@@ -553,6 +555,7 @@ export function CreateTaskFormDialog(props: CreateTaskFormDialogProps) {
         <FormCheckbox
           name="paused"
           label="постановка на паузу при создании"
+          checked={data.paused}
           onChange={handleCheckboxChange}
         />
         {/* <FormDateTime

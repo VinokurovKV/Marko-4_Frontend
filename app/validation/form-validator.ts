@@ -20,6 +20,7 @@ type FormValidatorOneFieldRule =
   | 'IFACE_NAME'
   | 'INT_NON_NEGATIVE'
   | 'INT_POSITIVE'
+  | 'JSON_ZIP_EXT'
   | 'LOGIN'
   | 'NAME'
   | 'NOT_EMPTY_STR'
@@ -159,6 +160,11 @@ export class FormValidator<Data extends FormData> {
         case 'INT_POSITIVE':
           ;(() => {
             props.push('целое положительное число')
+          })()
+          break
+        case 'JSON_ZIP_EXT':
+          ;(() => {
+            props.push(`допустимые  расширения: '.json', '.zip'`)
           })()
           break
         case 'LOGIN':
@@ -582,6 +588,14 @@ export class FormValidator<Data extends FormData> {
               errors.push('значение должно быть целым числом')
             } else if (val <= 0) {
               errors.push('значение должно быть не меньше 1')
+            }
+          })()
+          break
+        case 'JSON_ZIP_EXT':
+          ;(() => {
+            const fileErrors = this.getFileErrors(val, ['json', 'zip'])
+            if (fileErrors !== null) {
+              errors.push(...fileErrors)
             }
           })()
           break

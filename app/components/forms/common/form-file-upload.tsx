@@ -203,6 +203,9 @@ export function FormFileUpload(props: FormFileUploadProps) {
         >
           Загрузить
           <VisuallyHiddenInput
+            key={
+              `${props.value !== undefined}` /* that's done to fix bug with clear and then select the same file */
+            }
             type="file"
             accept={accept}
             onChange={handleChange}

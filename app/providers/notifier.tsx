@@ -274,6 +274,8 @@ export function NotifierProvider(props: NotifierProviderProps) {
                   return 'пользователь не авторизован'
                 }
                 return 'ошибка при запросе на сервер'
+              } else if (error instanceof Error) {
+                return error.message
               }
               return 'ошибка'
             })()

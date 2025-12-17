@@ -87,6 +87,10 @@ export interface GridProps {
     createModeIsActive: boolean
     setCreateModeIsActive: React.Dispatch<React.SetStateAction<boolean>>
   }
+  import?: {
+    importModeIsActive: boolean
+    setImportModeIsActive: React.Dispatch<React.SetStateAction<boolean>>
+  }
   deleteMany?: {
     prepareConfirmMessage?: (rowIds: number[]) => string
     /* Method must throws if action is unsuccessful */
@@ -211,6 +215,14 @@ export function Grid(props: GridProps) {
     }
   }, [props.create?.createModeIsActive, props.create?.setCreateModeIsActive])
 
+  const handleImportClick = React.useCallback(() => {
+    if (props.import) {
+      const { importModeIsActive, setImportModeIsActive } = props.import
+      const newImportModeIsActive = !importModeIsActive
+      setImportModeIsActive(newImportModeIsActive)
+    }
+  }, [props.import?.importModeIsActive, props.import?.setImportModeIsActive])
+
   const handleDeleteManyClick = React.useCallback(() => {
     const newDeleteModeIsActive = !deleteModeIsActive
     setDeleteModeIsActive(newDeleteModeIsActive)
@@ -313,6 +325,12 @@ export function Grid(props: GridProps) {
                 ? {
                     active: props.create.createModeIsActive,
                     onClick: handleCreateClick
+                  }
+                : undefined,
+              importButton: props.import
+                ? {
+                    active: props.import.importModeIsActive,
+                    onClick: handleImportClick
                   }
                 : undefined,
               deleteManyButton: props.deleteMany

@@ -3,7 +3,7 @@ import type { TagPrimary, DocumentTertiary, FragmentPrimary } from '~/types'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
 import { localizationForDocumentType } from '~/localization'
-import { formatDate } from '~/utilities/format-date'
+import { formatDate } from '~/utilities'
 import { HorizontalTwoPartsContainer } from '~/components/containers'
 import { FormatIcon } from '~/components/grids/cols'
 import {

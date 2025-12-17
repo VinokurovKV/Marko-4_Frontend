@@ -1,5 +1,5 @@
 // Project
-import { formatDateTime } from '~/utilities/format-date'
+import { formatDateTime } from '~/utilities'
 // Material UI
 import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'

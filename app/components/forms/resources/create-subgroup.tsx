@@ -190,8 +190,8 @@ export function CreateSubgroupFormDialog(props: CreateSubgroupFormDialogProps) {
       clearButton={{
         title: 'очистить'
       }}
-      createModeIsActive={props.createModeIsActive}
-      setCreateModeIsActive={props.setCreateModeIsActive}
+      isActive={props.createModeIsActive}
+      setIsActive={props.setCreateModeIsActive}
     >
       <FormBlock title="основная информация">
         <FormTextField

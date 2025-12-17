@@ -4,6 +4,7 @@ import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
 import { useMeta } from '~/providers/meta'
 import { CreateRequirementFormDialog } from '~/components/forms/resources/create-requirement'
+import { ImportRequirementsFormDialog } from '~/components/forms/resources/import-requirements'
 import { type GridProps, Grid } from '../grid'
 import {
   type ActionsColProps,
@@ -46,6 +47,7 @@ export function RequirementsGrid(props: RequirementsGridProps) {
   )
 
   const [createModeIsActive, setCreateModeIsActive] = React.useState(false)
+  const [importModeIsActive, setImportModeIsActive] = React.useState(false)
 
   const requirementCodeForId = React.useMemo(
     () =>
@@ -130,6 +132,17 @@ export function RequirementsGrid(props: RequirementsGridProps) {
     [rightsSet, createModeIsActive, setCreateModeIsActive]
   )
 
+  const importProps: GridProps['import'] = React.useMemo(
+    () =>
+      rightsSet.has('CREATE_REQUIREMENT')
+        ? {
+            importModeIsActive: importModeIsActive,
+            setImportModeIsActive: setImportModeIsActive
+          }
+        : undefined,
+    [rightsSet, importModeIsActive, setImportModeIsActive]
+  )
+
   const getDisplayedRequirementCodes = React.useCallback(
     (ids: number[]) => {
       return ids
@@ -176,6 +189,10 @@ export function RequirementsGrid(props: RequirementsGridProps) {
     setCreateModeIsActive(false)
   }, [setCreateModeIsActive])
 
+  const cancelImportForm = React.useCallback(() => {
+    setImportModeIsActive(false)
+  }, [setImportModeIsActive])
+
   // const handleChangeModeClick = React.useCallback(() => {
   //   void navigate(navigationMode ? '/requirements' : '/requirements/hierarchy')
   // }, [navigationMode, navigate])
@@ -205,6 +222,7 @@ export function RequirementsGrid(props: RequirementsGridProps) {
         navigationModeOnRowClick={handleNavigationModeRowClick}
         // onChangeModeClick={handleChangeModeClick}
         create={createProps}
+        import={importProps}
         deleteMany={deleteManyProps}
         compactFooter={navigationMode}
       />
@@ -215,6 +233,14 @@ export function RequirementsGrid(props: RequirementsGridProps) {
         setCreateModeIsActive={setCreateModeIsActive}
         onSuccessCreateRequirement={cancelCreateForm}
         onCancelClick={cancelCreateForm}
+      />
+      <ImportRequirementsFormDialog
+        requirements={props.requirements}
+        tests={props.tests}
+        importModeIsActive={importModeIsActive}
+        setImportModeIsActive={setImportModeIsActive}
+        onSuccessImportRequirements={cancelImportForm}
+        onCancelClick={cancelImportForm}
       />
     </>
   )

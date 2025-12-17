@@ -254,7 +254,9 @@ export function useForm<Data extends FormData, SubmitActionResult>(
 
   const prepareTextForSubmitActionError = React.useCallback(
     (error: any): string | null => {
-      if (error instanceof ServerConnectorBadRequestError) {
+      if (typeof error === 'string') {
+        return error
+      } else if (error instanceof ServerConnectorBadRequestError) {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
         const errorReasons = (error.object as any)?.errorReasons
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
@@ -320,6 +322,8 @@ export function useForm<Data extends FormData, SubmitActionResult>(
         return 'не удалось авторизоваться, проверьте вводимые данные'
       } else if (error instanceof ServerConnectorError) {
         return 'произошла ошибка при выполнении действия'
+      } else if (error instanceof Error) {
+        return error.message
       } else {
         return null
       }
@@ -358,6 +362,12 @@ export function useForm<Data extends FormData, SubmitActionResult>(
           const errorText = prepareTextForSubmitActionError(error)
           if (errorText !== null) {
             setSubmitActionError(capitalize(errorText, true))
+            if (
+              typeof error !== 'string' &&
+              error instanceof ServerConnectorError === false
+            ) {
+              throw error
+            }
           } else {
             setSubmitActionError(null)
             // TODO: unsuccessful request
@@ -505,8 +515,8 @@ export function Form(props: FormProps) {
 }
 
 export type FormDialogProps = FormProps & {
-  createModeIsActive: boolean
-  setCreateModeIsActive: React.Dispatch<React.SetStateAction<boolean>>
+  isActive: boolean
+  setIsActive: React.Dispatch<React.SetStateAction<boolean>>
 }
 
 function useFormSeparated(props: FormProps) {
@@ -590,33 +600,28 @@ function useFormSeparated(props: FormProps) {
 }
 
 export function FormDialog({
-  createModeIsActive,
-  setCreateModeIsActive,
+  isActive,
+  setIsActive,
   ...props
 }: FormDialogProps) {
   const { TitleElem, ContentElem, ActionsElem } = useFormSeparated(props)
 
-  const cancelCreateForm = React.useCallback(() => {
-    setCreateModeIsActive(false)
-  }, [setCreateModeIsActive])
+  const cancelForm = React.useCallback(() => {
+    setIsActive(false)
+  }, [setIsActive])
 
   useChangeDetector({
-    detectedObjects: [createModeIsActive],
+    detectedObjects: [isActive],
     otherDependencies: [props.formInternal.clear],
-    onChange: ([oldCreateModeIsActive]) => {
-      if (oldCreateModeIsActive === false) {
+    onChange: ([oldIsActive]) => {
+      if (oldIsActive === false) {
         props.formInternal.clear()
       }
     }
   })
 
   return (
-    <Dialog
-      scroll="paper"
-      onClose={cancelCreateForm}
-      open={createModeIsActive}
-      maxWidth={'md'}
-    >
+    <Dialog scroll="paper" onClose={cancelForm} open={isActive} maxWidth={'md'}>
       {TitleElem !== null ? <DialogTitle>{TitleElem}</DialogTitle> : null}
       <DialogContent dividers={true}>
         <FormContainer>{ContentElem}</FormContainer>

@@ -581,8 +581,8 @@ export function CreateCommonTopologyFormDialog(
       clearButton={{
         title: 'очистить'
       }}
-      createModeIsActive={props.createModeIsActive}
-      setCreateModeIsActive={props.setCreateModeIsActive}
+      isActive={props.createModeIsActive}
+      setIsActive={props.setCreateModeIsActive}
     >
       <FormBlock title="основная информация">
         <FormTextField
@@ -651,6 +651,8 @@ export function CreateCommonTopologyFormDialog(
             <FormCheckbox
               name={vertexIsGeneratorField}
               label="генератор"
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+              checked={data[vertexIsGeneratorField]}
               onChange={handleCheckboxChange}
             />
             <FormAutocompleteFreeItemsMultipleSelect

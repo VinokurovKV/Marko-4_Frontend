@@ -7,6 +7,7 @@ import DeleteIcon from '@mui/icons-material/Delete'
 import FileDownloadIcon from '@mui/icons-material/FileDownload'
 import FilterListIcon from '@mui/icons-material/FilterList'
 import KeyboardDoubleArrowLeftIcon from '@mui/icons-material/KeyboardDoubleArrowLeft'
+import FileUploadIcon from '@mui/icons-material/FileUpload'
 import SearchIcon from '@mui/icons-material/Search'
 import ViewColumnIcon from '@mui/icons-material/ViewColumn'
 import { styled } from '@mui/material/styles'
@@ -77,6 +78,10 @@ export interface ProjGridToolbarProps {
     active: boolean
     onClick: () => void
   }
+  importButton?: {
+    active: boolean
+    onClick: () => void
+  }
   deleteManyButton?: {
     active: boolean
     onClick: () => void
@@ -122,6 +127,26 @@ export function ProjGridToolbar(props: ProjGridToolbarProps) {
               <AddIcon
                 fontSize="medium"
                 color={props.createButton.active ? 'primary' : undefined}
+              />
+            </ToolbarButton>
+          </Tooltip>
+          <GridToolbarDivider />
+        </>
+      ) : null}
+
+      {props.importButton ? (
+        <>
+          <Tooltip
+            title={
+              props.importButton.active
+                ? 'Отменить импорт'
+                : 'Импортировать из файловой системы'
+            }
+          >
+            <ToolbarButton onClick={props.importButton.onClick}>
+              <FileUploadIcon
+                fontSize="medium"
+                color={props.importButton.active ? 'primary' : undefined}
               />
             </ToolbarButton>
           </Tooltip>

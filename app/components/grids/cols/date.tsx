@@ -1,7 +1,7 @@
 // TODO: bag with useDateCol filtering (1-day delta, here too: https://mui.com/x/react-data-grid/custom-columns/), only for date, not for datetime
 
 // Project
-import { formatDate, formatDateTime } from '~/utilities/format-date'
+import { formatDate, formatDateTime } from '~/utilities'
 // React
 import * as React from 'react'
 // Material UI

@@ -2,7 +2,7 @@
 import { convertNumberOfBytesToStr } from '@common/utilities'
 import { type FileFormat, convertFileFormatToExtension } from '@common/formats'
 import type { TestReportTertiary } from '~/types'
-import { downloadFileFromBlob } from '~/utilities/download-file'
+import { downloadFileFromBlob } from '~/utilities'
 // React
 import * as React from 'react'
 // Material UI
