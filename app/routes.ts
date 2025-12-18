@@ -49,14 +49,25 @@ export default [
             route('test-templates', 'routes/test-templates.tsx', [
               route(':testTemplateId', 'routes/test-template.tsx')
             ]),
+            route('hierarchy', 'routes/tests-hierarchy.tsx', [
+              route('tests/:testId', 'routes/test.tsx', {
+                id: 'tests-hierarchy-test'
+              }),
+              route('subgroups/:subgroupId', 'routes/subgroup.tsx', {
+                id: 'tests-hierarchy-subgroup'
+              }),
+              route('groups/:groupId', 'routes/group.tsx', {
+                id: 'tests-hierarchy-group'
+              })
+            ]),
             route('tests', 'routes/tests.tsx', [
-              route(':testId', 'routes/test.tsx')
+              route(':testId', 'routes/test.tsx', { id: 'test' })
             ]),
             route('subgroups', 'routes/subgroups.tsx', [
-              route(':subgroupId', 'routes/subgroup.tsx')
+              route(':subgroupId', 'routes/subgroup.tsx', { id: 'subgroup' })
             ]),
             route('groups', 'routes/groups.tsx', [
-              route(':groupId', 'routes/group.tsx')
+              route(':groupId', 'routes/group.tsx', { id: 'group' })
             ]),
             route('devices', 'routes/devices.tsx', [
               route(':deviceId', 'routes/device.tsx')

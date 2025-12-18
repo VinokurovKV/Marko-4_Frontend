@@ -58,7 +58,7 @@ export function RolesScreen({ children, ...props }: RolesScreenProps) {
           ]
         : [])
     ],
-    [roleId, roleName]
+    [withRole, roleId, roleName]
   )
   return (
     <LayoutScreenContainer title="роли" breadcrumbsItems={breadcrumbsItems}>

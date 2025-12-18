@@ -65,7 +65,7 @@ export function DocumentsScreen({ children, ...props }: DocumentsScreenProps) {
           ]
         : [])
     ],
-    [documentId, documentCode]
+    [withDocument, documentId, documentCode]
   )
   return (
     <LayoutScreenContainer

@@ -17,6 +17,7 @@
     "@mui/utils": "^7.3.5",
     "@mui/x-data-grid": "^8.18.0",
     "@mui/x-date-pickers": "^8.19.0",
+    "@mui/x-tree-view": "^8.22.0",
     "@react-router/node": "^7.9.2",
     "@react-router/serve": "^7.9.2",
     "axios": "^1.13.2",

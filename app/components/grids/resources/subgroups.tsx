@@ -187,6 +187,7 @@ export function SubgroupsGrid(props: SubgroupsGridProps) {
         navigationModeOnRowClick={handleNavigationModeRowClick}
         create={createProps}
         deleteMany={deleteManyProps}
+        compactFooter={navigationMode}
       />
       <CreateSubgroupFormDialog
         groups={props.groups}

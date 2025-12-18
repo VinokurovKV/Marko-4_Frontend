@@ -206,6 +206,20 @@ export function TestViewer({
     >
       <VerticalTwoPartsContainer proportions="50_50">
         <ColumnViewer>
+          <ColumnViewerBlock title="вид навигации">
+            <ColumnViewerChipsBlock
+              items={[
+                {
+                  text: 'таблица',
+                  href: `/tests/${test.id}`
+                },
+                {
+                  text: 'иерархия',
+                  href: `/hierarchy/tests/${test.id}`
+                }
+              ]}
+            />
+          </ColumnViewerBlock>
           <ColumnViewerBlock title="основная информация">
             <ColumnViewerItem field="код" val={test.code} />
             <ColumnViewerItem field="название" val={test.name ?? ''} />
@@ -222,14 +236,16 @@ export function TestViewer({
             <ColumnViewerRef
               field="группа"
               text={group?.code}
-              href={group !== null ? `/groups/${group.id}` : undefined}
+              href={
+                group !== null ? `/hierarchy/groups/${group.id}` : undefined
+              }
             />
             <ColumnViewerRef
               field="подгруппа"
               text={subgroup?.code}
               href={
                 test.subgroupId !== null
-                  ? `/subgroups/${test.subgroupId}`
+                  ? `/hierarchy/subgroups/${test.subgroupId}`
                   : undefined
               }
             />

@@ -65,7 +65,7 @@ export function CoveragesScreen({ children, ...props }: CoveragesScreenProps) {
           ]
         : [])
     ],
-    [coverageId, coverageCode]
+    [withCoverage, coverageId, coverageCode]
   )
   return (
     <LayoutScreenContainer

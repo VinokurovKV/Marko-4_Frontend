@@ -69,7 +69,7 @@ export function TopologiesScreen({
           ]
         : [])
     ],
-    [topologyId, topologyCode]
+    [withTopology, topologyId, topologyCode]
   )
   return (
     <LayoutScreenContainer

@@ -30,7 +30,7 @@ export function useGroupCol(groups: Group[] | null | undefined) {
       renderCell: (params: GridRenderCellParams<any, string>) => (
         <GridRefCell
           text={params.value}
-          hrefPrefix="/groups"
+          hrefPrefix="/hierarchy/groups"
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
           hrefPath={params.row.groupId}
         />

@@ -58,7 +58,7 @@ export function TagsScreen({ children, ...props }: TagsScreenProps) {
           ]
         : [])
     ],
-    [tagId, tagCode]
+    [withTag, tagId, tagCode]
   )
   return (
     <LayoutScreenContainer title="теги" breadcrumbsItems={breadcrumbsItems}>

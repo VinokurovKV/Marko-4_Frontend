@@ -22,6 +22,20 @@ export function GroupViewer({ tags, subgroups, group }: GroupViewerProps) {
       title={['Группа', `${group.code}`]}
     >
       <ColumnViewer>
+        <ColumnViewerBlock title="вид навигации">
+          <ColumnViewerChipsBlock
+            items={[
+              {
+                text: 'таблица',
+                href: `/groups/${group.id}`
+              },
+              {
+                text: 'иерархия',
+                href: `/hierarchy/groups/${group.id}`
+              }
+            ]}
+          />
+        </ColumnViewerBlock>
         <ColumnViewerBlock title="основная информация">
           <ColumnViewerItem field="код" val={group.code} />
           <ColumnViewerItem field="название" val={group.name} />
@@ -34,7 +48,7 @@ export function GroupViewer({ tags, subgroups, group }: GroupViewerProps) {
             emptyText={subgroups !== null ? 'нет' : '???'}
             items={(subgroups ?? []).map((subgroup) => ({
               text: subgroup.code,
-              href: `/subgroups/${subgroup.id}`
+              href: `/hierarchy/subgroups/${subgroup.id}`
             }))}
           />
         </ColumnViewerBlock>

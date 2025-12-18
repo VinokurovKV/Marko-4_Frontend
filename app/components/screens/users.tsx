@@ -58,7 +58,7 @@ export function UsersScreen({ children, ...props }: UsersScreenProps) {
           ]
         : [])
     ],
-    [userId, userLogin]
+    [withUser, userId, userLogin]
   )
   return (
     <LayoutScreenContainer

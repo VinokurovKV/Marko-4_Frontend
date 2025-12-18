@@ -182,6 +182,7 @@ export function GroupsGrid(props: GroupsGridProps) {
         navigationModeOnRowClick={handleNavigationModeRowClick}
         create={createProps}
         deleteMany={deleteManyProps}
+        compactFooter={navigationMode}
       />
       <CreateGroupFormDialog
         createModeIsActive={createModeIsActive}

@@ -60,7 +60,7 @@ export function DevicesScreen({ children, ...props }: DevicesScreenProps) {
           ]
         : [])
     ],
-    [deviceId, deviceCode]
+    [withDevice, deviceId, deviceCode]
   )
   return (
     <LayoutScreenContainer

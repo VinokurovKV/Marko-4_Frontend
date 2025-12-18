@@ -34,6 +34,20 @@ export function SubgroupViewer({
       title={['Подгруппа', `${subgroup.code}`]}
     >
       <ColumnViewer>
+        <ColumnViewerBlock title="вид навигации">
+          <ColumnViewerChipsBlock
+            items={[
+              {
+                text: 'таблица',
+                href: `/subgroups/${subgroup.id}`
+              },
+              {
+                text: 'иерархия',
+                href: `/hierarchy/subgroups/${subgroup.id}`
+              }
+            ]}
+          />
+        </ColumnViewerBlock>
         <ColumnViewerBlock title="основная информация">
           <ColumnViewerItem field="код" val={subgroup.code} />
           <ColumnViewerItem field="название" val={subgroup.name} />
@@ -58,7 +72,7 @@ export function SubgroupViewer({
             emptyText={tests !== null ? 'нет' : '???'}
             items={(tests ?? []).map((test) => ({
               text: test.code,
-              href: `/tests/${test.id}`
+              href: `/hierarchy/tests/${test.id}`
             }))}
           />
         </ColumnViewerBlock>

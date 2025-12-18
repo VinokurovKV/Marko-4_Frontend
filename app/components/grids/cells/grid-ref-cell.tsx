@@ -41,7 +41,7 @@ export function GridRefCell(props: GridRefCellProps) {
           variant="button"
           sx={{
             textTransform: 'none',
-            fontWeight: props.header ? 'bold' : undefined,
+            fontWeight: props.header ? 500 : undefined,
             color: props.header ? theme.palette.text.primary : undefined
           }}
         >
@@ -57,7 +57,7 @@ export function GridRefCell(props: GridRefCellProps) {
           width: '100%',
           justifyContent: 'start',
           textTransform: 'none',
-          fontWeight: props.header ? 'bold' : undefined,
+          fontWeight: props.header ? 500 : undefined,
           color: props.header ? theme.palette.text.primary : undefined,
           ':hover': {
             bgcolor:

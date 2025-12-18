@@ -79,7 +79,7 @@ export function TestTemplateViewer({
             emptyText={tests !== null ? 'нет' : '???'}
             items={(tests ?? []).map((test) => ({
               text: test.code,
-              href: `/tests/${test.id}`
+              href: `/hierarchy/tests/${test.id}`
             }))}
           />
         </ColumnViewerBlock>

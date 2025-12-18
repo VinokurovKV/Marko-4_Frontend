@@ -72,7 +72,7 @@ export function TestTemplatesScreen({
           ]
         : [])
     ],
-    [testTemplateId, testTemplateCode]
+    [withTestTemplate, testTemplateId, testTemplateCode]
   )
   return (
     <LayoutScreenContainer

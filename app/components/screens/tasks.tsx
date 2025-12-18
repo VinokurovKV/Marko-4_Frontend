@@ -95,7 +95,7 @@ export function TasksScreen({ children, ...props }: TasksScreenProps) {
           ]
         : [])
     ],
-    [taskId, taskCode, test]
+    [withTask, withTest, taskId, taskCode, test]
   )
   return (
     <LayoutScreenContainer

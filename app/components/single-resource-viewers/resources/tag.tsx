@@ -151,7 +151,7 @@ export function TagViewer({
               emptyText={tests !== null ? 'нет' : '???'}
               items={(tests ?? []).map((test) => ({
                 text: test.code,
-                href: `/tests/${test.id}`
+                href: `/hierarchy/tests/${test.id}`
               }))}
             />
           </ColumnViewerBlock>
@@ -160,7 +160,7 @@ export function TagViewer({
               emptyText={subgroups !== null ? 'нет' : '???'}
               items={(subgroups ?? []).map((subgroup) => ({
                 text: subgroup.code,
-                href: `/subgroups/${subgroup.id}`
+                href: `/hierarchy/subgroups/${subgroup.id}`
               }))}
             />
           </ColumnViewerBlock>
@@ -169,7 +169,7 @@ export function TagViewer({
               emptyText={groups !== null ? 'нет' : '???'}
               items={(groups ?? []).map((group) => ({
                 text: group.code,
-                href: `/groups/${group.id}`
+                href: `/hierarchy/groups/${group.id}`
               }))}
             />
           </ColumnViewerBlock>

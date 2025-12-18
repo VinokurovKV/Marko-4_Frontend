@@ -56,7 +56,7 @@ export function TestReportViewer(props: TestReportViewerProps) {
             <ColumnViewerRef
               field="тест"
               text={test?.code ?? 'УДАЛЕН'}
-              href={`/tests/${test.id}`}
+              href={`/hierarchy/tests/${test.id}`}
             />
           ) : (
             <ColumnViewerItem field="тест" val="УДАЛЕН" />

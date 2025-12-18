@@ -20,8 +20,10 @@ import GroupsIcon from '@mui/icons-material/Groups'
 // import HubIcon from '@mui/icons-material/Hub'
 import LanIcon from '@mui/icons-material/Lan'
 // import LayersIcon from '@mui/icons-material/Layers'
+// import ListIcon from '@mui/icons-material/List'
 // import ManageAccountsIcon from '@mui/icons-material/ManageAccounts'
 // import MediationIcon from '@mui/icons-material/Mediation'
+// import ParkIcon from '@mui/icons-material/Park';
 import PersonIcon from '@mui/icons-material/Person'
 // import PolylineIcon from '@mui/icons-material/Polyline'
 import RuleIcon from '@mui/icons-material/Rule'
@@ -30,9 +32,11 @@ import RuleIcon from '@mui/icons-material/Rule'
 // import SettingsAccessibilityIcon from '@mui/icons-material/SettingsAccessibility'
 // import StorageIcon from '@mui/icons-material/Storage'
 import TagIcon from '@mui/icons-material/Tag'
+// import TocIcon from '@mui/icons-material/Toc'
 import TaskIcon from '@mui/icons-material/Task'
 import TheaterComedyIcon from '@mui/icons-material/TheaterComedy'
 // import VerifiedIcon from '@mui/icons-material/Verified'
+import ViewSidebarIcon from '@mui/icons-material/ViewSidebar'
 import ViewStreamIcon from '@mui/icons-material/ViewStream'
 import ViewWeekIcon from '@mui/icons-material/ViewWeek'
 import WidgetsIcon from '@mui/icons-material/Widgets'
@@ -84,6 +88,13 @@ export const SIDE_NAVIGATION_CONFIG: SideNavigationConfig = [
         title: 'тесты',
         Icon: RuleIcon,
         nested: [
+          {
+            id: 'hierarchy',
+            title: 'иерархия',
+            Icon: ViewSidebarIcon,
+            href: '/hierarchy',
+            requiredRights: ['READ_TEST', 'READ_SUBGROUP', 'READ_GROUP']
+          },
           {
             id: 'tests',
             title: 'тесты',

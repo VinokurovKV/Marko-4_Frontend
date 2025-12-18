@@ -58,7 +58,7 @@ export function TestsScreen({ children, ...props }: TestsScreenProps) {
           ]
         : [])
     ],
-    [testId, testCode]
+    [withTest, testId, testCode]
   )
 
   return (

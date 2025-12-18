@@ -72,7 +72,7 @@ export function CommonTopologiesScreen({
           ]
         : [])
     ],
-    [commonTopologyId, commonTopologyCode]
+    [withCommonTopology, commonTopologyId, commonTopologyCode]
   )
   return (
     <LayoutScreenContainer

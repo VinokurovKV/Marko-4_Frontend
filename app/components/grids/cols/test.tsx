@@ -27,7 +27,7 @@ export function useTestCol(tests: TestPrimary[] | null | undefined) {
       renderCell: (params: GridRenderCellParams<any, string>) => (
         <GridRefCell
           text={params.value}
-          hrefPrefix="/tests"
+          hrefPrefix="/hierarchy/tests"
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
           hrefPath={params.row.testId}
         />

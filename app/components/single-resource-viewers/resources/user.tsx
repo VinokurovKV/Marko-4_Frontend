@@ -25,6 +25,7 @@ export function UserViewer({ role, user }: UserViewerProps) {
           <ColumnViewerItem field="логин" val={user.login} />
           <ColumnViewerItem field="фамилия" val={user.surname} />
           <ColumnViewerItem field="имя" val={user.forename} />
+          <ColumnViewerItem field="отчество" val={user.patronymic} />
           <ColumnViewerItem field="e-mail" val={user.email} />
           <ColumnViewerItem field="телефон" val={user.phone} />
           <ColumnViewerRef

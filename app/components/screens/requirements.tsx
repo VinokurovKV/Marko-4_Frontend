@@ -71,7 +71,7 @@ export function RequirementsScreen({
           ]
         : [])
     ],
-    [requirementId, requirementCode]
+    [withRequirement, requirementId, requirementCode]
   )
   return (
     <LayoutScreenContainer

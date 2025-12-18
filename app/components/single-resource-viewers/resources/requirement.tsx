@@ -74,7 +74,7 @@ export function RequirementViewer({
             text={test?.code}
             href={
               requirement.testId !== null
-                ? `/tests/${requirement.testId}`
+                ? `/hierarchy/tests/${requirement.testId}`
                 : undefined
             }
           />

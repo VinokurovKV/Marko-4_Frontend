@@ -32,7 +32,7 @@ export function useSubgroupCol(
       renderCell: (params: GridRenderCellParams<any, string>) => (
         <GridRefCell
           text={params.value}
-          hrefPrefix="/subgroups"
+          hrefPrefix="/hierarchy/subgroups"
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
           hrefPath={params.row.subgroupId}
         />

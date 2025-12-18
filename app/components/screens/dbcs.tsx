@@ -58,7 +58,7 @@ export function DbcsScreen({ children, ...props }: DbcsScreenProps) {
           ]
         : [])
     ],
-    [dbcId, dbcCode]
+    [withDbc, dbcId, dbcCode]
   )
   return (
     <LayoutScreenContainer
