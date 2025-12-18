@@ -362,15 +362,15 @@ export function useForm<Data extends FormData, SubmitActionResult>(
           const errorText = prepareTextForSubmitActionError(error)
           if (errorText !== null) {
             setSubmitActionError(capitalize(errorText, true))
-            if (
-              typeof error !== 'string' &&
-              error instanceof ServerConnectorError === false
-            ) {
-              throw error
-            }
           } else {
             setSubmitActionError(null)
             // TODO: unsuccessful request
+          }
+          if (
+            errorText === null ||
+            (typeof error !== 'string' &&
+              error instanceof ServerConnectorError === false)
+          ) {
             throw error
           }
         } finally {

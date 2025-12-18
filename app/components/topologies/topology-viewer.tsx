@@ -224,6 +224,153 @@ function deepCopyGrid(grid: GridCell[][]): GridCell[][] {
   )
 }
 
+function calculateCompactness(placements: VertexPlacement[]): number {
+  if (placements.length <= 1) return 0
+
+  let minRow = Infinity,
+    maxRow = -Infinity
+  let minCol = Infinity,
+    maxCol = -Infinity
+
+  placements.forEach((p) => {
+    minRow = Math.min(minRow, p.blockRow)
+    maxRow = Math.max(maxRow, p.blockRow)
+    minCol = Math.min(minCol, p.blockCol)
+    maxCol = Math.max(maxCol, p.blockCol)
+  })
+
+  const width = maxCol - minCol + 1
+  const height = maxRow - minRow + 1
+  return width * height
+}
+
+function getConnectedComponents(graph: ConnectivityGraph): string[][] {
+  const visited = new Set<string>()
+  const components: string[][] = []
+
+  for (const vertex of graph.vertices) {
+    if (!visited.has(vertex)) {
+      const component: string[] = []
+      const stack = [vertex]
+
+      while (stack.length > 0) {
+        const current = stack.pop()!
+        if (visited.has(current)) continue
+
+        visited.add(current)
+        component.push(current)
+
+        graph.edges.forEach(([v1, v2]) => {
+          if (v1 === current && !visited.has(v2)) stack.push(v2)
+          if (v2 === current && !visited.has(v1)) stack.push(v1)
+        })
+      }
+
+      components.push(component)
+    }
+  }
+
+  return components
+}
+
+function calculateCombinedScore(
+  placements: VertexPlacement[],
+  graph: ConnectivityGraph
+): number {
+  const totalEdgeLength = calculateTotalEdgeLength(placements, graph)
+  const compactness = calculateCompactness(placements)
+
+  const connectedComponents = getConnectedComponents(graph)
+  const hasIsolatedVertices = connectedComponents.some(
+    (comp) => comp.length === 1
+  )
+
+  if (hasIsolatedVertices) {
+    return totalEdgeLength + compactness * 0.3
+  } else {
+    return totalEdgeLength + compactness * 0.1
+  }
+}
+
+function calculateCompactnessPriority(
+  position: { row: number; col: number },
+  placements: VertexPlacement[]
+): number {
+  if (placements.length === 0) return 0
+
+  let totalDistance = 0
+  placements.forEach((p) => {
+    const rowDiff = Math.abs(position.row - p.blockRow)
+    const colDiff = Math.abs(position.col - p.blockCol)
+    totalDistance += Math.sqrt(rowDiff * rowDiff + colDiff * colDiff)
+  })
+
+  return totalDistance / placements.length
+}
+
+function calculateNeighborPriority(
+  vertex: string,
+  position: { row: number; col: number },
+  placedVertices: string[],
+  placements: VertexPlacement[],
+  graph: ConnectivityGraph
+): number {
+  const placedNeighbors = graph.edges
+    .filter(
+      ([v1, v2]) =>
+        (v1 === vertex && placedVertices.includes(v2)) ||
+        (v2 === vertex && placedVertices.includes(v1))
+    )
+    .map(([v1, v2]) => (v1 === vertex ? v2 : v1))
+
+  if (placedNeighbors.length === 0) {
+    return calculateCompactnessPriority(position, placements) * 0.5
+  }
+
+  let totalDistance = 0
+  placedNeighbors.forEach((neighbor) => {
+    const neighborPos = getVertexPosition(placements, neighbor)
+    if (neighborPos) {
+      const rowDiff = Math.abs(position.row - neighborPos.blockRow)
+      const colDiff = Math.abs(position.col - neighborPos.blockCol)
+      totalDistance += Math.sqrt(rowDiff * rowDiff + colDiff * colDiff)
+    }
+  })
+
+  return totalDistance / placedNeighbors.length
+}
+
+function sortPositionsByPriority(
+  vertex: string,
+  positions: Array<{ row: number; col: number }>,
+  placedVertices: string[],
+  placements: VertexPlacement[],
+  graph: ConnectivityGraph
+): Array<{ row: number; col: number; priority: number }> {
+  const vertexDegree = graph.vertexDegrees.get(vertex) || 0
+
+  const positionsWithPriority = positions.map((pos) => {
+    let priority = 0
+
+    if (vertexDegree === 0) {
+      priority = calculateCompactnessPriority(pos, placements)
+    } else {
+      priority = calculateNeighborPriority(
+        vertex,
+        pos,
+        placedVertices,
+        placements,
+        graph
+      )
+    }
+
+    return { ...pos, priority }
+  })
+
+  positionsWithPriority.sort((a, b) => a.priority - b.priority)
+  return positionsWithPriority
+}
+
 function getAllPossiblePositions(
   vertex: string,
   placedVertices: string[],
@@ -242,41 +389,92 @@ function getAllPossiblePositions(
     )
     .map(([v1, v2]) => (v1 === vertex ? v2 : v1))
 
-  if (placedNeighbors.length === 0) {
-    for (const pos of allPositions) {
-      if (isBlockAllowed(grid, pos.blockRow, pos.blockCol)) {
-        possiblePositions.push({ row: pos.blockRow, col: pos.blockCol })
-      }
+  const allPlacedPositions: Array<{ row: number; col: number }> = []
+  placedVertices.forEach((v) => {
+    const pos = getVertexPosition(placements, v)
+    if (pos) {
+      allPlacedPositions.push({ row: pos.blockRow, col: pos.blockCol })
     }
-  } else {
-    const neighborPositions: Array<{ row: number; col: number }> = []
-    placedNeighbors.forEach((neighbor) => {
-      const pos = getVertexPosition(placements, neighbor)
-      if (pos) {
-        neighborPositions.push({ row: pos.blockRow, col: pos.blockCol })
-      }
-    })
+  })
 
-    for (const pos of allPositions) {
-      if (!isBlockAllowed(grid, pos.blockRow, pos.blockCol)) {
-        continue
+  const positionsWithDistances: Array<{
+    row: number
+    col: number
+    distance: number
+  }> = []
+
+  for (const pos of allPositions) {
+    if (!isBlockAllowed(grid, pos.blockRow, pos.blockCol)) {
+      continue
+    }
+
+    if (placedNeighbors.length === 0) {
+      let minDistance = Infinity
+      for (const placedPos of allPlacedPositions) {
+        const rowDiff = Math.abs(pos.blockRow - placedPos.row)
+        const colDiff = Math.abs(pos.blockCol - placedPos.col)
+        const distance = Math.sqrt(rowDiff * rowDiff + colDiff * colDiff)
+        minDistance = Math.min(minDistance, distance)
       }
 
+      if (allPlacedPositions.length === 0) {
+        minDistance = 0
+      }
+
+      positionsWithDistances.push({
+        row: pos.blockRow,
+        col: pos.blockCol,
+        distance: minDistance
+      })
+    } else {
       let isNearAnyNeighbor = false
+      let minDistance = Infinity
+
+      const neighborPositions: Array<{ row: number; col: number }> = []
+      placedNeighbors.forEach((neighbor) => {
+        const pos = getVertexPosition(placements, neighbor)
+        if (pos) {
+          neighborPositions.push({ row: pos.blockRow, col: pos.blockCol })
+        }
+      })
+
       for (const neighborPos of neighborPositions) {
         const rowDiff = Math.abs(pos.blockRow - neighborPos.row)
         const colDiff = Math.abs(pos.blockCol - neighborPos.col)
+        const distance = Math.sqrt(rowDiff * rowDiff + colDiff * colDiff)
+        minDistance = Math.min(minDistance, distance)
 
-        if (rowDiff <= 1 && colDiff <= 1 && !(rowDiff === 0 && colDiff === 0)) {
+        if (rowDiff <= 2 && colDiff <= 2 && !(rowDiff === 0 && colDiff === 0)) {
           isNearAnyNeighbor = true
-          break
         }
       }
 
       if (isNearAnyNeighbor) {
-        possiblePositions.push({ row: pos.blockRow, col: pos.blockCol })
+        positionsWithDistances.push({
+          row: pos.blockRow,
+          col: pos.blockCol,
+          distance: minDistance
+        })
+      }
+
+      if (positionsWithDistances.length === 0 && neighborPositions.length > 0) {
+        positionsWithDistances.push({
+          row: pos.blockRow,
+          col: pos.blockCol,
+          distance: minDistance
+        })
       }
     }
+  }
+
+  positionsWithDistances.sort((a, b) => a.distance - b.distance)
+  const maxPositions = Math.min(12, positionsWithDistances.length)
+
+  for (let i = 0; i < maxPositions; i++) {
+    possiblePositions.push({
+      row: positionsWithDistances[i].row,
+      col: positionsWithDistances[i].col
+    })
   }
 
   return possiblePositions
@@ -288,16 +486,16 @@ function branchPlacement(
   remainingVertices: string[],
   grid: GridCell[][],
   graph: ConnectivityGraph,
-  bestSoFar: { placements: VertexPlacement[]; totalEdgeLength: number },
+  bestSoFar: { placements: VertexPlacement[]; score: number },
   depth: number = 0
-): { placements: VertexPlacement[]; totalEdgeLength: number } | null {
+): { placements: VertexPlacement[]; score: number } | null {
   if (remainingVertices.length === 0) {
-    const totalEdgeLength = calculateTotalEdgeLength(currentPlacements, graph)
+    const score = calculateCombinedScore(currentPlacements, graph)
 
-    if (totalEdgeLength < bestSoFar.totalEdgeLength) {
+    if (score < bestSoFar.score) {
       bestSoFar.placements = [...currentPlacements]
-      bestSoFar.totalEdgeLength = totalEdgeLength
-      return { placements: [...currentPlacements], totalEdgeLength }
+      bestSoFar.score = score
+      return { placements: [...currentPlacements], score }
     }
     return null
   }
@@ -317,13 +515,23 @@ function branchPlacement(
     return null
   }
 
+  const sortedPositions = sortPositionsByPriority(
+    nextVertex,
+    possiblePositions,
+    placedVertices,
+    currentPlacements,
+    graph
+  )
+
   let bestBranchResult: {
     placements: VertexPlacement[]
-    totalEdgeLength: number
+    score: number
   } | null = null
 
-  for (let i = 0; i < possiblePositions.length; i++) {
-    const position = possiblePositions[i]
+  const maxBranches = Math.min(5, sortedPositions.length)
+
+  for (let i = 0; i < maxBranches; i++) {
+    const position = sortedPositions[i]
 
     const branchGrid = deepCopyGrid(grid)
     const branchPlacements = [...currentPlacements]
@@ -347,8 +555,7 @@ function branchPlacement(
 
     if (
       branchResult &&
-      (!bestBranchResult ||
-        branchResult.totalEdgeLength < bestBranchResult.totalEdgeLength)
+      (!bestBranchResult || branchResult.score < bestBranchResult.score)
     ) {
       bestBranchResult = branchResult
     }
@@ -386,8 +593,8 @@ function findBestPlacement(graph: ConnectivityGraph): LayoutResult | null {
   const remainingVertices = sortedVertices.slice(1)
 
   const initialBestResult = {
-    placements: [],
-    totalEdgeLength: Infinity
+    placements: [] as VertexPlacement[],
+    score: Infinity
   }
 
   const bestResult = branchPlacement(
@@ -405,13 +612,6 @@ function findBestPlacement(graph: ConnectivityGraph): LayoutResult | null {
   }
 
   const totalEdgeLength = calculateTotalEdgeLength(bestResult.placements, graph)
-
-  const blockMap = Array(7)
-    .fill(0)
-    .map(() => Array(7).fill('.'))
-  bestResult.placements.forEach((p) => {
-    blockMap[p.blockRow][p.blockCol] = p.vertexName.charAt(0)
-  })
 
   return {
     placements: bestResult.placements,
@@ -619,6 +819,115 @@ function calculateVertexSize(
   return { width: requiredWidth, height: requiredHeight }
 }
 
+function findConnectedInterfaceOnVertex(
+  sourceIfaceId: string,
+  targetVertexName: string,
+  config: CommonTopologyConfig
+): string {
+  const link = config.links.find((link) => {
+    const startIfaceId = `${link.start.vertexName}-${link.start.ifaceName}`
+    const endIfaceId = `${link.end.vertexName}-${link.end.ifaceName}`
+
+    return (
+      (startIfaceId === sourceIfaceId &&
+        link.end.vertexName === targetVertexName) ||
+      (endIfaceId === sourceIfaceId &&
+        link.start.vertexName === targetVertexName)
+    )
+  })
+
+  if (!link) return ''
+
+  if (link.start.vertexName === targetVertexName) {
+    return `${link.start.vertexName}-${link.start.ifaceName}`
+  } else {
+    return `${link.end.vertexName}-${link.end.ifaceName}`
+  }
+}
+
+function sortInterfacesByOptimalPosition(
+  side: 'left' | 'right' | 'top' | 'bottom',
+  ifaces: Array<{
+    ifaceId: string
+    ifaceName: string
+    connection?: { targetVertex: string; targetPos: { x: number; y: number } }
+  }>,
+  vertexInfo: {
+    centerX: number
+    centerY: number
+    actualWidth: number
+    actualHeight: number
+  },
+  positions: { [key: string]: { x: number; y: number } },
+  ifaceConnections: Map<
+    string,
+    { targetVertex: string; targetPos: { x: number; y: number } }
+  >,
+  config: CommonTopologyConfig
+) {
+  const ifacesCopy = [...ifaces]
+
+  if (side === 'left' || side === 'right') {
+    ifacesCopy.sort((a, b) => {
+      const targetA = ifaceConnections.get(a.ifaceId)
+      const targetB = ifaceConnections.get(b.ifaceId)
+
+      if (targetA && targetB) {
+        const targetIfaceA = findConnectedInterfaceOnVertex(
+          a.ifaceId,
+          targetA.targetVertex,
+          config
+        )
+        const targetIfaceB = findConnectedInterfaceOnVertex(
+          b.ifaceId,
+          targetB.targetVertex,
+          config
+        )
+
+        const posA = positions[targetIfaceA]
+        const posB = positions[targetIfaceB]
+
+        if (posA && posB) {
+          return posA.y - posB.y
+        }
+      }
+
+      return 0
+    })
+  }
+
+  if (side === 'top' || side === 'bottom') {
+    ifacesCopy.sort((a, b) => {
+      const targetA = ifaceConnections.get(a.ifaceId)
+      const targetB = ifaceConnections.get(b.ifaceId)
+
+      if (targetA && targetB) {
+        const targetIfaceA = findConnectedInterfaceOnVertex(
+          a.ifaceId,
+          targetA.targetVertex,
+          config
+        )
+        const targetIfaceB = findConnectedInterfaceOnVertex(
+          b.ifaceId,
+          targetB.targetVertex,
+          config
+        )
+
+        const posA = positions[targetIfaceA]
+        const posB = positions[targetIfaceB]
+
+        if (posA && posB) {
+          return posA.x - posB.x
+        }
+      }
+
+      return 0
+    })
+  }
+
+  return ifacesCopy
+}
+
 function calculateAllPositions(config: CommonTopologyConfig) {
   const positions: { [key: string]: { x: number; y: number } } = {}
 
@@ -669,11 +978,38 @@ function calculateAllPositions(config: CommonTopologyConfig) {
     const relativeCol = placement.blockCol - minCol
 
     const centerX = offsetX + (relativeCol * 3 + 1.5) * BLOCK_TO_PIXEL
-    const centerY = offsetY + (relativeRow * 3 + 1.5) * BLOCK_TO_PIXEL
+    const centerY = offsetY + (relativeRow * 2 + 1) * BLOCK_TO_PIXEL
 
     positions[vertexName] = {
       x: centerX,
       y: centerY
+    }
+  })
+
+  const ifaceConnections = new Map<
+    string,
+    {
+      targetVertex: string
+      targetPos: { x: number; y: number }
+    }
+  >()
+
+  config.links.forEach((link) => {
+    const startIfaceId = `${link.start.vertexName}-${link.start.ifaceName}`
+    const endIfaceId = `${link.end.vertexName}-${link.end.ifaceName}`
+
+    if (positions[link.end.vertexName]) {
+      ifaceConnections.set(startIfaceId, {
+        targetVertex: link.end.vertexName,
+        targetPos: positions[link.end.vertexName]
+      })
+    }
+
+    if (positions[link.start.vertexName]) {
+      ifaceConnections.set(endIfaceId, {
+        targetVertex: link.start.vertexName,
+        targetPos: positions[link.start.vertexName]
+      })
     }
   })
 
@@ -707,7 +1043,14 @@ function calculateAllPositions(config: CommonTopologyConfig) {
 
     const interfacesBySide: Record<
       'left' | 'right' | 'top' | 'bottom',
-      Array<{ ifaceId: string; ifaceName: string }>
+      Array<{
+        ifaceId: string
+        ifaceName: string
+        connection?: {
+          targetVertex: string
+          targetPos: { x: number; y: number }
+        }
+      }>
     > = {
       left: [],
       right: [],
@@ -723,54 +1066,80 @@ function calculateAllPositions(config: CommonTopologyConfig) {
         config,
         positions
       )
-      interfacesBySide[optimalSide].push({ ifaceId, ifaceName: iface.name })
+      const connection = ifaceConnections.get(ifaceId)
+
+      interfacesBySide[optimalSide].push({
+        ifaceId,
+        ifaceName: iface.name,
+        connection
+      })
     })
 
     Object.entries(interfacesBySide).forEach(([side, ifaces]) => {
       if (ifaces.length === 0) return
 
-      const sideIfaces = ifaces as Array<{ ifaceId: string; ifaceName: string }>
+      const sideIfaces = ifaces as Array<{
+        ifaceId: string
+        ifaceName: string
+        connection?: {
+          targetVertex: string
+          targetPos: { x: number; y: number }
+        }
+      }>
+
+      const sortedIfaces = sortInterfacesByOptimalPosition(
+        side as 'left' | 'right' | 'top' | 'bottom',
+        sideIfaces,
+        { centerX, centerY, actualWidth, actualHeight },
+        positions,
+        ifaceConnections,
+        config
+      )
 
       switch (side) {
-        case 'left':
-          const leftSpacing = actualHeight / (sideIfaces.length + 1)
-          sideIfaces.forEach((iface, index) => {
+        case 'left': {
+          const leftSpacing = actualHeight / (sortedIfaces.length + 1)
+          sortedIfaces.forEach((iface, index) => {
             positions[iface.ifaceId] = {
               x: centerX - actualWidth / 2 + ELEMENT_SIZES.ifaces.width / 2,
               y: centerY - actualHeight / 2 + leftSpacing * (index + 1)
             }
           })
           break
+        }
 
-        case 'right':
-          const rightSpacing = actualHeight / (sideIfaces.length + 1)
-          sideIfaces.forEach((iface, index) => {
+        case 'right': {
+          const rightSpacing = actualHeight / (sortedIfaces.length + 1)
+          sortedIfaces.forEach((iface, index) => {
             positions[iface.ifaceId] = {
               x: centerX + actualWidth / 2 - ELEMENT_SIZES.ifaces.width / 2,
               y: centerY - actualHeight / 2 + rightSpacing * (index + 1)
             }
           })
           break
+        }
 
-        case 'top':
-          const topSpacing = actualWidth / (sideIfaces.length + 1)
-          sideIfaces.forEach((iface, index) => {
+        case 'top': {
+          const topSpacing = actualWidth / (sortedIfaces.length + 1)
+          sortedIfaces.forEach((iface, index) => {
             positions[iface.ifaceId] = {
               x: centerX - actualWidth / 2 + topSpacing * (index + 1),
               y: centerY - actualHeight / 2 + ELEMENT_SIZES.ifaces.height / 2
             }
           })
           break
+        }
 
-        case 'bottom':
-          const bottomSpacing = actualWidth / (sideIfaces.length + 1)
-          sideIfaces.forEach((iface, index) => {
+        case 'bottom': {
+          const bottomSpacing = actualWidth / (sortedIfaces.length + 1)
+          sortedIfaces.forEach((iface, index) => {
             positions[iface.ifaceId] = {
               x: centerX - actualWidth / 2 + bottomSpacing * (index + 1),
               y: centerY + actualHeight / 2 - ELEMENT_SIZES.ifaces.height / 2
             }
           })
           break
+        }
       }
     })
   })
@@ -854,7 +1223,6 @@ function createHightQualityCy(
 
   return cy
 }
-
 export function TopologyViewer({
   config,
   vertexNames,

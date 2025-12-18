@@ -482,7 +482,7 @@ export function ImportRequirementsFormDialog(
         />
         <FormCheckbox
           name="ignoreTestIfNotExists"
-          label="игнорировать код теста при его отсутствии в системе"
+          label="игнорировать тест при его отсутствии в системе"
           checked={data.ignoreTestIfNotExists}
           onChange={handleCheckboxChange}
         />
