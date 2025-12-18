@@ -360,7 +360,6 @@ export function TestsHierarchyTree({
     event: React.SyntheticEvent | null,
     itemIds: string[]
   ) => {
-    apiRef.current?.focusItem(event, 'default-group')
     setExpandedItems(itemIds)
   }
 
