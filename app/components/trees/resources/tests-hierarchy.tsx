@@ -222,7 +222,10 @@ export function TestsHierarchyTree({
 
   React.useEffect(() => {
     if (selectedItem !== undefined) {
-      apiRef.current?.focusItem(null, selectedItem)
+      setTimeout(() => {
+        // without settimeout focus may not work if the new selected item is collapsed yet
+        apiRef.current?.focusItem(null, selectedItem)
+      }, 0)
     }
   }, [selectedItem])
 
@@ -322,6 +325,22 @@ export function TestsHierarchyTree({
   const [expandedItems, setExpandedItems] =
     React.useState<string[]>(defaultExpandedItems)
 
+  React.useEffect(() => {
+    setExpandedItems((oldExpandedItems) => {
+      const oldExpandedItemsSet = new Set(oldExpandedItems)
+      if (
+        defaultExpandedItems.some(
+          (item) => oldExpandedItemsSet.has(item) === false
+        )
+      ) {
+        return Array.from(
+          new Set([...oldExpandedItems, ...defaultExpandedItems])
+        )
+      }
+      return oldExpandedItems
+    })
+  }, [defaultExpandedItems, setExpandedItems])
+
   const handleSelectedItemsChange = React.useCallback(
     (event: React.SyntheticEvent | null, itemIds: string | string[] | null) => {
       const itemId =
@@ -362,8 +381,6 @@ export function TestsHierarchyTree({
   ) => {
     setExpandedItems(itemIds)
   }
-
-  console.log(selectedItem)
 
   return (
     <Stack spacing={1.5} p={0} sx={{ height: '100%', overflow: 'hidden' }}>

@@ -177,7 +177,7 @@ export function TaskViewer(props: TaskViewerProps) {
           <ColumnViewerBlock title="описание">
             <ColumnViewerText emptyText="нет" text={task.description?.text} />
           </ColumnViewerBlock>
-          <ColumnViewerBlock title="тестовая иерархия">
+          <ColumnViewerBlock title="иерархия тестов">
             <ColumnViewerItem
               field="число всех тестов (с вложенными)"
               val={task.allTestsCount}

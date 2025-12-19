@@ -98,7 +98,7 @@ export function TestsHierarchyScreen({
     () => [
       ...[
         {
-          title: 'тестовая иерархия',
+          title: 'иерархия тестов',
           href: '/hierarchy',
           Icon: ViewSidebarIcon
         }
@@ -165,7 +165,7 @@ export function TestsHierarchyScreen({
 
   return (
     <LayoutScreenContainer
-      title="тестовая иерархия"
+      title="иерархия тестов"
       breadcrumbsItems={breadcrumbsItems}
     >
       <HorizontalTwoPartsContainer proportions="ONE_THREE">
