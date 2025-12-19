@@ -119,7 +119,7 @@ export function TaskViewer(props: TaskViewerProps) {
       })
     }
     return items
-  }, [props.tags])
+  }, [taskReport])
 
   return (
     <VerticalTwoPartsContainer proportions="45_55">
