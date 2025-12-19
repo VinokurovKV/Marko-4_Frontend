@@ -231,6 +231,9 @@ import type {
   ReadRequirementWithUpToTertiaryPropsSuccessResultDto,
   ReadRequirementsCountQueryDto,
   ReadRequirementsCountSuccessResultDto,
+  ReadRequirementsHierarchySuccessResultDto,
+  ReadRequirementsHierarchyVertexParamsDto,
+  ReadRequirementsHierarchyVertexSuccessResultDto,
   ReadRequirementsQueryDto,
   ReadRequirementsWithPrimaryPropsSuccessResultItemDto,
   ReadRequirementsWithUpToSecondaryPropsSuccessResultItemDto,
@@ -802,7 +805,7 @@ import type { Socket } from 'socket.io-client'
 import { io } from 'socket.io-client'
 import Queue from 'yocto-queue'
 
-const HOST = '' // 'http://localhost:3000'
+const HOST = 'http://localhost:3000'
 const PATH_PREFIX = '/api'
 const SECS = 1000
 const MINS = 60 * SECS
@@ -1834,6 +1837,14 @@ export class ServerConnector {
         params
       )
     ).exists
+  }
+  readRequirementsHierarchyVertex(
+    params: Params<ReadRequirementsHierarchyVertexParamsDto>
+  ): Result<ReadRequirementsHierarchyVertexSuccessResultDto> {
+    return this.getObject(`/requirements/hierarchy/${params.id}`)
+  }
+  readRequirementsHierarchy(): Result<ReadRequirementsHierarchySuccessResultDto> {
+    return this.getObject('/requirements/hierarchy')
   }
   readRequirementsCount(
     params: Params<ReadRequirementsCountQueryDto>

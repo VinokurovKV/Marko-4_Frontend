@@ -294,7 +294,7 @@ export function TestsHierarchyTree({
           ? theme.palette.grey[200]
           : theme.palette.grey[800]
       }`,
-      padding: theme.spacing(0.9, 1),
+      padding: theme.spacing(0.9, 1.25),
       margin: theme.spacing(0.2, 0),
       [`& .${treeItemClasses.label}`]: {
         fontSize: '0.8rem',
