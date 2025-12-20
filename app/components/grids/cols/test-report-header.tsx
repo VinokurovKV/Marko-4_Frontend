@@ -41,7 +41,7 @@ export function useTestReportHeaderCol(
       minWidth: 140,
       flex: 1
     }),
-    [disableRef]
+    [disableRef, testCodeForId]
   )
 
   return col

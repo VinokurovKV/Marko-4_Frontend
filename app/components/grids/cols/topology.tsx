@@ -40,7 +40,7 @@ export function useTopologyCol(
       minWidth: 140,
       flex: 1
     }),
-    []
+    [topologyCodeForId]
   )
 
   return col

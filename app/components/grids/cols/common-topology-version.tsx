@@ -44,7 +44,7 @@ export function useCommonTopologyVersionCol(
       minWidth: 140,
       flex: 1
     }),
-    []
+    [commonTopologyCodeForId]
   )
 
   return col

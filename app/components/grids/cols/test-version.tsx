@@ -62,7 +62,7 @@ export function useFlatTestVersionCol(
       minWidth: 140,
       flex: 1
     }),
-    []
+    [testCodeForId]
   )
 
   return col

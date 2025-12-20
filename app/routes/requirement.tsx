@@ -5,6 +5,7 @@ import type {
   FragmentPrimary,
   RequirementPrimary,
   RequirementTertiary,
+  RequirementsHierarchyVertex,
   TestPrimary
 } from '~/types'
 import { serverConnector } from '~/server-connector'
@@ -14,6 +15,7 @@ import {
   readFragmentsPrimaryFiltered,
   readRequirementsPrimaryFiltered,
   readRequirementTertiary,
+  readRequirementsHierarchyVertex,
   readTestPrimary
 } from '~/readers'
 import { useNotifier } from '~/providers/notifier'
@@ -24,6 +26,7 @@ import {
   useFragmentsFilteredSubscription,
   useRequirementsFilteredSubscription,
   useRequirementSubscription,
+  useRequirementsHierarchyVertexSubscription,
   useTestSubscription
 } from '~/hooks/resources'
 import { RequirementViewer } from '~/components/single-resource-viewers/resources/requirement'
@@ -39,8 +42,9 @@ export async function clientLoader({ params }: Route.ClientLoaderArgs) {
     return isNaN(parsed) ? null : parsed
   })()
   await serverConnector.connect()
-  const [requirement] = await Promise.all([
-    readRequirementTertiary(requirementId)
+  const [requirement, requirementsHierarchyVertex] = await Promise.all([
+    readRequirementTertiary(requirementId),
+    readRequirementsHierarchyVertex(requirementId)
   ])
   const [tags, fragments, parentRequirements, childRequirements, test] =
     await Promise.all([
@@ -65,6 +69,7 @@ export async function clientLoader({ params }: Route.ClientLoaderArgs) {
     documents,
     fragments,
     requirement,
+    requirementsHierarchyVertex,
     parentRequirements,
     childRequirements,
     test
@@ -78,6 +83,7 @@ function RequirementRouteInner({
     documents: initialDocuments,
     fragments: initialFragments,
     requirement: initialRequirement,
+    requirementsHierarchyVertex: initialVertex,
     parentRequirements: initialParentRequirements,
     childRequirements: initialChildRequirements,
     test: initialTest
@@ -95,6 +101,8 @@ function RequirementRouteInner({
   )
   const [requirement, setRequirement] =
     React.useState<RequirementTertiary | null>(initialRequirement)
+  const [vertex, setVertex] =
+    React.useState<RequirementsHierarchyVertex | null>(initialVertex)
   const [parentRequirements, setParentRequirements] = React.useState<
     RequirementPrimary[] | null
   >(initialParentRequirements)
@@ -132,6 +140,7 @@ function RequirementRouteInner({
     requirementId,
     setRequirement
   )
+  useRequirementsHierarchyVertexSubscription(requirementId, setVertex)
   useRequirementsFilteredSubscription(
     'PRIMARY_PROPS',
     parentRequirementIds,
@@ -155,19 +164,28 @@ function RequirementRouteInner({
       notifier.showError(
         `не удалось загрузить требование с идентификатором ${requirementId}`
       )
+    } else if (
+      vertex === null &&
+      serverConnector.meta.status === 'AUTHENTICATED' &&
+      serverConnector.meta.selfMeta.rights.includes('READ_REQUIREMENT')
+    ) {
+      notifier.showError(
+        `не удалось загрузить вершину иерархии требований с идентификатором ${requirementId}`
+      )
     }
-  }, [requirementId, requirement, notifier])
+  }, [requirementId, requirement, vertex, notifier])
 
   return meta.status === 'AUTHENTICATED' &&
     meta.selfMeta.rights.includes('READ_REQUIREMENT') === false ? (
     <ForbiddenScreen />
-  ) : requirementId !== null && requirement !== null ? (
+  ) : requirementId !== null && requirement !== null && vertex !== null ? (
     <RequirementViewer
       key={requirementId}
       tags={tags}
       documents={documents}
       fragments={fragments}
       requirement={requirement}
+      requirementsHierarchyVertex={vertex}
       parentRequirements={parentRequirements}
       childRequirements={childRequirements}
       test={test}

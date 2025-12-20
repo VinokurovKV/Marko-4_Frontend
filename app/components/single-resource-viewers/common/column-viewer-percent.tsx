@@ -1,15 +1,21 @@
 // Project
-import { PercentBar } from '~/components/progress-bar'
+import { PercentBar } from '~/components/percent-bar'
 // Material UI
 import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
 // Other
 import capitalize from 'capitalize'
 
-export interface ColumnViewerPercentProps {
+export type ColumnViewerPercentProps = {
   field: string
-  percent?: number | null
-}
+} & (
+  | {
+      percent: number | null
+    }
+  | {
+      fraction: string | null
+    }
+)
 
 export function ColumnViewerPercent(props: ColumnViewerPercentProps) {
   return (
@@ -21,8 +27,15 @@ export function ColumnViewerPercent(props: ColumnViewerPercentProps) {
       >
         {capitalize(props.field, true) + ':'}
       </Typography>
-      {props.percent !== undefined && props.percent !== null ? (
+      {'percent' in props &&
+      props.percent !== undefined &&
+      props.percent !== null ? (
         <PercentBar percent={props.percent} compact />
+      ) : null}
+      {'fraction' in props &&
+      props.fraction !== undefined &&
+      props.fraction !== null ? (
+        <PercentBar fraction={props.fraction} compact />
       ) : null}
     </Stack>
   )

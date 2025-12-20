@@ -1,5 +1,9 @@
 // Project
-import type { RequirementSecondary, TestPrimary } from '~/types'
+import type {
+  RequirementSecondary,
+  RequirementsHierarchy,
+  TestPrimary
+} from '~/types'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
 import { useMeta } from '~/providers/meta'
@@ -12,11 +16,15 @@ import {
   useChildRequirementsCountCol,
   useCodeCol,
   useFragmentsCountCol,
+  useFullCoverageRateCol,
+  useMustAndShouldCoverageRateCol,
   useNameCol,
+  useOnlyMayCoverageRateCol,
+  useOnlyMustCoverageRateCol,
+  useOnlyShouldCoverageRateCol,
   useParentRequirementsCountCol,
   useRequirementModifierCol,
   useRequirementOriginCol,
-  useRequirementRateCol,
   useTestCol
 } from '../cols'
 // React router
@@ -30,6 +38,7 @@ const MAX_REQUIREMENTS_IN_MESSAGES = 3
 
 export interface RequirementsGridProps {
   requirements: RequirementSecondary[]
+  requirementsHierarchy: RequirementsHierarchy
   tests: TestPrimary[] | null
   navigationMode?: boolean
   navigationModeSelectedRowId?: number
@@ -60,14 +69,58 @@ export function RequirementsGrid(props: RequirementsGridProps) {
     [props.requirements]
   )
 
-  const rows: GridValidRowModel[] = props.requirements
+  const requirementsHierarchyVertexForId = React.useMemo(
+    () =>
+      new Map(
+        props.requirementsHierarchy.vertexes.map((vertex) => [
+          vertex.id,
+          vertex
+        ])
+      ),
+    [props.requirementsHierarchy]
+  )
+
+  const rows: GridValidRowModel[] = React.useMemo(
+    () =>
+      props.requirements.map((requirement) => {
+        const vertex = requirementsHierarchyVertexForId.get(requirement.id)
+        return {
+          ...requirement,
+          fullCoverageRate:
+            vertex !== undefined
+              ? `${vertex.coveredRate.full} / ${vertex.aggregateRate.full}`
+              : '0 / 0',
+          onlyMustCoverageRate:
+            vertex !== undefined
+              ? `${vertex.coveredRate.onlyMust} / ${vertex.aggregateRate.onlyMust}`
+              : '0 / 0',
+          mustAndShouldCoverageRate:
+            vertex !== undefined
+              ? `${vertex.coveredRate.mustAndShould} / ${vertex.aggregateRate.mustAndShould}`
+              : '0 / 0',
+          onlyShouldCoverageRate:
+            vertex !== undefined
+              ? `${vertex.coveredRate.onlyShould} / ${vertex.aggregateRate.onlyShould}`
+              : '0 / 0',
+          onlyMayCoverageRate:
+            vertex !== undefined
+              ? `${vertex.coveredRate.onlyMay} / ${vertex.aggregateRate.onlyMay}`
+              : '0 / 0'
+        }
+      }),
+    [props.requirements, requirementsHierarchyVertexForId]
+  )
 
   const readCols = [
     useCodeCol('id', true, '/requirements', navigationMode),
     useNameCol(),
     useRequirementModifierCol(),
     useRequirementOriginCol(),
-    useRequirementRateCol(),
+    useFullCoverageRateCol(),
+    useOnlyMustCoverageRateCol(),
+    useMustAndShouldCoverageRateCol(),
+    useOnlyShouldCoverageRateCol(),
+    useOnlyMayCoverageRateCol(),
     useFragmentsCountCol(),
     useParentRequirementsCountCol(),
     useChildRequirementsCountCol(),
@@ -117,7 +170,13 @@ export function RequirementsGrid(props: RequirementsGridProps) {
   )
 
   const defaultHiddenFields = React.useMemo(
-    () => ['fragmentsCount'] as (keyof RequirementSecondary)[],
+    () => [
+      'fragmentsCount',
+      'fullCoverageRate',
+      'mustAndShouldCoverageRate',
+      'onlyShouldCoverageRate',
+      'onlyMayCoverageRate'
+    ],
     []
   )
 

@@ -40,7 +40,7 @@ export function useSubgroupCol(
       minWidth: 140,
       flex: 1
     }),
-    []
+    [subgroupCodeForId]
   )
 
   return col

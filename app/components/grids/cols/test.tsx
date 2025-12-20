@@ -35,7 +35,7 @@ export function useTestCol(tests: TestPrimary[] | null | undefined) {
       minWidth: 140,
       flex: 1
     }),
-    []
+    [testCodeForId]
   )
 
   return col

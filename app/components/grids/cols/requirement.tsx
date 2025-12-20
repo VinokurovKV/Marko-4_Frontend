@@ -40,7 +40,7 @@ export function useRequirementCol(
       minWidth: 140,
       flex: 1
     }),
-    []
+    [requirementNameForId]
   )
 
   return col

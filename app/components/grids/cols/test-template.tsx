@@ -41,7 +41,7 @@ export function useTestTemplateCol(
       minWidth: 140,
       flex: 1
     }),
-    []
+    [testTemplateCodeForId]
   )
 
   return col

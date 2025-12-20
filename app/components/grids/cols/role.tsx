@@ -35,7 +35,7 @@ export function useRoleCol(roles: RolePrimary[] | null | undefined) {
       minWidth: 140,
       flex: 1
     }),
-    []
+    [roleNameForId]
   )
 
   return col

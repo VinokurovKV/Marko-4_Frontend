@@ -5,6 +5,7 @@ import type {
   FragmentPrimary,
   RequirementPrimary,
   RequirementTertiary,
+  RequirementsHierarchyVertex,
   TestPrimary
 } from '~/types'
 import {
@@ -18,6 +19,7 @@ import {
   ColumnViewerBlock,
   ColumnViewerChipsBlock,
   ColumnViewerItem,
+  ColumnViewerPercent,
   ColumnViewerRef,
   ColumnViewerText
 } from '../common'
@@ -29,6 +31,7 @@ export interface RequirementViewerProps {
   documents: DocumentPrimary[] | null
   fragments: FragmentPrimary[] | null
   requirement: RequirementTertiary
+  requirementsHierarchyVertex: RequirementsHierarchyVertex
   parentRequirements: RequirementPrimary[] | null
   childRequirements: RequirementPrimary[] | null
   test: TestPrimary | null
@@ -39,6 +42,7 @@ export function RequirementViewer({
   documents,
   fragments,
   requirement,
+  requirementsHierarchyVertex: vertex,
   parentRequirements,
   childRequirements,
   test
@@ -114,6 +118,28 @@ export function RequirementViewer({
               text: requirement.code,
               href: `/requirements/${requirement.id}`
             }))}
+          />
+        </ColumnViewerBlock>
+        <ColumnViewerBlock title="покрытия атомарных требований">
+          <ColumnViewerPercent
+            field="все"
+            fraction={`${vertex.coveredRate.full} / ${vertex.aggregateRate.full}`}
+          />
+          <ColumnViewerPercent
+            field="обязательные"
+            fraction={`${vertex.coveredRate.onlyMust} / ${vertex.aggregateRate.onlyMust}`}
+          />
+          <ColumnViewerPercent
+            field="обязательные и рекомендуемые"
+            fraction={`${vertex.coveredRate.mustAndShould} / ${vertex.aggregateRate.mustAndShould}`}
+          />
+          <ColumnViewerPercent
+            field="рекомендуемые"
+            fraction={`${vertex.coveredRate.onlyShould} / ${vertex.aggregateRate.onlyShould}`}
+          />
+          <ColumnViewerPercent
+            field="необязательные"
+            fraction={`${vertex.coveredRate.onlyMay} / ${vertex.aggregateRate.onlyMay}`}
           />
         </ColumnViewerBlock>
         <ColumnViewerBlock title="теги">

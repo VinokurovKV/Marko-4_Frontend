@@ -38,7 +38,7 @@ export function useGroupCol(groups: Group[] | null | undefined) {
       minWidth: 140,
       flex: 1
     }),
-    []
+    [groupCodeForId]
   )
 
   return col

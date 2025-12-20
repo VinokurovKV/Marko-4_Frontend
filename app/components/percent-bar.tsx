@@ -2,10 +2,16 @@ import * as React from 'react'
 import clsx from 'clsx'
 import { styled } from '@mui/material/styles'
 
-interface PercentBarProps {
-  percent: number
+export type PercentBarProps = {
   compact?: boolean
-}
+} & (
+  | {
+      percent: number
+    }
+  | {
+      fraction: string
+    }
+)
 
 const Element = styled('div')(({ theme }) => ({
   border: `1px solid ${(theme.vars || theme).palette.divider}`,
@@ -43,7 +49,19 @@ const Bar = styled('div')({
 export const PercentBar = React.memo(function ProgressBar(
   props: PercentBarProps
 ) {
-  const { percent } = props
+  const percent =
+    'percent' in props
+      ? props.percent
+      : (() => {
+          const [numerator, denominator] = props.fraction
+            .split('/')
+            .map((item) => parseInt(item))
+          return isNaN(numerator) || isNaN(denominator)
+            ? 0
+            : denominator === 0
+              ? 100
+              : (100 * numerator) / denominator
+        })()
 
   return (
     <Element
@@ -56,7 +74,11 @@ export const PercentBar = React.memo(function ProgressBar(
         sx={{
           lineHeight: props.compact ? '16px' : undefined
         }}
-      >{`${parseFloat(percent.toFixed(2))} %`}</Value>
+      >
+        {'fraction' in props
+          ? props.fraction
+          : `${parseFloat(percent.toFixed(2))} %`}
+      </Value>
       <Bar
         className={clsx({
           low: percent < 30,

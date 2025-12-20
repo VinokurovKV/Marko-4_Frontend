@@ -44,7 +44,7 @@ export function usePreparedCol(
       minWidth: 120,
       flex: 0.01
     }),
-    []
+    [gender, truePrompt, falsePrompt]
   )
   return col
 }

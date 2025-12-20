@@ -225,6 +225,7 @@ export function CreateTestFormDialog(props: CreateTestFormDialogProps) {
                   ...newCreatedTagIds
                 ]
               : undefined,
+          requirementIds: truncatedData.requirementIds,
           vertexes: vertexNamesSorted.map((vertexName, vertexIndex) => ({
             vertexName: vertexName,
             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment

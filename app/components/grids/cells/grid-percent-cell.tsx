@@ -1,5 +1,5 @@
 // Project
-import { PercentBar } from '~/components/progress-bar'
+import { PercentBar } from '~/components/percent-bar'
 // React
 import * as React from 'react'
 // Material UI

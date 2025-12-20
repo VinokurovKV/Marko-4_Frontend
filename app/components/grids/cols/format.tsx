@@ -61,7 +61,7 @@ export function useFormatCol(formats: Format[]) {
       headerAlign: 'center',
       align: 'center'
     }),
-    []
+    [formats]
   )
   return col
 }
