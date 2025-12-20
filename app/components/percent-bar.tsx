@@ -13,13 +13,34 @@ export type PercentBarProps = {
     }
 )
 
+function getClassName(percent: number) {
+  return clsx({
+    low: percent < 30,
+    medium: percent >= 30 && percent <= 70,
+    high: percent > 70 && percent < 100,
+    full: percent === 100
+  })
+}
+
 const Element = styled('div')(({ theme }) => ({
   border: `1px solid ${(theme.vars || theme).palette.divider}`,
   position: 'relative',
   overflow: 'hidden',
   width: '100%',
   height: 26,
-  borderRadius: 2
+  borderRadius: 2,
+  '&.low': {
+    borderColor: '#f44336'
+  },
+  '&.medium': {
+    borderColor: '#efbb5aa3'
+  },
+  '&.high': {
+    borderColor: '#a2a83f'
+  },
+  '&.full': {
+    borderColor: '#088208a3'
+  }
 }))
 
 const Value = styled('div')({
@@ -63,8 +84,11 @@ export const PercentBar = React.memo(function ProgressBar(
               : (100 * numerator) / denominator
         })()
 
+  const className = React.useMemo(() => getClassName(percent), [percent])
+
   return (
     <Element
+      className={className}
       sx={{
         height: props.compact ? '18px' : undefined,
         width: props.compact ? '7rem' : undefined
@@ -79,15 +103,7 @@ export const PercentBar = React.memo(function ProgressBar(
           ? props.fraction
           : `${parseFloat(percent.toFixed(2))} %`}
       </Value>
-      <Bar
-        className={clsx({
-          low: percent < 30,
-          medium: percent >= 30 && percent <= 70,
-          high: percent > 70 && percent < 100,
-          full: percent === 100
-        })}
-        style={{ maxWidth: `${percent}%` }}
-      />
+      <Bar className={className} style={{ maxWidth: `${percent}%` }} />
     </Element>
   )
 })
