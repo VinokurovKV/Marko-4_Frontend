@@ -25,6 +25,7 @@ import {
   useParentRequirementsCountCol,
   useRequirementModifierCol,
   useRequirementOriginCol,
+  useRequirementRateCol,
   useTestCol
 } from '../cols'
 // React router
@@ -124,7 +125,8 @@ export function RequirementsGrid(props: RequirementsGridProps) {
     useFragmentsCountCol(),
     useParentRequirementsCountCol(),
     useChildRequirementsCountCol(),
-    useTestCol(props.tests)
+    useTestCol(props.tests),
+    useRequirementRateCol()
   ]
 
   const navigationModeReadCols = React.useMemo(() => [readCols[0]], [readCols])
@@ -175,7 +177,8 @@ export function RequirementsGrid(props: RequirementsGridProps) {
       'fullCoverageRate',
       'mustAndShouldCoverageRate',
       'onlyShouldCoverageRate',
-      'onlyMayCoverageRate'
+      'onlyMayCoverageRate',
+      'rate'
     ],
     []
   )

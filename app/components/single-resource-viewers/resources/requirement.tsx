@@ -72,7 +72,10 @@ export function RequirementViewer({
             field="происхождение"
             val={localizationForRequirementOrigin.get(requirement.origin)}
           />
-          <ColumnViewerItem field="коэффициент" val={requirement.rate} />
+          <ColumnViewerItem
+            field="атомарный коэффициент"
+            val={requirement.rate}
+          />
           <ColumnViewerRef
             field="покрывающий тест"
             text={test?.code}
@@ -120,7 +123,7 @@ export function RequirementViewer({
             }))}
           />
         </ColumnViewerBlock>
-        <ColumnViewerBlock title="покрытия атомарных требований">
+        <ColumnViewerBlock title="покрытие атомарных требований">
           <ColumnViewerPercent
             field="все"
             fraction={`${vertex.coveredRate.full} / ${vertex.aggregateRate.full}`}

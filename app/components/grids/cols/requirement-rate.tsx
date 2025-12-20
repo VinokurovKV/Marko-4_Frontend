@@ -7,9 +7,9 @@ export function useRequirementRateCol() {
   const col: GridColDef = React.useMemo(
     () => ({
       field: 'rate',
-      headerName: 'Коэффициент',
+      headerName: 'Атом. коэффициент',
       type: 'number',
-      minWidth: 120,
+      minWidth: 140,
       flex: 0.01
     }),
     []

@@ -316,7 +316,7 @@ export function CreateRequirementFormDialog(
         <FormNumField
           required
           name="rate"
-          label="коэффициент (для атомарных требований)"
+          label="атомарный коэффициент (для атомарных требований)"
           value={data.rate}
           helperText={
             errors?.rate ?? CREATE_REQUIREMENT_FORM_PROPS_JOINED.rate ?? ' '
