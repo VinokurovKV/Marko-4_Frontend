@@ -9,7 +9,7 @@ export function useChildRequirementsCountCol() {
       field: 'childRequirementsCount',
       headerName: 'Дочер. треб.',
       type: 'number',
-      minWidth: 120,
+      minWidth: 100,
       flex: 0.01
     }),
     []

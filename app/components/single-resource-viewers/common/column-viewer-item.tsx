@@ -8,6 +8,7 @@ export interface ColumnViewerItemProps {
   field: string
   val?: string | number | null
   Icon?: React.ReactNode
+  semiTransparent?: boolean
 }
 
 export function ColumnViewerItem(props: ColumnViewerItemProps) {
@@ -21,7 +22,9 @@ export function ColumnViewerItem(props: ColumnViewerItemProps) {
         {capitalize(props.field, true) + ':'}
       </Typography>
       {props.val !== undefined && props.val !== null ? (
-        <Typography>{props.val}</Typography>
+        <Typography sx={{ opacity: props.semiTransparent ? 0.2 : undefined }}>
+          {props.val}
+        </Typography>
       ) : null}
       {props.Icon ? props.Icon : null}
     </Stack>

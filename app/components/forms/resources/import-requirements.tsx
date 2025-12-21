@@ -461,7 +461,7 @@ export function ImportRequirementsFormDialog(
         <FormFileUpload
           required
           name="config"
-          label="файл"
+          label="файл со списком импортируемых требований"
           extensions={['json', 'zip']}
           value={data.config}
           helperText={

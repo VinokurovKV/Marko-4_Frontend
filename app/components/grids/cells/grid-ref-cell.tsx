@@ -16,6 +16,7 @@ interface GridRefCellProps {
   header?: boolean
   disableCapitalize?: boolean
   disableRef?: boolean
+  semiTransparent?: boolean
 }
 
 export function GridRefCell(props: GridRefCellProps) {
@@ -42,7 +43,8 @@ export function GridRefCell(props: GridRefCellProps) {
           sx={{
             textTransform: 'none',
             fontWeight: props.header ? 500 : undefined,
-            color: props.header ? theme.palette.text.primary : undefined
+            color: props.header ? theme.palette.text.primary : undefined,
+            opacity: props.semiTransparent === true ? 0.4 : undefined
           }}
         >
           {props.disableCapitalize ? props.text : capitalize(props.text, true)}
@@ -58,7 +60,11 @@ export function GridRefCell(props: GridRefCellProps) {
           justifyContent: 'start',
           textTransform: 'none',
           fontWeight: props.header ? 500 : undefined,
-          color: props.header ? theme.palette.text.primary : undefined,
+          color: props.header
+            ? theme.palette.text.primary
+            : props.semiTransparent
+              ? 'rgb(175, 199, 234)'
+              : undefined,
           ':hover': {
             bgcolor:
               theme.palette.mode === 'light'

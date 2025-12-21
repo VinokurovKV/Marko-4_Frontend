@@ -16,15 +16,15 @@ export function useOnlyMustCoverageRateCol() {
   const col: GridColDef = React.useMemo(
     () => ({
       field: 'onlyMustCoverageRate',
-      headerName: 'Покр. обяз. треб.',
+      headerName: 'Покр. обяз. атом. треб.',
       type: 'string',
       renderCell: (params: GridRenderCellParams<any, string>) => (
         <Center>
           <PercentBar fraction={params.value ?? ''} />
         </Center>
       ),
-      minWidth: 140,
-      flex: 1
+      minWidth: 170,
+      flex: 0.01
     }),
     []
   )

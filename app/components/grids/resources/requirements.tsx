@@ -13,6 +13,7 @@ import { type GridProps, Grid } from '../grid'
 import {
   type ActionsColProps,
   useActionsCol,
+  useAtomicCol,
   useChildRequirementsCountCol,
   useCodeCol,
   useFragmentsCountCol,
@@ -87,6 +88,7 @@ export function RequirementsGrid(props: RequirementsGridProps) {
         const vertex = requirementsHierarchyVertexForId.get(requirement.id)
         return {
           ...requirement,
+          atomic: vertex?.atomic,
           fullCoverageRate:
             vertex !== undefined
               ? `${vertex.coveredRate.full} / ${vertex.aggregateRate.full}`
@@ -115,18 +117,19 @@ export function RequirementsGrid(props: RequirementsGridProps) {
   const readCols = [
     useCodeCol('id', true, '/requirements', navigationMode),
     useNameCol(),
+    useAtomicCol(),
+    useRequirementRateCol(),
     useRequirementModifierCol(),
     useRequirementOriginCol(),
+    useParentRequirementsCountCol(),
+    useChildRequirementsCountCol(),
+    useFragmentsCountCol(),
     useFullCoverageRateCol(),
     useOnlyMustCoverageRateCol(),
     useMustAndShouldCoverageRateCol(),
     useOnlyShouldCoverageRateCol(),
     useOnlyMayCoverageRateCol(),
-    useFragmentsCountCol(),
-    useParentRequirementsCountCol(),
-    useChildRequirementsCountCol(),
-    useTestCol(props.tests),
-    useRequirementRateCol()
+    useTestCol(props.tests)
   ]
 
   const navigationModeReadCols = React.useMemo(() => [readCols[0]], [readCols])
@@ -173,6 +176,7 @@ export function RequirementsGrid(props: RequirementsGridProps) {
 
   const defaultHiddenFields = React.useMemo(
     () => [
+      'name',
       'fragmentsCount',
       'fullCoverageRate',
       'mustAndShouldCoverageRate',

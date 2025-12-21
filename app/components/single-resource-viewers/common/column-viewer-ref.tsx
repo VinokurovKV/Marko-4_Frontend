@@ -16,6 +16,7 @@ export interface ColumnViewerRefProps {
   href?: string
   disableCapitalize?: boolean
   external?: boolean
+  semiTransparent?: boolean
 }
 
 function prepareHref(href: string) {
@@ -53,6 +54,7 @@ export function ColumnViewerRef(props: ColumnViewerRefProps) {
             sx={{
               justifyContent: 'start',
               textTransform: 'none',
+              color: props.semiTransparent ? 'rgb(175, 199, 234)' : undefined,
               ':hover': {
                 bgcolor:
                   theme.palette.mode === 'light'
@@ -76,6 +78,7 @@ export function ColumnViewerRef(props: ColumnViewerRefProps) {
             sx={{
               justifyContent: 'start',
               textTransform: 'none',
+              color: props.semiTransparent ? 'rgb(175, 199, 234)' : undefined,
               ':hover': {
                 bgcolor:
                   theme.palette.mode === 'light'

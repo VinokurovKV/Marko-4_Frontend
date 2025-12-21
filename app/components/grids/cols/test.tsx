@@ -30,6 +30,8 @@ export function useTestCol(tests: TestPrimary[] | null | undefined) {
           hrefPrefix="/hierarchy/tests"
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
           hrefPath={params.row.testId}
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          semiTransparent={params.row.atomic === false ? true : undefined}
         />
       ),
       minWidth: 140,

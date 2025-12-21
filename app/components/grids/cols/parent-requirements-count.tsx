@@ -9,7 +9,7 @@ export function useParentRequirementsCountCol() {
       field: 'parentRequirementsCount',
       headerName: 'Родит. треб.',
       type: 'number',
-      minWidth: 120,
+      minWidth: 100,
       flex: 0.01
     }),
     []

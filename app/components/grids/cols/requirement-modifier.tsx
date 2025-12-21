@@ -41,7 +41,7 @@ export function useRequirementModifierCol() {
   const col: GridColDef = React.useMemo(
     () => ({
       field: 'modifier',
-      headerName: 'Модификатор',
+      headerName: 'Модиф.',
       type: 'singleSelect',
       valueOptions: allRequirementModifiers.map(getValue),
       valueGetter: getValue,
@@ -50,7 +50,7 @@ export function useRequirementModifierCol() {
       ),
       headerAlign: 'center',
       align: 'center',
-      minWidth: 120,
+      minWidth: 70,
       flex: 0.01
     }),
     []

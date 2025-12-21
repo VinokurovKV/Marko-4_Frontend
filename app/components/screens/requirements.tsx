@@ -79,7 +79,7 @@ export function RequirementsScreen({
       breadcrumbsItems={breadcrumbsItems}
     >
       <HorizontalTwoPartsContainer
-        proportions={withRequirement ? 'ONE_TWO' : 'ONE_ZERO'}
+        proportions={withRequirement ? 'ONE_THREE' : 'ONE_ZERO'}
       >
         <RequirementsGrid
           key={`${withRequirement}`}

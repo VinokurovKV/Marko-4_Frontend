@@ -12,7 +12,7 @@ import {
   localizationForRequirementModifier,
   localizationForRequirementOrigin
 } from '~/localization'
-import { RequirementModifierIcon } from '~/components/icons'
+import { FlagIcon, RequirementModifierIcon } from '~/components/icons'
 import { HorizontalTwoPartsContainer } from '~/components/containers'
 import {
   ColumnViewer,
@@ -73,8 +73,13 @@ export function RequirementViewer({
             val={localizationForRequirementOrigin.get(requirement.origin)}
           />
           <ColumnViewerItem
+            field="атомарное"
+            Icon={<FlagIcon flag={vertex.atomic} />}
+          />
+          <ColumnViewerItem
             field="атомарный коэффициент"
             val={requirement.rate}
+            semiTransparent={vertex.atomic === false}
           />
           <ColumnViewerRef
             field="покрывающий тест"
@@ -84,6 +89,7 @@ export function RequirementViewer({
                 ? `/hierarchy/tests/${requirement.testId}`
                 : undefined
             }
+            semiTransparent={vertex.atomic === false}
           />
         </ColumnViewerBlock>
         <ColumnViewerBlock
