@@ -1,3 +1,4 @@
+import type { RequirementsHierarchyVertex } from '~/types'
 import { Handle, Position, type NodeProps } from 'reactflow'
 // import styles from './styles.css'
 import './styles.css'
@@ -6,6 +7,7 @@ import './styles.css'
 
 export interface RectangleProps {
   index: string
+  vertex?: RequirementsHierarchyVertex
   requirementCoverageAll: string
   requirementCoverageMust: string
   color: string

@@ -8,6 +8,7 @@ import {
   type RequirementsGridProps,
   RequirementsGrid
 } from '../grids/resources/requirements'
+// import { RequirementsHierarchyViewer } from '../requirements-hierarchy/requirements-hierarchy-viewer'
 // React router
 import { matchPath, useLocation } from 'react-router'
 // React
@@ -78,18 +79,27 @@ export function RequirementsScreen({
       title="требования"
       breadcrumbsItems={breadcrumbsItems}
     >
-      <HorizontalTwoPartsContainer
-        proportions={withRequirement ? 'ONE_THREE' : 'ONE_ZERO'}
-      >
-        <RequirementsGrid
-          key={`${withRequirement}`}
-          {...props}
-          navigationMode={withRequirement}
-          navigationModeSelectedRowId={
-            withRequirement ? (requirementId ?? undefined) : undefined
+      <HorizontalTwoPartsContainer proportions={'ONE_ZERO' /* SEVEN_FIVE"*/}>
+        <HorizontalTwoPartsContainer
+          proportions={
+            withRequirement ? 'ONE_TWO' /*'FIVE_SEVEN'*/ : 'ONE_ZERO'
           }
-        />
-        {children}
+        >
+          <RequirementsGrid
+            key={`${withRequirement}`}
+            {...props}
+            navigationMode={withRequirement}
+            navigationModeSelectedRowId={
+              withRequirement ? (requirementId ?? undefined) : undefined
+            }
+          />
+          {children}
+        </HorizontalTwoPartsContainer>
+        null
+        {/* <RequirementsHierarchyViewer
+          requirementsHierarchy={props.requirementsHierarchy}
+          tests={props.tests}
+        /> */}
       </HorizontalTwoPartsContainer>
     </LayoutScreenContainer>
   )

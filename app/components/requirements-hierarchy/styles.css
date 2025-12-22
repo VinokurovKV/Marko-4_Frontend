@@ -17,13 +17,20 @@ div.rectangle {
   border: 7px solid black;
   border-radius: 10px;
 }
-div.rectangle.selected, div.rectangle.related {
+div.rectangle.selected {
+  box-shadow: 0 0 30px 15px rgb(56, 116, 203);
+  /* outline: 0px solid rgb(56, 116, 203); */
+  /* border-color: blue; */
+  /* border-width: 10px; */
+}
+/* div.rectangle.selected,
+div.rectangle.related {
   border-color: blue;
   border-width: 10px;
-}
-div.rectangle.related {
+} */
+/* div.rectangle.related {
   border-style: dashed;
-}
+} */
 div.rectangle-content {
   display: flex;
   flex-direction: column;
@@ -38,19 +45,20 @@ div.rectangle-content span {
   font-size: 2em;
 }
 div.graph-stats {
-  position: absolute;
+  /* position: absolute;
   top: 10px;
   left: 10px;
-  z-index: 1000;
-  display: flex;
-  gap: 10px;
+  z-index: 1000; */
+  /* display: flex; */
+  /* gap: 10px; */
 }
-button {
+/* button {
   border: none;
   border-radius: 4px;
   color: white;
-  padding: 8px 16px;
+  padding: 4px 8px;
   cursor: pointer;
+  font-size: 0.7rem;
 }
 button.disabled {
   background-color: #ccc;
@@ -70,7 +78,7 @@ button[data-action='delete-edge']:not(.disabled) {
 }
 button[data-action='toggle-level3-mode']:not(.disabled) {
   background-color: navy;
-}
+} */
 div.levels {
   padding: 8px 16px;
   background-color: 'rgba(255, 255, 255, 0.9)';
@@ -180,18 +188,18 @@ div.levels {
   width: 100%;
 }
 .choice-modal-button.path-to-root {
-  background-color: #4CAF50;
+  background-color: #4caf50;
   color: white;
 }
 .choice-modal-button.path-to-root:hover {
   background-color: #45a049;
 }
 .choice-modal-button.subtree {
-  background-color: #2196F3;
+  background-color: #2196f3;
   color: white;
 }
 .choice-modal-button.subtree:hover {
-  background-color: #1976D2;
+  background-color: #1976d2;
 }
 .choice-modal-button.cancel {
   background-color: #f5f5f5;
@@ -201,3 +209,210 @@ div.levels {
 .choice-modal-button.cancel:hover {
   background-color: #e0e0e0;
 }
+
+/* .react-flow__node {
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.react-flow__node-default {
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.react-flow__node-rectangle {
+  border: none !important;
+  box-shadow: none !important;
+}
+
+div.rectangle {
+  border: 7px solid black !important;
+  border-radius: 10px !important;
+}
+div.rectangle.selected,
+div.rectangle.related {
+  border-color: blue !important;
+  border-width: 10px !important;
+}
+div.rectangle.related {
+  border-style: dashed !important;
+}
+div.rectangle-content {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+div.rectangle-content span {
+  font-weight: 600 !important;
+  font-size: 2em !important;
+}
+div.graph-stats {
+  position: absolute !important;
+  top: 10px !important;
+  left: 10px !important;
+  z-index: 1000 !important;
+  display: flex !important;
+  gap: 10px !important;
+}
+button {
+  border: none !important;
+  border-radius: 4px !important;
+  color: white !important;
+  padding: 8px 16px !important;
+  cursor: pointer !important;
+}
+button.disabled {
+  background-color: #ccc !important;
+  cursor: not-allowed !important;
+}
+button[data-action='hide-level']:not(.disabled) {
+  background-color: red !important;
+}
+button[data-action='show-level']:not(.disabled) {
+  background-color: green !important;
+}
+button[data-action='reset-selection']:not(.disabled) {
+  background-color: blue !important;
+}
+button[data-action='delete-edge']:not(.disabled) {
+  background-color: purple !important;
+}
+button[data-action='toggle-level3-mode']:not(.disabled) {
+  background-color: navy !important;
+}
+div.levels {
+  padding: 8px 16px;
+  background-color: 'rgba(255, 255, 255, 0.9)' !important;
+  border-radius: 4px !important;
+  font-weight: bold !important;
+}
+.modal-overlay {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  background-color: rgba(0, 0, 0, 0.5) !important;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: flex-start !important;
+  padding-top: 100px !important;
+  z-index: 1000 !important;
+}
+.modal-content {
+  background: white !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15) !important;
+  width: 400px !important;
+  max-width: 90vw !important;
+  animation: modal-appear 0.2s ease-out !important;
+}
+.modal-header {
+  padding: 20px 20px 0 !important;
+  border-bottom: none !important;
+}
+.modal-header h3 {
+  margin: 0 !important;
+  color: #333 !important;
+  font-size: 18px !important;
+  font-weight: 600 !important;
+}
+.modal-body {
+  padding: 20px !important;
+}
+.modal-body p {
+  margin: 0 !important;
+  color: #666 !important;
+  line-height: 1.5 !important;
+}
+.modal-footer {
+  padding: 0 20px 20px !important;
+  display: flex !important;
+  justify-content: flex-end !important;
+  gap: 10px !important;
+}
+.modal-button {
+  padding: 8px 16px !important;
+  border: none !important;
+  border-radius: 4px !important;
+  cursor: pointer !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  transition: all 0.2s !important;
+}
+.cancel-button {
+  background-color: #f5f5f5 !important;
+  color: #333 !important;
+}
+.cancel-button:hover {
+  background-color: #e0e0e0 !important;
+}
+.confirm-button {
+  background-color: #dc3545 !important;
+  color: white !important;
+}
+.confirm-button:hover {
+  background-color: #c82333 !important;
+}
+.choice-modal-content {
+  background: white !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15) !important;
+  width: 450px !important;
+  max-width: 90vw !important;
+  animation: modal-appear 0.2s ease-out !important;
+}
+.choice-modal-body {
+  padding: 20px !important;
+  text-align: center !important;
+}
+.choice-modal-body p {
+  margin: 0 0 20px 0 !important;
+  color: #666 !important;
+  line-height: 1.5 !important;
+  font-size: 16px !important;
+}
+.choice-modal-footer {
+  padding: 0 20px 20px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 10px !important;
+}
+.choice-modal-button {
+  padding: 12px 16px !important;
+  border: none !important;
+  border-radius: 6px !important;
+  cursor: pointer !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  transition: all 0.2s !important;
+  width: 100% !important;
+}
+.choice-modal-button.path-to-root {
+  background-color: #4caf50 !important;
+  color: white !important;
+}
+.choice-modal-button.path-to-root:hover {
+  background-color: #45a049 !important;
+}
+.choice-modal-button.subtree {
+  background-color: #2196f3 !important;
+  color: white !important;
+}
+.choice-modal-button.subtree:hover {
+  background-color: #1976d2 !important;
+}
+.choice-modal-button.cancel {
+  background-color: #f5f5f5 !important;
+  color: #333 !important;
+  border: 1px solid #ddd !important;
+}
+.choice-modal-button.cancel:hover {
+  background-color: #e0e0e0 !important;
+}
+
+ */

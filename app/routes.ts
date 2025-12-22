@@ -26,14 +26,25 @@ export default [
               route(':documentId', 'routes/document.tsx')
             ]),
             route('requirements', 'routes/requirements.tsx', [
-              route(':requirementId', 'routes/requirement.tsx')
+              route(':requirementId', 'routes/requirement.tsx', {
+                id: 'requirements-requirement'
+              })
             ]),
-            layout('routes/requirements-hierarchy-layout.tsx', [
-              route(
-                'requirements/hierarchy',
-                'routes/requirements-hierarchy.tsx'
-              )
-            ]),
+            route(
+              'requirements-hierarchy',
+              'routes/requirements-hierarchy.tsx',
+              [
+                route(':requirementId', 'routes/requirement.tsx', {
+                  id: 'requirements-hierarchy-requirement'
+                })
+              ]
+            ),
+            // layout('routes/requirements-hierarchy-layout.tsx', [
+            //   route(
+            //     'requirements/hierarchy',
+            //     'routes/requirements-hierarchy.tsx'
+            //   )
+            // ]),
             route('coverages', 'routes/coverages.tsx', [
               route(':coverageId', 'routes/coverage.tsx')
             ]),

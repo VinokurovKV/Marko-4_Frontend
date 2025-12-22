@@ -1,7 +1,7 @@
 import { type Edge, MarkerType } from 'reactflow'
 import 'reactflow/dist/style.css'
 
-const createEdge = (source: string, target: string): Edge => {
+export const createEdge = (source: string, target: string): Edge => {
   return {
     id: `e${source}-${target}`,
     source: source,

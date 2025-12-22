@@ -33,6 +33,7 @@ import { RequirementViewer } from '~/components/single-resource-viewers/resource
 import { ForbiddenScreen } from '~/components/screens/problem/forbidden'
 // React router
 import type { Route } from './+types/requirement'
+import { matchPath, useLocation } from 'react-router'
 // React
 import * as React from 'react'
 
@@ -89,6 +90,9 @@ function RequirementRouteInner({
     test: initialTest
   }
 }: Route.ComponentProps) {
+  const { pathname } = useLocation()
+  const requirementsHierarchyMatch =
+    matchPath('/requirements-hierarchy/:requirementId?', pathname) !== null
   const notifier = useNotifier()
   const meta = useMeta()
 
@@ -189,6 +193,7 @@ function RequirementRouteInner({
       parentRequirements={parentRequirements}
       childRequirements={childRequirements}
       test={test}
+      oneColumn={requirementsHierarchyMatch}
     />
   ) : null
 }

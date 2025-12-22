@@ -8,7 +8,14 @@ import Typography from '@mui/material/Typography'
 import capitalize from 'capitalize'
 
 export interface HorizontalTwoPartsContainerProps {
-  proportions: 'EQUAL' | 'ONE_TWO' | 'ONE_THREE' | 'ONE_ZERO'
+  proportions:
+    | 'EQUAL'
+    | 'ONE_TWO'
+    | 'ONE_THREE'
+    | 'FIVE_SEVEN'
+    | 'SEVEN_FIVE'
+    | 'TWO_ONE'
+    | 'ONE_ZERO'
   title?: string | [string, string]
   children: [React.ReactNode, React.ReactNode]
 }
@@ -54,7 +61,13 @@ export function HorizontalTwoPartsContainer(
                 ? 4
                 : props.proportions === 'ONE_THREE'
                   ? 3
-                  : 12
+                  : props.proportions === 'FIVE_SEVEN'
+                    ? 5
+                    : props.proportions === 'SEVEN_FIVE'
+                      ? 7
+                      : props.proportions === 'TWO_ONE'
+                        ? 8
+                        : 12
           }
           sx={{ height: '100%' }}
         >
@@ -68,7 +81,13 @@ export function HorizontalTwoPartsContainer(
                 ? 8
                 : props.proportions === 'ONE_THREE'
                   ? 9
-                  : 0
+                  : props.proportions === 'FIVE_SEVEN'
+                    ? 7
+                    : props.proportions === 'SEVEN_FIVE'
+                      ? 5
+                      : props.proportions === 'TWO_ONE'
+                        ? 4
+                        : 0
           }
           sx={{ height: '100%' }}
         >

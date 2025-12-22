@@ -115,7 +115,10 @@ export function DocumentsGrid(props: DocumentsGridProps) {
   )
 
   const defaultHiddenFields = React.useMemo(
-    () => ['publicVersion', 'date'] as (keyof DocumentSecondary)[],
+    () =>
+      [
+        /*'publicVersion', 'date'*/
+      ] as (keyof DocumentSecondary)[],
     []
   )
 

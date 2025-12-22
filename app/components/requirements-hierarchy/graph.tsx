@@ -1,3 +1,6 @@
+// Project
+import { ProjButton } from '../buttons/button'
+// React
 import { useCallback, useEffect, useRef, useState } from 'react'
 import ReactFlow, {
   Controls,
@@ -14,12 +17,258 @@ import 'reactflow/dist/style.css'
 import Rectangle from './rectangle'
 import { type RectangleNode } from './TechSpec/nodes'
 import { edgeStyle } from './TechSpec/edges'
-import Button from './button'
+// import Button from './button'
 import ConfirmationModal from './confirmation'
 import ChoiceModal from './choice'
 import calculateNodePositions from './layouts/graph_final'
-import './styles.css'
+// import './styles.css'
 // import styles from './styles.css'
+// Material UI
+import { styled } from '@mui/material/styles'
+import Divider from '@mui/material/Divider'
+import Stack from '@mui/material/Stack'
+import Typography from '@mui/material/Typography'
+// Other
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const StackStyled = styled(Stack)(({ theme }) => [
+  {
+    '&': {
+      position: 'relative'
+    }
+    // '& .react-flow': {
+    //   borderTop: `1.5px dashed ${theme.palette.mode === 'light' ? theme.palette.grey['A400'] : theme.palette.grey['600']}`
+    // }
+    // '& .react-flow__node': {
+    //   border: 'none !important',
+    //   boxShadow: 'none !important'
+    // },
+    // '& .react-flow__node-default': {
+    //   border: 'none !important',
+    //   boxShadow: 'none !important'
+    // },
+    // '& .react-flow__node-rectangle': {
+    //   border: 'none !important',
+    //   boxShadow: 'none !important'
+    // },
+    // '& div.rectangle': {
+    //   border: '7px solid black !important',
+    //   borderRadius: '10px !important'
+    // },
+    // '& div.rectangle.selected, & div.rectangle.related': {
+    //   borderColor: 'blue !important',
+    //   borderWidth: '10px !important'
+    // },
+    // '& div.rectangle.related': {
+    //   borderStyle: 'dashed !important'
+    // },
+    // '& div.rectangle-content': {
+    //   display: 'flex !important',
+    //   flexDirection: 'column !important',
+    //   alignItems: 'center !important',
+    //   justifyContent: 'center !important',
+    //   textAlign: 'center !important',
+    //   width: '100% !important',
+    //   height: '100% !important'
+    // },
+    // '& div.rectangle-content span': {
+    //   fontWeight: '600 !important',
+    //   fontSize: '2em !important'
+    // },
+    // '& div.graph-stats': {
+    //   position: 'absolute !important',
+    //   top: '10px !important',
+    //   left: '10px !important',
+    //   zIndex: '1000 !important',
+    //   display: 'flex !important',
+    //   gap: '10px !important'
+    // },
+    // '& button': {
+    //   border: 'none !important',
+    //   borderRadius: '4px !important',
+    //   color: 'white !important',
+    //   padding: '8px 16px !important',
+    //   cursor: 'pointer !important'
+    // },
+    // '& button.disabled': {
+    //   backgroundColor: '#ccc !important',
+    //   cursor: 'not-allowed !important'
+    // },
+    // '& button[data-action="hide-level"]:not(.disabled)': {
+    //   backgroundColor: 'red !important'
+    // },
+    // '& button[data-action="show-level"]:not(.disabled)': {
+    //   backgroundColor: 'green !important'
+    // },
+    // '& button[data-action="reset-selection"]:not(.disabled)': {
+    //   backgroundColor: 'blue !important'
+    // },
+    // '& button[data-action="delete-edge"]:not(.disabled)': {
+    //   backgroundColor: 'purple !important'
+    // },
+    // '& button[data-action="toggle-level3-mode"]:not(.disabled)': {
+    //   backgroundColor: 'navy !important'
+    // },
+    // '& div.levels': {
+    //   padding: '8px 16px !important',
+    //   backgroundColor: 'rgba(255, 255, 255, 0.9) !important',
+    //   borderRadius: '4px !important',
+    //   fontWeight: 'bold !important'
+    // },
+    // '& .modal-overlay': {
+    //   position: 'fixed !important',
+    //   top: '0 !important',
+    //   left: '0 !important',
+    //   right: '0 !important',
+    //   bottom: '0 !important',
+    //   backgroundColor: 'rgba(0, 0, 0, 0.5) !important',
+    //   display: 'flex !important',
+    //   justifyContent: 'center !important',
+    //   alignItems: 'flex-start !important',
+    //   paddingTop: '100px !important',
+    //   zIndex: '1000 !important'
+    // },
+    // '& .modal-content': {
+    //   background: 'white !important',
+    //   borderRadius: '8px !important',
+    //   boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15) !important',
+    //   width: '400px !important',
+    //   maxWidth: '90vw !important',
+    //   animation: 'modal-appear 0.2s ease-out !important'
+    // },
+    // '& .modal-header': {
+    //   padding: '20px 20px 0 !important',
+    //   borderBottom: 'none !important'
+    // },
+    // '& .modal-header h3': {
+    //   margin: '0 !important',
+    //   color: '#333 !important',
+    //   fontSize: '18px !important',
+    //   fontWeight: '600 !important'
+    // },
+    // '& .modal-body': {
+    //   padding: '20px !important'
+    // },
+    // '& .modal-body p': {
+    //   margin: '0 !important',
+    //   color: '#666 !important',
+    //   lineHeight: '1.5 !important'
+    // },
+    // '& .modal-footer': {
+    //   padding: '0 20px 20px !important',
+    //   display: 'flex !important',
+    //   justifyContent: 'flex-end !important',
+    //   gap: '10px !important'
+    // },
+    // '& .modal-button': {
+    //   padding: '8px 16px !important',
+    //   border: 'none !important',
+    //   borderRadius: '4px !important',
+    //   cursor: 'pointer !important',
+    //   fontSize: '14px !important',
+    //   fontWeight: '500 !important',
+    //   transition: 'all 0.2s !important'
+    // },
+    // '& .cancel-button': {
+    //   backgroundColor: '#f5f5f5 !important',
+    //   color: '#333 !important'
+    // },
+    // '& .cancel-button:hover': {
+    //   backgroundColor: '#e0e0e0 !important'
+    // },
+    // '& .confirm-button': {
+    //   backgroundColor: '#dc3545 !important',
+    //   color: 'white !important'
+    // },
+    // '& .confirm-button:hover': {
+    //   backgroundColor: '#c82333 !important'
+    // },
+    // '& .choice-modal-content': {
+    //   background: 'white !important',
+    //   borderRadius: '8px !important',
+    //   boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15) !important',
+    //   width: '450px !important',
+    //   maxWidth: '90vw !important',
+    //   animation: 'modal-appear 0.2s ease-out !important'
+    // },
+    // '& .choice-modal-body': {
+    //   padding: '20px !important',
+    //   textAlign: 'center !important'
+    // },
+    // '& .choice-modal-body p': {
+    //   margin: '0 0 20px 0 !important',
+    //   color: '#666 !important',
+    //   lineHeight: '1.5 !important',
+    //   fontSize: '16px !important'
+    // },
+    // '& .choice-modal-footer': {
+    //   padding: '0 20px 20px !important',
+    //   display: 'flex !important',
+    //   flexDirection: 'column !important',
+    //   gap: '10px !important'
+    // },
+    // '& .choice-modal-button': {
+    //   padding: '12px 16px !important',
+    //   border: 'none !important',
+    //   borderRadius: '6px !important',
+    //   cursor: 'pointer !important',
+    //   fontSize: '14px !important',
+    //   fontWeight: '500 !important',
+    //   transition: 'all 0.2s !important',
+    //   width: '100% !important'
+    // },
+    // '& .choice-modal-button.path-to-root': {
+    //   backgroundColor: '#4CAF50 !important',
+    //   color: 'white !important'
+    // },
+    // '& .choice-modal-button.path-to-root:hover': {
+    //   backgroundColor: '#45a049 !important'
+    // },
+    // '& .choice-modal-button.subtree': {
+    //   backgroundColor: '#2196F3 !important',
+    //   color: 'white !important'
+    // },
+    // '& .choice-modal-button.subtree:hover': {
+    //   backgroundColor: '#1976D2 !important'
+    // },
+    // '& .choice-modal-button.cancel': {
+    //   backgroundColor: '#f5f5f5 !important',
+    //   color: '#333 !important',
+    //   border: '1px solid #ddd !important'
+    // },
+    // '& .choice-modal-button.cancel:hover': {
+    //   backgroundColor: '#e0e0e0 !important'
+    // }
+    // '& .MuiDataGrid-footerContainer .MuiToolbar-root': {
+    //   minHeight: ROW_HEIGHT,
+    //   height: ROW_HEIGHT
+    // },
+    // '& .MuiDataGrid-columnHeaderTitle': {
+    //   fontWeight: 'bold'
+    // },
+    // '& .MuiDataGrid-cell + .MuiDataGrid-cell': {
+    //   borderLeft: `1px solid ${theme.palette.divider}`
+    // },
+    // '& .MuiDataGrid-toolbar .MuiInputBase-root': {
+    //   height: TOOLBAR_INPUT_HEIGHT
+    // },
+    // '&.navigation-mode .MuiDataGrid-row': {
+    //   cursor: 'pointer',
+    //   ':hover': {
+    //     backgroundColor:
+    //       theme.palette.mode === 'light'
+    //         ? 'rgb(239, 244, 251)'
+    //         : 'rgb(40, 47, 54)'
+    //   }
+    // }
+  }
+  // theme.applyStyles('light', {
+  //   '& .MuiDataGrid-toolbar, & .MuiDataGrid-columnHeaders .MuiDataGrid-filler, & .MuiDataGrid-columnHeader, .MuiToolbar-root':
+  //     {
+  //       backgroundColor: theme.palette.grey.A100
+  //     }
+  // })
+])
 
 /* eslint-disable */
 
@@ -27,7 +276,7 @@ const nodeTypes = {
   rectangle: Rectangle
 }
 
-interface TopologyGraphProps {
+export interface TopologyGraphProps {
   blurredNodeIndexes: string[]
   initialNodes: RectangleNode[]
   initialEdges: Edge[]
@@ -528,62 +777,75 @@ export function TopologyGraph({
   }
 
   return (
-    <>
+    <StackStyled sx={{ height: '100%' }}>
       <div className="graph-stats">
-        <Button
-          type="button"
-          text="Скрыть уровень"
-          dataAction="hide-level"
-          className={`${isHideButtonDisabled ? 'disabled' : ''}`}
-          disabled={isHideButtonDisabled}
-          onClick={hideLastLevel}
-        />
-        <Button
-          type="button"
-          text="Раскрыть уровень"
-          dataAction="show-level"
-          className={`${visibleLevels >= 4 ? 'disabled' : ''}`}
-          disabled={visibleLevels >= 4}
-          onClick={showNextLevel}
-        />
-        <Button
-          type="button"
-          text={`Узлы 3 уровня: ${showAllLevel3 ? 'Все' : 'Выбранный'}`}
-          dataAction="toggle-level3-mode"
-          className={`${nodeDisplayMode !== null ? 'disabled' : ''}`}
-          disabled={nodeDisplayMode !== null}
-          onClick={toggleShowAllLevel3}
-        />
-        <Button
-          type="button"
-          text="Сбросить выделение"
-          dataAction="reset-selection"
-          className={`${selectedNodeId === null && selectedEdgeId === null && nodeDisplayMode === null ? 'disabled' : ''}`}
-          disabled={
-            selectedNodeId === null &&
-            selectedEdgeId === null &&
-            nodeDisplayMode === null
-          }
-          onClick={resetSelection}
-        />
-        <Button
-          type="button"
-          text="Удалить связь"
-          dataAction="delete-edge"
-          className={`${selectedEdgeId === null ? 'disabled' : ''}`}
-          disabled={selectedEdgeId === null}
-          onClick={deleteSelectedEdge}
-        />
+        <Stack direction="row" pt={2} pl={2} pr={2} spacing={1}>
+          <ProjButton
+            variant="contained"
+            type="button"
+            // dataAction="hide-level"
+            className={`${isHideButtonDisabled ? 'disabled' : ''}`}
+            disabled={isHideButtonDisabled}
+            onClick={hideLastLevel}
+          >
+            Скрыть уровень
+          </ProjButton>
+          <ProjButton
+            variant="contained"
+            type="button"
+            // dataAction="show-level"
+            className={`${visibleLevels >= 4 ? 'disabled' : ''}`}
+            disabled={visibleLevels >= 4}
+            onClick={showNextLevel}
+          >
+            Раскрыть уровень
+          </ProjButton>
+          <ProjButton
+            variant="contained"
+            type="button"
+            // dataAction="toggle-level3-mode"
+            className={`${nodeDisplayMode !== null ? 'disabled' : ''}`}
+            disabled={nodeDisplayMode !== null}
+            onClick={toggleShowAllLevel3}
+          >{`Узлы 3 уровня: ${showAllLevel3 ? 'Все' : 'Выбранный'}`}</ProjButton>
+          <ProjButton
+            variant="contained"
+            type="button"
+            // dataAction="reset-selection"
+            className={`${selectedNodeId === null && selectedEdgeId === null && nodeDisplayMode === null ? 'disabled' : ''}`}
+            disabled={
+              selectedNodeId === null &&
+              selectedEdgeId === null &&
+              nodeDisplayMode === null
+            }
+            onClick={resetSelection}
+          >
+            Сбросить выделение
+          </ProjButton>
+          <ProjButton
+            variant="contained"
+            type="button"
+            // dataAction="delete-edge"
+            className={`${selectedEdgeId === null ? 'disabled' : ''}`}
+            disabled={selectedEdgeId === null}
+            onClick={deleteSelectedEdge}
+          >
+            Удалить связь
+          </ProjButton>
+        </Stack>
         <div className="levels">
-          Уровни: 0-{visibleLevels - 1}
-          {selectedNodeId !== null && ` | Выбран: ${selectedNodeId}`}
-          {selectedEdgeId !== null &&
-            ` | Выбрана связь: ${selectedEdgeId.substring(1)}`}
-          {nodeDisplayMode &&
-            ` | Отображение: ${nodeDisplayMode === 'path' ? 'Путь до корня' : 'Поддерево'}`}
-          {` | Узлы 3 уровня: ${showAllLevel3 ? 'Все' : 'Выбранный'}`}
+          <Typography fontSize={12}>
+            Уровни: 0-{visibleLevels - 1}
+            {selectedNodeId !== null && ` | Выбран: ${selectedNodeId}`}
+            {selectedEdgeId !== null &&
+              ` | Выбрана связь: ${selectedEdgeId.substring(1)}`}
+            {nodeDisplayMode &&
+              ` | Отображение: ${nodeDisplayMode === 'path' ? 'Путь до корня' : 'Поддерево'}`}
+            {` | Узлы 3 уровня: ${showAllLevel3 ? 'Все' : 'Выбранный'}`}
+          </Typography>
         </div>
       </div>
+      <Divider />
 
       <ChoiceModal
         isOpen={isChoiceModalOpen}
@@ -630,7 +892,7 @@ export function TopologyGraph({
         <Controls showInteractive={false} />
         <Background />
       </ReactFlow>
-    </>
+    </StackStyled>
   )
 }
 

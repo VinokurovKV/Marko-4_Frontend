@@ -7,9 +7,9 @@ export function useParentRequirementsCountCol() {
   const col: GridColDef = React.useMemo(
     () => ({
       field: 'parentRequirementsCount',
-      headerName: 'Родит. треб.',
+      headerName: 'Родит.',
       type: 'number',
-      minWidth: 100,
+      minWidth: 60,
       flex: 0.01
     }),
     []

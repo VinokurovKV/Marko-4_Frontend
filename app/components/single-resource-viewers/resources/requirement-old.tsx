@@ -35,7 +35,6 @@ export interface RequirementViewerProps {
   parentRequirements: RequirementPrimary[] | null
   childRequirements: RequirementPrimary[] | null
   test: TestPrimary | null
-  oneColumn?: boolean
 }
 
 export function RequirementViewer({
@@ -46,8 +45,7 @@ export function RequirementViewer({
   requirementsHierarchyVertex: vertex,
   parentRequirements,
   childRequirements,
-  test,
-  oneColumn
+  test
 }: RequirementViewerProps) {
   const documentCodeForId = React.useMemo(
     () =>
@@ -58,7 +56,7 @@ export function RequirementViewer({
   )
   return (
     <HorizontalTwoPartsContainer
-      proportions={oneColumn ? 'ONE_ZERO' : 'EQUAL'}
+      proportions="EQUAL"
       title={['Требование', `${requirement.code}`]}
     >
       <ColumnViewer>
@@ -162,25 +160,15 @@ export function RequirementViewer({
             }))}
           />
         </ColumnViewerBlock>
-        {oneColumn ? (
-          <ColumnViewerBlock title="описание">
-            <ColumnViewerText
-              text={requirement.description?.text}
-              emptyText="нет"
-            />
-          </ColumnViewerBlock>
-        ) : null}
       </ColumnViewer>
-      {oneColumn ? null : (
-        <ColumnViewer>
-          <ColumnViewerBlock title="описание">
-            <ColumnViewerText
-              text={requirement.description?.text}
-              emptyText="нет"
-            />
-          </ColumnViewerBlock>
-        </ColumnViewer>
-      )}
+      <ColumnViewer>
+        <ColumnViewerBlock title="описание">
+          <ColumnViewerText
+            text={requirement.description?.text}
+            emptyText="нет"
+          />
+        </ColumnViewerBlock>
+      </ColumnViewer>
     </HorizontalTwoPartsContainer>
   )
 }

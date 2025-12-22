@@ -1,59 +1,90 @@
 // Project
-import type { RequirementTertiary } from '~/types'
-// import { serverConnector } from '~/server-connector'
-// import { useNotifier } from '~/providers/notifier'
-import { blurredNodeIndexes } from '../requirements-hierarchy/TechSpec/nodes'
-import { initialNodes } from '../requirements-hierarchy/TechSpec/nodes'
-import { initialEdges } from '../requirements-hierarchy/TechSpec/edges'
-import { TopologyGraph } from '../requirements-hierarchy/graph'
+import { type ProjBreadcrumbsProps } from '../breadcrumbs'
+import {
+  LayoutScreenContainer,
+  HorizontalTwoPartsContainer
+} from '../containers'
+import {
+  type RequirementsHierarchyViewerProps,
+  RequirementsHierarchyViewer
+} from '../requirements-hierarchy/requirements-hierarchy-viewer'
+// React router
+import { matchPath, useLocation } from 'react-router'
 // React
-// import * as React from 'react'
+import * as React from 'react'
+// Material UI
+import HubIcon from '@mui/icons-material/Hub'
 
-export interface RequirementsHierarchyScreenProps {
-  initialRequirements: RequirementTertiary[]
+export interface RequirementsHierarchyScreenProps
+  extends RequirementsHierarchyViewerProps {
+  children: React.ReactNode
 }
 
-export function RequirementsHierarchyScreen() {
-  // props: RequirementsHierarchyScreenProps
-  // const notifier = useNotifier()
+export function RequirementsHierarchyScreen({
+  children,
+  ...props
+}: RequirementsHierarchyScreenProps) {
+  const { pathname } = useLocation()
+  const match = matchPath('/requirements-hierarchy/:requirementId?', pathname)
+  const withRequirement = match?.params.requirementId !== undefined
+  const requirementId = React.useMemo(() => {
+    const parsed =
+      match?.params.requirementId !== undefined
+        ? parseInt(match.params.requirementId)
+        : null
+    return parsed === null || isNaN(parsed) ? null : parsed
+  }, [match])
 
-  // const [requirements, setRequirements] = React.useState<RequirementTertiary[]>(
-  //   props.initialRequirements
-  // )
+  const requirementCode = React.useMemo(
+    () =>
+      props.requirementsHierarchy.vertexes.find(
+        (vertex) => vertex.id === requirementId
+      )?.code ?? null,
+    [props.requirementsHierarchy.vertexes, requirementId]
+  )
 
-  // const updateRequirements = React.useCallback(() => {
-  //   void (async () => {
-  //     try {
-  //       const requirementIds = (
-  //         await serverConnector.readRequirements({
-  //           scope: 'PRIMARY_PROPS'
-  //         })
-  //       ).map((requirement) => requirement.id)
-  //       const requirements = await Promise.all(
-  //         requirementIds.map((requirementId) =>
-  //           serverConnector.readRequirement(
-  //             { id: requirementId },
-  //             {
-  //               scope: 'UP_TO_TERTIARY_PROPS'
-  //             }
-  //           )
-  //         )
-  //       )
-  //       setRequirements(requirements)
-  //     } catch (error) {
-  //       notifier.showError(
-  //         error,
-  //         'не удалось загрузить актуальный список требований'
-  //       )
-  //     }
-  //   })()
-  // }, [setRequirements])
-
+  const breadcrumbsItems: ProjBreadcrumbsProps['items'] = React.useMemo(
+    () => [
+      ...[
+        {
+          title: 'иерархия требований',
+          href: '/requirements-hierarchy',
+          Icon: HubIcon
+        }
+      ],
+      ...(withRequirement
+        ? [
+            {
+              title:
+                requirementCode !== null
+                  ? requirementCode
+                  : requirementId !== null
+                    ? `[ID:${requirementId}]`
+                    : '???',
+              href:
+                requirementId !== null
+                  ? `/requirements/${requirementId}`
+                  : undefined
+            }
+          ]
+        : [])
+    ],
+    [withRequirement, requirementId, requirementCode]
+  )
   return (
-    <TopologyGraph
-      blurredNodeIndexes={blurredNodeIndexes}
-      initialNodes={initialNodes}
-      initialEdges={initialEdges}
-    />
+    <LayoutScreenContainer
+      title="иерархия требований (экран дорабатывается, приведена иерархия для примера)"
+      breadcrumbsItems={breadcrumbsItems}
+    >
+      <HorizontalTwoPartsContainer
+        proportions={withRequirement ? 'TWO_ONE' : 'ONE_ZERO'}
+      >
+        <RequirementsHierarchyViewer
+          // key={`${withRequirement}`}
+          {...props}
+        />
+        {children}
+      </HorizontalTwoPartsContainer>
+    </LayoutScreenContainer>
   )
 }

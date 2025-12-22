@@ -1,3 +1,4 @@
+import type { RequirementsHierarchyVertex } from '~/types'
 import { type Node } from 'reactflow'
 import 'reactflow/dist/style.css'
 import { type RectangleProps, getColorByCoverage } from '../rectangle'
@@ -133,6 +134,30 @@ const createNode = (
       requirementCoverageAll,
       requirementCoverageMust,
       color: getColorByCoverage(requirementCoverageMust),
+      nodesInLevel: defaultNodesInLevel,
+      width: defaultWidth,
+      height: defaultHeight,
+      level
+    }
+  }
+}
+
+export const createRequirementNode = (
+  id: string,
+  vertex: RequirementsHierarchyVertex
+): RectangleNode => {
+  const level = getNodeLevel(id)
+
+  return {
+    id,
+    type: 'rectangle',
+    position: defaultPosition,
+    data: {
+      index: id,
+      vertex: vertex,
+      requirementCoverageAll: '',
+      requirementCoverageMust: '',
+      color: 'blue',
       nodesInLevel: defaultNodesInLevel,
       width: defaultWidth,
       height: defaultHeight,

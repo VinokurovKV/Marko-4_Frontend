@@ -17,12 +17,12 @@ export function useRequirementOriginCol() {
   const col: GridColDef = React.useMemo(
     () => ({
       field: 'origin',
-      headerName: 'Происхождение',
+      headerName: 'Происх.',
       type: 'singleSelect',
       valueOptions: allRequirementOrigins.map(getValue),
       valueGetter: getValue,
-      minWidth: 140,
-      flex: 0.01
+      minWidth: 100,
+      flex: 1
     }),
     []
   )

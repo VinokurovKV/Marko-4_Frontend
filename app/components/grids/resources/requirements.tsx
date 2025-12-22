@@ -177,12 +177,14 @@ export function RequirementsGrid(props: RequirementsGridProps) {
   const defaultHiddenFields = React.useMemo(
     () => [
       'name',
+      // 'origin',
       'fragmentsCount',
       'fullCoverageRate',
       'mustAndShouldCoverageRate',
       'onlyShouldCoverageRate',
-      'onlyMayCoverageRate',
-      'rate'
+      'onlyMayCoverageRate'
+      // 'rate',
+      // 'testId'
     ],
     []
   )

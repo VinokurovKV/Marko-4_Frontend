@@ -17,7 +17,7 @@ import FoundationIcon from '@mui/icons-material/Foundation'
 import GroupsIcon from '@mui/icons-material/Groups'
 // import HistoryIcon from '@mui/icons-material/History'
 // import HiveIcon from '@mui/icons-material/Hive'
-// import HubIcon from '@mui/icons-material/Hub'
+import HubIcon from '@mui/icons-material/Hub'
 import LanIcon from '@mui/icons-material/Lan'
 // import LayersIcon from '@mui/icons-material/Layers'
 // import ListIcon from '@mui/icons-material/List'
@@ -180,11 +180,24 @@ export const SIDE_NAVIGATION_CONFIG: SideNavigationConfig = [
     title: 'сетевая функциональность',
     nested: [
       {
-        id: 'requirements',
+        id: 'requirements-block',
         title: 'требования',
         Icon: FormatListNumberedRtlIcon,
-        href: '/requirements',
-        requiredRights: ['READ_REQUIREMENT']
+        requiredRights: ['READ_REQUIREMENT'],
+        nested: [
+          {
+            id: 'requirements-hierarchy',
+            title: 'иерархия',
+            Icon: HubIcon,
+            href: '/requirements-hierarchy'
+          },
+          {
+            id: 'requirements',
+            title: 'требования',
+            Icon: FormatListNumberedRtlIcon,
+            href: '/requirements'
+          }
+        ]
       },
       {
         id: 'documents',
