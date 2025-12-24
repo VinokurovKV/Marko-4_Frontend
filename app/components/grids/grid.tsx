@@ -49,7 +49,7 @@ const DataGridStyled = styled(DataGrid)(({ theme }) => [
       fontWeight: 'bold'
     },
     '& .MuiDataGrid-cell + .MuiDataGrid-cell': {
-      borderLeft: `1px solid ${theme.palette.divider}`
+      // borderLeft: `1px solid ${theme.palette.divider}`
     },
     '& .MuiDataGrid-toolbar .MuiInputBase-root': {
       height: TOOLBAR_INPUT_HEIGHT
@@ -72,7 +72,7 @@ const DataGridStyled = styled(DataGrid)(({ theme }) => [
   })
 ])
 
-export interface GridProps {
+export interface GridProps extends Pick<DataGridProps, 'rowSpanning'> {
   localSaveKey: string
   title?: string
   cols: GridColDef<GridValidRowModel>[]
@@ -355,6 +355,8 @@ export function Grid(props: GridProps) {
           setRowSelectionModel(newRowSelectionModel)
         }}
         className={props.navigationMode ? 'navigation-mode' : undefined}
+        rowSpanning={props.rowSpanning}
+        showCellVerticalBorder
       />
     </Stack>
   )

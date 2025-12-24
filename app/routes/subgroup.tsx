@@ -1,6 +1,8 @@
 // Project
 import type {
   TagPrimary,
+  RequirementsFilter,
+  RequirementSecondary,
   TestPrimary,
   SubgroupTertiary,
   GroupPrimary
@@ -8,6 +10,7 @@ import type {
 import { serverConnector } from '~/server-connector'
 import {
   readTagsPrimaryFiltered,
+  readRequirementsSecondaryFiltered,
   readTestsPrimaryFiltered,
   readSubgroupTertiary,
   readGroupPrimary
@@ -16,6 +19,7 @@ import { useNotifier } from '~/providers/notifier'
 import { useMeta } from '~/providers/meta'
 import {
   useTagsFilteredSubscription,
+  useRequirementsFilteredSubscription,
   useTestsFilteredSubscription,
   useSubgroupSubscription,
   useGroupSubscription
@@ -39,9 +43,16 @@ export async function clientLoader({ params }: Route.ClientLoaderArgs) {
     readTestsPrimaryFiltered(subgroup?.testIds ?? null),
     readGroupPrimary(subgroup?.groupId ?? null)
   ])
+  const testIds = tests?.map((test) => test.id)
+  const [requirements] = await Promise.all([
+    readRequirementsSecondaryFiltered(undefined, {
+      testIds: testIds
+    })
+  ])
   return {
     subgroupId,
     tags,
+    requirements,
     tests,
     subgroup,
     group
@@ -52,6 +63,7 @@ function SubgroupRouteInner({
   loaderData: {
     subgroupId,
     tags: initialTags,
+    requirements: initialRequirements,
     tests: initialTests,
     subgroup: initialSubgroup,
     group: initialGroup
@@ -61,6 +73,9 @@ function SubgroupRouteInner({
   const meta = useMeta()
 
   const [tags, setTags] = React.useState<TagPrimary[] | null>(initialTags)
+  const [requirements, setRequirements] = React.useState<
+    RequirementSecondary[] | null
+  >(initialRequirements)
   const [tests, setTests] = React.useState<TestPrimary[] | null>(initialTests)
   const [subgroup, setSubgroup] = React.useState<SubgroupTertiary | null>(
     initialSubgroup
@@ -70,7 +85,20 @@ function SubgroupRouteInner({
   const tagIds = React.useMemo(() => subgroup?.tagIds ?? null, [subgroup])
   const testIds = React.useMemo(() => subgroup?.testIds ?? null, [subgroup])
 
+  const requirementsFilter: RequirementsFilter = React.useMemo(
+    () => ({
+      testIds: testIds ?? []
+    }),
+    [testIds]
+  )
+
   useTagsFilteredSubscription('PRIMARY_PROPS', tagIds, setTags)
+  useRequirementsFilteredSubscription(
+    'UP_TO_SECONDARY_PROPS',
+    undefined,
+    requirementsFilter,
+    setRequirements
+  )
   useTestsFilteredSubscription('PRIMARY_PROPS', testIds, setTests)
   useSubgroupSubscription('UP_TO_TERTIARY_PROPS', subgroupId, setSubgroup)
   useGroupSubscription('PRIMARY_PROPS', subgroup?.groupId ?? null, setGroup)
@@ -98,6 +126,7 @@ function SubgroupRouteInner({
     <SubgroupViewer
       key={subgroupId}
       tags={tags}
+      requirements={requirements}
       tests={tests}
       subgroup={subgroup}
       group={group}

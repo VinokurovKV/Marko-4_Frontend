@@ -34,14 +34,12 @@ export function readFragmentsPrimaryFiltered(fragmentIds: number[] | null) {
   return meta.status === 'AUTHENTICATED' &&
     meta.selfMeta.rights.includes('READ_FRAGMENT') &&
     fragmentIds !== null
-    ? fragmentIds.length === 0
-      ? []
-      : serverConnector
-          .readFragments({
-            ids: fragmentIds,
-            scope: 'PRIMARY_PROPS'
-          })
-          .catch(() => null)
+    ? serverConnector
+        .readFragments({
+          ids: fragmentIds,
+          scope: 'PRIMARY_PROPS'
+        })
+        .catch(() => null)
     : Promise.resolve(null)
 }
 
@@ -50,14 +48,12 @@ export function readFragmentsSecondaryFiltered(fragmentIds: number[] | null) {
   return meta.status === 'AUTHENTICATED' &&
     meta.selfMeta.rights.includes('READ_FRAGMENT') &&
     fragmentIds !== null
-    ? fragmentIds.length === 0
-      ? []
-      : serverConnector
-          .readFragments({
-            ids: fragmentIds,
-            scope: 'UP_TO_SECONDARY_PROPS'
-          })
-          .catch(() => null)
+    ? serverConnector
+        .readFragments({
+          ids: fragmentIds,
+          scope: 'UP_TO_SECONDARY_PROPS'
+        })
+        .catch(() => null)
     : Promise.resolve(null)
 }
 

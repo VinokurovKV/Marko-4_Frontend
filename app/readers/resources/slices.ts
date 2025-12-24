@@ -34,14 +34,12 @@ export function readSlicesPrimaryFiltered(sliceIds: number[] | null) {
   return meta.status === 'AUTHENTICATED' &&
     meta.selfMeta.rights.includes('READ_SLICE') &&
     sliceIds !== null
-    ? sliceIds.length === 0
-      ? []
-      : serverConnector
-          .readSlices({
-            ids: sliceIds,
-            scope: 'PRIMARY_PROPS'
-          })
-          .catch(() => null)
+    ? serverConnector
+        .readSlices({
+          ids: sliceIds,
+          scope: 'PRIMARY_PROPS'
+        })
+        .catch(() => null)
     : Promise.resolve(null)
 }
 
@@ -50,14 +48,12 @@ export function readSlicesSecondaryFiltered(sliceIds: number[] | null) {
   return meta.status === 'AUTHENTICATED' &&
     meta.selfMeta.rights.includes('READ_SLICE') &&
     sliceIds !== null
-    ? sliceIds.length === 0
-      ? []
-      : serverConnector
-          .readSlices({
-            ids: sliceIds,
-            scope: 'UP_TO_SECONDARY_PROPS'
-          })
-          .catch(() => null)
+    ? serverConnector
+        .readSlices({
+          ids: sliceIds,
+          scope: 'UP_TO_SECONDARY_PROPS'
+        })
+        .catch(() => null)
     : Promise.resolve(null)
 }
 

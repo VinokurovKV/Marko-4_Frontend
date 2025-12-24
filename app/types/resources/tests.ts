@@ -1,4 +1,5 @@
 import type {
+  TestsFilterDto,
   ReadTestWithPrimaryPropsSuccessResultDto,
   ReadTestWithUpToSecondaryPropsSuccessResultDto,
   ReadTestWithUpToTertiaryPropsSuccessResultDto,
@@ -7,6 +8,7 @@ import type {
 } from '@common/dtos/server-api/tests.dto'
 import type { DtoWithoutEnums } from '@common/dto-without-enums'
 
+export type TestsFilter = DtoWithoutEnums<TestsFilterDto>
 export type TestPrimary =
   DtoWithoutEnums<ReadTestWithPrimaryPropsSuccessResultDto>
 export type TestSecondary =

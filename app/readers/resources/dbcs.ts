@@ -34,14 +34,12 @@ export function readDbcsPrimaryFiltered(dbcIds: number[] | null) {
   return meta.status === 'AUTHENTICATED' &&
     meta.selfMeta.rights.includes('READ_DBC') &&
     dbcIds !== null
-    ? dbcIds.length === 0
-      ? []
-      : serverConnector
-          .readDbcs({
-            ids: dbcIds,
-            scope: 'PRIMARY_PROPS'
-          })
-          .catch(() => null)
+    ? serverConnector
+        .readDbcs({
+          ids: dbcIds,
+          scope: 'PRIMARY_PROPS'
+        })
+        .catch(() => null)
     : Promise.resolve(null)
 }
 
@@ -50,14 +48,12 @@ export function readDbcsSecondaryFiltered(dbcIds: number[] | null) {
   return meta.status === 'AUTHENTICATED' &&
     meta.selfMeta.rights.includes('READ_DBC') &&
     dbcIds !== null
-    ? dbcIds.length === 0
-      ? []
-      : serverConnector
-          .readDbcs({
-            ids: dbcIds,
-            scope: 'UP_TO_SECONDARY_PROPS'
-          })
-          .catch(() => null)
+    ? serverConnector
+        .readDbcs({
+          ids: dbcIds,
+          scope: 'UP_TO_SECONDARY_PROPS'
+        })
+        .catch(() => null)
     : Promise.resolve(null)
 }
 

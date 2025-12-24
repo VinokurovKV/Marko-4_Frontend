@@ -1,4 +1,5 @@
 import type {
+  SubgroupsFilterDto,
   ReadSubgroupWithPrimaryPropsSuccessResultDto,
   ReadSubgroupWithUpToSecondaryPropsSuccessResultDto,
   ReadSubgroupWithUpToTertiaryPropsSuccessResultDto,
@@ -7,6 +8,7 @@ import type {
 } from '@common/dtos/server-api/subgroups.dto'
 import type { DtoWithoutEnums } from '@common/dto-without-enums'
 
+export type SubgroupsFilter = DtoWithoutEnums<SubgroupsFilterDto>
 export type SubgroupPrimary =
   DtoWithoutEnums<ReadSubgroupWithPrimaryPropsSuccessResultDto>
 export type SubgroupSecondary =

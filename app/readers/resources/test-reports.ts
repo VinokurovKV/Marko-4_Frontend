@@ -34,14 +34,12 @@ export function readTestReportsPrimaryFiltered(testReportIds: number[] | null) {
   return meta.status === 'AUTHENTICATED' &&
     meta.selfMeta.rights.includes('READ_TEST_REPORT') &&
     testReportIds !== null
-    ? testReportIds.length === 0
-      ? []
-      : serverConnector
-          .readTestReports({
-            ids: testReportIds,
-            scope: 'PRIMARY_PROPS'
-          })
-          .catch(() => null)
+    ? serverConnector
+        .readTestReports({
+          ids: testReportIds,
+          scope: 'PRIMARY_PROPS'
+        })
+        .catch(() => null)
     : Promise.resolve(null)
 }
 
@@ -52,14 +50,12 @@ export function readTestReportsSecondaryFiltered(
   return meta.status === 'AUTHENTICATED' &&
     meta.selfMeta.rights.includes('READ_TEST_REPORT') &&
     testReportIds !== null
-    ? testReportIds.length === 0
-      ? []
-      : serverConnector
-          .readTestReports({
-            ids: testReportIds,
-            scope: 'UP_TO_SECONDARY_PROPS'
-          })
-          .catch(() => null)
+    ? serverConnector
+        .readTestReports({
+          ids: testReportIds,
+          scope: 'UP_TO_SECONDARY_PROPS'
+        })
+        .catch(() => null)
     : Promise.resolve(null)
 }
 

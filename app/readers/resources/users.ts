@@ -34,14 +34,12 @@ export function readUsersPrimaryFiltered(userIds: number[] | null) {
   return meta.status === 'AUTHENTICATED' &&
     meta.selfMeta.rights.includes('READ_USER') &&
     userIds !== null
-    ? userIds.length === 0
-      ? []
-      : serverConnector
-          .readUsers({
-            ids: userIds,
-            scope: 'PRIMARY_PROPS'
-          })
-          .catch(() => null)
+    ? serverConnector
+        .readUsers({
+          ids: userIds,
+          scope: 'PRIMARY_PROPS'
+        })
+        .catch(() => null)
     : Promise.resolve(null)
 }
 
@@ -50,14 +48,12 @@ export function readUsersSecondaryFiltered(userIds: number[] | null) {
   return meta.status === 'AUTHENTICATED' &&
     meta.selfMeta.rights.includes('READ_USER') &&
     userIds !== null
-    ? userIds.length === 0
-      ? []
-      : serverConnector
-          .readUsers({
-            ids: userIds,
-            scope: 'UP_TO_SECONDARY_PROPS'
-          })
-          .catch(() => null)
+    ? serverConnector
+        .readUsers({
+          ids: userIds,
+          scope: 'UP_TO_SECONDARY_PROPS'
+        })
+        .catch(() => null)
     : Promise.resolve(null)
 }
 

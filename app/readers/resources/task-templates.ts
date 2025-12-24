@@ -36,14 +36,12 @@ export function readTaskTemplatesPrimaryFiltered(
   return meta.status === 'AUTHENTICATED' &&
     meta.selfMeta.rights.includes('READ_TASK_TEMPLATE') &&
     taskTemplateIds !== null
-    ? taskTemplateIds.length === 0
-      ? []
-      : serverConnector
-          .readTaskTemplates({
-            ids: taskTemplateIds,
-            scope: 'PRIMARY_PROPS'
-          })
-          .catch(() => null)
+    ? serverConnector
+        .readTaskTemplates({
+          ids: taskTemplateIds,
+          scope: 'PRIMARY_PROPS'
+        })
+        .catch(() => null)
     : Promise.resolve(null)
 }
 
@@ -54,14 +52,12 @@ export function readTaskTemplatesSecondaryFiltered(
   return meta.status === 'AUTHENTICATED' &&
     meta.selfMeta.rights.includes('READ_TASK_TEMPLATE') &&
     taskTemplateIds !== null
-    ? taskTemplateIds.length === 0
-      ? []
-      : serverConnector
-          .readTaskTemplates({
-            ids: taskTemplateIds,
-            scope: 'UP_TO_SECONDARY_PROPS'
-          })
-          .catch(() => null)
+    ? serverConnector
+        .readTaskTemplates({
+          ids: taskTemplateIds,
+          scope: 'UP_TO_SECONDARY_PROPS'
+        })
+        .catch(() => null)
     : Promise.resolve(null)
 }
 

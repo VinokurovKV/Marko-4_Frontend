@@ -34,14 +34,12 @@ export function readDocumentsPrimaryFiltered(documentIds: number[] | null) {
   return meta.status === 'AUTHENTICATED' &&
     meta.selfMeta.rights.includes('READ_DOCUMENT') &&
     documentIds !== null
-    ? documentIds.length === 0
-      ? []
-      : serverConnector
-          .readDocuments({
-            ids: documentIds,
-            scope: 'PRIMARY_PROPS'
-          })
-          .catch(() => null)
+    ? serverConnector
+        .readDocuments({
+          ids: documentIds,
+          scope: 'PRIMARY_PROPS'
+        })
+        .catch(() => null)
     : Promise.resolve(null)
 }
 
@@ -50,14 +48,12 @@ export function readDocumentsSecondaryFiltered(documentIds: number[] | null) {
   return meta.status === 'AUTHENTICATED' &&
     meta.selfMeta.rights.includes('READ_DOCUMENT') &&
     documentIds !== null
-    ? documentIds.length === 0
-      ? []
-      : serverConnector
-          .readDocuments({
-            ids: documentIds,
-            scope: 'UP_TO_SECONDARY_PROPS'
-          })
-          .catch(() => null)
+    ? serverConnector
+        .readDocuments({
+          ids: documentIds,
+          scope: 'UP_TO_SECONDARY_PROPS'
+        })
+        .catch(() => null)
     : Promise.resolve(null)
 }
 

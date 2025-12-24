@@ -1,5 +1,6 @@
 import type { CommonTopologyConfigDto } from '@common/dtos'
 import type {
+  CommonTopologiesFilterDto,
   ReadCommonTopologyWithPrimaryPropsSuccessResultDto,
   ReadCommonTopologyWithUpToSecondaryPropsSuccessResultDto,
   ReadCommonTopologyWithUpToTertiaryPropsSuccessResultDto,
@@ -9,6 +10,7 @@ import type {
 import type { DtoWithoutEnums } from '@common/dto-without-enums'
 
 export type CommonTopologyConfig = DtoWithoutEnums<CommonTopologyConfigDto>
+export type CommonTopologyFilter = DtoWithoutEnums<CommonTopologiesFilterDto>
 export type CommonTopologyPrimary =
   DtoWithoutEnums<ReadCommonTopologyWithPrimaryPropsSuccessResultDto>
 export type CommonTopologySecondary =

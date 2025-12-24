@@ -168,7 +168,7 @@ export function TestsHierarchyScreen({
       title="иерархия тестов"
       breadcrumbsItems={breadcrumbsItems}
     >
-      <HorizontalTwoPartsContainer proportions="ONE_THREE">
+      <HorizontalTwoPartsContainer proportions="ONE_TWO">
         <TestsHierarchyTree
           {...props}
           selectedTestId={withTest ? (testId ?? undefined) : undefined}

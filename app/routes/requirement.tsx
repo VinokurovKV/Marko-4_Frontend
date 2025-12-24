@@ -148,11 +148,13 @@ function RequirementRouteInner({
   useRequirementsFilteredSubscription(
     'PRIMARY_PROPS',
     parentRequirementIds,
+    null,
     setParentRequirements
   )
   useRequirementsFilteredSubscription(
     'PRIMARY_PROPS',
     childRequirementIds,
+    null,
     setChildRequirements
   )
   useTestSubscription('PRIMARY_PROPS', requirement?.testId ?? null, setTest)

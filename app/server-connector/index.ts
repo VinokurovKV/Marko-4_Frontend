@@ -1352,7 +1352,9 @@ export class ServerConnector {
   readActionInfosCount(
     params: Params<ReadActionInfosCountQueryDto>
   ): Result<ReadActionInfosCountSuccessResultDto> {
-    return this.getObject('/actions/count', params)
+    return this.withEmptyArray(params)
+      ? Promise.resolve({ count: 0 })
+      : this.getObject('/actions/count', params)
   }
   readActionInfo(
     params: Params<ReadActionInfoParamsDto>
@@ -1366,19 +1368,25 @@ export class ServerConnector {
   }
   readActionInfos(
     params: Params<ReadActionInfosQueryDto>
-  ): Result<ReadActionInfosSuccessResultItemDto> {
-    return this.getObject(`/actions`, params)
+  ): Result<ReadActionInfosSuccessResultItemDto[]> {
+    return this.withEmptyArray(params)
+      ? Promise.resolve([])
+      : this.getObject(`/actions`, params)
   }
   // Events
   readEventsCount(
     params: Params<ReadEventsCountQueryDto>
   ): Result<ReadEventsCountSuccessResultDto> {
-    return this.getObject('/events/count', params)
+    return this.withEmptyArray(params)
+      ? Promise.resolve({ count: 0 })
+      : this.getObject('/events/count', params)
   }
   readEvents(
     params: Params<ReadEventsQueryDto>
-  ): Result<ReadEventsSuccessResultItemDto> {
-    return this.getObject(`/events`, params)
+  ): Result<ReadEventsSuccessResultItemDto[]> {
+    return this.withEmptyArray(params)
+      ? Promise.resolve([])
+      : this.getObject(`/events`, params)
   }
   // Roles
   async readRoleExistsFlag(
@@ -1394,7 +1402,9 @@ export class ServerConnector {
   readRolesCount(
     params: Params<ReadRolesCountQueryDto>
   ): Result<ReadRolesCountSuccessResultDto> {
-    return this.getObject('/roles/count', params)
+    return this.withEmptyArray(params)
+      ? Promise.resolve({ count: 0 })
+      : this.getObject('/roles/count', params)
   }
   readRoleVersion(
     params: Params<ReadRoleVersionParamsDto>
@@ -1434,7 +1444,9 @@ export class ServerConnector {
     ReadRolesWithPrimaryPropsSuccessResultItemDto,
     ReadRolesWithUpToSecondaryPropsSuccessResultItemDto
   > {
-    return this.getObject('/roles', params)
+    return this.withEmptyArray(params)
+      ? Promise.resolve([])
+      : this.getObject('/roles', params)
   }
   createRole(
     params: Params<CreateRoleBodyDto>
@@ -1495,7 +1507,9 @@ export class ServerConnector {
   readUsersCount(
     params: Params<ReadUsersCountQueryDto>
   ): Result<ReadUsersCountSuccessResultDto> {
-    return this.getObject('/users/count', params)
+    return this.withEmptyArray(params)
+      ? Promise.resolve({ count: 0 })
+      : this.getObject('/users/count', params)
   }
   readUserVersion(
     params: Params<ReadUserVersionParamsDto>
@@ -1535,7 +1549,9 @@ export class ServerConnector {
     ReadUsersWithPrimaryPropsSuccessResultItemDto,
     ReadUsersWithUpToSecondaryPropsSuccessResultItemDto
   > {
-    return this.getObject('/users', params)
+    return this.withEmptyArray(params)
+      ? Promise.resolve([])
+      : this.getObject('/users', params)
   }
   createUser(
     params: Params<CreateUserBodyDto>
@@ -1574,7 +1590,9 @@ export class ServerConnector {
   readTagsCount(
     params: Params<ReadTagsCountQueryDto>
   ): Result<ReadTagsCountSuccessResultDto> {
-    return this.getObject('/tags/count', params)
+    return this.withEmptyArray(params)
+      ? Promise.resolve({ count: 0 })
+      : this.getObject('/tags/count', params)
   }
   readTagVersion(
     params: Params<ReadTagVersionParamsDto>
@@ -1612,7 +1630,9 @@ export class ServerConnector {
     ReadTagsWithPrimaryPropsSuccessResultItemDto,
     ReadTagsWithUpToSecondaryPropsSuccessResultItemDto
   > {
-    return this.getObject('/tags', params)
+    return this.withEmptyArray(params)
+      ? Promise.resolve([])
+      : this.getObject('/tags', params)
   }
   createTag(
     params: Params<CreateTagBodyDto>
@@ -1648,7 +1668,9 @@ export class ServerConnector {
   readDocumentsCount(
     params: Params<ReadDocumentsCountQueryDto>
   ): Result<ReadDocumentsCountSuccessResultDto> {
-    return this.getObject('/documents/count', params)
+    return this.withEmptyArray(params)
+      ? Promise.resolve({ count: 0 })
+      : this.getObject('/documents/count', params)
   }
   readDocumentVersionConfig(
     params: Params<ReadDocumentVersionConfigParamsDto>
@@ -1700,7 +1722,9 @@ export class ServerConnector {
     ReadDocumentsWithPrimaryPropsSuccessResultItemDto,
     ReadDocumentsWithUpToSecondaryPropsSuccessResultItemDto
   > {
-    return this.getObject('/documents', params)
+    return this.withEmptyArray(params)
+      ? Promise.resolve([])
+      : this.getObject('/documents', params)
   }
   createDocument(
     main: Params<CreateDocumentBodyMainDto>,
@@ -1753,7 +1777,9 @@ export class ServerConnector {
   readFragmentsCount(
     params: Params<ReadFragmentsCountQueryDto>
   ): Result<ReadFragmentsCountSuccessResultDto> {
-    return this.getObject('/fragments/count', params)
+    return this.withEmptyArray(params)
+      ? Promise.resolve({ count: 0 })
+      : this.getObject('/fragments/count', params)
   }
   readFragmentVersionConfig(
     params: Params<ReadFragmentVersionConfigParamsDto>
@@ -1805,7 +1831,9 @@ export class ServerConnector {
     ReadFragmentsWithPrimaryPropsSuccessResultItemDto,
     ReadFragmentsWithUpToSecondaryPropsSuccessResultItemDto
   > {
-    return this.getObject('/fragments', params)
+    return this.withEmptyArray(params)
+      ? Promise.resolve([])
+      : this.getObject('/fragments', params)
   }
   createFragment(
     params: Params<CreateFragmentBodyDto>
@@ -1849,7 +1877,9 @@ export class ServerConnector {
   readRequirementsCount(
     params: Params<ReadRequirementsCountQueryDto>
   ): Result<ReadRequirementsCountSuccessResultDto> {
-    return this.getObject('/requirements/count', params)
+    return this.withEmptyArray(params)
+      ? Promise.resolve({ count: 0 })
+      : this.getObject('/requirements/count', params)
   }
   readRequirementVersion(
     params: Params<ReadRequirementVersionParamsDto>
@@ -1889,7 +1919,9 @@ export class ServerConnector {
     ReadRequirementsWithPrimaryPropsSuccessResultItemDto,
     ReadRequirementsWithUpToSecondaryPropsSuccessResultItemDto
   > {
-    return this.getObject('/requirements', params)
+    return this.withEmptyArray(params)
+      ? Promise.resolve([])
+      : this.getObject('/requirements', params)
   }
   createRequirement(
     params: Params<CreateRequirementBodyDto>
@@ -1925,7 +1957,9 @@ export class ServerConnector {
   readCoveragesCount(
     params: Params<ReadCoveragesCountQueryDto>
   ): Result<ReadCoveragesCountSuccessResultDto> {
-    return this.getObject('/coverages/count', params)
+    return this.withEmptyArray(params)
+      ? Promise.resolve({ count: 0 })
+      : this.getObject('/coverages/count', params)
   }
   readCoverageVersion(
     params: Params<ReadCoverageVersionParamsDto>
@@ -1965,7 +1999,9 @@ export class ServerConnector {
     ReadCoveragesWithPrimaryPropsSuccessResultItemDto,
     ReadCoveragesWithUpToSecondaryPropsSuccessResultItemDto
   > {
-    return this.getObject('/coverages', params)
+    return this.withEmptyArray(params)
+      ? Promise.resolve([])
+      : this.getObject('/coverages', params)
   }
   createCoverage(
     params: Params<CreateCoverageBodyDto>
@@ -2001,7 +2037,9 @@ export class ServerConnector {
   readCommonTopologiesCount(
     params: Params<ReadCommonTopologiesCountQueryDto>
   ): Result<ReadCommonTopologiesCountSuccessResultDto> {
-    return this.getObject('/common-topologies/count', params)
+    return this.withEmptyArray(params)
+      ? Promise.resolve({ count: 0 })
+      : this.getObject('/common-topologies/count', params)
   }
   readCommonTopologyVersion(
     params: Params<ReadCommonTopologyVersionParamsDto>
@@ -2044,7 +2082,9 @@ export class ServerConnector {
     ReadCommonTopologiesWithPrimaryPropsSuccessResultItemDto,
     ReadCommonTopologiesWithUpToSecondaryPropsSuccessResultItemDto
   > {
-    return this.getObject('/common-topologies', params)
+    return this.withEmptyArray(params)
+      ? Promise.resolve([])
+      : this.getObject('/common-topologies', params)
   }
   createCommonTopology(
     params: Params<CreateCommonTopologyBodyDto>
@@ -2096,7 +2136,9 @@ export class ServerConnector {
   readTopologiesCount(
     params: Params<ReadTopologiesCountQueryDto>
   ): Result<ReadTopologiesCountSuccessResultDto> {
-    return this.getObject('/topologies/count', params)
+    return this.withEmptyArray(params)
+      ? Promise.resolve({ count: 0 })
+      : this.getObject('/topologies/count', params)
   }
   readTopologyVersion(
     params: Params<ReadTopologyVersionParamsDto>
@@ -2136,7 +2178,9 @@ export class ServerConnector {
     ReadTopologiesWithPrimaryPropsSuccessResultItemDto,
     ReadTopologiesWithUpToSecondaryPropsSuccessResultItemDto
   > {
-    return this.getObject('/topologies', params)
+    return this.withEmptyArray(params)
+      ? Promise.resolve([])
+      : this.getObject('/topologies', params)
   }
   createTopology(
     params: Params<CreateTopologyBodyDto>
@@ -2172,7 +2216,9 @@ export class ServerConnector {
   readDsefsCount(
     params: Params<ReadDsefsCountQueryDto>
   ): Result<ReadDsefsCountSuccessResultDto> {
-    return this.getObject('/dsefs/count', params)
+    return this.withEmptyArray(params)
+      ? Promise.resolve({ count: 0 })
+      : this.getObject('/dsefs/count', params)
   }
   readDsefVersionAdapter(
     params: Params<ReadDsefVersionAdapterParamsDto>
@@ -2234,7 +2280,9 @@ export class ServerConnector {
     ReadDsefsWithPrimaryPropsSuccessResultItemDto,
     ReadDsefsWithUpToSecondaryPropsSuccessResultItemDto
   > {
-    return this.getObject('/dsefs', params)
+    return this.withEmptyArray(params)
+      ? Promise.resolve([])
+      : this.getObject('/dsefs', params)
   }
   createDsef(
     main: Params<CreateDsefBodyMainDto>,
@@ -2286,7 +2334,9 @@ export class ServerConnector {
   readDbcsCount(
     params: Params<ReadDbcsCountQueryDto>
   ): Result<ReadDbcsCountSuccessResultDto> {
-    return this.getObject('/dbcs/count', params)
+    return this.withEmptyArray(params)
+      ? Promise.resolve({ count: 0 })
+      : this.getObject('/dbcs/count', params)
   }
   readDbcVersionConfig(
     params: Params<ReadDbcVersionConfigParamsDto>
@@ -2344,7 +2394,9 @@ export class ServerConnector {
     ReadDbcsWithPrimaryPropsSuccessResultItemDto,
     ReadDbcsWithUpToSecondaryPropsSuccessResultItemDto
   > {
-    return this.getObject('/dbcs', params)
+    return this.withEmptyArray(params)
+      ? Promise.resolve([])
+      : this.getObject('/dbcs', params)
   }
   createDbc(
     main: Params<CreateDbcBodyMainDto>,
@@ -2398,7 +2450,9 @@ export class ServerConnector {
   readTestTemplatesCount(
     params: Params<ReadTestTemplatesCountQueryDto>
   ): Result<ReadTestTemplatesCountSuccessResultDto> {
-    return this.getObject('/test-templates/count', params)
+    return this.withEmptyArray(params)
+      ? Promise.resolve({ count: 0 })
+      : this.getObject('/test-templates/count', params)
   }
   readTestTemplateVersionConfig(
     params: Params<ReadTestTemplateVersionConfigParamsDto>
@@ -2453,7 +2507,9 @@ export class ServerConnector {
     ReadTestTemplatesWithPrimaryPropsSuccessResultItemDto,
     ReadTestTemplatesWithUpToSecondaryPropsSuccessResultItemDto
   > {
-    return this.getObject('/test-templates', params)
+    return this.withEmptyArray(params)
+      ? Promise.resolve([])
+      : this.getObject('/test-templates', params)
   }
   createTestTemplate(
     main: Params<CreateTestTemplateBodyMainDto>,
@@ -2505,7 +2561,9 @@ export class ServerConnector {
   readTestsCount(
     params: Params<ReadTestsCountQueryDto>
   ): Result<ReadTestsCountSuccessResultDto> {
-    return this.getObject('/tests/count', params)
+    return this.withEmptyArray(params)
+      ? Promise.resolve({ count: 0 })
+      : this.getObject('/tests/count', params)
   }
   readTestVersionConfig(
     params: Params<ReadTestVersionConfigParamsDto>
@@ -2581,7 +2639,9 @@ export class ServerConnector {
     ReadTestsWithPrimaryPropsSuccessResultItemDto,
     ReadTestsWithUpToSecondaryPropsSuccessResultItemDto
   > {
-    return this.getObject('/tests', params)
+    return this.withEmptyArray(params)
+      ? Promise.resolve([])
+      : this.getObject('/tests', params)
   }
   createTest(
     main: Params<CreateTestBodyMainDto>,
@@ -2643,7 +2703,9 @@ export class ServerConnector {
   readSubgroupsCount(
     params: Params<ReadSubgroupsCountQueryDto>
   ): Result<ReadSubgroupsCountSuccessResultDto> {
-    return this.getObject('/subgroups/count', params)
+    return this.withEmptyArray(params)
+      ? Promise.resolve({ count: 0 })
+      : this.getObject('/subgroups/count', params)
   }
   readSubgroupVersion(
     params: Params<ReadSubgroupVersionParamsDto>
@@ -2683,7 +2745,9 @@ export class ServerConnector {
     ReadSubgroupsWithPrimaryPropsSuccessResultItemDto,
     ReadSubgroupsWithUpToSecondaryPropsSuccessResultItemDto
   > {
-    return this.getObject('/subgroups', params)
+    return this.withEmptyArray(params)
+      ? Promise.resolve([])
+      : this.getObject('/subgroups', params)
   }
   createSubgroup(
     params: Params<CreateSubgroupBodyDto>
@@ -2719,7 +2783,9 @@ export class ServerConnector {
   readGroupsCount(
     params: Params<ReadGroupsCountQueryDto>
   ): Result<ReadGroupsCountSuccessResultDto> {
-    return this.getObject('/groups/count', params)
+    return this.withEmptyArray(params)
+      ? Promise.resolve({ count: 0 })
+      : this.getObject('/groups/count', params)
   }
   readGroupVersion(
     params: Params<ReadGroupVersionParamsDto>
@@ -2759,7 +2825,9 @@ export class ServerConnector {
     ReadGroupsWithPrimaryPropsSuccessResultItemDto,
     ReadGroupsWithUpToSecondaryPropsSuccessResultItemDto
   > {
-    return this.getObject('/groups', params)
+    return this.withEmptyArray(params)
+      ? Promise.resolve([])
+      : this.getObject('/groups', params)
   }
   createGroup(
     params: Params<CreateGroupBodyDto>
@@ -2795,7 +2863,9 @@ export class ServerConnector {
   readDevicesCount(
     params: Params<ReadDevicesCountQueryDto>
   ): Result<ReadDevicesCountSuccessResultDto> {
-    return this.getObject('/devices/count', params)
+    return this.withEmptyArray(params)
+      ? Promise.resolve({ count: 0 })
+      : this.getObject('/devices/count', params)
   }
   readDeviceVersionConfig(
     params: Params<ReadDeviceVersionConfigParamsDto>
@@ -2897,7 +2967,9 @@ export class ServerConnector {
     ReadDevicesWithPrimaryPropsSuccessResultItemDto,
     ReadDevicesWithUpToSecondaryPropsSuccessResultItemDto
   > {
-    return this.getObject('/devices', params)
+    return this.withEmptyArray(params)
+      ? Promise.resolve([])
+      : this.getObject('/devices', params)
   }
   createDevice(
     main: Params<CreateDeviceBodyMainDto>,
@@ -2965,7 +3037,9 @@ export class ServerConnector {
   readTasksCount(
     params: Params<ReadTasksCountQueryDto>
   ): Result<ReadTasksCountSuccessResultDto> {
-    return this.getObject('/tasks/count', params)
+    return this.withEmptyArray(params)
+      ? Promise.resolve({ count: 0 })
+      : this.getObject('/tasks/count', params)
   }
   readTestToExecute(): Promise<Blob> {
     return this.getBlob(`/tasks/test-to-execute`)
@@ -3012,7 +3086,9 @@ export class ServerConnector {
     ReadTasksWithPrimaryPropsSuccessResultItemDto,
     ReadTasksWithUpToSecondaryPropsSuccessResultItemDto
   > {
-    return this.getObject('/tasks', params)
+    return this.withEmptyArray(params)
+      ? Promise.resolve([])
+      : this.getObject('/tasks', params)
   }
   createTask(
     params: Params<CreateTaskBodyDto>
@@ -3068,7 +3144,9 @@ export class ServerConnector {
   readTaskTemplatesCount(
     params: Params<ReadTaskTemplatesCountQueryDto>
   ): Result<ReadTaskTemplatesCountSuccessResultDto> {
-    return this.getObject('/task-templates/count', params)
+    return this.withEmptyArray(params)
+      ? Promise.resolve({ count: 0 })
+      : this.getObject('/task-templates/count', params)
   }
   readTaskTemplateVersion(
     params: Params<ReadTaskTemplateVersionParamsDto>
@@ -3111,7 +3189,9 @@ export class ServerConnector {
     ReadTaskTemplatesWithPrimaryPropsSuccessResultItemDto,
     ReadTaskTemplatesWithUpToSecondaryPropsSuccessResultItemDto
   > {
-    return this.getObject('/task-templates', params)
+    return this.withEmptyArray(params)
+      ? Promise.resolve([])
+      : this.getObject('/task-templates', params)
   }
   createTaskTemplate(
     params: Params<CreateTaskTemplateBodyDto>
@@ -3137,7 +3217,9 @@ export class ServerConnector {
   readTestReportsCount(
     params: Params<ReadTestReportsCountQueryDto>
   ): Result<ReadTestReportsCountSuccessResultDto> {
-    return this.getObject('/test-reports/count', params)
+    return this.withEmptyArray(params)
+      ? Promise.resolve({ count: 0 })
+      : this.getObject('/test-reports/count', params)
   }
   readTestReportItemData(
     params: Params<ReadTestReportItemDataParamsDto>
@@ -3185,7 +3267,9 @@ export class ServerConnector {
     ReadTestReportsWithPrimaryPropsSuccessResultItemDto,
     ReadTestReportsWithUpToSecondaryPropsSuccessResultItemDto
   > {
-    return this.getObject('/test-reports', params)
+    return this.withEmptyArray(params)
+      ? Promise.resolve([])
+      : this.getObject('/test-reports', params)
   }
   launchTest(
     params: Params<LaunchTestBodyDto>
@@ -3270,7 +3354,9 @@ export class ServerConnector {
   readSubgroupReportsCount(
     params: Params<ReadSubgroupReportsCountQueryDto>
   ): Result<ReadSubgroupReportsCountSuccessResultDto> {
-    return this.getObject('/subgroup-reports/count', params)
+    return this.withEmptyArray(params)
+      ? Promise.resolve({ count: 0 })
+      : this.getObject('/subgroup-reports/count', params)
   }
   readSubgroupReportExtra<ScopeWrap extends ReadOneScopeWrap>(
     params: Params<ReadSubgroupReportExtraParamsDto>,
@@ -3306,13 +3392,17 @@ export class ServerConnector {
     ReadSubgroupReportsWithPrimaryPropsSuccessResultItemDto,
     ReadSubgroupReportsWithUpToSecondaryPropsSuccessResultItemDto
   > {
-    return this.getObject('/subgroup-reports', params)
+    return this.withEmptyArray(params)
+      ? Promise.resolve([])
+      : this.getObject('/subgroup-reports', params)
   }
   // GroupReports
   readGroupReportsCount(
     params: Params<ReadGroupReportsCountQueryDto>
   ): Result<ReadGroupReportsCountSuccessResultDto> {
-    return this.getObject('/group-reports/count', params)
+    return this.withEmptyArray(params)
+      ? Promise.resolve({ count: 0 })
+      : this.getObject('/group-reports/count', params)
   }
   readGroupReportExtra<ScopeWrap extends ReadOneScopeWrap>(
     params: Params<ReadGroupReportExtraParamsDto>,
@@ -3348,13 +3438,17 @@ export class ServerConnector {
     ReadGroupReportsWithPrimaryPropsSuccessResultItemDto,
     ReadGroupReportsWithUpToSecondaryPropsSuccessResultItemDto
   > {
-    return this.getObject('/group-reports', params)
+    return this.withEmptyArray(params)
+      ? Promise.resolve([])
+      : this.getObject('/group-reports', params)
   }
   // TaskReports
   readTaskReportsCount(
     params: Params<ReadTaskReportsCountQueryDto>
   ): Result<ReadTaskReportsCountSuccessResultDto> {
-    return this.getObject('/task-reports/count', params)
+    return this.withEmptyArray(params)
+      ? Promise.resolve({ count: 0 })
+      : this.getObject('/task-reports/count', params)
   }
   readTaskReport<ScopeWrap extends ReadOneScopeWrap>(
     params: Params<ReadTaskReportParamsDto>,
@@ -3375,7 +3469,9 @@ export class ServerConnector {
     ReadTaskReportsWithPrimaryPropsSuccessResultItemDto,
     ReadTaskReportsWithUpToSecondaryPropsSuccessResultItemDto
   > {
-    return this.getObject('/task-reports', params)
+    return this.withEmptyArray(params)
+      ? Promise.resolve([])
+      : this.getObject('/task-reports', params)
   }
   // Slices
   async readSliceExistsFlag(
@@ -3391,7 +3487,9 @@ export class ServerConnector {
   readSlicesCount(
     params: Params<ReadSlicesCountQueryDto>
   ): Result<ReadSlicesCountSuccessResultDto> {
-    return this.getObject('/slices/count', params)
+    return this.withEmptyArray(params)
+      ? Promise.resolve({ count: 0 })
+      : this.getObject('/slices/count', params)
   }
   readSliceVersion(
     params: Params<ReadSliceVersionParamsDto>
@@ -3431,7 +3529,9 @@ export class ServerConnector {
     ReadSlicesWithPrimaryPropsSuccessResultItemDto,
     ReadSlicesWithUpToSecondaryPropsSuccessResultItemDto
   > {
-    return this.getObject('/slices', params)
+    return this.withEmptyArray(params)
+      ? Promise.resolve([])
+      : this.getObject('/slices', params)
   }
   createSlice(
     params: Params<CreateSliceBodyDto>
@@ -3667,6 +3767,11 @@ export class ServerConnector {
     return this.lastUsedSubscriptionId
   }
   // Auxiliary
+  private withEmptyArray(params: object): boolean {
+    return Object.values(params).some(
+      (value) => value instanceof Array && value.length === 0
+    )
+  }
   private getObject<Response extends object>(
     path: string,
     params?: object,

@@ -1,4 +1,5 @@
 import type {
+  DsefsFilterDto,
   ReadDsefWithPrimaryPropsSuccessResultDto,
   ReadDsefWithUpToSecondaryPropsSuccessResultDto,
   ReadDsefWithUpToTertiaryPropsSuccessResultDto,
@@ -7,6 +8,7 @@ import type {
 } from '@common/dtos/server-api/dsefs.dto'
 import type { DtoWithoutEnums } from '@common/dto-without-enums'
 
+export type DsefsFilter = DtoWithoutEnums<DsefsFilterDto>
 export type DsefPrimary =
   DtoWithoutEnums<ReadDsefWithPrimaryPropsSuccessResultDto>
 export type DsefSecondary =

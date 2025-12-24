@@ -1,11 +1,16 @@
 // Project
 import type {
   TagPrimary,
+  RequirementSecondary,
   TestPrimary,
   SubgroupTertiary,
   GroupPrimary
 } from '~/types'
-import { HorizontalTwoPartsContainer } from '~/components/containers'
+import {
+  ContainerWithTitle,
+  HorizontalTwoPartsContainer
+} from '~/components/containers'
+import { SubgroupRequirementsGrid } from '~/components/grids/resources/subgroup-requirements'
 import {
   ColumnViewer,
   ColumnViewerBlock,
@@ -17,6 +22,7 @@ import {
 
 export interface SubgroupViewerProps {
   tags: TagPrimary[] | null
+  requirements: RequirementSecondary[] | null
   tests: TestPrimary[] | null
   subgroup: SubgroupTertiary
   group: GroupPrimary | null
@@ -24,13 +30,18 @@ export interface SubgroupViewerProps {
 
 export function SubgroupViewer({
   tags,
+  requirements,
   tests,
   subgroup,
   group
 }: SubgroupViewerProps) {
   return (
+    // <VerticalTwoPartsContainer
+    //   proportions={requirements !== null ? '50_50' : '100_0'}
+    //   title={['Подгруппа', `${subgroup.code}`]}
+    // >
     <HorizontalTwoPartsContainer
-      proportions="EQUAL"
+      proportions={requirements !== null ? 'EQUAL' : 'ONE_ZERO'}
       title={['Подгруппа', `${subgroup.code}`]}
     >
       <ColumnViewer>
@@ -85,12 +96,16 @@ export function SubgroupViewer({
             }))}
           />
         </ColumnViewerBlock>
-      </ColumnViewer>
-      <ColumnViewer>
         <ColumnViewerBlock title="описание">
           <ColumnViewerText text={subgroup.description?.text} emptyText="нет" />
         </ColumnViewerBlock>
       </ColumnViewer>
+      {requirements !== null ? (
+        <ContainerWithTitle title="тесты">
+          <SubgroupRequirementsGrid requirements={requirements} tests={tests} />
+        </ContainerWithTitle>
+      ) : null}
     </HorizontalTwoPartsContainer>
+    // </VerticalTwoPartsContainer>
   )
 }

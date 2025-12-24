@@ -1,4 +1,5 @@
 export * from './background'
+export * from './container-with-title'
 export * from './form-container'
 export * from './isolated-screen-container'
 export * from './layout-screen-container'

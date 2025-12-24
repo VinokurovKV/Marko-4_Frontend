@@ -48,6 +48,10 @@ export function useRequirementModifierCol() {
       renderCell: (params: GridRenderCellParams<any, RequirementModifier>) => (
         <Icon value={params.value} />
       ),
+      rowSpanValueGetter: (value, row) => {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/restrict-template-expressions
+        return row ? `${row.id}-${value}` : value
+      },
       headerAlign: 'center',
       align: 'center',
       minWidth: 70,

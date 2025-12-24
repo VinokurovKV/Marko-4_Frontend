@@ -21,6 +21,10 @@ export function useRequirementOriginCol() {
       type: 'singleSelect',
       valueOptions: allRequirementOrigins.map(getValue),
       valueGetter: getValue,
+      rowSpanValueGetter: (value, row) => {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/restrict-template-expressions
+        return row ? `${row.id}-${value}` : value
+      },
       minWidth: 100,
       flex: 1
     }),

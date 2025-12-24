@@ -1,4 +1,5 @@
 import type {
+  DevicesFilterDto,
   ReadDeviceWithPrimaryPropsSuccessResultDto,
   ReadDeviceWithUpToSecondaryPropsSuccessResultDto,
   ReadDeviceWithUpToTertiaryPropsSuccessResultDto,
@@ -7,6 +8,7 @@ import type {
 } from '@common/dtos/server-api/devices.dto'
 import type { DtoWithoutEnums } from '@common/dto-without-enums'
 
+export type DevicesFilter = DtoWithoutEnums<DevicesFilterDto>
 export type DevicePrimary =
   DtoWithoutEnums<ReadDeviceWithPrimaryPropsSuccessResultDto>
 export type DeviceSecondary =

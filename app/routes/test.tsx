@@ -124,6 +124,7 @@ function TestRouteInner({
   useRequirementsFilteredSubscription(
     'PRIMARY_PROPS',
     requirementIds,
+    null,
     setRequirements
   )
   useCommonTopologySubscription(

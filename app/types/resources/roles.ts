@@ -1,4 +1,5 @@
 import type {
+  RolesFilterDto,
   ReadRoleWithPrimaryPropsSuccessResultDto,
   ReadRoleWithUpToSecondaryPropsSuccessResultDto,
   ReadRoleWithUpToTertiaryPropsSuccessResultDto,
@@ -7,6 +8,7 @@ import type {
 } from '@common/dtos/server-api/roles.dto'
 import type { DtoWithoutEnums } from '@common/dto-without-enums'
 
+export type RolesFilter = DtoWithoutEnums<RolesFilterDto>
 export type RolePrimary =
   DtoWithoutEnums<ReadRoleWithPrimaryPropsSuccessResultDto>
 export type RoleSecondary =

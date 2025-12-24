@@ -34,14 +34,12 @@ export function readDsefsPrimaryFiltered(dsefIds: number[] | null) {
   return meta.status === 'AUTHENTICATED' &&
     meta.selfMeta.rights.includes('READ_DSEF') &&
     dsefIds !== null
-    ? dsefIds.length === 0
-      ? []
-      : serverConnector
-          .readDsefs({
-            ids: dsefIds,
-            scope: 'PRIMARY_PROPS'
-          })
-          .catch(() => null)
+    ? serverConnector
+        .readDsefs({
+          ids: dsefIds,
+          scope: 'PRIMARY_PROPS'
+        })
+        .catch(() => null)
     : Promise.resolve(null)
 }
 
@@ -50,14 +48,12 @@ export function readDsefsSecondaryFiltered(dsefIds: number[] | null) {
   return meta.status === 'AUTHENTICATED' &&
     meta.selfMeta.rights.includes('READ_DSEF') &&
     dsefIds !== null
-    ? dsefIds.length === 0
-      ? []
-      : serverConnector
-          .readDsefs({
-            ids: dsefIds,
-            scope: 'UP_TO_SECONDARY_PROPS'
-          })
-          .catch(() => null)
+    ? serverConnector
+        .readDsefs({
+          ids: dsefIds,
+          scope: 'UP_TO_SECONDARY_PROPS'
+        })
+        .catch(() => null)
     : Promise.resolve(null)
 }
 

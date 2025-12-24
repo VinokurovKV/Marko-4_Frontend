@@ -68,7 +68,7 @@ export function GroupsScreen({ children, ...props }: GroupsScreenProps) {
       breadcrumbsItems={breadcrumbsItems}
     >
       <HorizontalTwoPartsContainer
-        proportions={withGroup ? 'ONE_THREE' : 'ONE_ZERO'}
+        proportions={withGroup ? 'ONE_TWO' : 'ONE_ZERO'}
       >
         <GroupsGrid
           key={`${withGroup}`}

@@ -1,4 +1,5 @@
 import type {
+  RequirementsFilterDto,
   ReadRequirementWithPrimaryPropsSuccessResultDto,
   ReadRequirementWithUpToSecondaryPropsSuccessResultDto,
   ReadRequirementWithUpToTertiaryPropsSuccessResultDto,
@@ -9,6 +10,7 @@ import type {
 } from '@common/dtos/server-api/requirements.dto'
 import type { DtoWithoutEnums } from '@common/dto-without-enums'
 
+export type RequirementsFilter = DtoWithoutEnums<RequirementsFilterDto>
 export type RequirementPrimary =
   DtoWithoutEnums<ReadRequirementWithPrimaryPropsSuccessResultDto>
 export type RequirementSecondary =

@@ -34,14 +34,12 @@ export function readDevicesPrimaryFiltered(deviceIds: number[] | null) {
   return meta.status === 'AUTHENTICATED' &&
     meta.selfMeta.rights.includes('READ_DEVICE') &&
     deviceIds !== null
-    ? deviceIds.length === 0
-      ? []
-      : serverConnector
-          .readDevices({
-            ids: deviceIds,
-            scope: 'PRIMARY_PROPS'
-          })
-          .catch(() => null)
+    ? serverConnector
+        .readDevices({
+          ids: deviceIds,
+          scope: 'PRIMARY_PROPS'
+        })
+        .catch(() => null)
     : Promise.resolve(null)
 }
 
@@ -50,14 +48,12 @@ export function readDevicesSecondaryFiltered(deviceIds: number[] | null) {
   return meta.status === 'AUTHENTICATED' &&
     meta.selfMeta.rights.includes('READ_DEVICE') &&
     deviceIds !== null
-    ? deviceIds.length === 0
-      ? []
-      : serverConnector
-          .readDevices({
-            ids: deviceIds,
-            scope: 'UP_TO_SECONDARY_PROPS'
-          })
-          .catch(() => null)
+    ? serverConnector
+        .readDevices({
+          ids: deviceIds,
+          scope: 'UP_TO_SECONDARY_PROPS'
+        })
+        .catch(() => null)
     : Promise.resolve(null)
 }
 

@@ -1,13 +1,15 @@
+// Project
+import {
+  type ContainerWithTitleProps,
+  ContainerWithTitle
+} from './container-with-title'
 // React
 import * as React from 'react'
 // Material UI
 import Grid from '@mui/material/Grid'
-import Stack from '@mui/material/Stack'
-import Typography from '@mui/material/Typography'
-// Other
-import capitalize from 'capitalize'
 
-export interface HorizontalTwoPartsContainerProps {
+export interface HorizontalTwoPartsContainerProps
+  extends Omit<ContainerWithTitleProps, 'children'> {
   proportions:
     | 'EQUAL'
     | 'ONE_TWO'
@@ -16,7 +18,6 @@ export interface HorizontalTwoPartsContainerProps {
     | 'SEVEN_FIVE'
     | 'TWO_ONE'
     | 'ONE_ZERO'
-  title?: string | [string, string]
   children: [React.ReactNode, React.ReactNode]
 }
 
@@ -24,34 +25,7 @@ export function HorizontalTwoPartsContainer(
   props: HorizontalTwoPartsContainerProps
 ) {
   return (
-    <Stack spacing={1} p={0} sx={{ height: '100%', overflow: 'hidden' }}>
-      {props.title !== undefined ? (
-        <Stack direction="row">
-          <Typography
-            variant="h5"
-            sx={{
-              fontWeight: 'bold'
-            }}
-          >
-            {capitalize(
-              props.title instanceof Array ? props.title[0] : props.title,
-              true
-            )}
-          </Typography>
-          {props.title instanceof Array ? (
-            <Typography
-              variant="h5"
-              color="primary"
-              sx={{
-                ml: 1,
-                fontWeight: 'bold'
-              }}
-            >
-              {capitalize(props.title[1], true)}
-            </Typography>
-          ) : null}
-        </Stack>
-      ) : null}
+    <ContainerWithTitle title={props.title}>
       <Grid container spacing={2} sx={{ height: '100%', overflow: 'hidden' }}>
         <Grid
           size={
@@ -94,6 +68,6 @@ export function HorizontalTwoPartsContainer(
           {props.children[1]}
         </Grid>
       </Grid>
-    </Stack>
+    </ContainerWithTitle>
   )
 }

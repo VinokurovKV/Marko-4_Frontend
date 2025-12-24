@@ -1,4 +1,5 @@
 import type {
+  UsersFilterDto,
   ReadUserWithPrimaryPropsSuccessResultDto,
   ReadUserWithUpToSecondaryPropsSuccessResultDto,
   ReadUserWithUpToTertiaryPropsSuccessResultDto,
@@ -7,6 +8,7 @@ import type {
 } from '@common/dtos/server-api/users.dto'
 import type { DtoWithoutEnums } from '@common/dto-without-enums'
 
+export type UsersFilter = DtoWithoutEnums<UsersFilterDto>
 export type UserPrimary =
   DtoWithoutEnums<ReadUserWithPrimaryPropsSuccessResultDto>
 export type UserSecondary =

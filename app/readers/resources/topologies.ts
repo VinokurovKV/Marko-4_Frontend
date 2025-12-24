@@ -34,14 +34,12 @@ export function readTopologiesPrimaryFiltered(topologyIds: number[] | null) {
   return meta.status === 'AUTHENTICATED' &&
     meta.selfMeta.rights.includes('READ_TOPOLOGY') &&
     topologyIds !== null
-    ? topologyIds.length === 0
-      ? []
-      : serverConnector
-          .readTopologies({
-            ids: topologyIds,
-            scope: 'PRIMARY_PROPS'
-          })
-          .catch(() => null)
+    ? serverConnector
+        .readTopologies({
+          ids: topologyIds,
+          scope: 'PRIMARY_PROPS'
+        })
+        .catch(() => null)
     : Promise.resolve(null)
 }
 
@@ -50,14 +48,12 @@ export function readTopologiesSecondaryFiltered(topologyIds: number[] | null) {
   return meta.status === 'AUTHENTICATED' &&
     meta.selfMeta.rights.includes('READ_TOPOLOGY') &&
     topologyIds !== null
-    ? topologyIds.length === 0
-      ? []
-      : serverConnector
-          .readTopologies({
-            ids: topologyIds,
-            scope: 'UP_TO_SECONDARY_PROPS'
-          })
-          .catch(() => null)
+    ? serverConnector
+        .readTopologies({
+          ids: topologyIds,
+          scope: 'UP_TO_SECONDARY_PROPS'
+        })
+        .catch(() => null)
     : Promise.resolve(null)
 }
 

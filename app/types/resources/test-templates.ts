@@ -1,4 +1,5 @@
 import type {
+  TestTemplatesFilterDto,
   ReadTestTemplateWithPrimaryPropsSuccessResultDto,
   ReadTestTemplateWithUpToSecondaryPropsSuccessResultDto,
   ReadTestTemplateWithUpToTertiaryPropsSuccessResultDto,
@@ -7,6 +8,7 @@ import type {
 } from '@common/dtos/server-api/test-templates.dto'
 import type { DtoWithoutEnums } from '@common/dto-without-enums'
 
+export type TestTemplatesFilter = DtoWithoutEnums<TestTemplatesFilterDto>
 export type TestTemplatePrimary =
   DtoWithoutEnums<ReadTestTemplateWithPrimaryPropsSuccessResultDto>
 export type TestTemplateSecondary =

@@ -34,14 +34,12 @@ export function readRolesPrimaryFiltered(roleIds: number[] | null) {
   return meta.status === 'AUTHENTICATED' &&
     meta.selfMeta.rights.includes('READ_ROLE') &&
     roleIds !== null
-    ? roleIds.length === 0
-      ? []
-      : serverConnector
-          .readRoles({
-            ids: roleIds,
-            scope: 'PRIMARY_PROPS'
-          })
-          .catch(() => null)
+    ? serverConnector
+        .readRoles({
+          ids: roleIds,
+          scope: 'PRIMARY_PROPS'
+        })
+        .catch(() => null)
     : Promise.resolve(null)
 }
 
@@ -50,14 +48,12 @@ export function readRolesSecondaryFiltered(roleIds: number[] | null) {
   return meta.status === 'AUTHENTICATED' &&
     meta.selfMeta.rights.includes('READ_ROLE') &&
     roleIds !== null
-    ? roleIds.length === 0
-      ? []
-      : serverConnector
-          .readRoles({
-            ids: roleIds,
-            scope: 'UP_TO_SECONDARY_PROPS'
-          })
-          .catch(() => null)
+    ? serverConnector
+        .readRoles({
+          ids: roleIds,
+          scope: 'UP_TO_SECONDARY_PROPS'
+        })
+        .catch(() => null)
     : Promise.resolve(null)
 }
 

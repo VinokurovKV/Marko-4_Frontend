@@ -64,7 +64,7 @@ export function TestsScreen({ children, ...props }: TestsScreenProps) {
   return (
     <LayoutScreenContainer title="тесты" breadcrumbsItems={breadcrumbsItems}>
       <HorizontalTwoPartsContainer
-        proportions={withTest ? 'ONE_THREE' : 'ONE_ZERO'}
+        proportions={withTest ? 'ONE_TWO' : 'ONE_ZERO'}
       >
         <TestsGrid
           key={`${withTest}`}

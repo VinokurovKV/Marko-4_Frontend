@@ -1,4 +1,5 @@
 import type {
+  GroupsFilterDto,
   ReadGroupWithPrimaryPropsSuccessResultDto,
   ReadGroupWithUpToSecondaryPropsSuccessResultDto,
   ReadGroupWithUpToTertiaryPropsSuccessResultDto,
@@ -7,6 +8,7 @@ import type {
 } from '@common/dtos/server-api/groups.dto'
 import type { DtoWithoutEnums } from '@common/dto-without-enums'
 
+export type GroupsFilter = DtoWithoutEnums<GroupsFilterDto>
 export type GroupPrimary =
   DtoWithoutEnums<ReadGroupWithPrimaryPropsSuccessResultDto>
 export type GroupSecondary =

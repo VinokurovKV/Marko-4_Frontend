@@ -1,4 +1,5 @@
 import type {
+  TaskTemplatesFilterDto,
   ReadTaskTemplateWithPrimaryPropsSuccessResultDto,
   ReadTaskTemplateWithUpToSecondaryPropsSuccessResultDto,
   ReadTaskTemplateWithUpToTertiaryPropsSuccessResultDto,
@@ -7,6 +8,7 @@ import type {
 } from '@common/dtos/server-api/task-templates.dto'
 import type { DtoWithoutEnums } from '@common/dto-without-enums'
 
+export type TaskTemplatesFilter = DtoWithoutEnums<TaskTemplatesFilterDto>
 export type TaskTemplatePrimary =
   DtoWithoutEnums<ReadTaskTemplateWithPrimaryPropsSuccessResultDto>
 export type TaskTemplateSecondary =

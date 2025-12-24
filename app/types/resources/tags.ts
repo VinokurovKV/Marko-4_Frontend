@@ -1,4 +1,5 @@
 import type {
+  TagsFilterDto,
   ReadTagWithPrimaryPropsSuccessResultDto,
   ReadTagWithUpToSecondaryPropsSuccessResultDto,
   ReadTagWithUpToTertiaryPropsSuccessResultDto,
@@ -7,6 +8,7 @@ import type {
 } from '@common/dtos/server-api/tags.dto'
 import type { DtoWithoutEnums } from '@common/dto-without-enums'
 
+export type TagsFilter = DtoWithoutEnums<TagsFilterDto>
 export type TagPrimary =
   DtoWithoutEnums<ReadTagWithPrimaryPropsSuccessResultDto>
 export type TagSecondary =

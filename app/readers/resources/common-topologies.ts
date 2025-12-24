@@ -36,14 +36,12 @@ export function readCommonTopologiesPrimaryFiltered(
   return meta.status === 'AUTHENTICATED' &&
     meta.selfMeta.rights.includes('READ_COMMON_TOPOLOGY') &&
     commonTopologyIds !== null
-    ? commonTopologyIds.length === 0
-      ? []
-      : serverConnector
-          .readCommonTopologies({
-            ids: commonTopologyIds,
-            scope: 'PRIMARY_PROPS'
-          })
-          .catch(() => null)
+    ? serverConnector
+        .readCommonTopologies({
+          ids: commonTopologyIds,
+          scope: 'PRIMARY_PROPS'
+        })
+        .catch(() => null)
     : Promise.resolve(null)
 }
 
@@ -54,14 +52,12 @@ export function readCommonTopologiesSecondaryFiltered(
   return meta.status === 'AUTHENTICATED' &&
     meta.selfMeta.rights.includes('READ_COMMON_TOPOLOGY') &&
     commonTopologyIds !== null
-    ? commonTopologyIds.length === 0
-      ? []
-      : serverConnector
-          .readCommonTopologies({
-            ids: commonTopologyIds,
-            scope: 'UP_TO_SECONDARY_PROPS'
-          })
-          .catch(() => null)
+    ? serverConnector
+        .readCommonTopologies({
+          ids: commonTopologyIds,
+          scope: 'UP_TO_SECONDARY_PROPS'
+        })
+        .catch(() => null)
     : Promise.resolve(null)
 }
 

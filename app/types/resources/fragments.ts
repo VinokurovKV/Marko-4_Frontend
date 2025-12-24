@@ -1,4 +1,5 @@
 import type {
+  FragmentsFilterDto,
   ReadFragmentWithPrimaryPropsSuccessResultDto,
   ReadFragmentWithUpToSecondaryPropsSuccessResultDto,
   ReadFragmentWithUpToTertiaryPropsSuccessResultDto,
@@ -7,6 +8,7 @@ import type {
 } from '@common/dtos/server-api/fragments.dto'
 import type { DtoWithoutEnums } from '@common/dto-without-enums'
 
+export type FragmentsFilter = DtoWithoutEnums<FragmentsFilterDto>
 export type FragmentPrimary =
   DtoWithoutEnums<ReadFragmentWithPrimaryPropsSuccessResultDto>
 export type FragmentSecondary =

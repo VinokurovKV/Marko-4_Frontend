@@ -1,4 +1,5 @@
 import type {
+  CoveragesFilterDto,
   ReadCoverageWithPrimaryPropsSuccessResultDto,
   ReadCoverageWithUpToSecondaryPropsSuccessResultDto,
   ReadCoverageWithUpToTertiaryPropsSuccessResultDto,
@@ -7,6 +8,7 @@ import type {
 } from '@common/dtos/server-api/coverages.dto'
 import type { DtoWithoutEnums } from '@common/dto-without-enums'
 
+export type CoveragesFilter = DtoWithoutEnums<CoveragesFilterDto>
 export type CoveragePrimary =
   DtoWithoutEnums<ReadCoverageWithPrimaryPropsSuccessResultDto>
 export type CoverageSecondary =

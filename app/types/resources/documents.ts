@@ -1,4 +1,5 @@
 import type {
+  DocumentsFilterDto,
   ReadDocumentWithPrimaryPropsSuccessResultDto,
   ReadDocumentWithUpToSecondaryPropsSuccessResultDto,
   ReadDocumentWithUpToTertiaryPropsSuccessResultDto,
@@ -7,6 +8,7 @@ import type {
 } from '@common/dtos/server-api/documents.dto'
 import type { DtoWithoutEnums } from '@common/dto-without-enums'
 
+export type DocumentsFilter = DtoWithoutEnums<DocumentsFilterDto>
 export type DocumentPrimary =
   DtoWithoutEnums<ReadDocumentWithPrimaryPropsSuccessResultDto>
 export type DocumentSecondary =

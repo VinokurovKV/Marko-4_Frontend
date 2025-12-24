@@ -34,14 +34,12 @@ export function readTestsPrimaryFiltered(testIds: number[] | null) {
   return meta.status === 'AUTHENTICATED' &&
     meta.selfMeta.rights.includes('READ_TEST') &&
     testIds !== null
-    ? testIds.length === 0
-      ? []
-      : serverConnector
-          .readTests({
-            ids: testIds,
-            scope: 'PRIMARY_PROPS'
-          })
-          .catch(() => null)
+    ? serverConnector
+        .readTests({
+          ids: testIds,
+          scope: 'PRIMARY_PROPS'
+        })
+        .catch(() => null)
     : Promise.resolve(null)
 }
 
@@ -50,14 +48,12 @@ export function readTestsSecondaryFiltered(testIds: number[] | null) {
   return meta.status === 'AUTHENTICATED' &&
     meta.selfMeta.rights.includes('READ_TEST') &&
     testIds !== null
-    ? testIds.length === 0
-      ? []
-      : serverConnector
-          .readTests({
-            ids: testIds,
-            scope: 'UP_TO_SECONDARY_PROPS'
-          })
-          .catch(() => null)
+    ? serverConnector
+        .readTests({
+          ids: testIds,
+          scope: 'UP_TO_SECONDARY_PROPS'
+        })
+        .catch(() => null)
     : Promise.resolve(null)
 }
 

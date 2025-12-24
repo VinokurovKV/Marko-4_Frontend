@@ -1,4 +1,5 @@
 import type {
+  SlicesFilterDto,
   ReadSliceWithPrimaryPropsSuccessResultDto,
   ReadSliceWithUpToSecondaryPropsSuccessResultDto,
   ReadSliceWithUpToTertiaryPropsSuccessResultDto,
@@ -7,6 +8,7 @@ import type {
 } from '@common/dtos/server-api/slices.dto'
 import type { DtoWithoutEnums } from '@common/dto-without-enums'
 
+export type SlicesFilter = DtoWithoutEnums<SlicesFilterDto>
 export type SlicePrimary =
   DtoWithoutEnums<ReadSliceWithPrimaryPropsSuccessResultDto>
 export type SliceSecondary =

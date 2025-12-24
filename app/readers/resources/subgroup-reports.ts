@@ -36,14 +36,12 @@ export function readSubgroupReportsPrimaryFiltered(
   return meta.status === 'AUTHENTICATED' &&
     meta.selfMeta.rights.includes('READ_SUBGROUP_REPORT') &&
     subgroupReportIds !== null
-    ? subgroupReportIds.length === 0
-      ? []
-      : serverConnector
-          .readSubgroupReports({
-            ids: subgroupReportIds,
-            scope: 'PRIMARY_PROPS'
-          })
-          .catch(() => null)
+    ? serverConnector
+        .readSubgroupReports({
+          ids: subgroupReportIds,
+          scope: 'PRIMARY_PROPS'
+        })
+        .catch(() => null)
     : Promise.resolve(null)
 }
 
@@ -54,14 +52,12 @@ export function readSubgroupReportsSecondaryFiltered(
   return meta.status === 'AUTHENTICATED' &&
     meta.selfMeta.rights.includes('READ_SUBGROUP_REPORT') &&
     subgroupReportIds !== null
-    ? subgroupReportIds.length === 0
-      ? []
-      : serverConnector
-          .readSubgroupReports({
-            ids: subgroupReportIds,
-            scope: 'UP_TO_SECONDARY_PROPS'
-          })
-          .catch(() => null)
+    ? serverConnector
+        .readSubgroupReports({
+          ids: subgroupReportIds,
+          scope: 'UP_TO_SECONDARY_PROPS'
+        })
+        .catch(() => null)
     : Promise.resolve(null)
 }
 

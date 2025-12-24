@@ -34,14 +34,12 @@ export function readTagsPrimaryFiltered(tagIds: number[] | null) {
   return meta.status === 'AUTHENTICATED' &&
     meta.selfMeta.rights.includes('READ_TAG') &&
     tagIds !== null
-    ? tagIds.length === 0
-      ? []
-      : serverConnector
-          .readTags({
-            ids: tagIds,
-            scope: 'PRIMARY_PROPS'
-          })
-          .catch(() => null)
+    ? serverConnector
+        .readTags({
+          ids: tagIds,
+          scope: 'PRIMARY_PROPS'
+        })
+        .catch(() => null)
     : Promise.resolve(null)
 }
 
@@ -50,14 +48,12 @@ export function readTagsSecondaryFiltered(tagIds: number[] | null) {
   return meta.status === 'AUTHENTICATED' &&
     meta.selfMeta.rights.includes('READ_TAG') &&
     tagIds !== null
-    ? tagIds.length === 0
-      ? []
-      : serverConnector
-          .readTags({
-            ids: tagIds,
-            scope: 'UP_TO_SECONDARY_PROPS'
-          })
-          .catch(() => null)
+    ? serverConnector
+        .readTags({
+          ids: tagIds,
+          scope: 'UP_TO_SECONDARY_PROPS'
+        })
+        .catch(() => null)
     : Promise.resolve(null)
 }
 

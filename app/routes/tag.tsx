@@ -198,6 +198,7 @@ function TagRouteInner({
   useRequirementsFilteredSubscription(
     'PRIMARY_PROPS',
     tag?.requirementIds ?? null,
+    null,
     setRequirements
   )
   useCommonTopologiesFilteredSubscription(

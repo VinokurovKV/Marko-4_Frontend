@@ -34,14 +34,12 @@ export function readCoveragesPrimaryFiltered(coverageIds: number[] | null) {
   return meta.status === 'AUTHENTICATED' &&
     meta.selfMeta.rights.includes('READ_COVERAGE') &&
     coverageIds !== null
-    ? coverageIds.length === 0
-      ? []
-      : serverConnector
-          .readCoverages({
-            ids: coverageIds,
-            scope: 'PRIMARY_PROPS'
-          })
-          .catch(() => null)
+    ? serverConnector
+        .readCoverages({
+          ids: coverageIds,
+          scope: 'PRIMARY_PROPS'
+        })
+        .catch(() => null)
     : Promise.resolve(null)
 }
 
@@ -50,14 +48,12 @@ export function readCoveragesSecondaryFiltered(coverageIds: number[] | null) {
   return meta.status === 'AUTHENTICATED' &&
     meta.selfMeta.rights.includes('READ_COVERAGE') &&
     coverageIds !== null
-    ? coverageIds.length === 0
-      ? []
-      : serverConnector
-          .readCoverages({
-            ids: coverageIds,
-            scope: 'UP_TO_SECONDARY_PROPS'
-          })
-          .catch(() => null)
+    ? serverConnector
+        .readCoverages({
+          ids: coverageIds,
+          scope: 'UP_TO_SECONDARY_PROPS'
+        })
+        .catch(() => null)
     : Promise.resolve(null)
 }
 

@@ -36,14 +36,12 @@ export function readGroupReportsPrimaryFiltered(
   return meta.status === 'AUTHENTICATED' &&
     meta.selfMeta.rights.includes('READ_GROUP_REPORT') &&
     groupReportIds !== null
-    ? groupReportIds.length === 0
-      ? []
-      : serverConnector
-          .readGroupReports({
-            ids: groupReportIds,
-            scope: 'PRIMARY_PROPS'
-          })
-          .catch(() => null)
+    ? serverConnector
+        .readGroupReports({
+          ids: groupReportIds,
+          scope: 'PRIMARY_PROPS'
+        })
+        .catch(() => null)
     : Promise.resolve(null)
 }
 
@@ -54,14 +52,12 @@ export function readGroupReportsSecondaryFiltered(
   return meta.status === 'AUTHENTICATED' &&
     meta.selfMeta.rights.includes('READ_GROUP_REPORT') &&
     groupReportIds !== null
-    ? groupReportIds.length === 0
-      ? []
-      : serverConnector
-          .readGroupReports({
-            ids: groupReportIds,
-            scope: 'UP_TO_SECONDARY_PROPS'
-          })
-          .catch(() => null)
+    ? serverConnector
+        .readGroupReports({
+          ids: groupReportIds,
+          scope: 'UP_TO_SECONDARY_PROPS'
+        })
+        .catch(() => null)
     : Promise.resolve(null)
 }
 

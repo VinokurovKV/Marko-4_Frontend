@@ -34,14 +34,12 @@ export function readTasksPrimaryFiltered(taskIds: number[] | null) {
   return meta.status === 'AUTHENTICATED' &&
     meta.selfMeta.rights.includes('READ_TASK') &&
     taskIds !== null
-    ? taskIds.length === 0
-      ? []
-      : serverConnector
-          .readTasks({
-            ids: taskIds,
-            scope: 'PRIMARY_PROPS'
-          })
-          .catch(() => null)
+    ? serverConnector
+        .readTasks({
+          ids: taskIds,
+          scope: 'PRIMARY_PROPS'
+        })
+        .catch(() => null)
     : Promise.resolve(null)
 }
 
@@ -50,14 +48,12 @@ export function readTasksSecondaryFiltered(taskIds: number[] | null) {
   return meta.status === 'AUTHENTICATED' &&
     meta.selfMeta.rights.includes('READ_TASK') &&
     taskIds !== null
-    ? taskIds.length === 0
-      ? []
-      : serverConnector
-          .readTasks({
-            ids: taskIds,
-            scope: 'UP_TO_SECONDARY_PROPS'
-          })
-          .catch(() => null)
+    ? serverConnector
+        .readTasks({
+          ids: taskIds,
+          scope: 'UP_TO_SECONDARY_PROPS'
+        })
+        .catch(() => null)
     : Promise.resolve(null)
 }
 

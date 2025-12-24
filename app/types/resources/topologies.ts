@@ -1,4 +1,5 @@
 import type {
+  TopologiesFilterDto,
   ReadTopologyWithPrimaryPropsSuccessResultDto,
   ReadTopologyWithUpToSecondaryPropsSuccessResultDto,
   ReadTopologyWithUpToTertiaryPropsSuccessResultDto,
@@ -7,6 +8,7 @@ import type {
 } from '@common/dtos/server-api/topologies.dto'
 import type { DtoWithoutEnums } from '@common/dto-without-enums'
 
+export type TopologiesFilter = DtoWithoutEnums<TopologiesFilterDto>
 export type TopologyPrimary =
   DtoWithoutEnums<ReadTopologyWithPrimaryPropsSuccessResultDto>
 export type TopologySecondary =

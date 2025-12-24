@@ -1,5 +1,6 @@
 // Project
 import { serverConnector } from '~/server-connector'
+import type { RequirementsFilter } from '~/types'
 
 // Read many
 
@@ -30,38 +31,38 @@ export function readRequirementsSecondary() {
 // Read many filtered
 
 export function readRequirementsPrimaryFiltered(
-  requirementIds: number[] | null
+  requirementIds?: number[] | null,
+  extraFilter?: RequirementsFilter
 ) {
   const meta = serverConnector.meta
   return meta.status === 'AUTHENTICATED' &&
     meta.selfMeta.rights.includes('READ_REQUIREMENT') &&
     requirementIds !== null
-    ? requirementIds.length === 0
-      ? []
-      : serverConnector
-          .readRequirements({
-            ids: requirementIds,
-            scope: 'PRIMARY_PROPS'
-          })
-          .catch(() => null)
+    ? serverConnector
+        .readRequirements({
+          ids: requirementIds,
+          ...extraFilter,
+          scope: 'PRIMARY_PROPS'
+        })
+        .catch(() => null)
     : Promise.resolve(null)
 }
 
 export function readRequirementsSecondaryFiltered(
-  requirementIds: number[] | null
+  requirementIds?: number[] | null,
+  extraFilter?: RequirementsFilter
 ) {
   const meta = serverConnector.meta
   return meta.status === 'AUTHENTICATED' &&
     meta.selfMeta.rights.includes('READ_REQUIREMENT') &&
     requirementIds !== null
-    ? requirementIds.length === 0
-      ? []
-      : serverConnector
-          .readRequirements({
-            ids: requirementIds,
-            scope: 'UP_TO_SECONDARY_PROPS'
-          })
-          .catch(() => null)
+    ? serverConnector
+        .readRequirements({
+          ids: requirementIds,
+          ...extraFilter,
+          scope: 'UP_TO_SECONDARY_PROPS'
+        })
+        .catch(() => null)
     : Promise.resolve(null)
 }
 

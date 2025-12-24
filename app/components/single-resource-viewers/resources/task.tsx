@@ -231,6 +231,7 @@ export function TaskViewer(props: TaskViewerProps) {
         proportions={props.children ? 'ONE_TWO' : 'ONE_ZERO'}
       >
         <TestReportsGrid
+          key={`${withTest}`}
           tests={props.tests ?? EMPTY_TESTS_ARR}
           testReports={props.testReports ?? EMPTY_TEST_REPORTS_ARR}
           navigationMode={withTest}

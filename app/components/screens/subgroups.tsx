@@ -73,7 +73,7 @@ export function SubgroupsScreen({ children, ...props }: SubgroupsScreenProps) {
       breadcrumbsItems={breadcrumbsItems}
     >
       <HorizontalTwoPartsContainer
-        proportions={withSubgroup ? 'ONE_THREE' : 'ONE_ZERO'}
+        proportions={withSubgroup ? 'ONE_TWO' : 'ONE_ZERO'}
       >
         <SubgroupsGrid
           key={`${withSubgroup}`}

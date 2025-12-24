@@ -1,6 +1,7 @@
 // Project
 import type { ReadOneResourceScope, ReadManyResourceScope } from '@common/enums'
 import type {
+  RequirementsFilter,
   RequirementPrimary,
   RequirementSecondary,
   RequirementTertiary,
@@ -317,14 +318,18 @@ export function useRequirements<Scope extends ReadManyResourceScope>(
   return requirements
 }
 
+type ExtraFilter = Omit<RequirementsFilter, 'requirementIds'>
+
 function useRequirementsFilteredSubscriptionInner<
   Scope extends ReadManyResourceScope
 >(
   scope: Scope,
-  requirementIds: number[] | null,
+  requirementIds: number[] | null | undefined,
+  extraFilter: ExtraFilter | null,
   setRequirementsPair: React.Dispatch<
     React.SetStateAction<{
-      requirementIds: number[] | null
+      requirementIds?: number[] | null
+      extraFilter: ExtraFilter | null
       requirements?: ReadManyRequirement<Scope>[] | null
     }>
   >,
@@ -343,11 +348,13 @@ function useRequirementsFilteredSubscriptionInner<
           requirementIds !== null
             ? ((await serverConnector.readRequirements({
                 ids: requirementIds,
+                ...extraFilter,
                 scope: scope
               })) as ReadManyRequirement<Scope>[])
             : EMPTY_REQUIREMENTS_ARR
         setRequirementsPair((oldPair) =>
-          isEqual(oldPair.requirementIds, requirementIds)
+          isEqual(oldPair.requirementIds, requirementIds) &&
+          isEqual(oldPair.extraFilter, extraFilter)
             ? {
                 ...oldPair,
                 requirements: requirements
@@ -362,7 +369,7 @@ function useRequirementsFilteredSubscriptionInner<
         }
       }
     },
-    [scope, requirementIds, setRequirementsPair, notifier]
+    [scope, requirementIds, extraFilter, setRequirementsPair, notifier]
   )
 
   // Initial load
@@ -382,9 +389,9 @@ function useRequirementsFilteredSubscriptionInner<
     load
   ])
 
-  // Process requirement ids change or active flag change to true
+  // Process requirement ids change or extra filter change or active flag change to true
   useChangeDetector({
-    detectedObjects: [requirementIds, active],
+    detectedObjects: [requirementIds, extraFilter, active],
     otherDependencies: [notifyAboutInitialLoadProblems, load],
     onChange: () => {
       if (active) {
@@ -404,7 +411,8 @@ function useRequirementsFilteredSubscriptionInner<
           const updateScope = data.updateScope
           if (
             updateScope.primaryProps ||
-            (updateScope.secondaryProps && scope === 'UP_TO_SECONDARY_PROPS')
+            (updateScope.secondaryProps && scope === 'UP_TO_SECONDARY_PROPS') ||
+            extraFilter !== null
           ) {
             void load(true)
           }
@@ -414,7 +422,7 @@ function useRequirementsFilteredSubscriptionInner<
     return () => {
       serverConnector.unsubscribe(subscriptionId)
     }
-  }, [scope, requirementIds, load])
+  }, [scope, requirementIds, extraFilter, load])
 }
 
 /** Subscribe to requirements updates for existing requirements state */
@@ -422,7 +430,8 @@ export function useRequirementsFilteredSubscription<
   Scope extends ReadManyResourceScope
 >(
   scope: Scope,
-  requirementIds: number[] | null,
+  requirementIds: number[] | null | undefined,
+  extraFilter: ExtraFilter | null,
   setRequirements: React.Dispatch<
     React.SetStateAction<ReadManyRequirement<Scope>[] | null>
   >,
@@ -431,21 +440,25 @@ export function useRequirementsFilteredSubscription<
   active: boolean = true
 ) {
   const [requirementsPair, setRequirementsPair] = React.useState<{
-    requirementIds: number[] | null
+    requirementIds?: number[] | null
+    extraFilter: ExtraFilter | null
     requirements?: ReadManyRequirement<Scope>[] | null
   }>({
     requirementIds: requirementIds,
+    extraFilter: extraFilter,
     requirements: undefined
   })
   React.useEffect(() => {
     setRequirementsPair((oldPair) => ({
       requirementIds: requirementIds,
+      extraFilter: extraFilter,
       requirements: oldPair.requirements
     }))
-  }, [requirementIds, setRequirementsPair])
+  }, [requirementIds, extraFilter, setRequirementsPair])
   useRequirementsFilteredSubscriptionInner(
     scope,
     requirementsPair.requirementIds,
+    requirementsPair.extraFilter,
     setRequirementsPair,
     withInitialLoad,
     notifyAboutInitialLoadProblems,
@@ -461,26 +474,31 @@ export function useRequirementsFilteredSubscription<
 /** Subscribe to requirements updates with initial load */
 export function useRequirementsFiltered<Scope extends ReadManyResourceScope>(
   scope: Scope,
-  requirementIds: number[] | null,
+  requirementIds: number[] | null | undefined,
+  extraFilter: ExtraFilter | null,
   notifyAboutInitialLoadProblems: boolean = false,
   active: boolean = true
 ) {
   const [requirementsPair, setRequirementsPair] = React.useState<{
-    requirementIds: number[] | null
+    requirementIds?: number[] | null
+    extraFilter: ExtraFilter | null
     requirements?: ReadManyRequirement<Scope>[] | null
   }>({
     requirementIds: requirementIds,
+    extraFilter: extraFilter,
     requirements: null
   })
   React.useEffect(() => {
     setRequirementsPair((oldPair) => ({
       requirementIds: requirementIds,
+      extraFilter: extraFilter,
       requirements: oldPair.requirements
     }))
   }, [requirementIds, setRequirementsPair])
   useRequirementsFilteredSubscriptionInner(
     scope,
     requirementsPair.requirementIds,
+    requirementsPair.extraFilter,
     setRequirementsPair,
     true,
     notifyAboutInitialLoadProblems,
