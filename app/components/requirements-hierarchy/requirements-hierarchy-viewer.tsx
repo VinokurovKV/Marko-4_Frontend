@@ -67,7 +67,7 @@ export function RequirementsHierarchyViewer({
   // console.log(nodes)
   // console.log(edges)
 
-  console.log(initialNodes)
+  // console.log(initialNodes)
 
   return (
     <Stack spacing={1} p={0} sx={{ height: '100%' }}>
