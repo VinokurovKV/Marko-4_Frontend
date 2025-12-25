@@ -78,7 +78,7 @@ function CoverageRouteInner({
     setRequirement
   )
   useCoverageSubscription('UP_TO_TERTIARY_PROPS', coverageId, setCoverage)
-  useTestsFilteredSubscription('PRIMARY_PROPS', testIds, setTests)
+  useTestsFilteredSubscription('PRIMARY_PROPS', testIds, null, setTests)
 
   React.useEffect(() => {
     if (coverageId === null) {

@@ -217,7 +217,12 @@ function TagRouteInner({
     tag?.testTemplateIds ?? null,
     setTestTemplates
   )
-  useTestsFilteredSubscription('PRIMARY_PROPS', tag?.testIds ?? null, setTests)
+  useTestsFilteredSubscription(
+    'PRIMARY_PROPS',
+    tag?.testIds ?? null,
+    null,
+    setTests
+  )
   useSubgroupsFilteredSubscription(
     'PRIMARY_PROPS',
     tag?.subgroupIds ?? null,

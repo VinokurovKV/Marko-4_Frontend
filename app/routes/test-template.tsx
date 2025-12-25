@@ -68,7 +68,7 @@ function TestTemplateRouteInner({
 
   useTagsFilteredSubscription('PRIMARY_PROPS', tagIds, setTags)
   useTestTemplateSubscription('ALL_PROPS', testTemplateId, setTestTemplate)
-  useTestsFilteredSubscription('PRIMARY_PROPS', testIds, setTests)
+  useTestsFilteredSubscription('PRIMARY_PROPS', testIds, null, setTests)
 
   React.useEffect(() => {
     if (testTemplateId === null) {

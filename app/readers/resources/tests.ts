@@ -1,5 +1,6 @@
 // Project
 import { serverConnector } from '~/server-connector'
+import type { TestsFilter } from '~/types'
 
 // Read many
 
@@ -29,7 +30,10 @@ export function readTestsSecondary() {
 
 // Read many filtered
 
-export function readTestsPrimaryFiltered(testIds: number[] | null) {
+export function readTestsPrimaryFiltered(
+  testIds?: number[] | null,
+  extraFilter?: TestsFilter
+) {
   const meta = serverConnector.meta
   return meta.status === 'AUTHENTICATED' &&
     meta.selfMeta.rights.includes('READ_TEST') &&
@@ -37,13 +41,17 @@ export function readTestsPrimaryFiltered(testIds: number[] | null) {
     ? serverConnector
         .readTests({
           ids: testIds,
+          ...extraFilter,
           scope: 'PRIMARY_PROPS'
         })
         .catch(() => null)
     : Promise.resolve(null)
 }
 
-export function readTestsSecondaryFiltered(testIds: number[] | null) {
+export function readTestsSecondaryFiltered(
+  testIds?: number[] | null,
+  extraFilter?: TestsFilter
+) {
   const meta = serverConnector.meta
   return meta.status === 'AUTHENTICATED' &&
     meta.selfMeta.rights.includes('READ_TEST') &&
@@ -51,6 +59,7 @@ export function readTestsSecondaryFiltered(testIds: number[] | null) {
     ? serverConnector
         .readTests({
           ids: testIds,
+          ...extraFilter,
           scope: 'UP_TO_SECONDARY_PROPS'
         })
         .catch(() => null)

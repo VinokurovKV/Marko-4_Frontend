@@ -43,10 +43,10 @@ export async function clientLoader({ params }: Route.ClientLoaderArgs) {
     readTestsPrimaryFiltered(subgroup?.testIds ?? null),
     readGroupPrimary(subgroup?.groupId ?? null)
   ])
-  const testIds = tests?.map((test) => test.id)
+  const testIds = tests?.map((test) => test.id) ?? null
   const [requirements] = await Promise.all([
     readRequirementsSecondaryFiltered(undefined, {
-      testIds: testIds
+      testIds: testIds ?? []
     })
   ])
   return {
@@ -99,7 +99,7 @@ function SubgroupRouteInner({
     requirementsFilter,
     setRequirements
   )
-  useTestsFilteredSubscription('PRIMARY_PROPS', testIds, setTests)
+  useTestsFilteredSubscription('PRIMARY_PROPS', testIds, null, setTests)
   useSubgroupSubscription('UP_TO_TERTIARY_PROPS', subgroupId, setSubgroup)
   useGroupSubscription('PRIMARY_PROPS', subgroup?.groupId ?? null, setGroup)
 

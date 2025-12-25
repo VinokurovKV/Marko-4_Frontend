@@ -78,7 +78,7 @@ function TopologyRouteInner({
     setCommonTopology
   )
   useTopologySubscription('ALL_PROPS', topologyId, setTopology)
-  useTestsFilteredSubscription('PRIMARY_PROPS', testIds, setTests)
+  useTestsFilteredSubscription('PRIMARY_PROPS', testIds, null, setTests)
 
   React.useEffect(() => {
     if (topologyId === null) {

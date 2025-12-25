@@ -21,20 +21,20 @@ export function SubgroupRequirementsGrid({
   requirements,
   tests
 }: SubgroupRequirementsGridProps) {
-  const testCodeForId = React.useMemo(
-    () => new Map(tests?.map((test) => [test.id, test.code])),
+  const testForId = React.useMemo(
+    () => new Map(tests?.map((test) => [test.id, test])),
     [tests]
   )
 
   const testIdsWithoutRequirements = React.useMemo(() => {
-    const testsIdsWithRequirementsSet = new Set(
+    const testIdsWithRequirementsSet = new Set(
       requirements
         .map((requirement) => requirement.testId)
         .filter((id) => id !== null)
     )
     return (tests ?? [])
       .map((test) => test.id)
-      .filter((testId) => testsIdsWithRequirementsSet.has(testId) === false)
+      .filter((testId) => testIdsWithRequirementsSet.has(testId) === false)
   }, [requirements, tests])
 
   const rows: GridValidRowModel[] = React.useMemo(
@@ -42,27 +42,29 @@ export function SubgroupRequirementsGrid({
       [
         ...requirements.map((requirement) => ({
           id: `${requirement.id}`,
-          testId: requirement.testId,
           requirementId: requirement.id,
+          requirementCode: requirement.code,
           modifier: requirement.modifier,
-          origin: requirement.origin
+          origin: requirement.origin,
+          testId: requirement.testId ?? undefined,
+          testCode:
+            requirement.testId !== null
+              ? (testForId.get(requirement.testId)?.code ?? '')
+              : ''
         })),
         ...testIdsWithoutRequirements.map((testId) => ({
           id: `test-${testId}`,
-          testId: testId
+          requirementCode: '',
+          testId: testId,
+          testCode: testForId.get(testId)?.code ?? ''
         }))
       ].toSorted((requirement_1, requirement_2) => {
-        const testCode_1 =
-          (requirement_1.testId !== null
-            ? testCodeForId.get(requirement_1.testId)
-            : '') ?? ''
-        const testCode_2 =
-          (requirement_2.testId !== null
-            ? testCodeForId.get(requirement_2.testId)
-            : '') ?? ''
-        return testCode_1.localeCompare(testCode_2)
+        function prepare(requirement: typeof requirement_1) {
+          return `${requirement.testCode} ${requirement.requirementCode}`
+        }
+        return prepare(requirement_1).localeCompare(prepare(requirement_2))
       }),
-    [requirements, testCodeForId]
+    [requirements, testForId, testIdsWithoutRequirements]
   )
 
   const readCols = [

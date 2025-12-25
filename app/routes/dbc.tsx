@@ -54,7 +54,7 @@ function DbcRouteInner({
 
   useTagsFilteredSubscription('PRIMARY_PROPS', tagIds, setTags)
   useDbcSubscription('ALL_PROPS', dbcId, setDbc)
-  useTestsFilteredSubscription('PRIMARY_PROPS', testIds, setTests)
+  useTestsFilteredSubscription('PRIMARY_PROPS', testIds, null, setTests)
 
   React.useEffect(() => {
     if (dbcId === null) {

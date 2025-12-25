@@ -110,7 +110,7 @@ function TaskRouteInner({
     task?.commonTopology.id ?? null,
     setCommonTopology
   )
-  useTestsFilteredSubscription('PRIMARY_PROPS', testIds, setTests)
+  useTestsFilteredSubscription('PRIMARY_PROPS', testIds, null, setTests)
   useTaskSubscription('UP_TO_TERTIARY_PROPS', taskId, setTask)
   useTestReportsSubscription('UP_TO_SECONDARY_PROPS', taskId, setTestReports)
   useTaskReportSubscription('UP_TO_TERTIARY_PROPS', taskReportId, setTaskReport)

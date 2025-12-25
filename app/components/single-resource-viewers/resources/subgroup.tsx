@@ -67,7 +67,7 @@ export function SubgroupViewer({
             text={subgroup.groupId !== null ? (group?.code ?? '???') : ''}
             href={
               subgroup.groupId !== null
-                ? `/group/${subgroup.groupId}`
+                ? `/groups/${subgroup.groupId}`
                 : undefined
             }
           />

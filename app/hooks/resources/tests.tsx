@@ -1,6 +1,12 @@
 // Project
 import type { ReadOneResourceScope, ReadManyResourceScope } from '@common/enums'
-import type { TestPrimary, TestSecondary, TestTertiary, TestAll } from '~/types'
+import type {
+  TestsFilter,
+  TestPrimary,
+  TestSecondary,
+  TestTertiary,
+  TestAll
+} from '~/types'
 import { serverConnector } from '~/server-connector'
 import { useChangeDetector } from '../change-detector'
 import { useNotifier } from '~/providers/notifier'
@@ -302,12 +308,16 @@ export function useTests<Scope extends ReadManyResourceScope>(
   return tests
 }
 
+type ExtraFilter = Omit<TestsFilter, 'testIds'>
+
 function useTestsFilteredSubscriptionInner<Scope extends ReadManyResourceScope>(
   scope: Scope,
-  testIds: number[] | null,
+  testIds: number[] | null | undefined,
+  extraFilter: ExtraFilter | null,
   setTestsPair: React.Dispatch<
     React.SetStateAction<{
-      testIds: number[] | null
+      testIds?: number[] | null
+      extraFilter: ExtraFilter | null
       tests?: ReadManyTest<Scope>[] | null
     }>
   >,
@@ -326,11 +336,13 @@ function useTestsFilteredSubscriptionInner<Scope extends ReadManyResourceScope>(
           testIds !== null
             ? ((await serverConnector.readTests({
                 ids: testIds,
+                ...extraFilter,
                 scope: scope
               })) as ReadManyTest<Scope>[])
             : EMPTY_TESTS_ARR
         setTestsPair((oldPair) =>
-          isEqual(oldPair.testIds, testIds)
+          isEqual(oldPair.testIds, testIds) &&
+          isEqual(oldPair.extraFilter, extraFilter)
             ? {
                 ...oldPair,
                 tests: tests
@@ -343,7 +355,7 @@ function useTestsFilteredSubscriptionInner<Scope extends ReadManyResourceScope>(
         }
       }
     },
-    [scope, testIds, setTestsPair, notifier]
+    [scope, testIds, extraFilter, setTestsPair, notifier]
   )
 
   // Initial load
@@ -363,9 +375,9 @@ function useTestsFilteredSubscriptionInner<Scope extends ReadManyResourceScope>(
     load
   ])
 
-  // Process test ids change or active flag change to true
+  // Process test ids change or extra filter change or active flag change to true
   useChangeDetector({
-    detectedObjects: [testIds, active],
+    detectedObjects: [testIds, extraFilter, active],
     otherDependencies: [notifyAboutInitialLoadProblems, load],
     onChange: () => {
       if (active) {
@@ -385,7 +397,8 @@ function useTestsFilteredSubscriptionInner<Scope extends ReadManyResourceScope>(
           const updateScope = data.updateScope
           if (
             updateScope.primaryProps ||
-            (updateScope.secondaryProps && scope === 'UP_TO_SECONDARY_PROPS')
+            (updateScope.secondaryProps && scope === 'UP_TO_SECONDARY_PROPS') ||
+            extraFilter !== null
           ) {
             void load(true)
           }
@@ -395,7 +408,7 @@ function useTestsFilteredSubscriptionInner<Scope extends ReadManyResourceScope>(
     return () => {
       serverConnector.unsubscribe(subscriptionId)
     }
-  }, [scope, testIds, load])
+  }, [scope, testIds, extraFilter, load])
 }
 
 /** Subscribe to tests updates for existing tests state */
@@ -403,28 +416,33 @@ export function useTestsFilteredSubscription<
   Scope extends ReadManyResourceScope
 >(
   scope: Scope,
-  testIds: number[] | null,
+  testIds: number[] | null | undefined,
+  extraFilter: ExtraFilter | null,
   setTests: React.Dispatch<React.SetStateAction<ReadManyTest<Scope>[] | null>>,
   withInitialLoad: boolean = false,
   notifyAboutInitialLoadProblems: boolean = false,
   active: boolean = true
 ) {
   const [testsPair, setTestsPair] = React.useState<{
-    testIds: number[] | null
+    testIds?: number[] | null
+    extraFilter: ExtraFilter | null
     tests?: ReadManyTest<Scope>[] | null
   }>({
     testIds: testIds,
+    extraFilter: extraFilter,
     tests: undefined
   })
   React.useEffect(() => {
     setTestsPair((oldPair) => ({
       testIds: testIds,
+      extraFilter: extraFilter,
       tests: oldPair.tests
     }))
-  }, [testIds, setTestsPair])
+  }, [testIds, extraFilter, setTestsPair])
   useTestsFilteredSubscriptionInner(
     scope,
     testsPair.testIds,
+    testsPair.extraFilter,
     setTestsPair,
     withInitialLoad,
     notifyAboutInitialLoadProblems,
@@ -440,26 +458,31 @@ export function useTestsFilteredSubscription<
 /** Subscribe to tests updates with initial load */
 export function useTestsFiltered<Scope extends ReadManyResourceScope>(
   scope: Scope,
-  testIds: number[] | null,
+  testIds: number[] | null | undefined,
+  extraFilter: ExtraFilter | null,
   notifyAboutInitialLoadProblems: boolean = false,
   active: boolean = true
 ) {
   const [testsPair, setTestsPair] = React.useState<{
-    testIds: number[] | null
+    testIds?: number[] | null
+    extraFilter: ExtraFilter | null
     tests?: ReadManyTest<Scope>[] | null
   }>({
     testIds: testIds,
+    extraFilter: extraFilter,
     tests: null
   })
   React.useEffect(() => {
     setTestsPair((oldPair) => ({
       testIds: testIds,
+      extraFilter: extraFilter,
       tests: oldPair.tests
     }))
   }, [testIds, setTestsPair])
   useTestsFilteredSubscriptionInner(
     scope,
     testsPair.testIds,
+    testsPair.extraFilter,
     setTestsPair,
     true,
     notifyAboutInitialLoadProblems,
