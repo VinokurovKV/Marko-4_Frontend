@@ -1,9 +1,10 @@
 // Project
-import type { RolePrimary, UserSecondary } from '~/types'
+import type { RolePrimary, UserSecondary, UserTertiary } from '~/types'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
 import { useMeta } from '~/providers/meta'
 import { CreateUserFormDialog } from '~/components/forms/resources/create-user'
+import { UpdateUserFormDialog } from '~/components/forms/resources/update-user'
 import { type GridProps, Grid } from '../grid'
 import {
   type ActionsColProps,
@@ -44,6 +45,9 @@ export function UsersGrid(props: UsersGridProps) {
   )
 
   const [createModeIsActive, setCreateModeIsActive] = React.useState(false)
+  const [updatedUserId, setUpdatedUserId] = React.useState<number | null>(null)
+  const [initialUpdatedUser, setInitialUpdatedUser] =
+    React.useState<UserTertiary | null>(null)
 
   const userLoginForId = React.useMemo(
     () => new Map(props.users.map((user) => [user.id, user.login])),
@@ -66,6 +70,28 @@ export function UsersGrid(props: UsersGridProps) {
 
   const actionsColProps: ActionsColProps = React.useMemo(
     () => ({
+      update: rightsSet.has('UPDATE_USER')
+        ? {
+            action: async (rowId) => {
+              try {
+                const initialUser = await serverConnector.readUser(
+                  {
+                    id: rowId
+                  },
+                  {
+                    scope: 'UP_TO_TERTIARY_PROPS'
+                  }
+                )
+                setUpdatedUserId(rowId)
+                setInitialUpdatedUser(initialUser)
+              } catch {
+                notifier.showWarning(
+                  `не удалось загрузить пользователя с идентификатором ${rowId}`
+                )
+              }
+            }
+          }
+        : undefined,
       delete: rightsSet.has('DELETE_USER')
         ? {
             prepareConfirmMessage: (rowId) =>
@@ -91,15 +117,12 @@ export function UsersGrid(props: UsersGridProps) {
   const actionsCol = useActionsCol(actionsColProps)
 
   const cols: GridColDef[] = React.useMemo(
-    () =>
-      navigationMode
-        ? navigationModeReadCols
-        : [
-            ...readCols,
-            ...(rightsSet.has('UPDATE_USER') || rightsSet.has('DELETE_USER')
-              ? [actionsCol]
-              : [])
-          ],
+    () => [
+      ...(navigationMode ? navigationModeReadCols : readCols),
+      ...(rightsSet.has('UPDATE_USER') || rightsSet.has('DELETE_USER')
+        ? [actionsCol]
+        : [])
+    ],
     [navigationMode, rightsSet, readCols, navigationModeReadCols, actionsCol]
   )
 
@@ -163,6 +186,10 @@ export function UsersGrid(props: UsersGridProps) {
     setCreateModeIsActive(false)
   }, [setCreateModeIsActive])
 
+  const cancelUpdateForm = React.useCallback(() => {
+    setUpdatedUserId(null)
+  }, [setUpdatedUserId])
+
   const handleNavigationModeRowClick = React.useCallback(
     (rowId: number) => {
       void navigate(
@@ -195,6 +222,15 @@ export function UsersGrid(props: UsersGridProps) {
         setCreateModeIsActive={setCreateModeIsActive}
         onSuccessCreateUser={cancelCreateForm}
         onCancelClick={cancelCreateForm}
+      />
+      <UpdateUserFormDialog
+        key={updatedUserId}
+        roles={props.roles}
+        userId={updatedUserId}
+        setUserId={setUpdatedUserId}
+        initialUser={initialUpdatedUser}
+        onSuccessUpdateUser={cancelUpdateForm}
+        onCancelClick={cancelUpdateForm}
       />
     </>
   )

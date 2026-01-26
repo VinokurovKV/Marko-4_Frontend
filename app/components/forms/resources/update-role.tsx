@@ -152,7 +152,7 @@ export function UpdateRoleFormDialog(props: UpdateRoleFormDialogProps) {
 
   const initialFormData: UpdateRoleFormData = React.useMemo(
     () => ({
-      name: role?.name,
+      name: role?.name ?? '',
       rights: role?.rights,
       descriptionText: role?.description?.text
     }),

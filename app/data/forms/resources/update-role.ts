@@ -1,7 +1,7 @@
 // Project
 import type {
   DescriptionTextUndefinedWrapDto,
-  NameUndefinedWrapDto,
+  NameWrapDto,
   RightsUndefinedWrapDto
 } from '@common/dtos'
 import type { DtoWithoutEnums } from '@common/dto-without-enums'
@@ -14,9 +14,7 @@ import {
 } from '~/validation/form-validator'
 
 export type UpdateRoleFormData = DtoWithoutEnums<
-  NameUndefinedWrapDto &
-    RightsUndefinedWrapDto &
-    DescriptionTextUndefinedWrapDto
+  NameWrapDto & RightsUndefinedWrapDto & DescriptionTextUndefinedWrapDto
 >
 
 export type UpdateRoleFormKey = FormKey<UpdateRoleFormData>
