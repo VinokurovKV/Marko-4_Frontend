@@ -56,7 +56,7 @@ export function CreateRoleFormDialog(props: CreateRoleFormDialogProps) {
       data: CreateRoleFormData,
       createRoleResult: CreateRoleSuccessResultDto
     ) => {
-      notifier.showSuccess(`роль '${data.name}' создана`)
+      notifier.showSuccess(`роль «${data.name}» создана`)
       props.onSuccessCreateRole?.(createRoleResult)
     },
     [props.onSuccessCreateRole, notifier]
@@ -79,7 +79,7 @@ export function CreateRoleFormDialog(props: CreateRoleFormDialogProps) {
     <FormDialog
       formInternal={formInternal}
       title="создать роль"
-      submitButtonLabel="создать"
+      submitButtonTitle="создать"
       cancelButton={{
         title: 'отменить',
         onClick: props.onCancelClick

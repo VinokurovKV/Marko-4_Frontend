@@ -47,7 +47,7 @@ export function CreateTagFormDialog(props: CreateTagFormDialogProps) {
 
   const onSuccessSubmit = React.useCallback(
     (data: CreateTagFormData, createTagResult: CreateTagSuccessResultDto) => {
-      notifier.showSuccess(`тег '${data.code}' создан`)
+      notifier.showSuccess(`тег «${data.code}» создан`)
       props.onSuccessCreateTag?.(createTagResult)
     },
     [props.onSuccessCreateTag, notifier]
@@ -67,7 +67,7 @@ export function CreateTagFormDialog(props: CreateTagFormDialogProps) {
     <FormDialog
       formInternal={formInternal}
       title="создать тег"
-      submitButtonLabel="создать"
+      submitButtonTitle="создать"
       cancelButton={{
         title: 'отменить',
         onClick: props.onCancelClick

@@ -90,7 +90,7 @@ export function CreateDocumentFormDialog(props: CreateDocumentFormDialogProps) {
                 } catch (error) {
                   notifier.showError(
                     error,
-                    `не удалось создать тег '${tagCodeToCreate}'`
+                    `не удалось создать тег «${tagCodeToCreate}»`
                   )
                   return null
                 }
@@ -142,7 +142,7 @@ export function CreateDocumentFormDialog(props: CreateDocumentFormDialogProps) {
       data: CreateDocumentFormData,
       createDocumentResult: CreateDocumentSuccessResultDto
     ) => {
-      notifier.showSuccess(`документ '${data.code}' создан`)
+      notifier.showSuccess(`документ «${data.code}» создан`)
       props.onSuccessCreateDocument?.(createDocumentResult)
     },
     [props.onSuccessCreateDocument, notifier]
@@ -178,7 +178,7 @@ export function CreateDocumentFormDialog(props: CreateDocumentFormDialogProps) {
     <FormDialog
       formInternal={formInternal}
       title="создать документ"
-      submitButtonLabel="создать"
+      submitButtonTitle="создать"
       cancelButton={{
         title: 'отменить',
         onClick: props.onCancelClick

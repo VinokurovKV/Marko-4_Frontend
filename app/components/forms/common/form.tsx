@@ -51,6 +51,7 @@ export interface UseFormProps<Data extends FormData, SubmitActionResult> {
   INITIAL_FORM_DATA: Data
   validator: FormValidator<Data>
   fieldsWithNotIgnoredErrorsBeforeSubmit?: Field<Data>[] | null
+  clearTrigger?: number
   // Method must throws if action is unsuccessful
   submitAction: (validatedData: Data) => Promise<SubmitActionResult>
   onSuccessSubmit?: (data: Data, submitActionResult: SubmitActionResult) => void
@@ -394,6 +395,7 @@ export function useForm<Data extends FormData, SubmitActionResult>(
 
   return {
     formInternal: {
+      clearTrigger: props.clearTrigger,
       isSubmitting,
       submitActionError,
       handleSubmit,
@@ -419,6 +421,7 @@ export function useForm<Data extends FormData, SubmitActionResult>(
 
 export interface FormProps {
   formInternal: {
+    clearTrigger?: number
     isSubmitting?: boolean
     submitActionError: string | null
     handleSubmit?: (
@@ -428,7 +431,7 @@ export interface FormProps {
   }
   title?: string
   children: React.ReactNode
-  submitButtonLabel: string
+  submitButtonTitle: string
   cancelButton?: {
     title: string
     onClick?: () => void
@@ -505,7 +508,7 @@ export function Form(props: FormProps) {
               variant="contained"
               loading={props.formInternal.isSubmitting}
             >
-              {props.submitButtonLabel}
+              {props.submitButtonTitle}
             </ProjButton>
           </Stack>
         </Stack>
@@ -587,7 +590,7 @@ function useFormSeparated(props: FormProps) {
             void props.formInternal?.handleSubmit?.(undefined)
           }}
         >
-          {props.submitButtonLabel}
+          {props.submitButtonTitle}
         </ProjButton>
       </Stack>
     </Stack>
@@ -611,10 +614,14 @@ export function FormDialog({
   }, [setIsActive])
 
   useChangeDetector({
-    detectedObjects: [isActive],
+    detectedObjects: [props.formInternal.clearTrigger, isActive] as const,
     otherDependencies: [props.formInternal.clear],
-    onChange: ([oldIsActive]) => {
-      if (oldIsActive === false) {
+    onChange: ([oldClearTrigger, oldIsActive]) => {
+      const clearTrigger = props.formInternal.clearTrigger
+      if (
+        (clearTrigger !== undefined && clearTrigger !== oldClearTrigger) ||
+        (oldIsActive === false && isActive)
+      ) {
         props.formInternal.clear()
       }
     }

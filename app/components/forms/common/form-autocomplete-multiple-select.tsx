@@ -35,7 +35,8 @@ export function FormAutocompleteMultipleSelect<Value extends number | string>(
     () =>
       styled(Autocomplete<Value, true, false, false>)({
         '&.MuiAutocomplete-hasClearIcon > .MuiFormControl-root > label': {
-          transform: 'translate(14px, -7px) scale(0.65)'
+          transform: 'translate(14px, -7px) scale(0.65)',
+          opacity: 1
         }
         // '& .MuiInputBase-root': {
         //   height: '36px'

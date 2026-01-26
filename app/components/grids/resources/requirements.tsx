@@ -139,14 +139,14 @@ export function RequirementsGrid(props: RequirementsGridProps) {
       delete: rightsSet.has('DELETE_REQUIREMENT')
         ? {
             prepareConfirmMessage: (rowId) =>
-              `удалить требование '${requirementCodeForId.get(rowId) ?? ''}'?`,
+              `удалить требование «${requirementCodeForId.get(rowId) ?? ''}»?`,
             action: async (rowId) => {
               try {
                 await serverConnector.deleteRequirement({
                   id: rowId
                 })
                 notifier.showSuccess(
-                  `требование '${requirementCodeForId.get(rowId) ?? ''}' удалено`
+                  `требование «${requirementCodeForId.get(rowId) ?? ''}» удалено`
                 )
               } catch (error) {
                 notifier.showError(error)
@@ -229,7 +229,7 @@ export function RequirementsGrid(props: RequirementsGridProps) {
                 getDisplayedRequirementCodes(rowIds)
               const count = rowIds.length
               const hiddenCount = count - displayedRequirementCodes.length
-              return `удалить требовани${count === 1 ? 'е' : 'я'}${displayedRequirementCodes.map((code) => ` '${code}'`).join()}${hiddenCount > 0 ? ` и еще ${hiddenCount}` : ''}?`
+              return `удалить требовани${count === 1 ? 'е' : 'я'}${displayedRequirementCodes.map((code) => ` «${code}»`).join()}${hiddenCount > 0 ? ` и еще ${hiddenCount}` : ''}?`
             },
             action: async (rowIds) => {
               const displayedRequirementCodes =
@@ -241,7 +241,7 @@ export function RequirementsGrid(props: RequirementsGridProps) {
                 const count = rowIds.length
                 const hiddenCount = count - displayedRequirementCodes.length
                 notifier.showSuccess(
-                  `требовани${count === 1 ? 'е' : 'я'}${displayedRequirementCodes.map((code) => ` '${code}'`).join()}${hiddenCount > 0 ? ` и еще ${hiddenCount}` : ''} удален${count === 1 ? 'о' : 'ы'}`
+                  `требовани${count === 1 ? 'е' : 'я'}${displayedRequirementCodes.map((code) => ` «${code}»`).join()}${hiddenCount > 0 ? ` и еще ${hiddenCount}` : ''} удален${count === 1 ? 'о' : 'ы'}`
                 )
               } catch (error) {
                 notifier.showError(error)

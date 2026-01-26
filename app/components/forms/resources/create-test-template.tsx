@@ -86,7 +86,7 @@ export function CreateTestTemplateFormDialog(
                 } catch (error) {
                   notifier.showError(
                     error,
-                    `не удалось создать тег '${tagCodeToCreate}'`
+                    `не удалось создать тег «${tagCodeToCreate}»`
                   )
                   return null
                 }
@@ -137,7 +137,7 @@ export function CreateTestTemplateFormDialog(
       data: CreateTestTemplateFormData,
       createTestTemplateResult: CreateTestTemplateSuccessResultDto
     ) => {
-      notifier.showSuccess(`шаблон теста '${data.code}' создан`)
+      notifier.showSuccess(`шаблон теста «${data.code}» создан`)
       props.onSuccessCreateTestTemplate?.(createTestTemplateResult)
     },
     [props.onSuccessCreateTestTemplate, notifier]
@@ -162,7 +162,7 @@ export function CreateTestTemplateFormDialog(
     <FormDialog
       formInternal={formInternal}
       title="создать шаблон теста"
-      submitButtonLabel="создать"
+      submitButtonTitle="создать"
       cancelButton={{
         title: 'отменить',
         onClick: props.onCancelClick

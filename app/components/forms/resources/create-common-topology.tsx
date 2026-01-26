@@ -162,7 +162,7 @@ export function CreateCommonTopologyFormDialog(
                 } catch (error) {
                   notifier.showError(
                     error,
-                    `не удалось создать тег '${tagCodeToCreate}'`
+                    `не удалось создать тег «${tagCodeToCreate}»`
                   )
                   return null
                 }
@@ -212,7 +212,7 @@ export function CreateCommonTopologyFormDialog(
       data: CreateCommonTopologyFormData,
       createCommonTopologyResult: DtoWithoutEnums<CreateCommonTopologySuccessResultDto>
     ) => {
-      notifier.showSuccess(`общая топология '${data.code}' создана`)
+      notifier.showSuccess(`общая топология «${data.code}» создана`)
       props.onSuccessCreateCommonTopology?.(createCommonTopologyResult)
     },
     [props.onSuccessCreateCommonTopology, notifier]
@@ -573,7 +573,7 @@ export function CreateCommonTopologyFormDialog(
     <FormDialog
       formInternal={formInternal}
       title="создать общую топологию"
-      submitButtonLabel="создать"
+      submitButtonTitle="создать"
       cancelButton={{
         title: 'отменить',
         onClick: props.onCancelClick

@@ -62,7 +62,7 @@ export function GroupsGrid(props: GroupsGridProps) {
       delete: rightsSet.has('DELETE_GROUP')
         ? {
             prepareConfirmMessage: (rowId) => {
-              return `удалить группу тестов '${groupCodeForId.get(rowId) ?? ''}'?`
+              return `удалить группу тестов «${groupCodeForId.get(rowId) ?? ''}»?`
             },
             action: async (rowId) => {
               try {
@@ -70,7 +70,7 @@ export function GroupsGrid(props: GroupsGridProps) {
                   id: rowId
                 })
                 notifier.showSuccess(
-                  `группа тестов '${groupCodeForId.get(rowId) ?? ''}' удалена`
+                  `группа тестов «${groupCodeForId.get(rowId) ?? ''}» удалена`
                 )
               } catch (error) {
                 notifier.showError(error)
@@ -130,7 +130,7 @@ export function GroupsGrid(props: GroupsGridProps) {
               const displayedGroupCodes = getDisplayedGroupCodes(rowIds)
               const count = rowIds.length
               const hiddenCount = count - displayedGroupCodes.length
-              return `удалить групп${count === 1 ? 'у' : 'ы'} тестов ${displayedGroupCodes.map((code) => ` '${code}'`).join()}${hiddenCount > 0 ? ` и еще ${hiddenCount}` : ''}?`
+              return `удалить групп${count === 1 ? 'у' : 'ы'} тестов ${displayedGroupCodes.map((code) => ` «${code}»`).join()}${hiddenCount > 0 ? ` и еще ${hiddenCount}` : ''}?`
             },
             action: async (rowIds) => {
               const displayedGroupCodes = getDisplayedGroupCodes(rowIds)
@@ -141,7 +141,7 @@ export function GroupsGrid(props: GroupsGridProps) {
                 const count = rowIds.length
                 const hiddenCount = count - displayedGroupCodes.length
                 notifier.showSuccess(
-                  `групп${count === 1 ? 'а' : 'ы'} тестов${displayedGroupCodes.map((code) => ` '${code}'`).join()}${hiddenCount > 0 ? ` и еще ${hiddenCount}` : ''} удален${count === 1 ? 'а' : 'ы'}`
+                  `групп${count === 1 ? 'а' : 'ы'} тестов${displayedGroupCodes.map((code) => ` «${code}»`).join()}${hiddenCount > 0 ? ` и еще ${hiddenCount}` : ''} удален${count === 1 ? 'а' : 'ы'}`
                 )
               } catch (error) {
                 notifier.showError(error)

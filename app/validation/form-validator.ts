@@ -4,7 +4,9 @@ import { restrictionConfig } from '@common/restriction-config'
 import equal from 'fast-deep-equal'
 
 type FormValidatorFieldTransform =
+  | 'EMPTY_ARR_TO_NULL'
   | 'EMPTY_ARR_TO_UNDEFINED'
+  | 'EMPTY_STR_TO_NULL'
   | 'EMPTY_STR_TO_UNDEFINED'
   | 'STR_TO_NUM'
   | 'TRIM'
@@ -286,9 +288,19 @@ export class FormValidator<Data extends FormData> {
     const transforms = this.config.oneField?.[field]?.transforms ?? []
     transforms.forEach((transform) => {
       switch (transform) {
+        case 'EMPTY_ARR_TO_NULL':
+          if ((val as any) instanceof Array && val.length === 0) {
+            ;(val as string | null) = null
+          }
+          break
         case 'EMPTY_ARR_TO_UNDEFINED':
           if ((val as any) instanceof Array && val.length === 0) {
             ;(val as string | undefined) = undefined
+          }
+          break
+        case 'EMPTY_STR_TO_NULL':
+          if (val === '') {
+            ;(val as string | null) = null
           }
           break
         case 'EMPTY_STR_TO_UNDEFINED':

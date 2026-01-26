@@ -5,6 +5,7 @@ import * as React from 'react'
 // Material UI
 import DeleteIcon from '@mui/icons-material/Delete'
 import DownloadIcon from '@mui/icons-material/Download'
+import EditIcon from '@mui/icons-material/Edit'
 import PauseIcon from '@mui/icons-material/Pause'
 import PlayArrowIcon from '@mui/icons-material/PlayArrow'
 import StopIcon from '@mui/icons-material/Stop'
@@ -69,6 +70,10 @@ export interface ActionsColProps {
     action: (rowId: number) => Promise<void>
   }
   exportMenuItems?: MenuItem[]
+  update?: {
+    displayCondition?: (rowId: number) => boolean
+    action: (rowId: number) => Promise<void>
+  }
   cancel?: {
     displayCondition?: (rowId: number) => boolean
     action: (rowId: number) => Promise<void>
@@ -102,6 +107,15 @@ export function useActionsCol(props: ActionsColProps) {
       }
     },
     [props.export]
+  )
+
+  const handleUpdateClick = React.useCallback(
+    async (rowId: number) => {
+      if (props.update?.action !== undefined) {
+        await props.update.action(rowId)
+      }
+    },
+    [props.update]
   )
 
   const handleCancelClick = React.useCallback(
@@ -184,35 +198,18 @@ export function useActionsCol(props: ActionsColProps) {
           ? // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
             [<ExportMenu rowId={row.id} items={props.exportMenuItems} />]
           : []),
-        ...(props.pause !== undefined &&
-        (props.pause.displayCondition === undefined ||
+        ...(props.update !== undefined &&
+        (props.update.displayCondition === undefined ||
           // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access
-          props.pause.displayCondition(row.id))
+          props.update.displayCondition(row.id))
           ? [
-              <Tooltip title="Приостановить">
+              <Tooltip title="Изменить">
                 <GridActionsCellItem
-                  icon={<PauseIcon sx={{ fontSize: 20 }} />}
-                  label="Приостановить"
+                  icon={<EditIcon sx={{ fontSize: 20 }} />}
+                  label="Отменить"
                   onClick={() => {
                     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access
-                    void handlePauseClick(row.id)
-                  }}
-                />
-              </Tooltip>
-            ]
-          : []),
-        ...(props.unpause !== undefined &&
-        (props.unpause.displayCondition === undefined ||
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access
-          props.unpause.displayCondition(row.id))
-          ? [
-              <Tooltip title="Возобновить">
-                <GridActionsCellItem
-                  icon={<PlayArrowIcon sx={{ fontSize: 20 }} />}
-                  label="Возобновить"
-                  onClick={() => {
-                    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access
-                    void handleUnpauseClick(row.id)
+                    void handleUpdateClick(row.id)
                   }}
                 />
               </Tooltip>
@@ -252,6 +249,40 @@ export function useActionsCol(props: ActionsColProps) {
               </Tooltip>
             ]
           : []),
+        ...(props.pause !== undefined &&
+        (props.pause.displayCondition === undefined ||
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access
+          props.pause.displayCondition(row.id))
+          ? [
+              <Tooltip title="Приостановить">
+                <GridActionsCellItem
+                  icon={<PauseIcon sx={{ fontSize: 20 }} />}
+                  label="Приостановить"
+                  onClick={() => {
+                    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access
+                    void handlePauseClick(row.id)
+                  }}
+                />
+              </Tooltip>
+            ]
+          : []),
+        ...(props.unpause !== undefined &&
+        (props.unpause.displayCondition === undefined ||
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access
+          props.unpause.displayCondition(row.id))
+          ? [
+              <Tooltip title="Возобновить">
+                <GridActionsCellItem
+                  icon={<PlayArrowIcon sx={{ fontSize: 20 }} />}
+                  label="Возобновить"
+                  onClick={() => {
+                    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access
+                    void handleUnpauseClick(row.id)
+                  }}
+                />
+              </Tooltip>
+            ]
+          : []),
         ...(props.delete !== undefined &&
         (props.delete.displayCondition === undefined ||
           // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access
@@ -276,6 +307,7 @@ export function useActionsCol(props: ActionsColProps) {
     [
       props.export,
       props.exportMenuItems,
+      props.update,
       props.cancel,
       props.abort,
       props.pause,

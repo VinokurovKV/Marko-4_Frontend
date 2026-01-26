@@ -41,7 +41,8 @@ export function FormAutocompleteFreeItemsMultipleSelect<
     () =>
       styled(Autocomplete<Value, true, false, true>)({
         '&.MuiAutocomplete-hasClearIcon > .MuiFormControl-root > label': {
-          transform: 'translate(14px, -7px) scale(0.65)'
+          transform: 'translate(14px, -7px) scale(0.65)',
+          opacity: 1
         }
       }),
     []

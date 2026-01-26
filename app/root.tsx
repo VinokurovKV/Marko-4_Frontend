@@ -99,7 +99,7 @@ export default function App() {
   return (
     <>
       <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale={'ru'}>
-        <ThemeProvider theme={theme}>
+        <ThemeProvider theme={theme} noSsr>
           <CssBaseline enableColorScheme />
           <NotifierProvider>
             <DialogsProvider>

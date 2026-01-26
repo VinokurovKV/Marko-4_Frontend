@@ -81,7 +81,7 @@ export function CreateDbcFormDialog(props: CreateDbcFormDialogProps) {
                 } catch (error) {
                   notifier.showError(
                     error,
-                    `не удалось создать тег '${tagCodeToCreate}'`
+                    `не удалось создать тег «${tagCodeToCreate}»`
                   )
                   return null
                 }
@@ -130,7 +130,7 @@ export function CreateDbcFormDialog(props: CreateDbcFormDialogProps) {
 
   const onSuccessSubmit = React.useCallback(
     (data: CreateDbcFormData, createDbcResult: CreateDbcSuccessResultDto) => {
-      notifier.showSuccess(`базованя конфигурация '${data.code}' создана`)
+      notifier.showSuccess(`базованя конфигурация «${data.code}» создана`)
       props.onSuccessCreateDbc?.(createDbcResult)
     },
     [props.onSuccessCreateDbc, notifier]
@@ -155,7 +155,7 @@ export function CreateDbcFormDialog(props: CreateDbcFormDialogProps) {
     <FormDialog
       formInternal={formInternal}
       title="создать базовую конфигурацию"
-      submitButtonLabel="создать"
+      submitButtonTitle="создать"
       cancelButton={{
         title: 'отменить',
         onClick: props.onCancelClick

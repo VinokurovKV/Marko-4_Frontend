@@ -88,14 +88,14 @@ export function DocumentsGrid(props: DocumentsGridProps) {
       delete: rightsSet.has('DELETE_DOCUMENT')
         ? {
             prepareConfirmMessage: (rowId) =>
-              `удалить документ '${documentCodeForId.get(rowId) ?? ''}'?`,
+              `удалить документ «${documentCodeForId.get(rowId) ?? ''}»?`,
             action: async (rowId) => {
               try {
                 await serverConnector.deleteDocument({
                   id: rowId
                 })
                 notifier.showSuccess(
-                  `документ '${documentCodeForId.get(rowId) ?? ''}' удален`
+                  `документ «${documentCodeForId.get(rowId) ?? ''}» удален`
                 )
               } catch (error) {
                 notifier.showError(error)
@@ -150,7 +150,7 @@ export function DocumentsGrid(props: DocumentsGridProps) {
               const displayedDocumentCodes = getDisplayedDocumentCodes(rowIds)
               const count = rowIds.length
               const hiddenCount = count - displayedDocumentCodes.length
-              return `удалить документ${count === 1 ? '' : 'ы'}${displayedDocumentCodes.map((code) => ` '${code}'`).join()}${hiddenCount > 0 ? ` и еще ${hiddenCount}` : ''}?`
+              return `удалить документ${count === 1 ? '' : 'ы'}${displayedDocumentCodes.map((code) => ` «${code}»`).join()}${hiddenCount > 0 ? ` и еще ${hiddenCount}` : ''}?`
             },
             action: async (rowIds) => {
               const displayedDocumentCodes = getDisplayedDocumentCodes(rowIds)
@@ -161,7 +161,7 @@ export function DocumentsGrid(props: DocumentsGridProps) {
                 const count = rowIds.length
                 const hiddenCount = count - displayedDocumentCodes.length
                 notifier.showSuccess(
-                  `документ${count === 1 ? '' : 'ы'}${displayedDocumentCodes.map((code) => ` '${code}'`).join()}${hiddenCount > 0 ? ` и еще ${hiddenCount}` : ''} удален${count === 1 ? '' : 'ы'}`
+                  `документ${count === 1 ? '' : 'ы'}${displayedDocumentCodes.map((code) => ` «${code}»`).join()}${hiddenCount > 0 ? ` и еще ${hiddenCount}` : ''} удален${count === 1 ? '' : 'ы'}`
                 )
               } catch (error) {
                 notifier.showError(error)

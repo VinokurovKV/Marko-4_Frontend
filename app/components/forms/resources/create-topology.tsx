@@ -92,7 +92,7 @@ export function CreateTopologyFormDialog(props: CreateTopologyFormDialogProps) {
                 } catch (error) {
                   notifier.showError(
                     error,
-                    `не удалось создать тег '${tagCodeToCreate}'`
+                    `не удалось создать тег «${tagCodeToCreate}»`
                   )
                   return null
                 }
@@ -137,7 +137,7 @@ export function CreateTopologyFormDialog(props: CreateTopologyFormDialogProps) {
       data: CreateTopologyFormData,
       createTopologyResult: DtoWithoutEnums<CreateTopologySuccessResultDto>
     ) => {
-      notifier.showSuccess(`топология '${data.code}' создана`)
+      notifier.showSuccess(`топология «${data.code}» создана`)
       props.onSuccessCreateTopology?.(createTopologyResult)
     },
     [props.onSuccessCreateTopology, notifier]
@@ -233,7 +233,7 @@ export function CreateTopologyFormDialog(props: CreateTopologyFormDialogProps) {
     <FormDialog
       formInternal={formInternal}
       title="создать топологию"
-      submitButtonLabel="создать"
+      submitButtonTitle="создать"
       cancelButton={{
         title: 'отменить',
         onClick: props.onCancelClick

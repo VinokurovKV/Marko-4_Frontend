@@ -63,7 +63,7 @@ export function CreateUserFormDialog(props: CreateUserFormDialogProps) {
       data: CreateUserFormData,
       createUserResult: DtoWithoutEnums<CreateUserSuccessResultDto>
     ) => {
-      notifier.showSuccess(`пользователь '${data.login}' создан`)
+      notifier.showSuccess(`пользователь «${data.login}» создан`)
       props.onSuccessCreateUser?.(createUserResult)
     },
     [props.onSuccessCreateUser, notifier]
@@ -95,7 +95,7 @@ export function CreateUserFormDialog(props: CreateUserFormDialogProps) {
     <FormDialog
       formInternal={formInternal}
       title="создать пользователя"
-      submitButtonLabel="создать"
+      submitButtonTitle="создать"
       cancelButton={{
         title: 'отменить',
         onClick: props.onCancelClick

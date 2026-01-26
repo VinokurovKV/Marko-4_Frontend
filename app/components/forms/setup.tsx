@@ -51,7 +51,7 @@ export function SetupForm() {
     <Form
       formInternal={formInternal}
       title="инициализация системы"
-      submitButtonLabel="инициализировать"
+      submitButtonTitle="инициализировать"
     >
       <FormBlock title="владелец">
         <FormTextField

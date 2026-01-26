@@ -69,14 +69,14 @@ export function UsersGrid(props: UsersGridProps) {
       delete: rightsSet.has('DELETE_USER')
         ? {
             prepareConfirmMessage: (rowId) =>
-              `удалить пользователя '${userLoginForId.get(rowId) ?? ''}'?`,
+              `удалить пользователя «${userLoginForId.get(rowId) ?? ''}»?`,
             action: async (rowId) => {
               try {
                 await serverConnector.deleteUser({
                   id: rowId
                 })
                 notifier.showSuccess(
-                  `пользователь '${userLoginForId.get(rowId) ?? ''}' удален`
+                  `пользователь «${userLoginForId.get(rowId) ?? ''}» удален`
                 )
               } catch (error) {
                 notifier.showError(error)
@@ -136,7 +136,7 @@ export function UsersGrid(props: UsersGridProps) {
               const displayedUserLogins = getDisplayedUserLogins(rowIds)
               const count = rowIds.length
               const hiddenCount = count - displayedUserLogins.length
-              return `удалить пользовател${count === 1 ? 'я' : 'ей'}${displayedUserLogins.map((login) => ` '${login}'`).join()}${hiddenCount > 0 ? ` и еще ${hiddenCount}` : ''}?`
+              return `удалить пользовател${count === 1 ? 'я' : 'ей'}${displayedUserLogins.map((login) => ` «${login}»`).join()}${hiddenCount > 0 ? ` и еще ${hiddenCount}` : ''}?`
             },
             action: async (rowIds) => {
               const displayedUserLogins = getDisplayedUserLogins(rowIds)
@@ -147,7 +147,7 @@ export function UsersGrid(props: UsersGridProps) {
                 const count = rowIds.length
                 const hiddenCount = count - displayedUserLogins.length
                 notifier.showSuccess(
-                  `пользовател${count === 1 ? 'ь' : 'и'}${displayedUserLogins.map((login) => ` '${login}'`).join()}${hiddenCount > 0 ? ` и еще ${hiddenCount}` : ''} удален${count === 1 ? '' : 'ы'}`
+                  `пользовател${count === 1 ? 'ь' : 'и'}${displayedUserLogins.map((login) => ` «${login}»`).join()}${hiddenCount > 0 ? ` и еще ${hiddenCount}` : ''} удален${count === 1 ? '' : 'ы'}`
                 )
               } catch (error) {
                 notifier.showError(error)

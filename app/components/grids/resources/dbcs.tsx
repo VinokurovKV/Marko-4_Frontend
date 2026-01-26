@@ -83,14 +83,14 @@ export function DbcsGrid(props: DbcsGridProps) {
       delete: rightsSet.has('DELETE_DBC')
         ? {
             prepareConfirmMessage: (rowId) =>
-              `удалить базовую конфигурацию '${dbcCodeForId.get(rowId) ?? ''}'?`,
+              `удалить базовую конфигурацию «${dbcCodeForId.get(rowId) ?? ''}»?`,
             action: async (rowId) => {
               try {
                 await serverConnector.deleteDbc({
                   id: rowId
                 })
                 notifier.showSuccess(
-                  `базовая конфигурация '${dbcCodeForId.get(rowId) ?? ''}' удалена`
+                  `базовая конфигурация «${dbcCodeForId.get(rowId) ?? ''}» удалена`
                 )
               } catch (error) {
                 notifier.showError(error)
@@ -142,7 +142,7 @@ export function DbcsGrid(props: DbcsGridProps) {
               const displayedDbcCodes = getDisplayedDbcCodes(rowIds)
               const count = rowIds.length
               const hiddenCount = count - displayedDbcCodes.length
-              return `удалить базов${count === 1 ? 'ую' : 'ые'} конфигураци${count === 1 ? 'ю' : 'и'}${displayedDbcCodes.map((code) => ` '${code}'`).join()}${hiddenCount > 0 ? ` и еще ${hiddenCount}` : ''}?`
+              return `удалить базов${count === 1 ? 'ую' : 'ые'} конфигураци${count === 1 ? 'ю' : 'и'}${displayedDbcCodes.map((code) => ` «${code}»`).join()}${hiddenCount > 0 ? ` и еще ${hiddenCount}` : ''}?`
             },
             action: async (rowIds) => {
               const displayedDbcCodes = getDisplayedDbcCodes(rowIds)
@@ -153,7 +153,7 @@ export function DbcsGrid(props: DbcsGridProps) {
                 const count = rowIds.length
                 const hiddenCount = count - displayedDbcCodes.length
                 notifier.showSuccess(
-                  `базов${count === 1 ? 'ая' : 'ые'} конфигураци${count === 1 ? 'я' : 'и'}${displayedDbcCodes.map((code) => ` '${code}'`).join()}${hiddenCount > 0 ? ` и еще ${hiddenCount}` : ''} удален${count === 1 ? 'а' : 'ы'}`
+                  `базов${count === 1 ? 'ая' : 'ые'} конфигураци${count === 1 ? 'я' : 'и'}${displayedDbcCodes.map((code) => ` «${code}»`).join()}${hiddenCount > 0 ? ` и еще ${hiddenCount}` : ''} удален${count === 1 ? 'а' : 'ы'}`
                 )
               } catch (error) {
                 notifier.showError(error)

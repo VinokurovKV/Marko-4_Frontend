@@ -94,7 +94,7 @@ export function CreateCoverageFormDialog(props: CreateCoverageFormDialogProps) {
                 } catch (error) {
                   notifier.showError(
                     error,
-                    `не удалось создать тег '${tagCodeToCreate}'`
+                    `не удалось создать тег «${tagCodeToCreate}»`
                   )
                   return null
                 }
@@ -153,7 +153,7 @@ export function CreateCoverageFormDialog(props: CreateCoverageFormDialogProps) {
       createCoverageResult: DtoWithoutEnums<CreateCoverageSuccessResultDto>
     ) => {
       notifier.showSuccess(
-        `покрытие '${data.code}' требования '${requirementCodeForId.get(data.requirementId!) ?? ''}' создано`
+        `покрытие «${data.code}» требования «${requirementCodeForId.get(data.requirementId!) ?? ''}» создано`
       )
       props.onSuccessCreateCoverage?.(createCoverageResult)
     },
@@ -207,7 +207,7 @@ export function CreateCoverageFormDialog(props: CreateCoverageFormDialogProps) {
     <FormDialog
       formInternal={formInternal}
       title="создать покрытие требования"
-      submitButtonLabel="создать"
+      submitButtonTitle="создать"
       cancelButton={{
         title: 'отменить',
         onClick: props.onCancelClick

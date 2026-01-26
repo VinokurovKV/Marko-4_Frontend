@@ -70,14 +70,14 @@ export function CommonTopologiesGrid(props: CommonTopologiesGridProps) {
       delete: rightsSet.has('DELETE_COMMON_TOPOLOGY')
         ? {
             prepareConfirmMessage: (rowId) =>
-              `удалить общую топологию '${commonTopologyCodeForId.get(rowId) ?? ''}'?`,
+              `удалить общую топологию «${commonTopologyCodeForId.get(rowId) ?? ''}»?`,
             action: async (rowId) => {
               try {
                 await serverConnector.deleteCommonTopology({
                   id: rowId
                 })
                 notifier.showSuccess(
-                  `общая топология '${commonTopologyCodeForId.get(rowId) ?? ''}' удалена`
+                  `общая топология «${commonTopologyCodeForId.get(rowId) ?? ''}» удалена`
                 )
               } catch (error) {
                 notifier.showError(error)
@@ -151,7 +151,7 @@ export function CommonTopologiesGrid(props: CommonTopologiesGridProps) {
                 const count = rowIds.length
                 const hiddenCount = count - displayedCommonTopologyCodes.length
                 notifier.showSuccess(
-                  `общ${count === 1 ? 'ая' : 'ие'} топологи${count === 1 ? 'я' : 'и'}${displayedCommonTopologyCodes.map((code) => ` '${code}'`).join()}${hiddenCount > 0 ? ` и еще ${hiddenCount}` : ''} удален${count === 1 ? 'а' : 'ы'}`
+                  `общ${count === 1 ? 'ая' : 'ие'} топологи${count === 1 ? 'я' : 'и'}${displayedCommonTopologyCodes.map((code) => ` «${code}»`).join()}${hiddenCount > 0 ? ` и еще ${hiddenCount}` : ''} удален${count === 1 ? 'а' : 'ы'}`
                 )
               } catch (error) {
                 notifier.showError(error)

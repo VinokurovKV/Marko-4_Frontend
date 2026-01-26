@@ -117,7 +117,7 @@ export function TestsGrid(props: TestsGridProps) {
                   id: rowId
                 })
                 notifier.showSuccess(
-                  `тест '${testCodeForId.get(rowId) ?? ''}' удален`
+                  `тест «${testCodeForId.get(rowId) ?? ''}» удален`
                 )
               } catch (error) {
                 notifier.showError(error)
@@ -170,7 +170,7 @@ export function TestsGrid(props: TestsGridProps) {
               const displayedTestCodes = getDisplayedTestCodes(rowIds)
               const count = rowIds.length
               const hiddenCount = count - displayedTestCodes.length
-              return `удалить тест${count === 1 ? '' : 'ы'}${displayedTestCodes.map((code) => ` '${code}'`).join()}${hiddenCount > 0 ? ` и еще ${hiddenCount}` : ''}?`
+              return `удалить тест${count === 1 ? '' : 'ы'}${displayedTestCodes.map((code) => ` «${code}»`).join()}${hiddenCount > 0 ? ` и еще ${hiddenCount}` : ''}?`
             },
             action: async (rowIds) => {
               const displayedTestCodes = getDisplayedTestCodes(rowIds)
@@ -181,7 +181,7 @@ export function TestsGrid(props: TestsGridProps) {
                 const count = rowIds.length
                 const hiddenCount = count - displayedTestCodes.length
                 notifier.showSuccess(
-                  `тест${count === 1 ? '' : 'ы'}${displayedTestCodes.map((code) => ` '${code}'`).join()}${hiddenCount > 0 ? ` и еще ${hiddenCount}` : ''} удален${count === 1 ? '' : 'ы'}`
+                  `тест${count === 1 ? '' : 'ы'}${displayedTestCodes.map((code) => ` «${code}»`).join()}${hiddenCount > 0 ? ` и еще ${hiddenCount}` : ''} удален${count === 1 ? '' : 'ы'}`
                 )
               } catch (error) {
                 notifier.showError(error)

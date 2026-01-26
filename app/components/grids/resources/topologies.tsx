@@ -66,7 +66,7 @@ export function TopologiesGrid(props: TopologiesGridProps) {
       delete: rightsSet.has('DELETE_TOPOLOGY')
         ? {
             prepareConfirmMessage: (rowId) => {
-              return `удалить топологию '${topologyCodeForId.get(rowId) ?? ''}'?`
+              return `удалить топологию «${topologyCodeForId.get(rowId) ?? ''}»?`
             },
             action: async (rowId) => {
               try {
@@ -74,7 +74,7 @@ export function TopologiesGrid(props: TopologiesGridProps) {
                   id: rowId
                 })
                 notifier.showSuccess(
-                  `топология '${topologyCodeForId.get(rowId) ?? ''}' удалена`
+                  `топология «${topologyCodeForId.get(rowId) ?? ''}» удалена`
                 )
               } catch (error) {
                 notifier.showError(error)
@@ -135,7 +135,7 @@ export function TopologiesGrid(props: TopologiesGridProps) {
               const displayedTopologyCodes = getDisplayedTopologyCodes(rowIds)
               const count = rowIds.length
               const hiddenCount = count - displayedTopologyCodes.length
-              return `удалить топологи${count === 1 ? 'ю' : 'и'}${displayedTopologyCodes.map((code) => ` '${code}'`).join()}${hiddenCount > 0 ? ` и еще ${hiddenCount}` : ''}?`
+              return `удалить топологи${count === 1 ? 'ю' : 'и'}${displayedTopologyCodes.map((code) => ` «${code}'`).join()}${hiddenCount > 0 ? ` и еще ${hiddenCount}` : ''}?`
             },
             action: async (rowIds) => {
               const displayedTopologyCodes = getDisplayedTopologyCodes(rowIds)
@@ -146,7 +146,7 @@ export function TopologiesGrid(props: TopologiesGridProps) {
                 const count = rowIds.length
                 const hiddenCount = count - displayedTopologyCodes.length
                 notifier.showSuccess(
-                  `топологи${count === 1 ? 'я' : 'и'}${displayedTopologyCodes.map((code) => ` '${code}'`).join()}${hiddenCount > 0 ? ` и еще ${hiddenCount}` : ''} удален${count === 1 ? 'а' : 'ы'}`
+                  `топологи${count === 1 ? 'я' : 'и'}${displayedTopologyCodes.map((code) => ` «${code}»`).join()}${hiddenCount > 0 ? ` и еще ${hiddenCount}` : ''} удален${count === 1 ? 'а' : 'ы'}`
                 )
               } catch (error) {
                 notifier.showError(error)

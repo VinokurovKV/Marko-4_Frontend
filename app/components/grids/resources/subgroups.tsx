@@ -66,7 +66,7 @@ export function SubgroupsGrid(props: SubgroupsGridProps) {
       delete: rightsSet.has('DELETE_SUBGROUP')
         ? {
             prepareConfirmMessage: (rowId) => {
-              return `удалить подгруппу тестов '${subgroupCodeForId.get(rowId) ?? ''}'?`
+              return `удалить подгруппу тестов «${subgroupCodeForId.get(rowId) ?? ''}»?`
             },
             action: async (rowId) => {
               try {
@@ -74,7 +74,7 @@ export function SubgroupsGrid(props: SubgroupsGridProps) {
                   id: rowId
                 })
                 notifier.showSuccess(
-                  `подгруппа тестов '${subgroupCodeForId.get(rowId) ?? ''}' удалена`
+                  `подгруппа тестов «${subgroupCodeForId.get(rowId) ?? ''}» удалена`
                 )
               } catch (error) {
                 notifier.showError(error)
@@ -135,7 +135,7 @@ export function SubgroupsGrid(props: SubgroupsGridProps) {
               const displayedSubgroupCodes = getDisplayedSubgroupCodes(rowIds)
               const count = rowIds.length
               const hiddenCount = count - displayedSubgroupCodes.length
-              return `удалить подгрупп${count === 1 ? 'у' : 'ы'} тестов ${displayedSubgroupCodes.map((code) => ` '${code}'`).join()}${hiddenCount > 0 ? ` и еще ${hiddenCount}` : ''}?`
+              return `удалить подгрупп${count === 1 ? 'у' : 'ы'} тестов ${displayedSubgroupCodes.map((code) => ` «${code}»`).join()}${hiddenCount > 0 ? ` и еще ${hiddenCount}` : ''}?`
             },
             action: async (rowIds) => {
               const displayedSubgroupCodes = getDisplayedSubgroupCodes(rowIds)
@@ -146,7 +146,7 @@ export function SubgroupsGrid(props: SubgroupsGridProps) {
                 const count = rowIds.length
                 const hiddenCount = count - displayedSubgroupCodes.length
                 notifier.showSuccess(
-                  `подгрупп${count === 1 ? 'а' : 'ы'} тестов${displayedSubgroupCodes.map((code) => ` '${code}'`).join()}${hiddenCount > 0 ? ` и еще ${hiddenCount}` : ''} удален${count === 1 ? 'а' : 'ы'}`
+                  `подгрупп${count === 1 ? 'а' : 'ы'} тестов${displayedSubgroupCodes.map((code) => ` «${code}»`).join()}${hiddenCount > 0 ? ` и еще ${hiddenCount}` : ''} удален${count === 1 ? 'а' : 'ы'}`
                 )
               } catch (error) {
                 notifier.showError(error)

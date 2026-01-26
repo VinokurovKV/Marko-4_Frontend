@@ -110,7 +110,7 @@ export function CreateRequirementFormDialog(
                 } catch (error) {
                   notifier.showError(
                     error,
-                    `не удалось создать тег '${tagCodeToCreate}'`
+                    `не удалось создать тег «${tagCodeToCreate}»`
                   )
                   return null
                 }
@@ -157,7 +157,7 @@ export function CreateRequirementFormDialog(
       data: CreateRequirementFormData,
       createRequirementResult: DtoWithoutEnums<CreateRequirementSuccessResultDto>
     ) => {
-      notifier.showSuccess(`требование '${data.code}' создано`)
+      notifier.showSuccess(`требование «${data.code}» создано`)
       props.onSuccessCreateRequirement?.(createRequirementResult)
     },
     [props.onSuccessCreateRequirement, notifier]
@@ -254,7 +254,7 @@ export function CreateRequirementFormDialog(
     <FormDialog
       formInternal={formInternal}
       title="создать требование"
-      submitButtonLabel="создать"
+      submitButtonTitle="создать"
       cancelButton={{
         title: 'отменить',
         onClick: props.onCancelClick

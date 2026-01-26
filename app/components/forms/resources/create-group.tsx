@@ -90,7 +90,7 @@ export function CreateGroupFormDialog(props: CreateGroupFormDialogProps) {
                 } catch (error) {
                   notifier.showError(
                     error,
-                    `не удалось создать тег '${tagCodeToCreate}'`
+                    `не удалось создать тег «${tagCodeToCreate}»`
                   )
                   return null
                 }
@@ -134,7 +134,7 @@ export function CreateGroupFormDialog(props: CreateGroupFormDialogProps) {
       data: CreateGroupFormData,
       createGroupResult: CreateGroupSuccessResultDto
     ) => {
-      notifier.showSuccess(`группа тестов '${data.code}' создана`)
+      notifier.showSuccess(`группа тестов «${data.code}» создана`)
       props.onSuccessCreateGroup?.(createGroupResult)
     },
     [props.onSuccessCreateGroup, notifier]
@@ -171,7 +171,7 @@ export function CreateGroupFormDialog(props: CreateGroupFormDialogProps) {
     <FormDialog
       formInternal={formInternal}
       title="создать группу тестов"
-      submitButtonLabel="создать"
+      submitButtonTitle="создать"
       cancelButton={{
         title: 'отменить',
         onClick: props.onCancelClick

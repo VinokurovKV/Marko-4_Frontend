@@ -51,7 +51,7 @@ export function LoginForm() {
   })
 
   return (
-    <Form formInternal={formInternal} title="вход" submitButtonLabel="войти">
+    <Form formInternal={formInternal} title="вход" submitButtonTitle="войти">
       <FormTextField
         required
         name="login"

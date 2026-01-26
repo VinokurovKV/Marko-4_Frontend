@@ -170,7 +170,7 @@ export function ImportRequirementsFormDialog(
           if (requirementIdForCode.has(params.code)) {
             if (validatedData.ignoreExistingRequirements) {
               // notifier.showWarning(
-              //   `проигнорировано существующее требование '${params.code}'`
+              //   `проигнорировано существующее требование «${params.code}»`
               // )
               result.ignoredRequirementCodes.push(params.code)
               return
@@ -189,7 +189,7 @@ export function ImportRequirementsFormDialog(
                   .then((result) => result.result.createdResourceId)
                 tagIdForCode.set(tagCode, createdTagId)
               } catch (error) {
-                notifier.showError(error, `не удалось создать тег '${tagCode}'`)
+                notifier.showError(error, `не удалось создать тег «${tagCode}»`)
                 throw new Error('не удалось создать тег')
               }
             }
@@ -229,11 +229,11 @@ export function ImportRequirementsFormDialog(
               if (testId === undefined) {
                 if (ignoreTestIfNotExists) {
                   notifier.showWarning(
-                    `проигнорирован несуществующий тест '${testCode}' для требования '${params.code}'`
+                    `проигнорирован несуществующий тест «${testCode}» для требования «${params.code}»`
                   )
                   return null
                 } else {
-                  throw new Error(`несуществующий тест '${testCode}'`)
+                  throw new Error(`несуществующий тест «${testCode}»`)
                 }
               } else {
                 return testId
@@ -264,7 +264,7 @@ export function ImportRequirementsFormDialog(
           result.errorRequirementCodes.push(params.code)
           notifier.showError(
             error,
-            `не удалось создать требование '${params.code}'`
+            `не удалось создать требование «${params.code}»`
           )
           if (validatedData.interruptIfError) {
             throw error
@@ -279,7 +279,7 @@ export function ImportRequirementsFormDialog(
           } catch (error) {
             notifier.showError(
               error,
-              `не удалось прочитать JSON-файл '${file.name}'`
+              `не удалось прочитать JSON-файл «${file.name}»`
             )
             throw error
           }
@@ -292,7 +292,7 @@ export function ImportRequirementsFormDialog(
           } catch (error) {
             notifier.showError(
               error,
-              `не удалось распарсить JSON-файл '${file.name}'`
+              `не удалось распарсить JSON-файл «${file.name}»`
             )
             throw error
           }
@@ -305,7 +305,7 @@ export function ImportRequirementsFormDialog(
           } catch (error) {
             notifier.showError(
               error,
-              `неверный формат JSON-файла '${file.name}'`
+              `неверный формат JSON-файла «${file.name}»`
             )
             throw error
           }
@@ -323,7 +323,7 @@ export function ImportRequirementsFormDialog(
           } catch (error) {
             notifier.showError(
               error,
-              `не удалось прочитать ZIP-архив '${file.name}'`
+              `не удалось прочитать ZIP-архив «${file.name}»`
             )
             throw error
           }
@@ -331,7 +331,7 @@ export function ImportRequirementsFormDialog(
         const fileNames = Object.keys(zip.files)
         if (fileNames.includes(ORDER_FILE_NAME) === false) {
           const error = new Error(
-            `в ZIP-архиве '${file.name}' отсутствует файл '${ORDER_FILE_NAME}'`
+            `в ZIP-архиве «${file.name}» отсутствует файл «${ORDER_FILE_NAME}»`
           )
           notifier.showError(error)
           throw error
@@ -342,7 +342,7 @@ export function ImportRequirementsFormDialog(
           } catch (error) {
             notifier.showError(
               error,
-              `не удалось прочитать файл '${ORDER_FILE_NAME}' из ZIP-архива '${file.name}'`
+              `не удалось прочитать файл «${ORDER_FILE_NAME}» из ZIP-архива «${file.name}»`
             )
             throw error
           }
@@ -353,7 +353,7 @@ export function ImportRequirementsFormDialog(
           } catch (error) {
             notifier.showError(
               error,
-              `неверный формат файла '${ORDER_FILE_NAME}' из ZIP-архива '${file.name}'`
+              `неверный формат файла «${ORDER_FILE_NAME}» из ZIP-архива «${file.name}»`
             )
             throw error
           }
@@ -371,7 +371,7 @@ export function ImportRequirementsFormDialog(
           nonexistentFilesCount - displayedNonexistentFiles.length
         if (nonexistentFiles.length > 0) {
           const error = new Error(
-            `в ZIP-архиве '${file.name}' отсутству${nonexistentFilesCount === 1 ? 'е' : 'ю'}т файл${nonexistentFilesCount === 1 ? '' : 'ы'}${displayedNonexistentFiles.map((fileName) => ` '${fileName}'`).join()}${hiddenNonexistentFilesCount > 0 ? ` и еще ${hiddenNonexistentFilesCount}` : ''}`
+            `в ZIP-архиве «${file.name}» отсутству${nonexistentFilesCount === 1 ? 'е' : 'ю'}т файл${nonexistentFilesCount === 1 ? '' : 'ы'}${displayedNonexistentFiles.map((fileName) => ` «${fileName}»`).join()}${hiddenNonexistentFilesCount > 0 ? ` и еще ${hiddenNonexistentFilesCount}` : ''}`
           )
           notifier.showError(error)
           throw error
@@ -383,7 +383,7 @@ export function ImportRequirementsFormDialog(
             } catch (error) {
               notifier.showError(
                 error,
-                `не удалось прочитать файл '${fileName}' из ZIP-архива '${file.name}'`
+                `не удалось прочитать файл «${fileName}» из ZIP-архива «${file.name}»`
               )
               throw error
             }
@@ -421,7 +421,7 @@ export function ImportRequirementsFormDialog(
       notifyAboutImportResults(result)
       if (result.errorRequirementCodes.length > 0) {
         throw new Error(
-          `не созданы требования ${result.errorRequirementCodes.map((code) => ` '${code}'`).join()}`
+          `не созданы требования ${result.errorRequirementCodes.map((code) => ` «${code}»`).join()}`
         )
       }
       return result
@@ -446,7 +446,7 @@ export function ImportRequirementsFormDialog(
     <FormDialog
       formInternal={formInternal}
       title="импортировать требования"
-      submitButtonLabel="импортировать"
+      submitButtonTitle="импортировать"
       cancelButton={{
         title: 'отменить',
         onClick: props.onCancelClick

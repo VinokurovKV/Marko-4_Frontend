@@ -1,9 +1,10 @@
 // Project
-import type { RoleSecondary } from '~/types'
+import type { RoleSecondary, RoleTertiary } from '~/types'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
 import { useMeta } from '~/providers/meta'
 import { CreateRoleFormDialog } from '~/components/forms/resources/create-role'
+import { UpdateRoleFormDialog } from '~/components/forms/resources/update-role'
 import { type GridProps, Grid } from '../grid'
 import { useRoleNameCol, type ActionsColProps, useActionsCol } from '../cols'
 // React router
@@ -33,6 +34,9 @@ export function RolesGrid(props: RolesGridProps) {
   )
 
   const [createModeIsActive, setCreateModeIsActive] = React.useState(false)
+  const [updatedRoleId, setUpdatedRoleId] = React.useState<number | null>(null)
+  const [initialUpdatedRole, setInitialUpdatedRole] =
+    React.useState<RoleTertiary | null>(null)
 
   const roleNameForId = React.useMemo(
     () => new Map(props.roles.map((role) => [role.id, role.name])),
@@ -47,17 +51,39 @@ export function RolesGrid(props: RolesGridProps) {
 
   const actionsColProps: ActionsColProps = React.useMemo(
     () => ({
+      update: rightsSet.has('UPDATE_ROLE')
+        ? {
+            action: async (rowId) => {
+              try {
+                const initialRole = await serverConnector.readRole(
+                  {
+                    id: rowId
+                  },
+                  {
+                    scope: 'UP_TO_TERTIARY_PROPS'
+                  }
+                )
+                setUpdatedRoleId(rowId)
+                setInitialUpdatedRole(initialRole)
+              } catch {
+                notifier.showWarning(
+                  `не удалось загрузить роль с идентификатором ${rowId}`
+                )
+              }
+            }
+          }
+        : undefined,
       delete: rightsSet.has('DELETE_ROLE')
         ? {
             prepareConfirmMessage: (rowId) =>
-              `удалить роль '${roleNameForId.get(rowId) ?? ''}'?`,
+              `удалить роль «${roleNameForId.get(rowId) ?? ''}»?`,
             action: async (rowId) => {
               try {
                 await serverConnector.deleteRole({
                   id: rowId
                 })
                 notifier.showSuccess(
-                  `роль '${roleNameForId.get(rowId) ?? ''}' удалена`
+                  `роль «${roleNameForId.get(rowId) ?? ''}» удалена`
                 )
               } catch (error) {
                 notifier.showError(error)
@@ -72,15 +98,12 @@ export function RolesGrid(props: RolesGridProps) {
   const actionsCol = useActionsCol(actionsColProps)
 
   const cols: GridColDef[] = React.useMemo(
-    () =>
-      navigationMode
-        ? navigationModeReadCols
-        : [
-            ...readCols,
-            ...(rightsSet.has('UPDATE_ROLE') || rightsSet.has('DELETE_ROLE')
-              ? [actionsCol]
-              : [])
-          ],
+    () => [
+      ...(navigationMode ? navigationModeReadCols : readCols),
+      ...(rightsSet.has('UPDATE_ROLE') || rightsSet.has('DELETE_ROLE')
+        ? [actionsCol]
+        : [])
+    ],
     [navigationMode, rightsSet, readCols, navigationModeReadCols, actionsCol]
   )
 
@@ -117,7 +140,7 @@ export function RolesGrid(props: RolesGridProps) {
               const displayedRoleNames = getDisplayedRoleNames(rowIds)
               const count = rowIds.length
               const hiddenCount = count - displayedRoleNames.length
-              return `удалить рол${count === 1 ? 'ь' : 'и'}${displayedRoleNames.map((name) => ` '${name}'`).join()}${hiddenCount > 0 ? ` и еще ${hiddenCount}` : ''}?`
+              return `удалить рол${count === 1 ? 'ь' : 'и'}${displayedRoleNames.map((name) => ` «${name}»`).join()}${hiddenCount > 0 ? ` и еще ${hiddenCount}` : ''}?`
             },
             action: async (rowIds) => {
               const displayedRoleNames = getDisplayedRoleNames(rowIds)
@@ -128,7 +151,7 @@ export function RolesGrid(props: RolesGridProps) {
                 const count = rowIds.length
                 const hiddenCount = count - displayedRoleNames.length
                 notifier.showSuccess(
-                  `рол${count === 1 ? 'ь' : 'и'}${displayedRoleNames.map((name) => ` '${name}'`).join()}${hiddenCount > 0 ? ` и еще ${hiddenCount}` : ''} удален${count === 1 ? 'а' : 'ы'}`
+                  `рол${count === 1 ? 'ь' : 'и'}${displayedRoleNames.map((name) => ` «${name}»`).join()}${hiddenCount > 0 ? ` и еще ${hiddenCount}` : ''} удален${count === 1 ? 'а' : 'ы'}`
                 )
               } catch (error) {
                 notifier.showError(error)
@@ -143,6 +166,10 @@ export function RolesGrid(props: RolesGridProps) {
   const cancelCreateForm = React.useCallback(() => {
     setCreateModeIsActive(false)
   }, [setCreateModeIsActive])
+
+  const cancelUpdateForm = React.useCallback(() => {
+    setUpdatedRoleId(null)
+  }, [setUpdatedRoleId])
 
   const handleNavigationModeRowClick = React.useCallback(
     (rowId: number) => {
@@ -175,6 +202,14 @@ export function RolesGrid(props: RolesGridProps) {
         setCreateModeIsActive={setCreateModeIsActive}
         onSuccessCreateRole={cancelCreateForm}
         onCancelClick={cancelCreateForm}
+      />
+      <UpdateRoleFormDialog
+        key={updatedRoleId}
+        roleId={updatedRoleId}
+        setRoleId={setUpdatedRoleId}
+        initialRole={initialUpdatedRole}
+        onSuccessUpdateRole={cancelUpdateForm}
+        onCancelClick={cancelUpdateForm}
       />
     </>
   )

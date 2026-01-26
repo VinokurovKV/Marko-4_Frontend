@@ -104,7 +104,7 @@ export function TasksGrid(props: TasksGridProps) {
                   id: rowId
                 })
                 notifier.showSuccess(
-                  `задание тестирования '${taskCodeForId.get(rowId) ?? ''}' отменено`
+                  `задание тестирования «${taskCodeForId.get(rowId) ?? ''}» отменено`
                 )
               } catch (error) {
                 notifier.showError(error)
@@ -124,7 +124,7 @@ export function TasksGrid(props: TasksGridProps) {
                   id: rowId
                 })
                 notifier.showSuccess(
-                  `задание тестирования '${taskCodeForId.get(rowId) ?? ''}' прервано`
+                  `задание тестирования «${taskCodeForId.get(rowId) ?? ''}» прервано`
                 )
               } catch (error) {
                 notifier.showError(error)
@@ -144,7 +144,7 @@ export function TasksGrid(props: TasksGridProps) {
                   id: rowId
                 })
                 notifier.showSuccess(
-                  `задание тестирования '${taskCodeForId.get(rowId) ?? ''}' приостановлено`
+                  `задание тестирования «${taskCodeForId.get(rowId) ?? ''}» приостановлено`
                 )
               } catch (error) {
                 notifier.showError(error)
@@ -164,7 +164,7 @@ export function TasksGrid(props: TasksGridProps) {
                   id: rowId
                 })
                 notifier.showSuccess(
-                  `задание тестирования '${taskCodeForId.get(rowId) ?? ''}' возобновлено`
+                  `задание тестирования «${taskCodeForId.get(rowId) ?? ''}» возобновлено`
                 )
               } catch (error) {
                 notifier.showError(error)
@@ -184,14 +184,14 @@ export function TasksGrid(props: TasksGridProps) {
               )
             },
             prepareConfirmMessage: (rowId) =>
-              `удалить задание тестирования '${taskCodeForId.get(rowId) ?? ''}'?`,
+              `удалить задание тестирования «${taskCodeForId.get(rowId) ?? ''}»?`,
             action: async (rowId) => {
               try {
                 await serverConnector.deleteTask({
                   id: rowId
                 })
                 notifier.showSuccess(
-                  `задание тестирования '${taskCodeForId.get(rowId) ?? ''}' удалено`
+                  `задание тестирования «${taskCodeForId.get(rowId) ?? ''}» удалено`
                 )
               } catch (error) {
                 notifier.showError(error)

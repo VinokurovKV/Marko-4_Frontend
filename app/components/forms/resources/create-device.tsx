@@ -90,7 +90,7 @@ export function CreateDeviceFormDialog(props: CreateDeviceFormDialogProps) {
                 } catch (error) {
                   notifier.showError(
                     error,
-                    `не удалось создать тег '${tagCodeToCreate}'`
+                    `не удалось создать тег «${tagCodeToCreate}»`
                   )
                   return null
                 }
@@ -146,7 +146,7 @@ export function CreateDeviceFormDialog(props: CreateDeviceFormDialogProps) {
       data: CreateDeviceFormData,
       createDeviceResult: CreateDeviceSuccessResultDto
     ) => {
-      notifier.showSuccess(`устройство '${data.code}' создано`)
+      notifier.showSuccess(`устройство «${data.code}» создано`)
       props.onSuccessCreateDevice?.(createDeviceResult)
     },
     [props.onSuccessCreateDevice, notifier]
@@ -181,7 +181,7 @@ export function CreateDeviceFormDialog(props: CreateDeviceFormDialogProps) {
     <FormDialog
       formInternal={formInternal}
       title="создать устройство"
-      submitButtonLabel="создать"
+      submitButtonTitle="создать"
       cancelButton={{
         title: 'отменить',
         onClick: props.onCancelClick

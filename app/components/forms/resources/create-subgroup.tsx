@@ -90,7 +90,7 @@ export function CreateSubgroupFormDialog(props: CreateSubgroupFormDialogProps) {
                 } catch (error) {
                   notifier.showError(
                     error,
-                    `не удалось создать тег '${tagCodeToCreate}'`
+                    `не удалось создать тег «${tagCodeToCreate}»`
                   )
                   return null
                 }
@@ -134,7 +134,7 @@ export function CreateSubgroupFormDialog(props: CreateSubgroupFormDialogProps) {
       data: CreateSubgroupFormData,
       createSubgroupResult: DtoWithoutEnums<CreateSubgroupSuccessResultDto>
     ) => {
-      notifier.showSuccess(`подгруппа тестов '${data.code}' создана`)
+      notifier.showSuccess(`подгруппа тестов «${data.code}» создана`)
       props.onSuccessCreateSubgroup?.(createSubgroupResult)
     },
     [props.onSuccessCreateSubgroup, notifier]
@@ -182,7 +182,7 @@ export function CreateSubgroupFormDialog(props: CreateSubgroupFormDialogProps) {
     <FormDialog
       formInternal={formInternal}
       title="создать подгруппу тестов"
-      submitButtonLabel="создать"
+      submitButtonTitle="создать"
       cancelButton={{
         title: 'отменить',
         onClick: props.onCancelClick

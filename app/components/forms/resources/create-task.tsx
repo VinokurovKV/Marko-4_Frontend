@@ -219,7 +219,7 @@ export function CreateTaskFormDialog(props: CreateTaskFormDialogProps) {
                 } catch (error) {
                   notifier.showError(
                     error,
-                    `не удалось создать тег '${tagCodeToCreate}'`
+                    `не удалось создать тег «${tagCodeToCreate}»`
                   )
                   return null
                 }
@@ -294,7 +294,7 @@ export function CreateTaskFormDialog(props: CreateTaskFormDialogProps) {
       createTaskResult: DtoWithoutEnums<CreateTaskSuccessResultDto>
     ) => {
       notifier.showSuccess(
-        `задание тестирования '${createTaskResult.result.code}' создано`
+        `задание тестирования «${createTaskResult.result.code}» создано`
       )
       props.onSuccessCreateTask?.(createTaskResult)
     },
@@ -400,7 +400,7 @@ export function CreateTaskFormDialog(props: CreateTaskFormDialogProps) {
     <FormDialog
       formInternal={formInternal}
       title="создать задание тестирования"
-      submitButtonLabel="создать"
+      submitButtonTitle="создать"
       cancelButton={{
         title: 'отменить',
         onClick: props.onCancelClick

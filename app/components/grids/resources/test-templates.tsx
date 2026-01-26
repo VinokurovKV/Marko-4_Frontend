@@ -94,7 +94,7 @@ export function TestTemplatesGrid(props: TestTemplatesGridProps) {
                   id: rowId
                 })
                 notifier.showSuccess(
-                  `шаблон теста '${testTemplateCodeForId.get(rowId) ?? ''}' удален`
+                  `шаблон теста «${testTemplateCodeForId.get(rowId) ?? ''}» удален`
                 )
               } catch (error) {
                 notifier.showError(error)
@@ -147,7 +147,7 @@ export function TestTemplatesGrid(props: TestTemplatesGridProps) {
                 getDisplayedTestTemplateCodes(rowIds)
               const count = rowIds.length
               const hiddenCount = count - displayedTestTemplateCodes.length
-              return `удалить шаблон${count === 1 ? '' : 'ы'} тест${count === 1 ? 'а' : 'ов'}${displayedTestTemplateCodes.map((code) => ` '${code}'`).join()}${hiddenCount > 0 ? ` и еще ${hiddenCount}` : ''}?`
+              return `удалить шаблон${count === 1 ? '' : 'ы'} тест${count === 1 ? 'а' : 'ов'}${displayedTestTemplateCodes.map((code) => ` «${code}»`).join()}${hiddenCount > 0 ? ` и еще ${hiddenCount}` : ''}?`
             },
             action: async (rowIds) => {
               const displayedTestTemplateCodes =
@@ -159,7 +159,7 @@ export function TestTemplatesGrid(props: TestTemplatesGridProps) {
                 const count = rowIds.length
                 const hiddenCount = count - displayedTestTemplateCodes.length
                 notifier.showSuccess(
-                  `шаблон${count === 1 ? '' : 'ы'} тест${count === 1 ? 'а' : 'ов'}${displayedTestTemplateCodes.map((code) => ` '${code}'`).join()}${hiddenCount > 0 ? ` и еще ${hiddenCount}` : ''} удален${count === 1 ? '' : 'ы'}`
+                  `шаблон${count === 1 ? '' : 'ы'} тест${count === 1 ? 'а' : 'ов'}${displayedTestTemplateCodes.map((code) => ` «${code}»`).join()}${hiddenCount > 0 ? ` и еще ${hiddenCount}` : ''} удален${count === 1 ? '' : 'ы'}`
                 )
               } catch (error) {
                 notifier.showError(error)

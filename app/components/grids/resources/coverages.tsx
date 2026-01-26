@@ -106,7 +106,7 @@ export function CoveragesGrid(props: CoveragesGridProps) {
                 })
                 const requirementCode = getRequirementCodeForCoverageId(rowId)
                 notifier.showSuccess(
-                  `покрытие '${coverageCodeForId.get(rowId) ?? ''}' требования '${requirementCode ?? ''}' удалено`
+                  `покрытие «${coverageCodeForId.get(rowId) ?? ''}» требования «${requirementCode ?? ''}» удалено`
                 )
               } catch (error) {
                 notifier.showError(error)
@@ -178,7 +178,7 @@ export function CoveragesGrid(props: CoveragesGridProps) {
                 const count = rowIds.length
                 const hiddenCount = count - displayedCoverageCodes.length
                 notifier.showSuccess(
-                  `покрыти${count === 1 ? 'е' : 'я'}${displayedCoverageCodes.map((code) => ` '${code}'`).join()}${hiddenCount > 0 ? ` и еще ${hiddenCount}` : ''} удален${count === 1 ? 'о' : 'ы'}`
+                  `покрыти${count === 1 ? 'е' : 'я'}${displayedCoverageCodes.map((code) => ` «${code}»`).join()}${hiddenCount > 0 ? ` и еще ${hiddenCount}` : ''} удален${count === 1 ? 'о' : 'ы'}`
                 )
               } catch (error) {
                 notifier.showError(error)

@@ -50,14 +50,14 @@ export function TagsGrid(props: TagsGridProps) {
       delete: rightsSet.has('DELETE_TAG')
         ? {
             prepareConfirmMessage: (rowId) =>
-              `удалить тег '${tagCodeForId.get(rowId) ?? ''}'?`,
+              `удалить тег «${tagCodeForId.get(rowId) ?? ''}»?`,
             action: async (rowId) => {
               try {
                 await serverConnector.deleteTag({
                   id: rowId
                 })
                 notifier.showSuccess(
-                  `тег '${tagCodeForId.get(rowId) ?? ''}' удален`
+                  `тег «${tagCodeForId.get(rowId) ?? ''}» удален`
                 )
               } catch (error) {
                 notifier.showError(error)
@@ -117,7 +117,7 @@ export function TagsGrid(props: TagsGridProps) {
               const displayedTagCodes = getDisplayedTagCodes(rowIds)
               const count = rowIds.length
               const hiddenCount = count - displayedTagCodes.length
-              return `удалить тег${count === 1 ? '' : 'и'}${displayedTagCodes.map((code) => ` '${code}'`).join()}${hiddenCount > 0 ? ` и еще ${hiddenCount}` : ''}?`
+              return `удалить тег${count === 1 ? '' : 'и'}${displayedTagCodes.map((code) => ` «${code}»`).join()}${hiddenCount > 0 ? ` и еще ${hiddenCount}` : ''}?`
             },
             action: async (rowIds) => {
               const displayedTagCodes = getDisplayedTagCodes(rowIds)
@@ -128,7 +128,7 @@ export function TagsGrid(props: TagsGridProps) {
                 const count = rowIds.length
                 const hiddenCount = count - displayedTagCodes.length
                 notifier.showSuccess(
-                  `тег${count === 1 ? '' : 'и'}${displayedTagCodes.map((code) => ` '${code}'`).join()}${hiddenCount > 0 ? ` и еще ${hiddenCount}` : ''} удален${count === 1 ? '' : 'ы'}`
+                  `тег${count === 1 ? '' : 'и'}${displayedTagCodes.map((code) => ` «${code}»`).join()}${hiddenCount > 0 ? ` и еще ${hiddenCount}` : ''} удален${count === 1 ? '' : 'ы'}`
                 )
               } catch (error) {
                 notifier.showError(error)

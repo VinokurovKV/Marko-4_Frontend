@@ -120,14 +120,14 @@ export function DevicesGrid(props: DevicesGridProps) {
       delete: rightsSet.has('DELETE_DEVICE')
         ? {
             prepareConfirmMessage: (rowId) =>
-              `удалить устройство '${deviceCodeForId.get(rowId) ?? ''}'?`,
+              `удалить устройство «${deviceCodeForId.get(rowId) ?? ''}»?`,
             action: async (rowId) => {
               try {
                 await serverConnector.deleteDevice({
                   id: rowId
                 })
                 notifier.showSuccess(
-                  `устройство '${deviceCodeForId.get(rowId) ?? ''}' удалено`
+                  `устройство «${deviceCodeForId.get(rowId) ?? ''}» удалено`
                 )
               } catch (error) {
                 notifier.showError(error)
@@ -179,7 +179,7 @@ export function DevicesGrid(props: DevicesGridProps) {
               const displayedDeviceCodes = getDisplayedDeviceCodes(rowIds)
               const count = rowIds.length
               const hiddenCount = count - displayedDeviceCodes.length
-              return `удалить устройств${count === 1 ? 'о' : 'а'}${displayedDeviceCodes.map((code) => ` '${code}'`).join()}${hiddenCount > 0 ? ` и еще ${hiddenCount}` : ''}?`
+              return `удалить устройств${count === 1 ? 'о' : 'а'}${displayedDeviceCodes.map((code) => ` «${code}»`).join()}${hiddenCount > 0 ? ` и еще ${hiddenCount}` : ''}?`
             },
             action: async (rowIds) => {
               const displayedDeviceCodes = getDisplayedDeviceCodes(rowIds)
@@ -190,7 +190,7 @@ export function DevicesGrid(props: DevicesGridProps) {
                 const count = rowIds.length
                 const hiddenCount = count - displayedDeviceCodes.length
                 notifier.showSuccess(
-                  `устройств${count === 1 ? 'о' : 'а'}${displayedDeviceCodes.map((code) => ` '${code}'`).join()}${hiddenCount > 0 ? ` и еще ${hiddenCount}` : ''} удален${count === 1 ? 'о' : 'ы'}`
+                  `устройств${count === 1 ? 'о' : 'а'}${displayedDeviceCodes.map((code) => ` «${code}»`).join()}${hiddenCount > 0 ? ` и еще ${hiddenCount}` : ''} удален${count === 1 ? 'о' : 'ы'}`
                 )
               } catch (error) {
                 notifier.showError(error)
