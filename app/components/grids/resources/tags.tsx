@@ -1,9 +1,10 @@
 // Project
-import type { TagSecondary } from '~/types'
+import type { TagSecondary, TagTertiary } from '~/types'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
 import { useMeta } from '~/providers/meta'
 import { CreateTagFormDialog } from '~/components/forms/resources/create-tag'
+import { UpdateTagFormDialog } from '~/components/forms/resources/update-tag'
 import { type GridProps, Grid } from '../grid'
 import { useCodeCol, type ActionsColProps, useActionsCol } from '../cols'
 // React router
@@ -33,6 +34,9 @@ export function TagsGrid(props: TagsGridProps) {
   )
 
   const [createModeIsActive, setCreateModeIsActive] = React.useState(false)
+  const [updatedTagId, setUpdatedTagId] = React.useState<number | null>(null)
+  const [initialUpdatedTag, setInitialUpdatedTag] =
+    React.useState<TagTertiary | null>(null)
 
   const tagCodeForId = React.useMemo(
     () => new Map(props.tags.map((tag) => [tag.id, tag.code])),
@@ -47,6 +51,28 @@ export function TagsGrid(props: TagsGridProps) {
 
   const actionsColProps: ActionsColProps = React.useMemo(
     () => ({
+      update: rightsSet.has('UPDATE_TAG')
+        ? {
+            action: async (rowId) => {
+              try {
+                const initialTag = await serverConnector.readTag(
+                  {
+                    id: rowId
+                  },
+                  {
+                    scope: 'UP_TO_TERTIARY_PROPS'
+                  }
+                )
+                setUpdatedTagId(rowId)
+                setInitialUpdatedTag(initialTag)
+              } catch {
+                notifier.showWarning(
+                  `не удалось загрузить тег с идентификатором ${rowId}`
+                )
+              }
+            }
+          }
+        : undefined,
       delete: rightsSet.has('DELETE_TAG')
         ? {
             prepareConfirmMessage: (rowId) =>
@@ -72,15 +98,12 @@ export function TagsGrid(props: TagsGridProps) {
   const actionsCol = useActionsCol(actionsColProps)
 
   const cols: GridColDef[] = React.useMemo(
-    () =>
-      navigationMode
-        ? navigationModeReadCols
-        : [
-            ...readCols,
-            ...(rightsSet.has('UPDATE_TAG') || rightsSet.has('DELETE_TAG')
-              ? [actionsCol]
-              : [])
-          ],
+    () => [
+      ...(navigationMode ? navigationModeReadCols : readCols),
+      ...(rightsSet.has('UPDATE_TAG') || rightsSet.has('DELETE_TAG')
+        ? [actionsCol]
+        : [])
+    ],
     [navigationMode, rightsSet, readCols, navigationModeReadCols, actionsCol]
   )
 
@@ -144,6 +167,10 @@ export function TagsGrid(props: TagsGridProps) {
     setCreateModeIsActive(false)
   }, [setCreateModeIsActive])
 
+  const cancelUpdateForm = React.useCallback(() => {
+    setUpdatedTagId(null)
+  }, [setUpdatedTagId])
+
   const handleNavigationModeRowClick = React.useCallback(
     (rowId: number) => {
       void navigate(
@@ -173,6 +200,14 @@ export function TagsGrid(props: TagsGridProps) {
         setCreateModeIsActive={setCreateModeIsActive}
         onSuccessCreateTag={cancelCreateForm}
         onCancelClick={cancelCreateForm}
+      />
+      <UpdateTagFormDialog
+        key={updatedTagId}
+        tagId={updatedTagId}
+        setTagId={setUpdatedTagId}
+        initialTag={initialUpdatedTag}
+        onSuccessUpdateTag={cancelUpdateForm}
+        onCancelClick={cancelUpdateForm}
       />
     </>
   )
