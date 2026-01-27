@@ -43,7 +43,6 @@ export function UpdateRoleFormDialog(props: UpdateRoleFormDialogProps) {
   )
 
   const [role, setRole] = React.useState<RoleTertiary | null>(props.initialRole)
-
   useRoleSubscription('UP_TO_TERTIARY_PROPS', props.roleId, setRole)
 
   React.useEffect(() => {
@@ -113,11 +112,11 @@ export function UpdateRoleFormDialog(props: UpdateRoleFormDialogProps) {
           name:
             validatedData.name !== role.name ? validatedData.name : undefined,
           rights:
-            addedRights?.length !== 0 || removedRights?.length !== 0
+            addedRights.length !== 0 || removedRights.length !== 0
               ? {
-                  added: addedRights?.length !== 0 ? addedRights : undefined,
+                  added: addedRights.length !== 0 ? addedRights : undefined,
                   removed:
-                    removedRights?.length !== 0 ? removedRights : undefined
+                    removedRights.length !== 0 ? removedRights : undefined
                 }
               : undefined,
           description:

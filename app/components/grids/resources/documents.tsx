@@ -1,11 +1,12 @@
 // Project
 import { convertMediaTypeToFileExtension } from '@common/formats'
-import type { DocumentSecondary } from '~/types'
+import type { DocumentSecondary, DocumentTertiary } from '~/types'
 import { downloadFileFromBlob } from '~/utilities'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
 import { useMeta } from '~/providers/meta'
 import { CreateDocumentFormDialog } from '~/components/forms/resources/create-document'
+import { UpdateDocumentFormDialog } from '~/components/forms/resources/update-document'
 import { type GridProps, Grid } from '../grid'
 import {
   type ActionsColProps,
@@ -46,6 +47,11 @@ export function DocumentsGrid(props: DocumentsGridProps) {
   )
 
   const [createModeIsActive, setCreateModeIsActive] = React.useState(false)
+  const [updatedDocumentId, setUpdatedDocumentId] = React.useState<
+    number | null
+  >(null)
+  const [initialUpdatedDocument, setInitialUpdatedDocument] =
+    React.useState<DocumentTertiary | null>(null)
 
   const documentCodeForId = React.useMemo(
     () =>
@@ -85,6 +91,28 @@ export function DocumentsGrid(props: DocumentsGridProps) {
           }
         }
       },
+      update: rightsSet.has('UPDATE_DOCUMENT')
+        ? {
+            action: async (rowId) => {
+              try {
+                const initialDocument = await serverConnector.readDocument(
+                  {
+                    id: rowId
+                  },
+                  {
+                    scope: 'UP_TO_TERTIARY_PROPS'
+                  }
+                )
+                setUpdatedDocumentId(rowId)
+                setInitialUpdatedDocument(initialDocument)
+              } catch {
+                notifier.showWarning(
+                  `не удалось загрузить документ с идентификатором ${rowId}`
+                )
+              }
+            }
+          }
+        : undefined,
       delete: rightsSet.has('DELETE_DOCUMENT')
         ? {
             prepareConfirmMessage: (rowId) =>
@@ -110,7 +138,7 @@ export function DocumentsGrid(props: DocumentsGridProps) {
   const actionsCol = useActionsCol(actionsColProps)
 
   const cols: GridColDef[] = React.useMemo(
-    () => (navigationMode ? navigationModeReadCols : [...readCols, actionsCol]),
+    () => [...(navigationMode ? navigationModeReadCols : readCols), actionsCol],
     [navigationMode, readCols, navigationModeReadCols, actionsCol]
   )
 
@@ -177,6 +205,10 @@ export function DocumentsGrid(props: DocumentsGridProps) {
     setCreateModeIsActive(false)
   }, [setCreateModeIsActive])
 
+  const cancelUpdateForm = React.useCallback(() => {
+    setUpdatedDocumentId(null)
+  }, [setUpdatedDocumentId])
+
   const handleNavigationModeRowClick = React.useCallback(
     (rowId: number) => {
       void navigate(
@@ -208,6 +240,14 @@ export function DocumentsGrid(props: DocumentsGridProps) {
         setCreateModeIsActive={setCreateModeIsActive}
         onSuccessCreateDocument={cancelCreateForm}
         onCancelClick={cancelCreateForm}
+      />
+      <UpdateDocumentFormDialog
+        key={updatedDocumentId}
+        documentId={updatedDocumentId}
+        setDocumentId={setUpdatedDocumentId}
+        initialDocument={initialUpdatedDocument}
+        onSuccessUpdateDocument={cancelUpdateForm}
+        onCancelClick={cancelUpdateForm}
       />
     </>
   )

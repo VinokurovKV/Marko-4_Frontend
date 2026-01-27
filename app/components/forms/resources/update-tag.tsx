@@ -38,7 +38,6 @@ export function UpdateTagFormDialog(props: UpdateTagFormDialogProps) {
   )
 
   const [tag, setTag] = React.useState<TagTertiary | null>(props.initialTag)
-
   useTagSubscription('UP_TO_TERTIARY_PROPS', props.tagId, setTag)
 
   React.useEffect(() => {

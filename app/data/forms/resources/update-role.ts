@@ -33,7 +33,7 @@ export const updateRoleFormValidator = new FormValidator<UpdateRoleFormData>({
       rules: ['NOT_EMPTY_STR', 'NAME']
     },
     rights: {
-      transforms: []
+      transforms: ['EMPTY_ARR_TO_UNDEFINED']
     },
     descriptionText: {
       transforms: ['TRIM', 'EMPTY_STR_TO_UNDEFINED'],

@@ -46,7 +46,6 @@ export function UpdateUserFormDialog(props: UpdateUserFormDialogProps) {
   )
 
   const [user, setUser] = React.useState<UserTertiary | null>(props.initialUser)
-
   useUserSubscription('UP_TO_TERTIARY_PROPS', props.userId, setUser)
 
   React.useEffect(() => {
@@ -104,10 +103,10 @@ export function UpdateUserFormDialog(props: UpdateUserFormDialogProps) {
           `отсутствует доступ к текущим характеристикам редактируемого пользователя`
         )
       } else {
-        const processOptionalStr = (
-          str: string | null,
-          validatedStr: string | undefined
-        ) => {
+        function processOptionalStr<Type>(
+          str: Type | null,
+          validatedStr: Type | undefined
+        ) {
           return validatedStr === undefined
             ? str === null
               ? undefined
@@ -167,11 +166,11 @@ export function UpdateUserFormDialog(props: UpdateUserFormDialogProps) {
   const initialFormData: UpdateUserFormData = React.useMemo(
     () => ({
       login: user?.login ?? '',
-      surname: user?.surname ?? '',
-      forename: user?.forename ?? '',
-      patronymic: user?.patronymic ?? '',
-      phone: user?.phone ?? '',
-      email: user?.email ?? '',
+      surname: user?.surname ?? undefined,
+      forename: user?.forename ?? undefined,
+      patronymic: user?.patronymic ?? undefined,
+      phone: user?.phone ?? undefined,
+      email: user?.email ?? undefined,
       roleId: user?.roleId,
       descriptionText: user?.description?.text
     }),
