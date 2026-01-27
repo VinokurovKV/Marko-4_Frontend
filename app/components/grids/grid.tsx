@@ -104,7 +104,7 @@ const defaultRowSelectionModel: GridRowSelectionModel = {
 }
 
 export function Grid(props: GridProps) {
-  const LS_GRID_STATE_KEY = `${props.localSaveKey}_${LS_GRID_STATE_KEY_SUFFIX}`
+  const LS_GRID_STATE_KEY = `${props.localSaveKey}_${props.navigationMode}_${LS_GRID_STATE_KEY_SUFFIX}`
 
   const dialogs = useDialogs()
 
