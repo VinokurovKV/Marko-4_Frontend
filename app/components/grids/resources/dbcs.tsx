@@ -1,11 +1,12 @@
 // Project
 import { convertMediaTypeToFileExtension } from '@common/formats'
-import type { DbcSecondary } from '~/types'
+import type { DbcSecondary, DbcTertiary } from '~/types'
 import { downloadFileFromBlob } from '~/utilities'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
 import { useMeta } from '~/providers/meta'
 import { CreateDbcFormDialog } from '~/components/forms/resources/create-dbc'
+import { UpdateDbcFormDialog } from '~/components/forms/resources/update-dbc'
 import { type GridProps, Grid } from '../grid'
 import {
   type ActionsColProps,
@@ -42,6 +43,9 @@ export function DbcsGrid(props: DbcsGridProps) {
   )
 
   const [createModeIsActive, setCreateModeIsActive] = React.useState(false)
+  const [updatedDbcId, setUpdatedDbcId] = React.useState<number | null>(null)
+  const [initialUpdatedDbc, setInitialUpdatedDbc] =
+    React.useState<DbcTertiary | null>(null)
 
   const dbcCodeForId = React.useMemo(
     () => new Map(props.dbcs.map((dbc) => [dbc.id, dbc.code])),
@@ -80,6 +84,28 @@ export function DbcsGrid(props: DbcsGridProps) {
           }
         }
       },
+      update: rightsSet.has('UPDATE_DBC')
+        ? {
+            action: async (rowId) => {
+              try {
+                const initialDbc = await serverConnector.readDbc(
+                  {
+                    id: rowId
+                  },
+                  {
+                    scope: 'UP_TO_TERTIARY_PROPS'
+                  }
+                )
+                setUpdatedDbcId(rowId)
+                setInitialUpdatedDbc(initialDbc)
+              } catch {
+                notifier.showWarning(
+                  `не удалось загрузить базовую конфигурацию с идентификатором ${rowId}`
+                )
+              }
+            }
+          }
+        : undefined,
       delete: rightsSet.has('DELETE_DBC')
         ? {
             prepareConfirmMessage: (rowId) =>
@@ -105,7 +131,7 @@ export function DbcsGrid(props: DbcsGridProps) {
   const actionsCol = useActionsCol(actionsColProps)
 
   const cols: GridColDef[] = React.useMemo(
-    () => (navigationMode ? navigationModeReadCols : [...readCols, actionsCol]),
+    () => [...(navigationMode ? navigationModeReadCols : readCols), actionsCol],
     [navigationMode, readCols, navigationModeReadCols, actionsCol]
   )
 
@@ -169,6 +195,10 @@ export function DbcsGrid(props: DbcsGridProps) {
     setCreateModeIsActive(false)
   }, [setCreateModeIsActive])
 
+  const cancelUpdateForm = React.useCallback(() => {
+    setUpdatedDbcId(null)
+  }, [setUpdatedDbcId])
+
   const handleNavigationModeRowClick = React.useCallback(
     (rowId: number) => {
       void navigate(
@@ -198,6 +228,14 @@ export function DbcsGrid(props: DbcsGridProps) {
         setCreateModeIsActive={setCreateModeIsActive}
         onSuccessCreateDbc={cancelCreateForm}
         onCancelClick={cancelCreateForm}
+      />
+      <UpdateDbcFormDialog
+        key={updatedDbcId}
+        dbcId={updatedDbcId}
+        setDbcId={setUpdatedDbcId}
+        initialDbc={initialUpdatedDbc}
+        onSuccessUpdateDbc={cancelUpdateForm}
+        onCancelClick={cancelUpdateForm}
       />
     </>
   )

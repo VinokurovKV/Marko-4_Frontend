@@ -109,7 +109,7 @@ export function CreateDbcFormDialog(props: CreateDbcFormDialogProps) {
 
   const onSuccessSubmit = React.useCallback(
     (data: CreateDbcFormData, createDbcResult: CreateDbcSuccessResultDto) => {
-      notifier.showSuccess(`базованя конфигурация «${data.code}» создана`)
+      notifier.showSuccess(`базовая конфигурация «${data.code}» создана`)
       props.onSuccessCreateDbc?.(createDbcResult)
     },
     [props.onSuccessCreateDbc, notifier]

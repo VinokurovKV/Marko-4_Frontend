@@ -44,6 +44,13 @@ export function prepareTextFieldForUpdate(
       : undefined
 }
 
+export function prepareFileExtraFieldForUpdate<Type>(
+  currentFile: Type | null,
+  newFile: File | undefined
+) {
+  return currentFile !== null && newFile === undefined ? null : undefined
+}
+
 export function prepareArrFieldForUpdate<Item>(
   currentArr: Item[],
   newArr: Item[] | undefined
