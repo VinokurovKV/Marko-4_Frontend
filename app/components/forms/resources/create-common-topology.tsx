@@ -26,6 +26,7 @@ import {
 import { ProjButton } from '~/components/buttons/button'
 import { TopologyConfigSchema } from '~/components/topologies/topology-config-schema'
 import {
+  createTagsAndGetIds,
   useForm,
   type Field,
   FormAutocompleteFreeItemsMultipleSelect,
@@ -145,33 +146,12 @@ export function CreateCommonTopologyFormDialog(
         .map((tagCodeToCreate) => tagIdForCode.get(tagCodeToCreate))
         .filter((tagId) => tagId !== undefined)
 
-      const newCreatedTagIds = (
-        await Promise.allSettled(
-          (validatedData.tagCodesToCreate ?? [])
-            .filter(
-              (tagCodeToCreate) => tagIdForCode.has(tagCodeToCreate) === false
-            )
-            .map((tagCodeToCreate) =>
-              (async () => {
-                try {
-                  return await serverConnector
-                    .createTag({
-                      code: tagCodeToCreate
-                    })
-                    .then((result) => result.result.createdResourceId)
-                } catch (error) {
-                  notifier.showError(
-                    error,
-                    `не удалось создать тег «${tagCodeToCreate}»`
-                  )
-                  return null
-                }
-              })()
-            )
-        )
+      const newCreatedTagIds = await createTagsAndGetIds(
+        tagIdForCode,
+        validatedData.tagCodesToCreate,
+        notifier
       )
-        .map((result) => (result.status === 'fulfilled' ? result.value : null))
-        .filter((result) => result !== null)
+
       return await serverConnector.createCommonTopology({
         code: validatedData.code,
         name: validatedData.name,

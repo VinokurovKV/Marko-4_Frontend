@@ -12,6 +12,9 @@ import {
   updateRoleFormValidator
 } from '~/data/forms/resources/update-role'
 import {
+  prepareArrFieldForUpdate as prepareArr,
+  prepareRequiredFieldForUpdate as prepareRequired,
+  prepareTextFieldForUpdate as prepareText,
   useForm,
   FormAutocompleteMultipleSelect,
   FormBlock,
@@ -100,38 +103,14 @@ export function UpdateRoleFormDialog(props: UpdateRoleFormDialogProps) {
           `отсутствует доступ к текущим характеристикам редактируемой роли`
         )
       } else {
-        const rightsSet = new Set(role.rights)
-        const newRightsSet = new Set(validatedData.rights)
-        const addedRights: NonNullable<typeof validatedData.rights> = (
-          validatedData.rights ?? []
-        ).filter((right) => rightsSet.has(right) === false)
-        const removedRights: NonNullable<typeof validatedData.rights> =
-          role.rights.filter((right) => newRightsSet.has(right) === false)
         return await serverConnector.updateRole({
           id: props.roleId,
-          name:
-            validatedData.name !== role.name ? validatedData.name : undefined,
-          rights:
-            addedRights.length !== 0 || removedRights.length !== 0
-              ? {
-                  added: addedRights.length !== 0 ? addedRights : undefined,
-                  removed:
-                    removedRights.length !== 0 ? removedRights : undefined
-                }
-              : undefined,
-          description:
-            validatedData.descriptionText === undefined
-              ? role.description === null
-                ? undefined
-                : null
-              : role.description === null ||
-                  role.description.format !== 'PLAIN' ||
-                  role.description.text !== validatedData.descriptionText
-                ? {
-                    format: 'PLAIN',
-                    text: validatedData.descriptionText
-                  }
-                : undefined
+          name: prepareRequired(role.name, validatedData.name),
+          rights: prepareArr(role.rights, validatedData.rights),
+          description: prepareText(
+            role.description,
+            validatedData.descriptionText
+          )
         })
       }
     },

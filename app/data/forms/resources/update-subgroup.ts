@@ -1,0 +1,80 @@
+// Project
+import type {
+  BigCodeWrapDto,
+  BigNameUndefinedWrapDto,
+  DescriptionTextUndefinedWrapDto,
+  GroupIdUndefinedWrapDto,
+  NumInGroupUndefinedWrapDto,
+  RemarkTextUndefinedWrapDto,
+  TagIdsUndefinedWrapDto,
+  TestIdsUndefinedWrapDto
+} from '@common/dtos'
+import type { DtoWithoutEnums } from '@common/dto-without-enums'
+import {
+  type FormKey,
+  type FormVal,
+  type FormValidatorErrors,
+  type FormValidatorErrorsJoined,
+  FormValidator
+} from '~/validation/form-validator'
+
+export type UpdateSubgroupFormData = DtoWithoutEnums<
+  BigCodeWrapDto &
+    BigNameUndefinedWrapDto &
+    TestIdsUndefinedWrapDto &
+    GroupIdUndefinedWrapDto &
+    NumInGroupUndefinedWrapDto &
+    DescriptionTextUndefinedWrapDto &
+    TagIdsUndefinedWrapDto & {
+      tagCodesToCreate?: string[]
+    } & RemarkTextUndefinedWrapDto
+>
+
+export type UpdateSubgroupFormKey = FormKey<UpdateSubgroupFormData>
+
+export type UpdateSubgroupFormVal = FormVal<UpdateSubgroupFormData>
+
+export type UpdateSubgroupFormErrors =
+  FormValidatorErrors<UpdateSubgroupFormData>
+
+export type UpdateSubgroupFormErrorsJoined =
+  FormValidatorErrorsJoined<UpdateSubgroupFormData>
+
+export const updateSubgroupFormValidator =
+  new FormValidator<UpdateSubgroupFormData>({
+    oneField: {
+      code: {
+        transforms: ['TRIM'],
+        rules: ['NOT_EMPTY_STR', 'BIG_CODE']
+      },
+      name: {
+        transforms: ['TRIM', 'EMPTY_STR_TO_UNDEFINED'],
+        rules: ['ALLOW_UNDEFINED', 'BIG_NAME']
+      },
+      testIds: {
+        transforms: ['EMPTY_ARR_TO_UNDEFINED']
+      },
+      groupId: {
+        transforms: ['EMPTY_STR_TO_UNDEFINED']
+      },
+      numInGroup: {
+        transforms: ['TRIM', 'EMPTY_STR_TO_UNDEFINED', 'STR_TO_NUM'],
+        rules: ['ALLOW_UNDEFINED', 'INT_NON_NEGATIVE']
+      },
+      descriptionText: {
+        transforms: ['TRIM', 'EMPTY_STR_TO_UNDEFINED'],
+        rules: ['ALLOW_UNDEFINED', 'TEXT']
+      },
+      tagIds: {
+        transforms: ['EMPTY_ARR_TO_UNDEFINED']
+      },
+      tagCodesToCreate: {
+        rules: ['AUTOCOMPLETE_FREE_ITEMS'],
+        transforms: ['EMPTY_ARR_TO_UNDEFINED']
+      },
+      remarkText: {
+        transforms: ['TRIM', 'EMPTY_STR_TO_UNDEFINED'],
+        rules: ['ALLOW_UNDEFINED', 'TEXT']
+      }
+    }
+  })

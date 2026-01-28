@@ -36,7 +36,7 @@ interface ShowNotificationOptions {
   onAction?: () => void
 }
 
-interface Notifier {
+export interface Notifier {
   show: (message: React.ReactNode, options?: ShowNotificationOptions) => string
   showSuccess: (message: string) => void
   showInfo: (message: string) => void

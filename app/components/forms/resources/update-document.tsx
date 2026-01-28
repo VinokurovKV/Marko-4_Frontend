@@ -1,8 +1,6 @@
 // Project
 import { allDocumentTypes } from '@common/enums'
-import type { TextWithFormatDto } from '@common/dtos'
 import type { UpdateDocumentSuccessResultDto } from '@common/dtos/server-api/documents.dto'
-import type { DtoWithoutEnums } from '@common/dto-without-enums'
 import type { DocumentTertiary } from '~/types'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
@@ -15,6 +13,11 @@ import {
   updateDocumentFormValidator
 } from '~/data/forms/resources/update-document'
 import {
+  createTagsAndGetIds,
+  prepareArrFieldForUpdate as prepareArr,
+  prepareOptionalFieldForUpdate as prepareOptional,
+  prepareRequiredFieldForUpdate as prepareRequired,
+  prepareTextFieldForUpdate as prepareText,
   FormAutocompleteFreeItemsMultipleSelect,
   FormBlock,
   FormDate,
@@ -28,8 +31,6 @@ import {
 } from '../common'
 // React
 import * as React from 'react'
-
-type TextWithFormat = DtoWithoutEnums<TextWithFormatDto>
 
 const EMPTY_TAG_IDS_ARR: number[] = []
 const EMPTY_TAG_CODES_ARR: string[] = []
@@ -136,108 +137,30 @@ export function UpdateDocumentFormDialog(props: UpdateDocumentFormDialogProps) {
           .map((tagCodeToCreate) => tagIdForCode.get(tagCodeToCreate))
           .filter((tagId) => tagId !== undefined)
 
-        const newCreatedTagIds = (
-          await Promise.allSettled(
-            (tagCodesToCreate ?? [])
-              .filter(
-                (tagCodeToCreate) => tagIdForCode.has(tagCodeToCreate) === false
-              )
-              .map((tagCodeToCreate) =>
-                (async () => {
-                  try {
-                    return await serverConnector
-                      .createTag({
-                        code: tagCodeToCreate
-                      })
-                      .then((result) => result.result.createdResourceId)
-                  } catch (error) {
-                    notifier.showError(
-                      error,
-                      `не удалось создать тег «${tagCodeToCreate}»`
-                    )
-                    return null
-                  }
-                })()
-              )
-          )
-        )
-          .map((result) =>
-            result.status === 'fulfilled' ? result.value : null
-          )
-          .filter((result) => result !== null)
-
-        function processOptionalStr<Type>(
-          str: Type | null,
-          validatedStr: Type | undefined
-        ) {
-          return validatedStr === undefined
-            ? str === null
-              ? undefined
-              : null
-            : validatedStr !== str
-              ? validatedStr
-              : undefined
-        }
-
-        function processText(
-          text: TextWithFormat | null,
-          validatedText: string | undefined
-        ) {
-          return validatedText === undefined
-            ? text === null
-              ? undefined
-              : null
-            : text === null ||
-                text.format !== 'PLAIN' ||
-                text.text !== validatedText
-              ? ({
-                  format: 'PLAIN',
-                  text: validatedText
-                } as const)
-              : undefined
-        }
-
-        const tagIdsSet = new Set(document.tagIds)
-        const newTagIds = [
-          ...(tagIds ?? []),
-          ...recentlyCreatedTagIds,
-          ...newCreatedTagIds
-        ]
-        const newTagIdsSet = new Set(newTagIds)
-        const addedTagIds = newTagIds.filter(
-          (tagId) => tagIdsSet.has(tagId) === false
-        )
-        const removedTagIds = document.tagIds.filter(
-          (tagId) => newTagIdsSet.has(tagId) === false
+        const newCreatedTagIds = await createTagsAndGetIds(
+          tagIdForCode,
+          tagCodesToCreate,
+          notifier
         )
 
         return await serverConnector.updateDocument({
           id: props.documentId,
-          code:
-            validatedData.code !== document.code
-              ? validatedData.code
-              : undefined,
-          name: processOptionalStr(document.name, validatedData.name),
-          type:
-            validatedData.type !== document.type
-              ? validatedData.type
-              : undefined,
-          publicVersion: processOptionalStr(
+          code: prepareRequired(document.code, validatedData.code),
+          name: prepareOptional(document.name, validatedData.name),
+          type: prepareRequired(document.type, validatedData.type),
+          publicVersion: prepareOptional(
             document.publicVersion,
             validatedData.publicVersion
           ),
-          url: processOptionalStr(document.url, validatedData.url),
-          date: processOptionalStr(document.date, validatedData.date),
-          description: processText(document.description, descriptionText),
-          remark: processText(document.remark, remarkText),
-          tagIds:
-            addedTagIds.length !== 0 || removedTagIds.length !== 0
-              ? {
-                  added: addedTagIds.length !== 0 ? addedTagIds : undefined,
-                  removed:
-                    removedTagIds.length !== 0 ? removedTagIds : undefined
-                }
-              : undefined
+          url: prepareOptional(document.url, validatedData.url),
+          date: prepareOptional(document.date, validatedData.date),
+          description: prepareText(document.description, descriptionText),
+          remark: prepareText(document.remark, remarkText),
+          tagIds: prepareArr(document.tagIds, [
+            ...(tagIds ?? []),
+            ...recentlyCreatedTagIds,
+            ...newCreatedTagIds
+          ])
         })
       }
     },

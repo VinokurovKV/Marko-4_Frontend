@@ -28,6 +28,10 @@ import {
 } from '~/data/forms/resources/create-task'
 import { TopologyConfigSchema } from '~/components/topologies/topology-config-schema'
 import {
+  createTagsAndGetIds,
+  type Field,
+  type FormSelectProps,
+  useForm,
   FormAutocompleteFreeItemsMultipleSelect,
   FormAutocompleteMultipleSelect,
   FormAutocompleteSingleSelect,
@@ -38,10 +42,7 @@ import {
   FormMultilineTextField,
   FormNumField,
   FormSelect,
-  FormTextField,
-  type Field,
-  type FormSelectProps,
-  useForm
+  FormTextField
 } from '../common'
 // React
 import * as React from 'react'
@@ -202,33 +203,11 @@ export function CreateTaskFormDialog(props: CreateTaskFormDialogProps) {
         .map((tagCodeToCreate) => tagIdForCode.get(tagCodeToCreate))
         .filter((tagId) => tagId !== undefined)
 
-      const newCreatedTagIds = (
-        await Promise.allSettled(
-          (validatedData.tagCodesToCreate ?? [])
-            .filter(
-              (tagCodeToCreate) => tagIdForCode.has(tagCodeToCreate) === false
-            )
-            .map((tagCodeToCreate) =>
-              (async () => {
-                try {
-                  return await serverConnector
-                    .createTag({
-                      code: tagCodeToCreate
-                    })
-                    .then((result) => result.result.createdResourceId)
-                } catch (error) {
-                  notifier.showError(
-                    error,
-                    `не удалось создать тег «${tagCodeToCreate}»`
-                  )
-                  return null
-                }
-              })()
-            )
-        )
+      const newCreatedTagIds = await createTagsAndGetIds(
+        tagIdForCode,
+        validatedData.tagCodesToCreate,
+        notifier
       )
-        .map((result) => (result.status === 'fulfilled' ? result.value : null))
-        .filter((result) => result !== null)
 
       const vertexNamesSorted = await (async () => {
         if (validatedData.commonTopologyId === undefined) {

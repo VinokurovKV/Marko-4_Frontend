@@ -1,9 +1,10 @@
 // Project
-import type { GroupPrimary, SubgroupSecondary } from '~/types'
+import type { GroupPrimary, SubgroupSecondary, SubgroupTertiary } from '~/types'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
 import { useMeta } from '~/providers/meta'
 import { CreateSubgroupFormDialog } from '~/components/forms/resources/create-subgroup'
+import { UpdateSubgroupFormDialog } from '~/components/forms/resources/update-subgroup'
 import { type GridProps, Grid } from '../grid'
 import {
   type ActionsColProps,
@@ -42,6 +43,11 @@ export function SubgroupsGrid(props: SubgroupsGridProps) {
   )
 
   const [createModeIsActive, setCreateModeIsActive] = React.useState(false)
+  const [updatedSubgroupId, setUpdatedSubgroupId] = React.useState<
+    number | null
+  >(null)
+  const [initialUpdatedSubgroup, setInitialUpdatedSubgroup] =
+    React.useState<SubgroupTertiary | null>(null)
 
   const subgroupCodeForId = React.useMemo(
     () =>
@@ -63,6 +69,28 @@ export function SubgroupsGrid(props: SubgroupsGridProps) {
 
   const actionsColProps: ActionsColProps = React.useMemo(
     () => ({
+      update: rightsSet.has('UPDATE_SUBGROUP')
+        ? {
+            action: async (rowId) => {
+              try {
+                const initialSubgroup = await serverConnector.readSubgroup(
+                  {
+                    id: rowId
+                  },
+                  {
+                    scope: 'UP_TO_TERTIARY_PROPS'
+                  }
+                )
+                setUpdatedSubgroupId(rowId)
+                setInitialUpdatedSubgroup(initialSubgroup)
+              } catch {
+                notifier.showWarning(
+                  `не удалось загрузить подгруппу тестов с идентификатором ${rowId}`
+                )
+              }
+            }
+          }
+        : undefined,
       delete: rightsSet.has('DELETE_SUBGROUP')
         ? {
             prepareConfirmMessage: (rowId) => {
@@ -89,16 +117,12 @@ export function SubgroupsGrid(props: SubgroupsGridProps) {
   const actionsCol = useActionsCol(actionsColProps)
 
   const cols: GridColDef[] = React.useMemo(
-    () =>
-      navigationMode
-        ? navigationModeReadCols
-        : [
-            ...readCols,
-            ...(rightsSet.has('UPDATE_SUBGROUP') ||
-            rightsSet.has('DELETE_SUBGROUP')
-              ? [actionsCol]
-              : [])
-          ],
+    () => [
+      ...(navigationMode ? navigationModeReadCols : readCols),
+      ...(rightsSet.has('UPDATE_SUBGROUP') || rightsSet.has('DELETE_SUBGROUP')
+        ? [actionsCol]
+        : [])
+    ],
     [navigationMode, rightsSet, readCols, navigationModeReadCols, actionsCol]
   )
 
@@ -162,6 +186,10 @@ export function SubgroupsGrid(props: SubgroupsGridProps) {
     setCreateModeIsActive(false)
   }, [setCreateModeIsActive])
 
+  const cancelUpdateForm = React.useCallback(() => {
+    setUpdatedSubgroupId(null)
+  }, [setUpdatedSubgroupId])
+
   const handleNavigationModeRowClick = React.useCallback(
     (rowId: number) => {
       void navigate(
@@ -195,6 +223,15 @@ export function SubgroupsGrid(props: SubgroupsGridProps) {
         setCreateModeIsActive={setCreateModeIsActive}
         onSuccessCreateSubgroup={cancelCreateForm}
         onCancelClick={cancelCreateForm}
+      />
+      <UpdateSubgroupFormDialog
+        key={updatedSubgroupId}
+        groups={props.groups}
+        subgroupId={updatedSubgroupId}
+        setSubgroupId={setUpdatedSubgroupId}
+        initialSubgroup={initialUpdatedSubgroup}
+        onSuccessUpdateSubgroup={cancelUpdateForm}
+        onCancelClick={cancelUpdateForm}
       />
     </>
   )

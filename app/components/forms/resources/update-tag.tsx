@@ -10,6 +10,8 @@ import {
   updateTagFormValidator
 } from '~/data/forms/resources/update-tag'
 import {
+  prepareRequiredFieldForUpdate as prepareRequired,
+  prepareTextFieldForUpdate as prepareText,
   useForm,
   FormBlock,
   FormDialog,
@@ -97,21 +99,11 @@ export function UpdateTagFormDialog(props: UpdateTagFormDialogProps) {
       } else {
         return await serverConnector.updateTag({
           id: props.tagId,
-          code:
-            validatedData.code !== tag.code ? validatedData.code : undefined,
-          description:
-            validatedData.descriptionText === undefined
-              ? tag.description === null
-                ? undefined
-                : null
-              : tag.description === null ||
-                  tag.description.format !== 'PLAIN' ||
-                  tag.description.text !== validatedData.descriptionText
-                ? {
-                    format: 'PLAIN',
-                    text: validatedData.descriptionText
-                  }
-                : undefined
+          code: prepareRequired(tag.code, validatedData.code),
+          description: prepareText(
+            tag.description,
+            validatedData.descriptionText
+          )
         })
       }
     },

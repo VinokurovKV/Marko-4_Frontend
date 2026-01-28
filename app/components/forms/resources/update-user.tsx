@@ -12,6 +12,9 @@ import {
 } from '~/data/forms/resources/update-user'
 import type { FormSelectProps } from '../common'
 import {
+  prepareOptionalFieldForUpdate as prepareOptional,
+  prepareRequiredFieldForUpdate as prepareRequired,
+  prepareTextFieldForUpdate as prepareText,
   useForm,
   FormBlock,
   FormDialog,
@@ -103,49 +106,22 @@ export function UpdateUserFormDialog(props: UpdateUserFormDialogProps) {
           `отсутствует доступ к текущим характеристикам редактируемого пользователя`
         )
       } else {
-        function processOptionalStr<Type>(
-          str: Type | null,
-          validatedStr: Type | undefined
-        ) {
-          return validatedStr === undefined
-            ? str === null
-              ? undefined
-              : null
-            : validatedStr !== str
-              ? validatedStr
-              : undefined
-        }
         return await serverConnector.updateUser({
           id: props.userId,
-          login:
-            validatedData.login !== user.login
-              ? validatedData.login
-              : undefined,
-          surname: processOptionalStr(user.surname, validatedData.surname),
-          forename: processOptionalStr(user.forename, validatedData.forename),
-          patronymic: processOptionalStr(
+          login: prepareRequired(user.login, validatedData.login),
+          surname: prepareOptional(user.surname, validatedData.surname),
+          forename: prepareOptional(user.forename, validatedData.forename),
+          patronymic: prepareOptional(
             user.patronymic,
             validatedData.patronymic
           ),
-          phone: processOptionalStr(user.phone, validatedData.phone),
-          email: processOptionalStr(user.email, validatedData.email),
-          roleId:
-            validatedData.roleId !== user.roleId
-              ? validatedData.roleId!
-              : undefined,
-          description:
-            validatedData.descriptionText === undefined
-              ? user.description === null
-                ? undefined
-                : null
-              : user.description === null ||
-                  user.description.format !== 'PLAIN' ||
-                  user.description.text !== validatedData.descriptionText
-                ? {
-                    format: 'PLAIN',
-                    text: validatedData.descriptionText
-                  }
-                : undefined
+          phone: prepareOptional(user.phone, validatedData.phone),
+          email: prepareOptional(user.email, validatedData.email),
+          roleId: prepareRequired(user.roleId, validatedData.roleId),
+          description: prepareText(
+            user.description,
+            validatedData.descriptionText
+          )
         })
       }
     },

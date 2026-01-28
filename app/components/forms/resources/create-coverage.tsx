@@ -15,6 +15,7 @@ import {
 import type { FormSelectProps } from '../common/form-select'
 import {
   useForm,
+  createTagsAndGetIds,
   FormAutocompleteFreeItemsMultipleSelect,
   FormAutocompleteMultipleSelect,
   FormAutocompleteSingleSelect,
@@ -77,33 +78,11 @@ export function CreateCoverageFormDialog(props: CreateCoverageFormDialogProps) {
         .map((tagCodeToCreate) => tagIdForCode.get(tagCodeToCreate))
         .filter((tagId) => tagId !== undefined)
 
-      const newCreatedTagIds = (
-        await Promise.allSettled(
-          (tagCodesToCreate ?? [])
-            .filter(
-              (tagCodeToCreate) => tagIdForCode.has(tagCodeToCreate) === false
-            )
-            .map((tagCodeToCreate) =>
-              (async () => {
-                try {
-                  return await serverConnector
-                    .createTag({
-                      code: tagCodeToCreate
-                    })
-                    .then((result) => result.result.createdResourceId)
-                } catch (error) {
-                  notifier.showError(
-                    error,
-                    `не удалось создать тег «${tagCodeToCreate}»`
-                  )
-                  return null
-                }
-              })()
-            )
-        )
+      const newCreatedTagIds = await createTagsAndGetIds(
+        tagIdForCode,
+        tagCodesToCreate,
+        notifier
       )
-        .map((result) => (result.status === 'fulfilled' ? result.value : null))
-        .filter((result) => result !== null)
 
       return await serverConnector.createCoverage({
         ...truncatedData,
