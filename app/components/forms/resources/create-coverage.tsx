@@ -14,8 +14,8 @@ import {
 } from '~/data/forms/resources/create-coverage'
 import type { FormSelectProps } from '../common/form-select'
 import {
-  useForm,
   createTagsAndGetIds,
+  useForm,
   FormAutocompleteFreeItemsMultipleSelect,
   FormAutocompleteMultipleSelect,
   FormAutocompleteSingleSelect,

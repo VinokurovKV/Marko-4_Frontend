@@ -233,7 +233,7 @@ export function UpdateDocumentFormDialog(props: UpdateDocumentFormDialogProps) {
   return (
     <FormDialog
       formInternal={formInternal}
-      title="изменить документ"
+      title={`изменить документ «${document?.code}»`}
       submitButtonTitle="изменить"
       cancelButton={{
         title: 'отменить',

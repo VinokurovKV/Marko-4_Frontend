@@ -12,8 +12,8 @@ import {
 } from '~/data/forms/resources/create-device'
 import type { FormSelectProps } from '../common/form-select'
 import {
-  useForm,
   createTagsAndGetIds,
+  useForm,
   FormAutocompleteFreeItemsMultipleSelect,
   FormBlock,
   FormDialog,

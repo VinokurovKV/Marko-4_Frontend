@@ -1,23 +1,32 @@
 // Project
 import { allRequirementModifiers, allRequirementOrigins } from '@common/enums'
-import type { CreateRequirementSuccessResultDto } from '@common/dtos/server-api/requirements.dto'
+import type { UpdateRequirementSuccessResultDto } from '@common/dtos/server-api/requirements.dto'
 import type { DtoWithoutEnums } from '@common/dto-without-enums'
-import type { RequirementPrimary, TestPrimary } from '~/types'
+import type {
+  RequirementPrimary,
+  TestPrimary,
+  RequirementTertiary
+} from '~/types'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
+import { useMeta } from '~/providers/meta'
+import { useRequirementSubscription } from '~/hooks/resources'
 import { useTags, useDocuments, useFragments } from '~/hooks/resources'
 import {
   localizationForRequirementModifier,
   localizationForRequirementOrigin
 } from '~/localization'
 import {
-  type CreateRequirementFormData,
-  INITIAL_CREATE_REQUIREMENT_FORM_DATA,
-  createRequirementFormValidator
-} from '~/data/forms/resources/create-requirement'
+  type UpdateRequirementFormData,
+  updateRequirementFormValidator
+} from '~/data/forms/resources/update-requirement'
 import type { FormSelectProps } from '../common/form-select'
 import {
   createTagsAndGetIds,
+  prepareArrFieldForUpdate as prepareArr,
+  prepareOptionalFieldForUpdate as prepareOptional,
+  prepareRequiredFieldForUpdate as prepareRequired,
+  prepareTextFieldForUpdate as prepareText,
   useForm,
   FormAutocompleteFreeItemsMultipleSelect,
   FormAutocompleteMultipleSelect,
@@ -37,35 +46,49 @@ const EMPTY_TAG_CODES_ARR: string[] = []
 const EMPTY_FRAGMENT_IDS_ARR: number[] = []
 const EMPTY_REQUIREMENT_IDS_ARR: number[] = []
 
-const CREATE_REQUIREMENT_FORM_PROPS_JOINED =
-  createRequirementFormValidator.getPromptsJoined()
+const UPDATE_REQUIREMENT_FORM_PROPS_JOINED =
+  updateRequirementFormValidator.getPromptsJoined()
 
-export interface CreateRequirementFormDialogProps {
+export interface UpdateRequirementFormDialogProps {
   requirements: RequirementPrimary[] | null
   tests: TestPrimary[] | null
-  createModeIsActive: boolean
-  setCreateModeIsActive: React.Dispatch<React.SetStateAction<boolean>>
-  onSuccessCreateRequirement?: (
-    createRequirementResult: DtoWithoutEnums<CreateRequirementSuccessResultDto>
+  requirementId: number | null
+  setRequirementId: React.Dispatch<React.SetStateAction<number | null>>
+  initialRequirement: RequirementTertiary | null
+  onSuccessUpdateRequirement?: (
+    updateRequirementResult: DtoWithoutEnums<UpdateRequirementSuccessResultDto>
   ) => void
   onCancelClick?: () => void
 }
 
-export function CreateRequirementFormDialog(
-  props: CreateRequirementFormDialogProps
+export function UpdateRequirementFormDialog(
+  props: UpdateRequirementFormDialogProps
 ) {
   const notifier = useNotifier()
+  const meta = useMeta()
+  const selfId = React.useMemo(
+    () => (meta.status !== 'AUTHENTICATED' ? null : meta.selfMeta.id),
+    [meta]
+  )
 
-  const tags = useTags('PRIMARY_PROPS', false, props.createModeIsActive)
+  const [requirement, setRequirement] =
+    React.useState<RequirementTertiary | null>(props.initialRequirement)
+  useRequirementSubscription(
+    'UP_TO_TERTIARY_PROPS',
+    props.requirementId,
+    setRequirement
+  )
+
+  const tags = useTags('PRIMARY_PROPS', false, props.requirementId !== null)
   const documents = useDocuments(
     'PRIMARY_PROPS',
     false,
-    props.createModeIsActive
+    props.requirementId !== null
   )
   const fragments = useFragments(
     'PRIMARY_PROPS',
     false,
-    props.createModeIsActive
+    props.requirementId !== null
   )
 
   const tagIds = React.useMemo(() => tags?.map((tag) => tag.id) ?? [], [tags])
@@ -80,66 +103,142 @@ export function CreateRequirementFormDialog(
     [tags]
   )
 
+  React.useEffect(() => {
+    const subscriptionId = serverConnector.subscribeToEvents(
+      {
+        filter: {
+          types: [
+            'UPDATE_REQUIREMENT',
+            'DELETE_REQUIREMENT',
+            'DELETE_REQUIREMENT'
+          ]
+        }
+      },
+      (data) => {
+        ;(() => {
+          if (props.requirementId !== null) {
+            for (const event of data) {
+              if (selfId !== null && event.initiatorId !== selfId) {
+                if (
+                  event.type === 'UPDATE_REQUIREMENT' &&
+                  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+                  (event as any).config?.resource?.id === props.requirementId
+                ) {
+                  notifier.showWarning(
+                    `редактируемое требование изменено другим пользователем`
+                  )
+                } else if (
+                  (event.type === 'DELETE_REQUIREMENT' &&
+                    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+                    (event as any).config?.resource?.id ===
+                      props.requirementId) ||
+                  (event.type === 'DELETE_REQUIREMENT' &&
+                    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+                    (event as any).config?.resources?.some?.(
+                      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+                      (resource: any) => resource?.id === props.requirementId
+                    ))
+                ) {
+                  notifier.showWarning(
+                    `редактируемое требование удалено другим пользователем`
+                  )
+                }
+              }
+            }
+          }
+        })()
+      }
+    ).subscriptionId
+    return () => {
+      serverConnector.unsubscribe(subscriptionId)
+    }
+  }, [props.requirementId, notifier, selfId])
+
   const submitAction = React.useCallback(
-    async (validatedData: CreateRequirementFormData) => {
-      const {
-        descriptionText,
-        remarkText,
-        tagIds,
-        tagCodesToCreate,
-        ...truncatedData
-      } = validatedData
+    async (validatedData: UpdateRequirementFormData) => {
+      if (props.requirementId === null) {
+        throw new Error('отсутствует идентификатор требования')
+      } else if (requirement === null) {
+        throw new Error(
+          `отсутствует доступ к текущим характеристикам редактируемого требования`
+        )
+      } else {
+        const { descriptionText, remarkText, tagIds, tagCodesToCreate } =
+          validatedData
 
-      const recentlyCreatedTagIds = (tagCodesToCreate ?? [])
-        .map((tagCodeToCreate) => tagIdForCode.get(tagCodeToCreate))
-        .filter((tagId) => tagId !== undefined)
+        const recentlyCreatedTagIds = (tagCodesToCreate ?? [])
+          .map((tagCodeToCreate) => tagIdForCode.get(tagCodeToCreate))
+          .filter((tagId) => tagId !== undefined)
 
-      const newCreatedTagIds = await createTagsAndGetIds(
-        tagIdForCode,
-        tagCodesToCreate,
-        notifier
-      )
+        const newCreatedTagIds = await createTagsAndGetIds(
+          tagIdForCode,
+          tagCodesToCreate,
+          notifier
+        )
 
-      return await serverConnector.createRequirement({
-        ...truncatedData,
-        modifier: truncatedData.modifier!,
-        origin: truncatedData.origin!,
-        testId: truncatedData.testId,
-        description:
-          descriptionText !== undefined
-            ? {
-                format: 'PLAIN',
-                text: descriptionText
-              }
-            : undefined,
-        remark:
-          remarkText !== undefined
-            ? {
-                format: 'PLAIN',
-                text: remarkText
-              }
-            : undefined,
-        tagIds:
-          (tagIds ?? []).length +
-            recentlyCreatedTagIds.length +
-            newCreatedTagIds.length >
-          0
-            ? [...(tagIds ?? []), ...recentlyCreatedTagIds, ...newCreatedTagIds]
-            : undefined
-      })
+        return await serverConnector.updateRequirement({
+          id: props.requirementId,
+          code: prepareRequired(requirement.code, validatedData.code),
+          name: prepareOptional(requirement.name, validatedData.name),
+          modifier: prepareRequired(
+            requirement.modifier,
+            validatedData.modifier
+          ),
+          origin: prepareRequired(requirement.origin, validatedData.origin),
+          rate: prepareRequired(requirement.rate, validatedData.rate),
+          testId: prepareRequired(requirement.testId, validatedData.testId),
+          description: prepareText(requirement.description, descriptionText),
+          remark: prepareText(requirement.remark, remarkText),
+          tagIds: prepareArr(requirement.tagIds, [
+            ...(tagIds ?? []),
+            ...recentlyCreatedTagIds,
+            ...newCreatedTagIds
+          ]),
+          fragmentIds: prepareArr(
+            requirement.fragmentIds,
+            validatedData.fragmentIds
+          ),
+          childRequirementIds: prepareArr(
+            requirement.childRequirementIds,
+            validatedData.childRequirementIds
+          ),
+          parentRequirementIds: prepareArr(
+            requirement.parentRequirementIds,
+            validatedData.parentRequirementIds
+          )
+        })
+      }
     },
-    [notifier, tagIdForCode]
+    [props.requirementId, notifier, requirement, tagIdForCode]
   )
 
   const onSuccessSubmit = React.useCallback(
     (
-      data: CreateRequirementFormData,
-      createRequirementResult: DtoWithoutEnums<CreateRequirementSuccessResultDto>
+      data: UpdateRequirementFormData,
+      updateRequirementResult: DtoWithoutEnums<UpdateRequirementSuccessResultDto>
     ) => {
-      notifier.showSuccess(`требование «${data.code}» создано`)
-      props.onSuccessCreateRequirement?.(createRequirementResult)
+      notifier.showSuccess(`требование «${requirement?.code}» изменено`)
+      props.onSuccessUpdateRequirement?.(updateRequirementResult)
     },
-    [props.onSuccessCreateRequirement, notifier]
+    [props.onSuccessUpdateRequirement, notifier]
+  )
+
+  const initialFormData: UpdateRequirementFormData = React.useMemo(
+    () => ({
+      code: requirement?.code ?? '',
+      name: requirement?.name ?? undefined,
+      modifier: requirement?.modifier,
+      origin: requirement?.origin,
+      rate: requirement?.rate ?? 1,
+      testId: requirement?.testId ?? undefined,
+      descriptionText: requirement?.description?.text,
+      remarkText: requirement?.remark?.text,
+      tagIds: requirement?.tagIds,
+      fragmentIds: requirement?.fragmentIds,
+      childRequirementIds: requirement?.childRequirementIds,
+      parentRequirementIds: requirement?.parentRequirementIds
+    }),
+    [requirement]
   )
 
   const {
@@ -152,11 +251,12 @@ export function CreateRequirementFormDialog(
     handleAutocompleteMultipleSelectChange,
     handleAutocompleteMultipleSelectFreeItemsChange
   } = useForm<
-    CreateRequirementFormData,
-    DtoWithoutEnums<CreateRequirementSuccessResultDto>
+    UpdateRequirementFormData,
+    DtoWithoutEnums<UpdateRequirementSuccessResultDto>
   >({
-    INITIAL_FORM_DATA: INITIAL_CREATE_REQUIREMENT_FORM_DATA,
-    validator: createRequirementFormValidator,
+    INITIAL_FORM_DATA: initialFormData,
+    validator: updateRequirementFormValidator,
+    clearTrigger: requirement?.id,
     submitAction: submitAction,
     onSuccessSubmit: onSuccessSubmit
   })
@@ -229,20 +329,31 @@ export function CreateRequirementFormDialog(
     [props.tests]
   )
 
+  const setIsActive = React.useCallback(
+    (value: boolean | ((prevState: boolean) => boolean)) => {
+      if (value === false) {
+        props.setRequirementId(null)
+      } else {
+        throw new Error()
+      }
+    },
+    [props.setRequirementId]
+  )
+
   return (
     <FormDialog
       formInternal={formInternal}
-      title="создать требование"
-      submitButtonTitle="создать"
+      title={`изменить требование «${requirement?.code}»`}
+      submitButtonTitle="изменить"
       cancelButton={{
         title: 'отменить',
         onClick: props.onCancelClick
       }}
       clearButton={{
-        title: 'очистить'
+        title: 'к текущим значениям'
       }}
-      isActive={props.createModeIsActive}
-      setIsActive={props.setCreateModeIsActive}
+      isActive={props.requirementId !== null}
+      setIsActive={setIsActive}
     >
       <FormBlock title="основная информация">
         <FormTextField
@@ -251,7 +362,7 @@ export function CreateRequirementFormDialog(
           label="код"
           value={data.code}
           helperText={
-            errors?.code ?? CREATE_REQUIREMENT_FORM_PROPS_JOINED.code ?? ' '
+            errors?.code ?? UPDATE_REQUIREMENT_FORM_PROPS_JOINED.code ?? ' '
           }
           error={!!errors?.code}
           onChange={handleTextFieldChange}
@@ -261,7 +372,7 @@ export function CreateRequirementFormDialog(
           label="название"
           value={data.name ?? ''}
           helperText={
-            errors?.name ?? CREATE_REQUIREMENT_FORM_PROPS_JOINED.name ?? ' '
+            errors?.name ?? UPDATE_REQUIREMENT_FORM_PROPS_JOINED.name ?? ' '
           }
           error={!!errors?.name}
           onChange={handleTextFieldChange}
@@ -274,7 +385,7 @@ export function CreateRequirementFormDialog(
           value={data.modifier ?? ''}
           helperText={
             errors?.modifier ??
-            CREATE_REQUIREMENT_FORM_PROPS_JOINED.modifier ??
+            UPDATE_REQUIREMENT_FORM_PROPS_JOINED.modifier ??
             ' '
           }
           error={!!errors?.modifier}
@@ -287,7 +398,7 @@ export function CreateRequirementFormDialog(
           items={originSelectItems}
           value={data.origin ?? ''}
           helperText={
-            errors?.origin ?? CREATE_REQUIREMENT_FORM_PROPS_JOINED.origin ?? ' '
+            errors?.origin ?? UPDATE_REQUIREMENT_FORM_PROPS_JOINED.origin ?? ' '
           }
           error={!!errors?.origin}
           onChange={handleStrSelectChange}
@@ -298,7 +409,7 @@ export function CreateRequirementFormDialog(
           label="атомарный коэффициент (для атомарных требований)"
           value={data.rate}
           helperText={
-            errors?.rate ?? CREATE_REQUIREMENT_FORM_PROPS_JOINED.rate ?? ' '
+            errors?.rate ?? UPDATE_REQUIREMENT_FORM_PROPS_JOINED.rate ?? ' '
           }
           error={!!errors?.rate}
           onChange={handleTextFieldChange}
@@ -311,7 +422,7 @@ export function CreateRequirementFormDialog(
           values={data.fragmentIds ?? EMPTY_FRAGMENT_IDS_ARR}
           helperText={
             errors?.fragmentIds ??
-            CREATE_REQUIREMENT_FORM_PROPS_JOINED.fragmentIds ??
+            UPDATE_REQUIREMENT_FORM_PROPS_JOINED.fragmentIds ??
             ' '
           }
           error={!!errors?.fragmentIds}
@@ -327,7 +438,7 @@ export function CreateRequirementFormDialog(
           values={data.parentRequirementIds ?? EMPTY_REQUIREMENT_IDS_ARR}
           helperText={
             errors?.parentRequirementIds ??
-            CREATE_REQUIREMENT_FORM_PROPS_JOINED.parentRequirementIds ??
+            UPDATE_REQUIREMENT_FORM_PROPS_JOINED.parentRequirementIds ??
             ' '
           }
           error={!!errors?.parentRequirementIds}
@@ -341,7 +452,7 @@ export function CreateRequirementFormDialog(
           values={data.childRequirementIds ?? EMPTY_REQUIREMENT_IDS_ARR}
           helperText={
             errors?.childRequirementIds ??
-            CREATE_REQUIREMENT_FORM_PROPS_JOINED.childRequirementIds ??
+            UPDATE_REQUIREMENT_FORM_PROPS_JOINED.childRequirementIds ??
             ' '
           }
           error={!!errors?.childRequirementIds}
@@ -356,7 +467,7 @@ export function CreateRequirementFormDialog(
           titleForValue={testCodeForId}
           value={data.testId ?? null}
           helperText={
-            errors?.testId ?? CREATE_REQUIREMENT_FORM_PROPS_JOINED.testId ?? ' '
+            errors?.testId ?? UPDATE_REQUIREMENT_FORM_PROPS_JOINED.testId ?? ' '
           }
           error={!!errors?.testId}
           onChange={handleAutocompleteSingleSelectChange}
@@ -369,7 +480,7 @@ export function CreateRequirementFormDialog(
           value={data.descriptionText ?? ''}
           helperText={
             errors?.descriptionText ??
-            CREATE_REQUIREMENT_FORM_PROPS_JOINED.descriptionText ??
+            UPDATE_REQUIREMENT_FORM_PROPS_JOINED.descriptionText ??
             ' '
           }
           error={!!errors?.descriptionText}
@@ -394,8 +505,8 @@ export function CreateRequirementFormDialog(
               addMes(errors?.tagIds)
               addMes(errors?.tagCodesToCreate)
             } else {
-              addMes(CREATE_REQUIREMENT_FORM_PROPS_JOINED.tagIds)
-              addMes(CREATE_REQUIREMENT_FORM_PROPS_JOINED.tagCodesToCreate)
+              addMes(UPDATE_REQUIREMENT_FORM_PROPS_JOINED.tagIds)
+              addMes(UPDATE_REQUIREMENT_FORM_PROPS_JOINED.tagCodesToCreate)
             }
             return result.length > 0 ? result.join(', ') : ' '
           })()}
@@ -409,7 +520,7 @@ export function CreateRequirementFormDialog(
           value={data.remarkText ?? ''}
           helperText={
             errors?.remarkText ??
-            CREATE_REQUIREMENT_FORM_PROPS_JOINED.remarkText ??
+            UPDATE_REQUIREMENT_FORM_PROPS_JOINED.remarkText ??
             ' '
           }
           error={!!errors?.remarkText}

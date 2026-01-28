@@ -151,7 +151,7 @@ export function UpdateTagFormDialog(props: UpdateTagFormDialogProps) {
   return (
     <FormDialog
       formInternal={formInternal}
-      title="изменить тег"
+      title={`изменить тег «${tag?.code}»`}
       submitButtonTitle="изменить"
       cancelButton={{
         title: 'отменить',

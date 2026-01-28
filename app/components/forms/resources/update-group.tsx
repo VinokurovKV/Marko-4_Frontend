@@ -226,7 +226,7 @@ export function UpdateGroupFormDialog(props: UpdateGroupFormDialogProps) {
   return (
     <FormDialog
       formInternal={formInternal}
-      title="изменить группу тестов"
+      title={`изменить группу тестов «${group?.code}»`}
       submitButtonTitle="изменить"
       cancelButton={{
         title: 'отменить',

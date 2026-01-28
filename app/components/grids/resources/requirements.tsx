@@ -2,12 +2,14 @@
 import type {
   RequirementSecondary,
   RequirementsHierarchy,
+  RequirementTertiary,
   TestPrimary
 } from '~/types'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
 import { useMeta } from '~/providers/meta'
 import { CreateRequirementFormDialog } from '~/components/forms/resources/create-requirement'
+import { UpdateRequirementFormDialog } from '~/components/forms/resources/update-requirement'
 import { ImportRequirementsFormDialog } from '~/components/forms/resources/import-requirements'
 import { type GridProps, Grid } from '../grid'
 import {
@@ -58,6 +60,11 @@ export function RequirementsGrid(props: RequirementsGridProps) {
   )
 
   const [createModeIsActive, setCreateModeIsActive] = React.useState(false)
+  const [updatedRequirementId, setUpdatedRequirementId] = React.useState<
+    number | null
+  >(null)
+  const [initialUpdatedRequirement, setInitialUpdatedRequirement] =
+    React.useState<RequirementTertiary | null>(null)
   const [importModeIsActive, setImportModeIsActive] = React.useState(false)
 
   const requirementCodeForId = React.useMemo(
@@ -136,6 +143,29 @@ export function RequirementsGrid(props: RequirementsGridProps) {
 
   const actionsColProps: ActionsColProps = React.useMemo(
     () => ({
+      update: rightsSet.has('UPDATE_REQUIREMENT')
+        ? {
+            action: async (rowId) => {
+              try {
+                const initialRequirement =
+                  await serverConnector.readRequirement(
+                    {
+                      id: rowId
+                    },
+                    {
+                      scope: 'UP_TO_TERTIARY_PROPS'
+                    }
+                  )
+                setUpdatedRequirementId(rowId)
+                setInitialUpdatedRequirement(initialRequirement)
+              } catch {
+                notifier.showWarning(
+                  `не удалось загрузить требование с идентификатором ${rowId}`
+                )
+              }
+            }
+          }
+        : undefined,
       delete: rightsSet.has('DELETE_REQUIREMENT')
         ? {
             prepareConfirmMessage: (rowId) =>
@@ -161,16 +191,13 @@ export function RequirementsGrid(props: RequirementsGridProps) {
   const actionsCol = useActionsCol(actionsColProps)
 
   const cols: GridColDef[] = React.useMemo(
-    () =>
-      navigationMode
-        ? navigationModeReadCols
-        : [
-            ...readCols,
-            ...(rightsSet.has('UPDATE_REQUIREMENT') ||
-            rightsSet.has('DELETE_REQUIREMENT')
-              ? [actionsCol]
-              : [])
-          ],
+    () => [
+      ...(navigationMode ? navigationModeReadCols : readCols),
+      ...(rightsSet.has('UPDATE_REQUIREMENT') ||
+      rightsSet.has('DELETE_REQUIREMENT')
+        ? [actionsCol]
+        : [])
+    ],
     [navigationMode, rightsSet, readCols, navigationModeReadCols, actionsCol]
   )
 
@@ -257,6 +284,10 @@ export function RequirementsGrid(props: RequirementsGridProps) {
     setCreateModeIsActive(false)
   }, [setCreateModeIsActive])
 
+  const cancelUpdateForm = React.useCallback(() => {
+    setUpdatedRequirementId(null)
+  }, [setUpdatedRequirementId])
+
   const cancelImportForm = React.useCallback(() => {
     setImportModeIsActive(false)
   }, [setImportModeIsActive])
@@ -301,6 +332,16 @@ export function RequirementsGrid(props: RequirementsGridProps) {
         setCreateModeIsActive={setCreateModeIsActive}
         onSuccessCreateRequirement={cancelCreateForm}
         onCancelClick={cancelCreateForm}
+      />
+      <UpdateRequirementFormDialog
+        key={updatedRequirementId}
+        requirements={props.requirements}
+        tests={props.tests}
+        requirementId={updatedRequirementId}
+        setRequirementId={setUpdatedRequirementId}
+        initialRequirement={initialUpdatedRequirement}
+        onSuccessUpdateRequirement={cancelUpdateForm}
+        onCancelClick={cancelUpdateForm}
       />
       <ImportRequirementsFormDialog
         requirements={props.requirements}

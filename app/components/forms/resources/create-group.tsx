@@ -9,8 +9,8 @@ import {
   createGroupFormValidator
 } from '~/data/forms/resources/create-group'
 import {
-  useForm,
   createTagsAndGetIds,
+  useForm,
   FormAutocompleteFreeItemsMultipleSelect,
   FormAutocompleteMultipleSelect,
   FormBlock,
