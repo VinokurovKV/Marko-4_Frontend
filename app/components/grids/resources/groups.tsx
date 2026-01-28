@@ -1,9 +1,10 @@
 // Project
-import type { GroupSecondary } from '~/types'
+import type { GroupSecondary, GroupTertiary } from '~/types'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
 import { useMeta } from '~/providers/meta'
 import { CreateGroupFormDialog } from '~/components/forms/resources/create-group'
+import { UpdateGroupFormDialog } from '~/components/forms/resources/update-group'
 import { type GridProps, Grid } from '../grid'
 import {
   type ActionsColProps,
@@ -40,6 +41,11 @@ export function GroupsGrid(props: GroupsGridProps) {
   )
 
   const [createModeIsActive, setCreateModeIsActive] = React.useState(false)
+  const [updatedGroupId, setUpdatedGroupId] = React.useState<number | null>(
+    null
+  )
+  const [initialUpdatedGroup, setInitialUpdatedGroup] =
+    React.useState<GroupTertiary | null>(null)
 
   const groupCodeForId = React.useMemo(
     () => new Map(props.groups.map((group) => [group.id, group.code])),
@@ -59,6 +65,28 @@ export function GroupsGrid(props: GroupsGridProps) {
 
   const actionsColProps: ActionsColProps = React.useMemo(
     () => ({
+      update: rightsSet.has('UPDATE_GROUP')
+        ? {
+            action: async (rowId) => {
+              try {
+                const initialGroup = await serverConnector.readGroup(
+                  {
+                    id: rowId
+                  },
+                  {
+                    scope: 'UP_TO_TERTIARY_PROPS'
+                  }
+                )
+                setUpdatedGroupId(rowId)
+                setInitialUpdatedGroup(initialGroup)
+              } catch {
+                notifier.showWarning(
+                  `не удалось загрузить группу тестов с идентификатором ${rowId}`
+                )
+              }
+            }
+          }
+        : undefined,
       delete: rightsSet.has('DELETE_GROUP')
         ? {
             prepareConfirmMessage: (rowId) => {
@@ -85,15 +113,12 @@ export function GroupsGrid(props: GroupsGridProps) {
   const actionsCol = useActionsCol(actionsColProps)
 
   const cols: GridColDef[] = React.useMemo(
-    () =>
-      navigationMode
-        ? navigationModeReadCols
-        : [
-            ...readCols,
-            ...(rightsSet.has('UPDATE_GROUP') || rightsSet.has('DELETE_GROUP')
-              ? [actionsCol]
-              : [])
-          ],
+    () => [
+      ...(navigationMode ? navigationModeReadCols : readCols),
+      ...(rightsSet.has('UPDATE_GROUP') || rightsSet.has('DELETE_GROUP')
+        ? [actionsCol]
+        : [])
+    ],
     [navigationMode, rightsSet, readCols, navigationModeReadCols, actionsCol]
   )
 
@@ -157,6 +182,10 @@ export function GroupsGrid(props: GroupsGridProps) {
     setCreateModeIsActive(false)
   }, [setCreateModeIsActive])
 
+  const cancelUpdateForm = React.useCallback(() => {
+    setUpdatedGroupId(null)
+  }, [setUpdatedGroupId])
+
   const handleNavigationModeRowClick = React.useCallback(
     (rowId: number) => {
       void navigate(
@@ -189,6 +218,14 @@ export function GroupsGrid(props: GroupsGridProps) {
         setCreateModeIsActive={setCreateModeIsActive}
         onSuccessCreateGroup={cancelCreateForm}
         onCancelClick={cancelCreateForm}
+      />
+      <UpdateGroupFormDialog
+        key={updatedGroupId}
+        groupId={updatedGroupId}
+        setGroupId={setUpdatedGroupId}
+        initialGroup={initialUpdatedGroup}
+        onSuccessUpdateGroup={cancelUpdateForm}
+        onCancelClick={cancelUpdateForm}
       />
     </>
   )
