@@ -1,11 +1,12 @@
 // Project
 import { convertMediaTypeToFileExtension } from '@common/formats'
-import type { TestTemplateSecondary } from '~/types'
+import type { TestTemplateSecondary, TestTemplateTertiary } from '~/types'
 import { downloadFileFromBlob } from '~/utilities'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
 import { useMeta } from '~/providers/meta'
 import { CreateTestTemplateFormDialog } from '~/components/forms/resources/create-test-template'
+import { UpdateTestTemplateFormDialog } from '~/components/forms/resources/update-test-template'
 import { type GridProps, Grid } from '../grid'
 import {
   type ActionsColProps,
@@ -41,6 +42,11 @@ export function TestTemplatesGrid(props: TestTemplatesGridProps) {
   )
 
   const [createModeIsActive, setCreateModeIsActive] = React.useState(false)
+  const [updatedTestTemplateId, setUpdatedTestTemplateId] = React.useState<
+    number | null
+  >(null)
+  const [initialUpdatedTestTemplate, setInitialUpdatedTestTemplate] =
+    React.useState<TestTemplateTertiary | null>(null)
 
   const testTemplateCodeForId = React.useMemo(
     () =>
@@ -84,6 +90,29 @@ export function TestTemplatesGrid(props: TestTemplatesGridProps) {
           }
         }
       },
+      update: rightsSet.has('UPDATE_TEST_TEMPLATE')
+        ? {
+            action: async (rowId) => {
+              try {
+                const initialTestTemplate =
+                  await serverConnector.readTestTemplate(
+                    {
+                      id: rowId
+                    },
+                    {
+                      scope: 'UP_TO_TERTIARY_PROPS'
+                    }
+                  )
+                setUpdatedTestTemplateId(rowId)
+                setInitialUpdatedTestTemplate(initialTestTemplate)
+              } catch {
+                notifier.showWarning(
+                  `не удалось загрузить шаблон теста с идентификатором ${rowId}`
+                )
+              }
+            }
+          }
+        : undefined,
       delete: rightsSet.has('DELETE_TEST_TEMPLATE')
         ? {
             prepareConfirmMessage: (rowId) =>
@@ -109,7 +138,7 @@ export function TestTemplatesGrid(props: TestTemplatesGridProps) {
   const actionsCol = useActionsCol(actionsColProps)
 
   const cols: GridColDef[] = React.useMemo(
-    () => (navigationMode ? navigationModeReadCols : [...readCols, actionsCol]),
+    () => [...(navigationMode ? navigationModeReadCols : readCols), actionsCol],
     [navigationMode, readCols, navigationModeReadCols, actionsCol]
   )
 
@@ -175,6 +204,10 @@ export function TestTemplatesGrid(props: TestTemplatesGridProps) {
     setCreateModeIsActive(false)
   }, [setCreateModeIsActive])
 
+  const cancelUpdateForm = React.useCallback(() => {
+    setUpdatedTestTemplateId(null)
+  }, [setUpdatedTestTemplateId])
+
   const handleNavigationModeRowClick = React.useCallback(
     (rowId: number) => {
       void navigate(
@@ -206,6 +239,14 @@ export function TestTemplatesGrid(props: TestTemplatesGridProps) {
         setCreateModeIsActive={setCreateModeIsActive}
         onSuccessCreateTestTemplate={cancelCreateForm}
         onCancelClick={cancelCreateForm}
+      />
+      <UpdateTestTemplateFormDialog
+        key={updatedTestTemplateId}
+        testTemplateId={updatedTestTemplateId}
+        setTestTemplateId={setUpdatedTestTemplateId}
+        initialTestTemplate={initialUpdatedTestTemplate}
+        onSuccessUpdateTestTemplate={cancelUpdateForm}
+        onCancelClick={cancelUpdateForm}
       />
     </>
   )

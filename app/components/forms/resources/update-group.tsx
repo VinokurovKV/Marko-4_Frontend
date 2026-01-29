@@ -168,7 +168,7 @@ export function UpdateGroupFormDialog(props: UpdateGroupFormDialogProps) {
       notifier.showSuccess(`группа тестов «${group?.code}» изменена`)
       props.onSuccessUpdateGroup?.(updateGroupResult)
     },
-    [props.onSuccessUpdateGroup, notifier]
+    [props.onSuccessUpdateGroup, notifier, group]
   )
 
   const initialFormData: UpdateGroupFormData = React.useMemo(

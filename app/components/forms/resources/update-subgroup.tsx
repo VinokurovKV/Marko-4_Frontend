@@ -175,7 +175,7 @@ export function UpdateSubgroupFormDialog(props: UpdateSubgroupFormDialogProps) {
       notifier.showSuccess(`подгруппа тестов «${subgroup?.code}» изменена`)
       props.onSuccessUpdateSubgroup?.(updateSubgroupResult)
     },
-    [props.onSuccessUpdateSubgroup, notifier]
+    [props.onSuccessUpdateSubgroup, notifier, subgroup]
   )
 
   const initialFormData: UpdateSubgroupFormData = React.useMemo(

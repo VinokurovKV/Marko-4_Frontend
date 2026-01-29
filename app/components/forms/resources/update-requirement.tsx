@@ -220,7 +220,7 @@ export function UpdateRequirementFormDialog(
       notifier.showSuccess(`требование «${requirement?.code}» изменено`)
       props.onSuccessUpdateRequirement?.(updateRequirementResult)
     },
-    [props.onSuccessUpdateRequirement, notifier]
+    [props.onSuccessUpdateRequirement, notifier, requirement]
   )
 
   const initialFormData: UpdateRequirementFormData = React.useMemo(

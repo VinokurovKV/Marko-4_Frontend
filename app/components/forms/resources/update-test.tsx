@@ -303,10 +303,10 @@ export function UpdateTestFormDialog(props: UpdateTestFormDialogProps) {
       data: UpdateTestFormData,
       updateTestResult: DtoWithoutEnums<UpdateTestSuccessResultDto>
     ) => {
-      notifier.showSuccess(`тест «${data.code}» создан`)
+      notifier.showSuccess(`тест «${test?.code}» изменен`)
       props.onSuccessUpdateTest?.(updateTestResult)
     },
-    [props.onSuccessUpdateTest, notifier]
+    [props.onSuccessUpdateTest, notifier, test]
   )
 
   const initialFormData = React.useMemo(() => {

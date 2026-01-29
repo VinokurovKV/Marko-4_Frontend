@@ -175,7 +175,7 @@ export function UpdateDocumentFormDialog(props: UpdateDocumentFormDialogProps) {
       notifier.showSuccess(`документ «${document?.code}» изменен`)
       props.onSuccessUpdateDocument?.(updateDocumentResult)
     },
-    [props.onSuccessUpdateDocument, notifier]
+    [props.onSuccessUpdateDocument, notifier, document]
   )
 
   const initialFormData: UpdateDocumentFormData = React.useMemo(
