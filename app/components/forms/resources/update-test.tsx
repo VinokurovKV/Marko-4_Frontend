@@ -104,42 +104,42 @@ export function UpdateTestFormDialog(props: UpdateTestFormDialogProps) {
     [tags]
   )
 
-  // const readTopologyNonGeneratorVertexNamesSorted = React.useCallback(
-  //   async (topologyId: number, errorMessage: string) => {
-  //     try {
-  //       const topology = await serverConnector.readTopology(
-  //         {
-  //           id: topologyId
-  //         },
-  //         {
-  //           scope: 'UP_TO_TERTIARY_PROPS'
-  //         }
-  //       )
-  //       const commonTopology = await serverConnector.readCommonTopology(
-  //         {
-  //           id: topology.commonTopologyId
-  //         },
-  //         {
-  //           scope: 'UP_TO_TERTIARY_PROPS'
-  //         }
-  //       )
-  //       const generatorVertexNamesSet = new Set(
-  //         commonTopology.config.vertexes
-  //           .filter((vertex) => vertex.isGenerator)
-  //           .map((vertex) => vertex.name)
-  //       )
-  //       return topology.vertexNames
-  //         .filter(
-  //           (vertexName) => generatorVertexNamesSet.has(vertexName) === false
-  //         )
-  //         .toSorted()
-  //     } catch (error) {
-  //       notifier.showError(error, errorMessage)
-  //       return EMPTY_VERTEX_NAMES_ARR
-  //     }
-  //   },
-  //   [notifier]
-  // )
+  const readTopologyNonGeneratorVertexNamesSorted = React.useCallback(
+    async (topologyId: number, errorMessage: string) => {
+      try {
+        const topology = await serverConnector.readTopology(
+          {
+            id: topologyId
+          },
+          {
+            scope: 'UP_TO_TERTIARY_PROPS'
+          }
+        )
+        const commonTopology = await serverConnector.readCommonTopology(
+          {
+            id: topology.commonTopologyId
+          },
+          {
+            scope: 'UP_TO_TERTIARY_PROPS'
+          }
+        )
+        const generatorVertexNamesSet = new Set(
+          commonTopology.config.vertexes
+            .filter((vertex) => vertex.isGenerator)
+            .map((vertex) => vertex.name)
+        )
+        return topology.vertexNames
+          .filter(
+            (vertexName) => generatorVertexNamesSet.has(vertexName) === false
+          )
+          .toSorted()
+      } catch (error) {
+        notifier.showError(error, errorMessage)
+        return EMPTY_VERTEX_NAMES_ARR
+      }
+    },
+    [notifier]
+  )
 
   React.useEffect(() => {
     const subscriptionId = serverConnector.subscribeToEvents(
@@ -201,8 +201,8 @@ export function UpdateTestFormDialog(props: UpdateTestFormDialogProps) {
           remarkText,
           config,
           tagIds,
-          tagCodesToCreate
-          //, ...truncatedData
+          tagCodesToCreate,
+          ...truncatedData
         } = validatedData
 
         const recentlyCreatedTagIds = (tagCodesToCreate ?? [])
@@ -215,38 +215,94 @@ export function UpdateTestFormDialog(props: UpdateTestFormDialogProps) {
           notifier
         )
 
-        // const vertexNamesSorted = await (async () => {
-        //   if (validatedData.topologyId === undefined) {
-        //     return EMPTY_VERTEX_NAMES_ARR
-        //   }
-        //   return await readTopologyNonGeneratorVertexNamesSorted(
-        //     validatedData.topologyId,
-        //     'не удалось загрузить топологию при обработке введенных данных о вершинах'
-        //   )
-        // })()
+        const vertexNamesSorted = await (async () => {
+          if (validatedData.topologyId === undefined) {
+            return EMPTY_VERTEX_NAMES_ARR
+          }
+          return await readTopologyNonGeneratorVertexNamesSorted(
+            validatedData.topologyId,
+            'не удалось загрузить топологию при обработке введенных данных о вершинах'
+          )
+        })()
 
-        // const deltas = vertexNamesSorted.map(
-        //   (vertexName, vertexIndex) =>
-        //     truncatedData[getDeltaField(vertexIndex)] as File | undefined
-        // )
+        const deltas = vertexNamesSorted.map(
+          (vertexName, vertexIndex) =>
+            truncatedData[getDeltaField(vertexIndex)] as File | undefined
+        )
 
-        // const deltaTransferIndexes = (() => {
-        //   let lastUsedTransferIndex = -1
-        //   const deltaTransferIndexes: (number | undefined)[] = []
-        //   for (
-        //     let vertexIndex = 0;
-        //     vertexIndex < deltas.length;
-        //     vertexIndex++
-        //   ) {
-        //     if (deltas[vertexIndex] !== undefined) {
-        //       lastUsedTransferIndex++
-        //       deltaTransferIndexes.push(lastUsedTransferIndex)
-        //     } else {
-        //       deltaTransferIndexes.push(undefined)
-        //     }
-        //   }
-        //   return deltaTransferIndexes
-        // })()
+        const deltaTransferIndexes = (() => {
+          let lastUsedTransferIndex = -1
+          const deltaTransferIndexes: (number | undefined | null)[] = []
+          for (
+            let vertexIndex = 0;
+            vertexIndex < deltas.length;
+            vertexIndex++
+          ) {
+            const delta = deltas[vertexIndex]
+            if (delta !== undefined && delta.type !== FICT_FILE_TYPE) {
+              lastUsedTransferIndex++
+              deltaTransferIndexes.push(lastUsedTransferIndex)
+            } else if (delta !== undefined && delta.type === FICT_FILE_TYPE) {
+              deltaTransferIndexes.push(undefined)
+            } else {
+              deltaTransferIndexes.push(null)
+            }
+          }
+          return deltaTransferIndexes
+        })()
+
+        function undefinedToNull<Type>(val: Type | undefined) {
+          return val === undefined ? null : val
+        }
+
+        const currentVertexForName = new Map(
+          test.vertexes.map((vertex) => [vertex.vertexName, vertex])
+        )
+
+        const newVertexes = vertexNamesSorted.map(
+          (vertexName, vertexIndex) => ({
+            vertexName: vertexName,
+            dbcId: undefinedToNull(
+              truncatedData[getDbcIdField(vertexIndex)] as number | undefined
+            ),
+            deltaIndex: deltaTransferIndexes[vertexIndex]
+          })
+        )
+
+        const currentVertexNames = test.vertexes.map(
+          (vertex) => vertex.vertexName
+        )
+        const newVertexNames = newVertexes.map((vertex) => vertex.vertexName)
+        const currentVertexNamesSet = new Set(currentVertexNames)
+        const newVertexNamesSet = new Set(newVertexNames)
+
+        const addedVertexes = newVertexes.filter(
+          (vertex) => currentVertexNamesSet.has(vertex.vertexName) === false
+        )
+
+        const updatedVertexes = newVertexes
+          .filter((vertex) => currentVertexNamesSet.has(vertex.vertexName))
+          .map((newVertex) => {
+            const currentVertex = currentVertexForName.get(
+              newVertex.vertexName
+            )!
+            return {
+              vertexName: currentVertex.vertexName,
+              dbcId:
+                newVertex.dbcId !== currentVertex.dbcId
+                  ? newVertex.dbcId
+                  : undefined,
+              deltaIndex: newVertex.deltaIndex
+            }
+          })
+          .filter(
+            (vertex) =>
+              vertex.dbcId !== undefined || vertex.deltaIndex !== undefined
+          )
+
+        const removedVertexNames = currentVertexNames.filter(
+          (vertexName) => newVertexNamesSet.has(vertexName) === false
+        )
 
         return await serverConnector.updateTest(
           {
@@ -281,16 +337,21 @@ export function UpdateTestFormDialog(props: UpdateTestFormDialogProps) {
               test.requirementIds,
               validatedData.requirementIds
             ),
-            vertexes: undefined
-            // vertexes: vertexNamesSorted.map((vertexName, vertexIndex) => ({
-            //   vertexName: vertexName,
-            //   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-            //   dbcId: truncatedData[getDbcIdField(vertexIndex)],
-            //   deltaIndex: deltaTransferIndexes[vertexIndex]
-            // }))
+            vertexes:
+              addedVertexes.length > 0 ||
+              updatedVertexes.length > 0 ||
+              removedVertexNames.length > 0
+                ? {
+                    added: addedVertexes,
+                    updated: updatedVertexes,
+                    removed: removedVertexNames
+                  }
+                : undefined
           },
           config?.type !== FICT_FILE_TYPE ? config : undefined,
-          undefined, // deltas.filter((delta) => delta !== undefined),
+          deltas.filter(
+            (delta) => delta !== undefined && delta.type !== FICT_FILE_TYPE
+          ) as File[],
           undefined
         )
       }
