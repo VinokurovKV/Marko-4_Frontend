@@ -1,11 +1,12 @@
 // Project
 import { convertMediaTypeToFileExtension } from '@common/formats'
-import type { DeviceSecondary } from '~/types'
+import type { DeviceSecondary, DeviceTertiary } from '~/types'
 import { downloadFileFromBlob } from '~/utilities'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
 import { useMeta } from '~/providers/meta'
 import { CreateDeviceFormDialog } from '~/components/forms/resources/create-device'
+import { UpdateDeviceFormDialog } from '~/components/forms/resources/update-device'
 import { type GridProps, Grid } from '../grid'
 import {
   type ActionsColProps,
@@ -43,6 +44,11 @@ export function DevicesGrid(props: DevicesGridProps) {
   )
 
   const [createModeIsActive, setCreateModeIsActive] = React.useState(false)
+  const [updatedDeviceId, setUpdatedDeviceId] = React.useState<number | null>(
+    null
+  )
+  const [initialUpdatedDevice, setInitialUpdatedDevice] =
+    React.useState<DeviceTertiary | null>(null)
 
   const deviceCodeForId = React.useMemo(
     () => new Map(props.devices.map((device) => [device.id, device.code])),
@@ -117,6 +123,28 @@ export function DevicesGrid(props: DevicesGridProps) {
           }
         }
       ],
+      update: rightsSet.has('UPDATE_DEVICE')
+        ? {
+            action: async (rowId) => {
+              try {
+                const initialDevice = await serverConnector.readDevice(
+                  {
+                    id: rowId
+                  },
+                  {
+                    scope: 'UP_TO_TERTIARY_PROPS'
+                  }
+                )
+                setUpdatedDeviceId(rowId)
+                setInitialUpdatedDevice(initialDevice)
+              } catch {
+                notifier.showWarning(
+                  `не удалось загрузить устройство с идентификатором ${rowId}`
+                )
+              }
+            }
+          }
+        : undefined,
       delete: rightsSet.has('DELETE_DEVICE')
         ? {
             prepareConfirmMessage: (rowId) =>
@@ -142,7 +170,7 @@ export function DevicesGrid(props: DevicesGridProps) {
   const actionsCol = useActionsCol(actionsColProps)
 
   const cols: GridColDef[] = React.useMemo(
-    () => (navigationMode ? navigationModeReadCols : [...readCols, actionsCol]),
+    () => [...(navigationMode ? navigationModeReadCols : readCols), actionsCol],
     [navigationMode, readCols, navigationModeReadCols, actionsCol]
   )
 
@@ -206,6 +234,10 @@ export function DevicesGrid(props: DevicesGridProps) {
     setCreateModeIsActive(false)
   }, [setCreateModeIsActive])
 
+  const cancelUpdateForm = React.useCallback(() => {
+    setUpdatedDeviceId(null)
+  }, [setUpdatedDeviceId])
+
   const handleNavigationModeRowClick = React.useCallback(
     (rowId: number) => {
       void navigate(
@@ -237,6 +269,14 @@ export function DevicesGrid(props: DevicesGridProps) {
         setCreateModeIsActive={setCreateModeIsActive}
         onSuccessCreateDevice={cancelCreateForm}
         onCancelClick={cancelCreateForm}
+      />
+      <UpdateDeviceFormDialog
+        key={updatedDeviceId}
+        deviceId={updatedDeviceId}
+        setDeviceId={setUpdatedDeviceId}
+        initialDevice={initialUpdatedDevice}
+        onSuccessUpdateDevice={cancelUpdateForm}
+        onCancelClick={cancelUpdateForm}
       />
     </>
   )
