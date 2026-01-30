@@ -1,9 +1,10 @@
 // Project
-import type { CommonTopologySecondary } from '~/types'
+import type { CommonTopologySecondary, CommonTopologyTertiary } from '~/types'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
 import { useMeta } from '~/providers/meta'
 import { CreateCommonTopologyFormDialog } from '~/components/forms/resources/create-common-topology'
+import { UpdateCommonTopologyFormDialog } from '~/components/forms/resources/update-common-topology'
 import { type GridProps, Grid } from '../grid'
 import {
   type ActionsColProps,
@@ -41,6 +42,11 @@ export function CommonTopologiesGrid(props: CommonTopologiesGridProps) {
   )
 
   const [createModeIsActive, setCreateModeIsActive] = React.useState(false)
+  const [updatedCommonTopologyId, setUpdatedCommonTopologyId] = React.useState<
+    number | null
+  >(null)
+  const [initialUpdatedCommonTopology, setInitialUpdatedCommonTopology] =
+    React.useState<CommonTopologyTertiary | null>(null)
 
   const commonTopologyCodeForId = React.useMemo(
     () =>
@@ -67,6 +73,29 @@ export function CommonTopologiesGrid(props: CommonTopologiesGridProps) {
 
   const actionsColProps: ActionsColProps = React.useMemo(
     () => ({
+      update: rightsSet.has('UPDATE_COMMON_TOPOLOGY')
+        ? {
+            action: async (rowId) => {
+              try {
+                const initialCommonTopology =
+                  await serverConnector.readCommonTopology(
+                    {
+                      id: rowId
+                    },
+                    {
+                      scope: 'UP_TO_TERTIARY_PROPS'
+                    }
+                  )
+                setUpdatedCommonTopologyId(rowId)
+                setInitialUpdatedCommonTopology(initialCommonTopology)
+              } catch {
+                notifier.showWarning(
+                  `не удалось загрузить общую топологию с идентификатором ${rowId}`
+                )
+              }
+            }
+          }
+        : undefined,
       delete: rightsSet.has('DELETE_COMMON_TOPOLOGY')
         ? {
             prepareConfirmMessage: (rowId) =>
@@ -92,16 +121,13 @@ export function CommonTopologiesGrid(props: CommonTopologiesGridProps) {
   const actionsCol = useActionsCol(actionsColProps)
 
   const cols: GridColDef[] = React.useMemo(
-    () =>
-      navigationMode
-        ? navigationModeReadCols
-        : [
-            ...readCols,
-            ...(rightsSet.has('UPDATE_COMMON_TOPOLOGY') ||
-            rightsSet.has('DELETE_COMMON_TOPOLOGY')
-              ? [actionsCol]
-              : [])
-          ],
+    () => [
+      ...(navigationMode ? navigationModeReadCols : readCols),
+      ...(rightsSet.has('UPDATE_COMMON_TOPOLOGY') ||
+      rightsSet.has('DELETE_COMMON_TOPOLOGY')
+        ? [actionsCol]
+        : [])
+    ],
     [navigationMode, rightsSet, readCols, navigationModeReadCols, actionsCol]
   )
 
@@ -167,6 +193,10 @@ export function CommonTopologiesGrid(props: CommonTopologiesGridProps) {
     setCreateModeIsActive(false)
   }, [setCreateModeIsActive])
 
+  const cancelUpdateForm = React.useCallback(() => {
+    setUpdatedCommonTopologyId(null)
+  }, [setUpdatedCommonTopologyId])
+
   const handleNavigationModeRowClick = React.useCallback(
     (rowId: number) => {
       void navigate(
@@ -198,6 +228,14 @@ export function CommonTopologiesGrid(props: CommonTopologiesGridProps) {
         setCreateModeIsActive={setCreateModeIsActive}
         onSuccessCreateCommonTopology={cancelCreateForm}
         onCancelClick={cancelCreateForm}
+      />
+      <UpdateCommonTopologyFormDialog
+        key={updatedCommonTopologyId}
+        commonTopologyId={updatedCommonTopologyId}
+        setCommonTopologyId={setUpdatedCommonTopologyId}
+        initialCommonTopology={initialUpdatedCommonTopology}
+        onSuccessUpdateCommonTopology={cancelUpdateForm}
+        onCancelClick={cancelUpdateForm}
       />
     </>
   )

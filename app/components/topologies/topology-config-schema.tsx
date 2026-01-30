@@ -30,29 +30,54 @@ export function TopologyConfigSchema({
   const validatedConfig: CommonTopologyConfig | null = React.useMemo(
     () =>
       config !== null && config.vertexes.length > 0
-        ? {
-            vertexes: config.vertexes.map((vertex) => ({
-              ...vertex,
-              name:
-                vertex.name.trim() !== ''
-                  ? vertex.name
-                  : EMPTY_VERTEX_NAME_PROMPT,
-              ifaces: vertex.ifaces.map((iface) => ({
-                ...iface,
-                name:
-                  iface.name.trim() !== ''
-                    ? iface.name
-                    : EMPTY_IFACE_NAME_PROMPT
-              }))
-            })),
-            links: config.links.filter(
-              (link) =>
-                link.start.vertexName.trim() !== '' &&
-                link.start.ifaceName.trim() !== '' &&
-                link.end.vertexName.trim() !== '' &&
-                link.end.ifaceName.trim() !== ''
+        ? (() => {
+            const vertexIfaceNamesSetForVertexName = new Map(
+              config.vertexes.map((vertex) => [
+                vertex.name,
+                new Set(vertex.ifaces.map((iface) => iface.name))
+              ])
             )
-          }
+            return {
+              vertexes: config.vertexes.map((vertex) => ({
+                ...vertex,
+                name:
+                  vertex.name.trim() !== ''
+                    ? vertex.name
+                    : EMPTY_VERTEX_NAME_PROMPT,
+                ifaces: vertex.ifaces.map((iface) => ({
+                  ...iface,
+                  name:
+                    iface.name.trim() !== ''
+                      ? iface.name
+                      : EMPTY_IFACE_NAME_PROMPT
+                }))
+              })),
+              links: config.links.filter((link) => {
+                const startVertexName = link.start.vertexName
+                const endVertexName = link.end.vertexName
+                const startIfaceName = link.start.ifaceName
+                const endIfaceName = link.end.ifaceName
+                if (
+                  startVertexName.trim() === '' ||
+                  endVertexName.trim() === '' ||
+                  startIfaceName.trim() === '' ||
+                  endIfaceName.trim() === ''
+                ) {
+                  return false
+                }
+                const startVertexIfaceNamesSet =
+                  vertexIfaceNamesSetForVertexName.get(link.start.vertexName)
+                const endVertexIfaceNamesSet =
+                  vertexIfaceNamesSetForVertexName.get(link.end.vertexName)
+                return (
+                  startVertexIfaceNamesSet !== undefined &&
+                  endVertexIfaceNamesSet !== undefined &&
+                  startVertexIfaceNamesSet.has(startIfaceName) &&
+                  endVertexIfaceNamesSet.has(endIfaceName)
+                )
+              })
+            }
+          })()
         : null,
     [config]
   )
