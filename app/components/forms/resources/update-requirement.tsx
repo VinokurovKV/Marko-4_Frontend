@@ -110,7 +110,7 @@ export function UpdateRequirementFormDialog(
           types: [
             'UPDATE_REQUIREMENT',
             'DELETE_REQUIREMENT',
-            'DELETE_REQUIREMENT'
+            'DELETE_REQUIREMENTS'
           ]
         }
       },
@@ -132,7 +132,7 @@ export function UpdateRequirementFormDialog(
                     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
                     (event as any).config?.resource?.id ===
                       props.requirementId) ||
-                  (event.type === 'DELETE_REQUIREMENT' &&
+                  (event.type === 'DELETE_REQUIREMENTS' &&
                     // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
                     (event as any).config?.resources?.some?.(
                       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access

@@ -83,7 +83,7 @@ export function UpdateDeviceFormDialog(props: UpdateDeviceFormDialogProps) {
     const subscriptionId = serverConnector.subscribeToEvents(
       {
         filter: {
-          types: ['UPDATE_DEVICE', 'DELETE_DEVICE', 'DELETE_DEVICE']
+          types: ['UPDATE_DEVICE', 'DELETE_DEVICE', 'DELETE_DEVICES']
         }
       },
       (data) => {
@@ -103,7 +103,7 @@ export function UpdateDeviceFormDialog(props: UpdateDeviceFormDialogProps) {
                   (event.type === 'DELETE_DEVICE' &&
                     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
                     (event as any).config?.resource?.id === props.deviceId) ||
-                  (event.type === 'DELETE_DEVICE' &&
+                  (event.type === 'DELETE_DEVICES' &&
                     // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
                     (event as any).config?.resources?.some?.(
                       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access

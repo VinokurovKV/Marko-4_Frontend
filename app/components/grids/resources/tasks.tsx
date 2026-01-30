@@ -1,9 +1,14 @@
 // Project
-import type { CommonTopologyPrimary, TaskSecondary } from '~/types'
+import type {
+  CommonTopologyPrimary,
+  TaskSecondary,
+  TaskTertiary
+} from '~/types'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
 import { useMeta } from '~/providers/meta'
 import { CreateTaskFormDialog } from '~/components/forms/resources/create-task'
+import { UpdateTaskFormDialog } from '~/components/forms/resources/update-task'
 import { type GridProps, Grid } from '../grid'
 import {
   type ActionsColProps,
@@ -53,6 +58,9 @@ export function TasksGrid(props: TasksGridProps) {
   )
 
   const [createModeIsActive, setCreateModeIsActive] = React.useState(false)
+  const [updatedTaskId, setUpdatedTaskId] = React.useState<number | null>(null)
+  const [initialUpdatedTask, setInitialUpdatedTask] =
+    React.useState<TaskTertiary | null>(null)
 
   const taskForId = React.useMemo(
     () => new Map(props.tasks.map((task) => [task.id, task])),
@@ -92,6 +100,28 @@ export function TasksGrid(props: TasksGridProps) {
 
   const actionsColProps: ActionsColProps = React.useMemo(
     () => ({
+      update: rightsSet.has('UPDATE_TASK')
+        ? {
+            action: async (rowId) => {
+              try {
+                const initialTask = await serverConnector.readTask(
+                  {
+                    id: rowId
+                  },
+                  {
+                    scope: 'UP_TO_TERTIARY_PROPS'
+                  }
+                )
+                setUpdatedTaskId(rowId)
+                setInitialUpdatedTask(initialTask)
+              } catch {
+                notifier.showWarning(
+                  `не удалось загрузить задание тестирования с идентификатором ${rowId}`
+                )
+              }
+            }
+          }
+        : undefined,
       cancel: rightsSet.has('CANCEL_TASK')
         ? {
             displayCondition: (rowId) => {
@@ -206,20 +236,17 @@ export function TasksGrid(props: TasksGridProps) {
   const actionsCol = useActionsCol(actionsColProps)
 
   const cols: GridColDef[] = React.useMemo(
-    () =>
-      navigationMode
-        ? navigationModeReadCols
-        : [
-            ...readCols,
-            ...(rightsSet.has('UPDATE_TASK') ||
-            rightsSet.has('CANCEL_TASK') ||
-            rightsSet.has('ABORT_TASK') ||
-            rightsSet.has('PAUSE_TASK') ||
-            rightsSet.has('UNPAUSE_TASK') ||
-            rightsSet.has('DELETE_TASK')
-              ? [actionsCol]
-              : [])
-          ],
+    () => [
+      ...(navigationMode ? navigationModeReadCols : readCols),
+      ...(rightsSet.has('UPDATE_TASK') ||
+      rightsSet.has('CANCEL_TASK') ||
+      rightsSet.has('ABORT_TASK') ||
+      rightsSet.has('PAUSE_TASK') ||
+      rightsSet.has('UNPAUSE_TASK') ||
+      rightsSet.has('DELETE_TASK')
+        ? [actionsCol]
+        : [])
+    ],
     [navigationMode, rightsSet, readCols, navigationModeReadCols, actionsCol]
   )
 
@@ -294,6 +321,10 @@ export function TasksGrid(props: TasksGridProps) {
     setCreateModeIsActive(false)
   }, [setCreateModeIsActive])
 
+  const cancelUpdateForm = React.useCallback(() => {
+    setUpdatedTaskId(null)
+  }, [setUpdatedTaskId])
+
   const handleNavigationModeRowClick = React.useCallback(
     (rowId: number) => {
       void navigate(
@@ -327,6 +358,14 @@ export function TasksGrid(props: TasksGridProps) {
         setCreateModeIsActive={setCreateModeIsActive}
         onSuccessCreateTask={cancelCreateForm}
         onCancelClick={cancelCreateForm}
+      />
+      <UpdateTaskFormDialog
+        key={updatedTaskId}
+        taskId={updatedTaskId}
+        setTaskId={setUpdatedTaskId}
+        initialTask={initialUpdatedTask}
+        onSuccessUpdateTask={cancelUpdateForm}
+        onCancelClick={cancelUpdateForm}
       />
     </>
   )

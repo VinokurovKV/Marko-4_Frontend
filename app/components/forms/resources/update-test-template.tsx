@@ -87,7 +87,7 @@ export function UpdateTestTemplateFormDialog(
           types: [
             'UPDATE_TEST_TEMPLATE',
             'DELETE_TEST_TEMPLATE',
-            'DELETE_TEST_TEMPLATE'
+            'DELETE_TEST_TEMPLATES'
           ]
         }
       },
@@ -109,7 +109,7 @@ export function UpdateTestTemplateFormDialog(
                     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
                     (event as any).config?.resource?.id ===
                       props.testTemplateId) ||
-                  (event.type === 'DELETE_TEST_TEMPLATE' &&
+                  (event.type === 'DELETE_TEST_TEMPLATES' &&
                     // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
                     (event as any).config?.resources?.some?.(
                       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access

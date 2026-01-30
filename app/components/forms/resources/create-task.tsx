@@ -436,6 +436,7 @@ export function CreateTaskFormDialog(props: CreateTaskFormDialogProps) {
         return (
           <FormBlock key={vertexIndex} title={`вершина ${vertexName}`}>
             <FormAutocompleteSingleSelect
+              required
               name={deviceIdField}
               label="устройство"
               possibleValues={filteredPreparedDeviceIds}

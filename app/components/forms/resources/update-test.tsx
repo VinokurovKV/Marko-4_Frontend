@@ -145,7 +145,7 @@ export function UpdateTestFormDialog(props: UpdateTestFormDialogProps) {
     const subscriptionId = serverConnector.subscribeToEvents(
       {
         filter: {
-          types: ['UPDATE_TEST', 'DELETE_TEST', 'DELETE_TEST']
+          types: ['UPDATE_TEST', 'DELETE_TEST', 'DELETE_TESTS']
         }
       },
       (data) => {
@@ -165,7 +165,7 @@ export function UpdateTestFormDialog(props: UpdateTestFormDialogProps) {
                   (event.type === 'DELETE_TEST' &&
                     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
                     (event as any).config?.resource?.id === props.testId) ||
-                  (event.type === 'DELETE_TEST' &&
+                  (event.type === 'DELETE_TESTS' &&
                     // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
                     (event as any).config?.resources?.some?.(
                       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access

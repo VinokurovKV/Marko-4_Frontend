@@ -1,30 +1,29 @@
 // Project
-import { convertFileFormatToExtension } from '@common/formats'
-import type { UpdateDbcSuccessResultDto } from '@common/dtos/server-api/dbcs.dto'
-import { convertNumberOfBytesToStr } from '@common/utilities'
-import type { DbcTertiary } from '~/types'
+import type { UpdateTaskSuccessResultDto } from '@common/dtos/server-api/tasks.dto'
+import type { DtoWithoutEnums } from '@common/dto-without-enums'
+import type { TaskTertiary } from '~/types'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
 import { useMeta } from '~/providers/meta'
-import { useDbcSubscription } from '~/hooks/resources'
+import { useTaskSubscription } from '~/hooks/resources'
 import { useTags } from '~/hooks/resources'
 import {
-  type UpdateDbcFormData,
-  updateDbcFormValidator
-} from '~/data/forms/resources/update-dbc'
+  type UpdateTaskFormData,
+  updateTaskFormValidator
+} from '~/data/forms/resources/update-task'
 import {
   createTagsAndGetIds,
   prepareArrFieldForUpdate as prepareArr,
-  prepareFileExtraFieldForUpdate as prepareFileExtra,
   prepareOptionalFieldForUpdate as prepareOptional,
   prepareRequiredFieldForUpdate as prepareRequired,
   prepareTextFieldForUpdate as prepareText,
   useForm,
   FormAutocompleteFreeItemsMultipleSelect,
   FormBlock,
+  // FormDateTime,
   FormDialog,
-  FormFileUpload,
   FormMultilineTextField,
+  FormNumField,
   FormTextField
 } from '../common'
 // React
@@ -33,19 +32,19 @@ import * as React from 'react'
 const EMPTY_TAG_IDS_ARR: number[] = []
 const EMPTY_TAG_CODES_ARR: string[] = []
 
-const UPDATE_DBC_FORM_PROPS_JOINED = updateDbcFormValidator.getPromptsJoined()
+const UPDATE_TASK_FORM_PROPS_JOINED = updateTaskFormValidator.getPromptsJoined()
 
-const FICT_FILE_TYPE = 'fict'
-
-export interface UpdateDbcFormDialogProps {
-  dbcId: number | null
-  setDbcId: React.Dispatch<React.SetStateAction<number | null>>
-  initialDbc: DbcTertiary | null
-  onSuccessUpdateDbc?: (updateDbcResult: UpdateDbcSuccessResultDto) => void
+export interface UpdateTaskFormDialogProps {
+  taskId: number | null
+  setTaskId: React.Dispatch<React.SetStateAction<number | null>>
+  initialTask: TaskTertiary | null
+  onSuccessUpdateTask?: (
+    updateTaskResult: DtoWithoutEnums<UpdateTaskSuccessResultDto>
+  ) => void
   onCancelClick?: () => void
 }
 
-export function UpdateDbcFormDialog(props: UpdateDbcFormDialogProps) {
+export function UpdateTaskFormDialog(props: UpdateTaskFormDialogProps) {
   const notifier = useNotifier()
   const meta = useMeta()
   const selfId = React.useMemo(
@@ -53,10 +52,10 @@ export function UpdateDbcFormDialog(props: UpdateDbcFormDialogProps) {
     [meta]
   )
 
-  const [dbc, setDbc] = React.useState<DbcTertiary | null>(props.initialDbc)
-  useDbcSubscription('UP_TO_TERTIARY_PROPS', props.dbcId, setDbc)
+  const [task, setTask] = React.useState<TaskTertiary | null>(props.initialTask)
+  useTaskSubscription('UP_TO_TERTIARY_PROPS', props.taskId, setTask)
 
-  const tags = useTags('PRIMARY_PROPS', false, props.dbcId !== null)
+  const tags = useTags('PRIMARY_PROPS', false, props.taskId !== null)
 
   const tagIds = React.useMemo(() => tags?.map((tag) => tag.id) ?? [], [tags])
 
@@ -74,35 +73,35 @@ export function UpdateDbcFormDialog(props: UpdateDbcFormDialogProps) {
     const subscriptionId = serverConnector.subscribeToEvents(
       {
         filter: {
-          types: ['UPDATE_DBC', 'DELETE_DBC', 'DELETE_DBCS']
+          types: ['UPDATE_TASK', 'DELETE_TASK', 'DELETE_TASKS']
         }
       },
       (data) => {
         ;(() => {
-          if (props.dbcId !== null) {
+          if (props.taskId !== null) {
             for (const event of data) {
               if (selfId !== null && event.initiatorId !== selfId) {
                 if (
-                  event.type === 'UPDATE_DBC' &&
+                  event.type === 'UPDATE_TASK' &&
                   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-                  (event as any).config?.resource?.id === props.dbcId
+                  (event as any).config?.resource?.id === props.taskId
                 ) {
                   notifier.showWarning(
-                    `редактируемая базовая конфигурация изменена другим пользователем`
+                    `редактируемое задание изменено другим пользователем`
                   )
                 } else if (
-                  (event.type === 'DELETE_DBC' &&
+                  (event.type === 'DELETE_TASK' &&
                     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-                    (event as any).config?.resource?.id === props.dbcId) ||
-                  (event.type === 'DELETE_DBCS' &&
+                    (event as any).config?.resource?.id === props.taskId) ||
+                  (event.type === 'DELETE_TASKS' &&
                     // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
                     (event as any).config?.resources?.some?.(
                       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-                      (resource: any) => resource?.id === props.dbcId
+                      (resource: any) => resource?.id === props.taskId
                     ))
                 ) {
                   notifier.showWarning(
-                    `редактируемая базовая конфигурация удалена другим пользователем`
+                    `редактируемое задание удалено другим пользователем`
                   )
                 }
               }
@@ -114,24 +113,19 @@ export function UpdateDbcFormDialog(props: UpdateDbcFormDialogProps) {
     return () => {
       serverConnector.unsubscribe(subscriptionId)
     }
-  }, [props.dbcId, notifier, selfId])
+  }, [props.taskId, notifier, selfId])
 
   const submitAction = React.useCallback(
-    async (validatedData: UpdateDbcFormData) => {
-      if (props.dbcId === null) {
-        throw new Error('отсутствует идентификатор базовой конфигурации')
-      } else if (dbc === null) {
+    async (validatedData: UpdateTaskFormData) => {
+      if (props.taskId === null) {
+        throw new Error('отсутствует идентификатор задания')
+      } else if (task === null) {
         throw new Error(
-          `отсутствует доступ к текущим характеристикам редактируемой базовой конфигурации`
+          `отсутствует доступ к текущим характеристикам редактируемого задания`
         )
       } else {
-        const {
-          descriptionText,
-          remarkText,
-          config,
-          tagIds,
-          tagCodesToCreate
-        } = validatedData
+        const { descriptionText, remarkText, tagIds, tagCodesToCreate } =
+          validatedData
 
         const recentlyCreatedTagIds = (tagCodesToCreate ?? [])
           .map((tagCodeToCreate) => tagIdForCode.get(tagCodeToCreate))
@@ -143,54 +137,48 @@ export function UpdateDbcFormDialog(props: UpdateDbcFormDialogProps) {
           notifier
         )
 
-        return await serverConnector.updateDbc(
-          {
-            id: props.dbcId,
-            code: prepareRequired(dbc.code, validatedData.code),
-            name: prepareOptional(dbc.name, validatedData.name),
-            config: prepareFileExtra(dbc.config, validatedData.config),
-            description: prepareText(dbc.description, descriptionText),
-            remark: prepareText(dbc.remark, remarkText),
-            tagIds: prepareArr(dbc.tagIds, [
-              ...(tagIds ?? []),
-              ...recentlyCreatedTagIds,
-              ...newCreatedTagIds
-            ])
-          },
-          config?.type !== FICT_FILE_TYPE ? config : undefined,
-          undefined
-        )
+        return await serverConnector.updateTask({
+          id: props.taskId,
+          name: prepareOptional(task.name, validatedData.name),
+          priority: prepareRequired(task.priority, validatedData.priority),
+          minLaunchTime: prepareOptional(
+            task.minLaunchTime,
+            validatedData.minLaunchTime
+          ),
+          description: prepareText(task.description, descriptionText),
+          remark: prepareText(task.remark, remarkText),
+          tagIds: prepareArr(task.tagIds, [
+            ...(tagIds ?? []),
+            ...recentlyCreatedTagIds,
+            ...newCreatedTagIds
+          ])
+        })
       }
     },
-    [props.dbcId, notifier, dbc, tagIdForCode]
+    [props.taskId, notifier, task, tagIdForCode]
   )
 
   const onSuccessSubmit = React.useCallback(
-    (data: UpdateDbcFormData, updateDbcResult: UpdateDbcSuccessResultDto) => {
-      notifier.showSuccess(`базовая конфигурация «${dbc?.code}» изменена`)
-      props.onSuccessUpdateDbc?.(updateDbcResult)
+    (
+      data: UpdateTaskFormData,
+      updateTaskResult: DtoWithoutEnums<UpdateTaskSuccessResultDto>
+    ) => {
+      notifier.showSuccess(`задание тестирования «${task?.code}» изменено`)
+      props.onSuccessUpdateTask?.(updateTaskResult)
     },
-    [props.onSuccessUpdateDbc, notifier, dbc]
+    [props.onSuccessUpdateTask, notifier, task]
   )
 
-  const initialFormData: UpdateDbcFormData = React.useMemo(
+  const initialFormData: UpdateTaskFormData = React.useMemo(
     () => ({
-      code: dbc?.code ?? '',
-      name: dbc?.name ?? undefined,
-      config: dbc?.config
-        ? new File(
-            [],
-            `${convertNumberOfBytesToStr(dbc.config.size)}.${convertFileFormatToExtension(dbc.config.format)}`,
-            {
-              type: FICT_FILE_TYPE
-            }
-          )
-        : undefined,
-      descriptionText: dbc?.description?.text,
-      remarkText: dbc?.remark?.text,
-      tagIds: dbc?.tagIds
+      name: task?.name ?? undefined,
+      priority: task?.priority,
+      minLaunchTime: task?.minLaunchTime ?? undefined,
+      descriptionText: task?.description?.text,
+      remarkText: task?.remark?.text,
+      tagIds: task?.tagIds
     }),
-    [dbc]
+    [task]
   )
 
   const {
@@ -199,12 +187,12 @@ export function UpdateDbcFormDialog(props: UpdateDbcFormDialogProps) {
     errors,
     handleTextFieldChange,
     handleAutocompleteMultipleSelectChange,
-    handleAutocompleteMultipleSelectFreeItemsChange,
-    handleFileUploadChange
-  } = useForm<UpdateDbcFormData, UpdateDbcSuccessResultDto>({
+    handleAutocompleteMultipleSelectFreeItemsChange
+    // handleDateTimeChange
+  } = useForm<UpdateTaskFormData, DtoWithoutEnums<UpdateTaskSuccessResultDto>>({
     INITIAL_FORM_DATA: initialFormData,
-    validator: updateDbcFormValidator,
-    clearTrigger: dbc?.id,
+    validator: updateTaskFormValidator,
+    clearTrigger: task?.id,
     submitAction: submitAction,
     onSuccessSubmit: onSuccessSubmit
   })
@@ -212,18 +200,18 @@ export function UpdateDbcFormDialog(props: UpdateDbcFormDialogProps) {
   const setIsActive = React.useCallback(
     (value: boolean | ((prevState: boolean) => boolean)) => {
       if (value === false) {
-        props.setDbcId(null)
+        props.setTaskId(null)
       } else {
         throw new Error()
       }
     },
-    [props.setDbcId]
+    [props.setTaskId]
   )
 
   return (
     <FormDialog
       formInternal={formInternal}
-      title={`изменить базовую конфигурацию «${dbc?.code}»`}
+      title={`изменить задание тестирования «${task?.code}»`}
       submitButtonTitle="изменить"
       cancelButton={{
         title: 'отменить',
@@ -232,38 +220,44 @@ export function UpdateDbcFormDialog(props: UpdateDbcFormDialogProps) {
       clearButton={{
         title: 'к текущим значениям'
       }}
-      isActive={props.dbcId !== null}
+      isActive={props.taskId !== null}
       setIsActive={setIsActive}
     >
       <FormBlock title="основная информация">
         <FormTextField
-          required
-          name="code"
-          label="код"
-          value={data.code}
-          helperText={errors?.code ?? UPDATE_DBC_FORM_PROPS_JOINED.code ?? ' '}
-          error={!!errors?.code}
-          onChange={handleTextFieldChange}
-        />
-        <FormTextField
           name="name"
           label="название"
           value={data.name ?? ''}
-          helperText={errors?.name ?? UPDATE_DBC_FORM_PROPS_JOINED.name ?? ' '}
+          helperText={errors?.name ?? UPDATE_TASK_FORM_PROPS_JOINED.name ?? ' '}
           error={!!errors?.name}
           onChange={handleTextFieldChange}
         />
-        <FormFileUpload
-          name="config"
-          label="конфигурация"
-          extensions={['zip']}
-          value={data.config}
+      </FormBlock>
+      <FormBlock title="параметры запуска">
+        <FormNumField
+          required
+          name="priority"
+          label="приоритет"
+          value={data.priority ?? ''}
           helperText={
-            errors?.config ?? UPDATE_DBC_FORM_PROPS_JOINED.config ?? ' '
+            errors?.priority ?? UPDATE_TASK_FORM_PROPS_JOINED.priority ?? ' '
           }
-          error={!!errors?.config}
-          onChange={handleFileUploadChange}
+          error={!!errors?.priority}
+          onChange={handleTextFieldChange}
         />
+        {/* <FormDateTime
+          disablePast
+          name="minLaunchTime"
+          label="время отложенного запуска"
+          value={data.minLaunchTime ?? null}
+          helperText={
+            errors?.minLaunchTime ??
+            UPDATE_TASK_FORM_PROPS_JOINED.minLaunchTime ??
+            ' '
+          }
+          error={!!errors?.minLaunchTime}
+          onChange={handleDateTimeChange}
+        /> */}
       </FormBlock>
       <FormBlock title="дополнительная информация">
         <FormMultilineTextField
@@ -272,7 +266,7 @@ export function UpdateDbcFormDialog(props: UpdateDbcFormDialogProps) {
           value={data.descriptionText ?? ''}
           helperText={
             errors?.descriptionText ??
-            UPDATE_DBC_FORM_PROPS_JOINED.descriptionText ??
+            UPDATE_TASK_FORM_PROPS_JOINED.descriptionText ??
             ' '
           }
           error={!!errors?.descriptionText}
@@ -297,8 +291,8 @@ export function UpdateDbcFormDialog(props: UpdateDbcFormDialogProps) {
               addMes(errors?.tagIds)
               addMes(errors?.tagCodesToCreate)
             } else {
-              addMes(UPDATE_DBC_FORM_PROPS_JOINED.tagIds)
-              addMes(UPDATE_DBC_FORM_PROPS_JOINED.tagCodesToCreate)
+              addMes(UPDATE_TASK_FORM_PROPS_JOINED.tagIds)
+              addMes(UPDATE_TASK_FORM_PROPS_JOINED.tagCodesToCreate)
             }
             return result.length > 0 ? result.join(', ') : ' '
           })()}
@@ -311,7 +305,9 @@ export function UpdateDbcFormDialog(props: UpdateDbcFormDialogProps) {
           label="комментарии"
           value={data.remarkText ?? ''}
           helperText={
-            errors?.remarkText ?? UPDATE_DBC_FORM_PROPS_JOINED.remarkText ?? ' '
+            errors?.remarkText ??
+            UPDATE_TASK_FORM_PROPS_JOINED.remarkText ??
+            ' '
           }
           error={!!errors?.remarkText}
           onChange={handleTextFieldChange}
