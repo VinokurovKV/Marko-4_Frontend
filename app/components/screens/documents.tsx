@@ -73,7 +73,7 @@ export function DocumentsScreen({ children, ...props }: DocumentsScreenProps) {
       breadcrumbsItems={breadcrumbsItems}
     >
       <HorizontalTwoPartsContainer
-        proportions={withDocument ? 'ONE_TWO' : 'ONE_ZERO'}
+        proportions={withDocument ? 'ONE_THREE' : 'ONE_ZERO'}
       >
         <DocumentsGrid
           key={`${withDocument}`}

@@ -4,8 +4,12 @@ import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
 import { localizationForDocumentType } from '~/localization'
 import { formatDate } from '~/utilities'
-import { HorizontalTwoPartsContainer } from '~/components/containers'
+import {
+  HorizontalTwoPartsContainer,
+  VerticalTwoPartsContainer
+} from '~/components/containers'
 import { FormatIcon } from '~/components/grids/cols'
+import { DocumentContentViewer } from '~/components/document-content/document-content-viewer'
 import {
   ColumnViewer,
   ColumnViewerBlock,
@@ -44,67 +48,78 @@ export function DocumentViewer({
 
   return (
     <HorizontalTwoPartsContainer
-      proportions="EQUAL"
+      proportions="TWO_ONE"
       title={['Документ', `${document.code}`]}
     >
-      <ColumnViewer>
-        <ColumnViewerBlock title="основная информация">
-          <ColumnViewerItem field="код" val={document.code} />
-          <ColumnViewerItem field="название" val={document.name} />
-          <ColumnViewerItem
-            field="тип"
-            val={localizationForDocumentType.get(document.type)}
-          />
-          <ColumnViewerItem
-            field="формат"
-            Icon={<FormatIcon format={document.format} />}
-          />
-          <ColumnViewerFile
-            id={0}
-            field="файл"
-            name={document.code}
-            size={document.config.size}
-            format={document.config.format}
-            getFileBlob={getConfigBlob}
-          />
-          <ColumnViewerItem field="версия" val={document.publicVersion} />
-          <ColumnViewerItem
-            field="дата публикации"
-            val={document.date !== null ? formatDate(document.date) : undefined}
-          />
-          <ColumnViewerRef
-            field="источник"
-            text={document.url ?? undefined}
-            href={document.url !== null ? document.url : undefined}
-            external={true}
-          />
-        </ColumnViewerBlock>
-        <ColumnViewerBlock
-          title={`фрагменты${document.fragmentsCount > 0 ? ` (${document.fragmentsCount})` : ''}`}
-        >
-          <ColumnViewerChipsBlock
-            emptyText={fragments !== null ? 'нет' : '???'}
-            items={(fragments ?? []).map((fragment) => ({
-              text: fragment.innerCode,
-              href: `/fragments/${fragment.id}`
-            }))}
-          />
-        </ColumnViewerBlock>
-        <ColumnViewerBlock title="теги">
-          <ColumnViewerChipsBlock
-            emptyText={tags !== null ? 'нет' : '???'}
-            items={(tags ?? []).map((tag) => ({
-              text: tag.code,
-              href: `/tags/${tag.id}`
-            }))}
-          />
-        </ColumnViewerBlock>
-      </ColumnViewer>
-      <ColumnViewer>
-        <ColumnViewerBlock title="описание">
-          <ColumnViewerText text={document.description?.text} emptyText="нет" />
-        </ColumnViewerBlock>
-      </ColumnViewer>
+      <DocumentContentViewer document={document} />
+      <VerticalTwoPartsContainer proportions="50_50">
+        <ColumnViewer>
+          <ColumnViewerBlock title="основная информация">
+            <ColumnViewerItem field="код" val={document.code} />
+            <ColumnViewerItem field="название" val={document.name} />
+            <ColumnViewerItem
+              field="тип"
+              val={localizationForDocumentType.get(document.type)}
+            />
+            <ColumnViewerItem
+              field="формат"
+              Icon={<FormatIcon format={document.format} />}
+            />
+            <ColumnViewerFile
+              id={0}
+              field="файл"
+              name={document.code}
+              size={document.config.size}
+              format={document.config.format}
+              getFileBlob={getConfigBlob}
+            />
+            <ColumnViewerItem field="версия" val={document.publicVersion} />
+            <ColumnViewerItem
+              field="дата публикации"
+              val={
+                document.date !== null ? formatDate(document.date) : undefined
+              }
+            />
+            <ColumnViewerRef
+              field="источник"
+              text={document.url ?? undefined}
+              href={document.url !== null ? document.url : undefined}
+              external={true}
+            />
+          </ColumnViewerBlock>
+          <ColumnViewerBlock title="описание">
+            <ColumnViewerText
+              text={document.description?.text}
+              emptyText="нет"
+            />
+          </ColumnViewerBlock>
+          <ColumnViewerBlock
+            title={`фрагменты${document.fragmentsCount > 0 ? ` (${document.fragmentsCount})` : ''}`}
+          >
+            <ColumnViewerChipsBlock
+              emptyText={fragments !== null ? 'нет' : '???'}
+              items={(fragments ?? []).map((fragment) => ({
+                text: fragment.innerCode,
+                href: `/fragments/${fragment.id}`
+              }))}
+            />
+          </ColumnViewerBlock>
+          <ColumnViewerBlock title="теги">
+            <ColumnViewerChipsBlock
+              emptyText={tags !== null ? 'нет' : '???'}
+              items={(tags ?? []).map((tag) => ({
+                text: tag.code,
+                href: `/tags/${tag.id}`
+              }))}
+            />
+          </ColumnViewerBlock>
+        </ColumnViewer>
+        <ColumnViewer>
+          <ColumnViewerBlock title="фрагменты">
+            <ColumnViewerText text={undefined} emptyText="нет" />
+          </ColumnViewerBlock>
+        </ColumnViewer>
+      </VerticalTwoPartsContainer>
     </HorizontalTwoPartsContainer>
   )
 }

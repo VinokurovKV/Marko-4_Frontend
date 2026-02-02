@@ -190,7 +190,7 @@ export function ImportRequirementsFormDialog(
                 tagIdForCode.set(tagCode, createdTagId)
               } catch (error) {
                 notifier.showError(error, `не удалось создать тег «${tagCode}»`)
-                throw new Error('не удалось создать тег')
+                throw error
               }
             }
           }
