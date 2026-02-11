@@ -1461,7 +1461,21 @@ export function TopologyViewer({ config, vertexNames, showButtons }: TopologyVie
   console.log(config)
   return (
     <>
-      <div ref={containerRef} />
+      <div 
+        ref={containerRef} 
+        style={{
+          // width: '80vw',
+          // height: '80vh',
+          width: '100%',
+          height: '100%',
+          margin: 'auto',
+          display: 'flex',
+          alignContent: 'center',
+          justifyContent: 'center',
+          alignItems: 'center',
+          border: '2px solid #333'
+        }}
+      />
       {showButtons && (
         <div className='button-container'>
           <TopologyViewerButton
