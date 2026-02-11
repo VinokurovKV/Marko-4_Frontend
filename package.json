@@ -32,6 +32,7 @@
     "isbot": "^5.1.31",
     "jszip": "^3.10.1",
     "markdown-it": "^14.1.0",
+    "marko-4": "file:..",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-pdf": "^10.3.0",
