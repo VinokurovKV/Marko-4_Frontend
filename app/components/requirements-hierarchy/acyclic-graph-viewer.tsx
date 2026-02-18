@@ -155,10 +155,7 @@ export default function AcyclicGraphViewer({
   setSelectedId,
   onVertexClick
 }: AcyclicGraphViewerProps) {
-  const {
-    width: containerWidth,
-    height: containerHeight
-  } = useContainerSize()
+  const { width: containerWidth, height: containerHeight } = useContainerSize()
 
   const convertToNodes = useCallback((): AcyclicGraphNode[] => {
     const verticesByLevel = new Map<number, Vertex[]>()
@@ -561,6 +558,7 @@ export default function AcyclicGraphViewer({
         zoomOnScroll={true}
         zoomOnPinch={true}
         zoomOnDoubleClick={true}
+        proOptions={{ hideAttribution: true }}
       >
         <Controls showInteractive={false} />
         <Background />
