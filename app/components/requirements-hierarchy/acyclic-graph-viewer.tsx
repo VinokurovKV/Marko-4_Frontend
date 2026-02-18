@@ -29,7 +29,7 @@ import Divider from '@mui/material/Divider'
 import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
 
-const StackStyled = styled(Stack)(({ theme }) => [
+const StackStyled = styled(Stack)(() => [
   {
     '&': {
       position: 'relative'
@@ -156,7 +156,6 @@ export default function AcyclicGraphViewer({
   onVertexClick
 }: AcyclicGraphViewerProps) {
   const {
-    containerRef,
     width: containerWidth,
     height: containerHeight
   } = useContainerSize()
@@ -458,7 +457,10 @@ export default function AcyclicGraphViewer({
     maxDisplayedLayerWhenWithoutSelected !== null &&
     maxDisplayedLayerWhenWithoutSelected >= 5
 
-  console.log('levels', vertexes.map(v => [v.id, getVertexLevel(dataForVertexId.get(v.id)!) ]))
+  console.log(
+    'levels',
+    vertexes.map((v) => [v.id, getVertexLevel(dataForVertexId.get(v.id)!)])
+  )
 
   return (
     <StackStyled sx={{ height: '100%' }}>
@@ -539,35 +541,30 @@ export default function AcyclicGraphViewer({
         cancelText="Отмена"
       />
 
-      <div
-        ref={containerRef}
-        style={{ width: '100%', height: '100%', minHeight: 400 }}
+      <ReactFlow
+        style={{ width: '100%', height: '100%' }}
+        nodes={filteredNodes}
+        edges={filteredEdges}
+        onNodesChange={onNodesChange}
+        onEdgesChange={onEdgesChange}
+        onNodeClick={handleNodeClick}
+        onEdgeClick={handleEdgeClick}
+        onPaneClick={handlePaneClick}
+        nodeTypes={nodeTypes}
+        fitView={fitOnSelectedIdChange}
+        minZoom={0.05}
+        nodesDraggable={false}
+        panOnScroll={true}
+        panOnScrollSpeed={1}
+        panOnDrag={[1, 2]}
+        selectionOnDrag={true}
+        zoomOnScroll={true}
+        zoomOnPinch={true}
+        zoomOnDoubleClick={true}
       >
-        <ReactFlow
-          style={{ width: '100%', height: '100%' }}
-          nodes={filteredNodes}
-          edges={filteredEdges}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
-          onNodeClick={handleNodeClick}
-          onEdgeClick={handleEdgeClick}
-          onPaneClick={handlePaneClick}
-          nodeTypes={nodeTypes}
-          fitView={fitOnSelectedIdChange}
-          minZoom={0.05}
-          nodesDraggable={false}
-          panOnScroll={true}
-          panOnScrollSpeed={1}
-          panOnDrag={[1, 2]}
-          selectionOnDrag={true}
-          zoomOnScroll={true}
-          zoomOnPinch={true}
-          zoomOnDoubleClick={true}
-        >
-          <Controls showInteractive={false} />
-          <Background />
-        </ReactFlow>
-      </div>
+        <Controls showInteractive={false} />
+        <Background />
+      </ReactFlow>
     </StackStyled>
   )
 }
