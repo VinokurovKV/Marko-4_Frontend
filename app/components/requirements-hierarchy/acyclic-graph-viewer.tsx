@@ -1,3 +1,6 @@
+// Project
+import { ProjButton } from '../buttons/button'
+// React
 import { useCallback, useEffect, useRef, useState } from 'react'
 import ReactFlow, {
   Controls,
@@ -8,18 +11,31 @@ import ReactFlow, {
   type Node
 } from 'reactflow'
 import 'reactflow/dist/style.css'
+// Other
 import AcyclicGraphVertexViewer, {
   type AcyclicGraphVertexViewerProps,
   type AcyclicGraphVertexType,
   type VertexData
 } from './acyclic-graph-vertex-viewer'
 import { edgeStyle } from './requirements'
-import Button from './button'
 import ConfirmationModal from './confirmation'
 import ChoiceModal from './choice'
 //import calculateNodePositions from './layout_final'
 import calculateNodePositions from './layout_tree'
 import './styles.css'
+//Material UI
+import { styled } from '@mui/material/styles'
+import Divider from '@mui/material/Divider'
+import Stack from '@mui/material/Stack'
+import Typography from '@mui/material/Typography'
+
+const StackStyled = styled(Stack)(({ theme }) => [
+  {
+    '&': {
+      position: 'relative'
+    }
+  }
+])
 
 export interface Vertex {
   id: number
@@ -442,53 +458,66 @@ export default function AcyclicGraphViewer({
     maxDisplayedLayerWhenWithoutSelected !== null &&
     maxDisplayedLayerWhenWithoutSelected >= 5
 
+  console.log('levels', vertexes.map(v => [v.id, getVertexLevel(dataForVertexId.get(v.id)!) ]))
+
   return (
-    <>
+    <StackStyled sx={{ height: '100%' }}>
       <div className="graph-stats">
-        <Button
-          type="button"
-          text="Скрыть уровень"
-          dataAction="hide-level"
-          className={`${hideButtonDisabled ? 'disabled' : ''}`}
-          disabled={hideButtonDisabled}
-          onClick={hideLastLevel}
-        />
-        <Button
-          type="button"
-          text="Раскрыть уровень"
-          dataAction="show-level"
-          className={`${showButtonDisabled ? 'disabled' : ''}`}
-          disabled={showButtonDisabled}
-          onClick={showNextLevel}
-        />
-        <Button
-          type="button"
-          text="Сбросить выделение"
-          dataAction="reset-selection"
-          className={`${selectedNodeId === null && selectedEdgeId === null && nodeDisplayMode === null ? 'disabled' : ''}`}
-          disabled={
-            selectedNodeId === null &&
-            selectedEdgeId === null &&
-            nodeDisplayMode === null
-          }
-          onClick={resetSelection}
-        />
-        <Button
-          type="button"
-          text="Удалить связь"
-          dataAction="delete-edge"
-          className={`${selectedEdgeId === null ? 'disabled' : ''}`}
-          disabled={selectedEdgeId === null}
-          onClick={deleteSelectedEdge}
-        />
+        <Stack direction="row" pt={2} pl={2} pr={2} spacing={1}>
+          <ProjButton
+            variant="contained"
+            type="button"
+            //dataAction="hide-level"
+            className={`${hideButtonDisabled ? 'disabled' : ''}`}
+            disabled={hideButtonDisabled}
+            onClick={hideLastLevel}
+          >
+            Скрыть уровень
+          </ProjButton>
+          <ProjButton
+            variant="contained"
+            type="button"
+            //dataAction="show-level"
+            className={`${showButtonDisabled ? 'disabled' : ''}`}
+            disabled={showButtonDisabled}
+            onClick={showNextLevel}
+          >
+            Раскрыть уровень
+          </ProjButton>
+          <ProjButton
+            type="button"
+            //dataAction="reset-selection"
+            className={`${selectedNodeId === null && selectedEdgeId === null && nodeDisplayMode === null ? 'disabled' : ''}`}
+            disabled={
+              selectedNodeId === null &&
+              selectedEdgeId === null &&
+              nodeDisplayMode === null
+            }
+            onClick={resetSelection}
+          >
+            Сбросить выделение
+          </ProjButton>
+          <ProjButton
+            type="button"
+            //dataAction="delete-edge"
+            className={`${selectedEdgeId === null ? 'disabled' : ''}`}
+            disabled={selectedEdgeId === null}
+            onClick={deleteSelectedEdge}
+          >
+            Удалить связь
+          </ProjButton>
+        </Stack>
         <div className="levels">
-          Макс. уровень: {maxDisplayedLayerWhenWithoutSelected ?? 'все'}
-          {selectedId !== null && ` | Выбран: ${selectedId}`}
-          {selectedEdgeId !== null && ` | Выбрана связь: ${selectedEdgeId}`}
-          {nodeDisplayMode &&
-            ` | Отображение: ${nodeDisplayMode === 'path' ? 'Путь до корня' : 'Поддерево'}`}
+          <Typography fontSize={12}>
+            Макс. уровень: {maxDisplayedLayerWhenWithoutSelected ?? 'все'}
+            {selectedId !== null && ` | Выбран: ${selectedId}`}
+            {selectedEdgeId !== null && ` | Выбрана связь: ${selectedEdgeId}`}
+            {nodeDisplayMode &&
+              ` | Отображение: ${nodeDisplayMode === 'path' ? 'Путь до корня' : 'Поддерево'}`}
+          </Typography>
         </div>
       </div>
+      <Divider />
 
       <ChoiceModal
         isOpen={isChoiceModalOpen}
@@ -510,7 +539,6 @@ export default function AcyclicGraphViewer({
         cancelText="Отмена"
       />
 
-      {/* Container is used to measure available size for layout */}
       <div
         ref={containerRef}
         style={{ width: '100%', height: '100%', minHeight: 400 }}
@@ -540,6 +568,6 @@ export default function AcyclicGraphViewer({
           <Background />
         </ReactFlow>
       </div>
-    </>
+    </StackStyled>
   )
 }
