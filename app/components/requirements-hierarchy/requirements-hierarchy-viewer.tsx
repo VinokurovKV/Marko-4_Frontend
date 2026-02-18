@@ -1,84 +1,74 @@
 // Project
 import type { RequirementsHierarchy, TestPrimary } from '~/types'
-// import { blurredNodeIndexes } from '../requirements-hierarchy/TechSpec/nodes'
-import { initialNodes } from '../requirements-hierarchy/TechSpec/nodes'
-import { initialEdges } from '../requirements-hierarchy/TechSpec/edges'
-// import { createRequirementNode } from '../requirements-hierarchy/TechSpec/nodes'
-// import { createEdge } from '../requirements-hierarchy/TechSpec/edges'
-import {
-  type TopologyGraphProps,
-  TopologyGraph
-} from '../requirements-hierarchy/graph'
 // React
 import * as React from 'react'
 // Material UI
 import Stack from '@mui/material/Stack'
-// import Typography from '@mui/material/Typography'
 import { useTheme } from '@mui/material/styles'
-// Other
-// import capitalize from 'capitalize'
+// other
+import AcyclicGraphViewer from './acyclic-graph-viewer'
+import type { VertexData } from './acyclic-graph-vertex-viewer'
 
-export interface RequirementsHierarchyViewerProps {
+import {
+  vertexes,
+  dataForVertexId,
+  type RequirementVertexData
+} from './requirements'
+
+export interface RequirementsHierarchyAcyclicViewerProps {
   requirementsHierarchy: RequirementsHierarchy
   tests: TestPrimary[] | null
 }
 
-export function RequirementsHierarchyViewer({
+type VertexDataWithLevel = VertexData & { level: number }
+
+function toVertexData(d: RequirementVertexData): VertexData {
+  const base: VertexDataWithLevel = {
+    code: d.code,
+    atomicityFlag: false,
+    atomicityCoef: 0,
+    modifier: '',
+    origin: '',
+    coverage: 0,
+    test: '',
+    level: d.level
+  }
+
+  return base as VertexData
+}
+
+function buildVertexDataMap(
+  src: Map<number, RequirementVertexData>
+): Map<number, VertexData> {
+  const out = new Map<number, VertexData>()
+  for (const [id, d] of src.entries()) {
+    out.set(id, toVertexData(d))
+  }
+  return out
+}
+
+export function RequirementsHierarchyAcyclicViewer({
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   requirementsHierarchy,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   tests
-}: RequirementsHierarchyViewerProps) {
+}: RequirementsHierarchyAcyclicViewerProps) {
   const theme = useTheme()
 
-  // const nodes: TopologyGraphProps['initialNodes'] = React.useMemo(() => {
-  //   const vertex = requirementsHierarchy.vertexes[0]
-  //   return [
-  //     createRequirementNode('1', vertex),
-  //     createRequirementNode('2', vertex),
-  //     createRequirementNode('3', vertex)
-  //   ]
-  // }, [requirementsHierarchy.vertexes])
+  const [
+    maxDisplayedLayerWhenWithoutSelected,
+    setMaxDisplayedLayerWhenWithoutSelected
+  ] = React.useState<number | null>(1)
 
-  // const nodes: TopologyGraphProps['initialNodes'] = React.useMemo(
-  //   () =>
-  //     requirementsHierarchy.vertexes.map((vertex) =>
-  //       createRequirementNode(`${vertex.id}`, vertex)
-  //     ),
-  //   [requirementsHierarchy.vertexes]
-  // )
+  const [selectedId, setSelectedId] = React.useState<number | null>(null)
 
-  // const edges: TopologyGraphProps['initialEdges'] = React.useMemo(
-  //   () => [createEdge('1', '2'), createEdge('1', '3')],
-  //   [requirementsHierarchy.links]
-  // )
-
-  // const edges: TopologyGraphProps['initialEdges'] = React.useMemo(
-  //   () =>
-  //     requirementsHierarchy.links.map((link) =>
-  //       createEdge(`${link.parentId}`, `${link.childId}`)
-  //     ),
-  //   [requirementsHierarchy.links]
-  // )
-
-  const blurredNodeIndexes: TopologyGraphProps['blurredNodeIndexes'] =
-    React.useMemo(() => [], [])
-
-  // console.log(nodes)
-  // console.log(edges)
-
-  // console.log(initialNodes)
+  const dataForVertexIdAsVertexData = React.useMemo(
+    () => buildVertexDataMap(dataForVertexId),
+    [dataForVertexId]
+  )
 
   return (
     <Stack spacing={1} p={0} sx={{ height: '100%' }}>
-      {/* <Typography
-        variant="h5"
-        sx={{
-          fontWeight: 'bold'
-        }}
-      >
-        {capitalize('иерархия', true)}
-      </Typography> */}
       <Stack
         spacing={1}
         border={`1px solid ${
@@ -97,10 +87,21 @@ export function RequirementsHierarchyViewer({
               : theme.palette.background.default
         }}
       >
-        <TopologyGraph
-          blurredNodeIndexes={blurredNodeIndexes}
-          initialNodes={initialNodes}
-          initialEdges={initialEdges}
+        <AcyclicGraphViewer
+          vertexes={vertexes}
+          dataForVertexId={dataForVertexIdAsVertexData}
+          maxDisplayedLayerWhenWithoutSelected={
+            maxDisplayedLayerWhenWithoutSelected
+          }
+          setMaxDisplayedLayerWhenWithoutSelected={
+            setMaxDisplayedLayerWhenWithoutSelected
+          }
+          selectedId={selectedId}
+          setSelectedId={setSelectedId}
+          fitOnSelectedIdChange={true}
+          onVertexClick={(vertexId: number) => {
+            console.log(vertexId)
+          }}
         />
       </Stack>
     </Stack>

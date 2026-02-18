@@ -8,7 +8,7 @@ import {
 import {
   type RequirementsHierarchyAcyclicViewerProps,
   RequirementsHierarchyAcyclicViewer
-} from '../requirements-hierarchy/requirements-hierarchy-acyclic-viewer'
+} from '../requirements-hierarchy/requirements-hierarchy-viewer'
 
 // React
 import { matchPath, useLocation } from 'react-router'
