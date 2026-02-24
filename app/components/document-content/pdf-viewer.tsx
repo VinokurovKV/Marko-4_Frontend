@@ -1,5 +1,7 @@
 // Project
 import { ProjButton } from '../buttons/button'
+// Styles
+import './styles.css'
 // React
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 // EmbedPDF
@@ -29,7 +31,6 @@ import {
 } from '@embedpdf/plugin-zoom/react'
 // Material UI
 import CircularProgress from '@mui/material/CircularProgress'
-import Box from '@mui/material/Box'
 import Alert from '@mui/material/Alert'
 import Fade from '@mui/material/Fade'
 import Typography from '@mui/material/Typography'
@@ -79,6 +80,10 @@ type RenderPageArgs = {
   width: number
   height: number
   scale?: number
+}
+
+function fmtPx(n: number) {
+  return `${Math.round(n * 100) / 100}px`
 }
 
 function clampRect(r: Rectangle): Rectangle {
@@ -137,7 +142,6 @@ function extractPageSizes(doc: unknown): PageSize[] {
 
 export const PdfViewer: React.FC<PdfViewerProps> = (props) => {
   const { engine, isLoading, error } = usePdfiumEngine()
-
   const [showLoader, setShowLoader] = React.useState(false)
 
   React.useEffect(() => {
@@ -145,7 +149,6 @@ export const PdfViewer: React.FC<PdfViewerProps> = (props) => {
       setShowLoader(false)
       return
     }
-
     const t = window.setTimeout(() => setShowLoader(true), 1000)
     return () => window.clearTimeout(t)
   }, [isLoading, engine])
@@ -180,45 +183,21 @@ export const PdfViewer: React.FC<PdfViewerProps> = (props) => {
 
   if (isLoading || !engine) {
     return (
-      <Box
-        sx={{
-          height: 180,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center'
-        }}
-      >
+      <div className="pdfv-engine-loader">
         <Fade in={showLoader} unmountOnExit>
-          <Box
-            sx={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: 1
-            }}
-          >
+          <div className="pdfv-engine-loader-inner">
             <CircularProgress size={28} />
             <Typography variant="body2" color="text.secondary">
               Загрузка PDF Engine…
             </Typography>
-          </Box>
+          </div>
         </Fade>
-      </Box>
+      </div>
     )
   }
 
   return (
-    <div
-      style={{
-        height: '100%',
-        width: '100%',
-        minHeight: 0,
-        minWidth: 0,
-        overflow: 'hidden',
-        display: 'flex',
-        flexDirection: 'column'
-      }}
-    >
+    <div className="pdfv-root">
       <EmbedPDF engine={engine} plugins={plugins}>
         {({ activeDocumentId }: { activeDocumentId: string | null }) =>
           activeDocumentId ? (
@@ -227,16 +206,9 @@ export const PdfViewer: React.FC<PdfViewerProps> = (props) => {
                 isLoaded ? (
                   <PdfViewerBody documentId={activeDocumentId} {...props} />
                 ) : (
-                  <Box
-                    sx={{
-                      height: 240,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}
-                  >
+                  <div className="pdfv-document-loader">
                     <CircularProgress size={72} />
-                  </Box>
+                  </div>
                 )
               }
             </DocumentContent>
@@ -387,26 +359,8 @@ const PdfViewerBody: React.FC<PdfViewerProps & { documentId: string }> = (
         : null
 
   return (
-    <div
-      ref={viewportHostRef}
-      style={{
-        height: '100%',
-        width: '100%',
-        minHeight: 0,
-        minWidth: 0,
-        overflow: 'hidden'
-      }}
-    >
-      <Viewport
-        documentId={props.documentId}
-        style={{
-          height: '100%',
-          width: '100%',
-          background: '#f1f3f5',
-          minHeight: 0,
-          minWidth: 0
-        }}
-      >
+    <div ref={viewportHostRef} className="pdfv-body-host">
+      <Viewport documentId={props.documentId} className="pdfv-viewport">
         <Scroller
           documentId={props.documentId}
           renderPage={(page: RenderPageArgs) => {
@@ -425,8 +379,42 @@ const PdfViewerBody: React.FC<PdfViewerProps & { documentId: string }> = (
             const draftOnPage =
               draftPx?.pageIndex === pageIndex ? draftPx : null
 
+            const pageClass = `pdfv-page--p${pageIndex}`
+
+            const pageDynamicCssParts: string[] = []
+            pageDynamicCssParts.push(
+              `.${pageClass}{width:${fmtPx(width)};height:${fmtPx(height)};}`
+            )
+
+            for (const a of pageAreas) {
+              const r = a.localRect
+              const left = r.xMin * scale
+              const top = r.yMin * scale
+              const w = (r.xMax - r.xMin) * scale
+              const h = (r.yMax - r.yMin) * scale
+              const areaPosClass = `pdfv-area--id-${a.id}`
+              pageDynamicCssParts.push(
+                `.${pageClass} .${areaPosClass}{left:${fmtPx(left)};top:${fmtPx(top)};width:${fmtPx(w)};height:${fmtPx(h)};}`
+              )
+            }
+
+            if (draftOnPage) {
+              const left = Math.min(draftOnPage.x1, draftOnPage.x2)
+              const top = Math.min(draftOnPage.y1, draftOnPage.y2)
+              const w = Math.abs(draftOnPage.x2 - draftOnPage.x1)
+              const h = Math.abs(draftOnPage.y2 - draftOnPage.y1)
+              const draftClass = `pdfv-draft-rect--p${pageIndex}`
+              pageDynamicCssParts.push(
+                `.${pageClass} .${draftClass}{left:${fmtPx(left)};top:${fmtPx(top)};width:${fmtPx(w)};height:${fmtPx(h)};}`
+              )
+            }
+
+            const pageDynamicCss = pageDynamicCssParts.join('')
+
             return (
-              <div style={{ width, height, position: 'relative' }}>
+              <div className={`pdfv-page ${pageClass}`}>
+                <style>{pageDynamicCss}</style>
+
                 <RenderLayer
                   documentId={props.documentId}
                   pageIndex={pageIndex}
@@ -437,30 +425,32 @@ const PdfViewerBody: React.FC<PdfViewerProps & { documentId: string }> = (
                   pageIndex={pageIndex}
                 />
 
-                <div
-                  style={{
-                    position: 'absolute',
-                    inset: 0,
-                    zIndex: 20,
-                    pointerEvents: 'none'
-                  }}
-                >
+                <div className="pdfv-overlay">
                   {pageAreas.map((a) => {
-                    const r = a.localRect
-                    const left = r.xMin * scale
-                    const top = r.yMin * scale
-                    const w = (r.xMax - r.xMin) * scale
-                    const h = (r.yMax - r.yMin) * scale
-
                     const isActive = activeAreaId === a.id
                     const canInteract =
                       props.clickableAreas ||
                       props.withUpdateAreaButtons ||
                       props.withDeleteAreaButtons
 
+                    const areaPosClass = `pdfv-area--id-${a.id}`
+
+                    const areaClassName = [
+                      'pdfv-area',
+                      areaPosClass,
+                      isActive ? 'pdfv-area--active' : 'pdfv-area--inactive',
+                      canInteract
+                        ? 'pdfv-area--interactive'
+                        : 'pdfv-area--noninteractive',
+                      props.clickableAreas
+                        ? 'pdfv-area--clickable'
+                        : 'pdfv-area--notclickable'
+                    ].join(' ')
+
                     return (
                       <div
                         key={a.id}
+                        className={areaClassName}
                         ref={(el) => {
                           if (el) areaElsRef.current.set(a.id, el)
                           else areaElsRef.current.delete(a.id)
@@ -470,41 +460,8 @@ const PdfViewerBody: React.FC<PdfViewerProps & { documentId: string }> = (
                           props.onAreaClick?.({ areaId: a.id })
                         }}
                         title={a.name}
-                        style={{
-                          position: 'absolute',
-                          left,
-                          top,
-                          width: w,
-                          height: h,
-                          border: isActive
-                            ? '2px solid #1c7ed6'
-                            : '2px solid rgba(255,165,0,0.9)',
-                          background: isActive
-                            ? 'rgba(28,126,214,0.12)'
-                            : 'rgba(255,165,0,0.10)',
-                          boxSizing: 'border-box',
-                          borderRadius: 4,
-                          pointerEvents: canInteract ? 'auto' : 'none',
-                          cursor: props.clickableAreas ? 'pointer' : 'default'
-                        }}
                       >
-                        <div
-                          style={{
-                            position: 'absolute',
-                            left: 0,
-                            top: -22,
-                            fontSize: 12,
-                            padding: '2px 6px',
-                            borderRadius: 6,
-                            background: 'rgba(0,0,0,0.75)',
-                            color: 'white',
-                            pointerEvents: 'none',
-                            maxWidth: 260,
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap'
-                          }}
-                        >
+                        <div className="pdfv-area-label">
                           {a.name} (id={a.id})
                         </div>
 
@@ -539,17 +496,7 @@ const PdfViewerBody: React.FC<PdfViewerProps & { documentId: string }> = (
 
                   {draftOnPage && (
                     <div
-                      style={{
-                        position: 'absolute',
-                        left: Math.min(draftOnPage.x1, draftOnPage.x2),
-                        top: Math.min(draftOnPage.y1, draftOnPage.y2),
-                        width: Math.abs(draftOnPage.x2 - draftOnPage.x1),
-                        height: Math.abs(draftOnPage.y2 - draftOnPage.y1),
-                        border: '2px dashed #12b886',
-                        background: 'rgba(18,184,134,0.10)',
-                        borderRadius: 4,
-                        pointerEvents: 'none'
-                      }}
+                      className={`pdfv-draft-rect pdfv-draft-rect--p${pageIndex}`}
                     />
                   )}
                 </div>
@@ -557,13 +504,7 @@ const PdfViewerBody: React.FC<PdfViewerProps & { documentId: string }> = (
                 {(props.mode.type === 'CREATE_RECTANGLE' ||
                   props.mode.type === 'UPDATE_AREA_RECTANGLE') && (
                   <div
-                    style={{
-                      position: 'absolute',
-                      inset: 0,
-                      zIndex: 25,
-                      cursor: 'crosshair',
-                      background: 'transparent'
-                    }}
+                    className="pdfv-interaction-overlay"
                     onMouseDown={(e) => {
                       const rect = (
                         e.currentTarget as HTMLDivElement
@@ -604,13 +545,11 @@ const PdfViewerBody: React.FC<PdfViewerProps & { documentId: string }> = (
 
                       if (props.mode.type === 'CREATE_RECTANGLE') {
                         props.onCreateRectangle?.({ rectangle: docRect })
-                      } else {
-                        if (props.mode.type === 'UPDATE_AREA_RECTANGLE') {
-                          props.onUpdateAreaRectangle?.({
-                            areaId: props.mode.areaId,
-                            rectangle: docRect
-                          })
-                        }
+                      } else if (props.mode.type === 'UPDATE_AREA_RECTANGLE') {
+                        props.onUpdateAreaRectangle?.({
+                          areaId: props.mode.areaId,
+                          rectangle: docRect
+                        })
                       }
 
                       setDraftPx(null)

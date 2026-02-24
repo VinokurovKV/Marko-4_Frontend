@@ -5,6 +5,8 @@ import { useNotifier } from '~/providers/notifier'
 import { useChangeDetector } from '~/hooks/change-detector'
 import { PdfViewer, type PdfViewerMode, type PdfArea } from './pdf-viewer'
 import { ProjButton } from '../buttons/button'
+// Styles
+import './styles.css'
 // React
 import * as React from 'react'
 // Material UI
@@ -117,23 +119,13 @@ export function DocumentContentViewer({
     })()
   }, [configBlob])
 
+  const rootClassName =
+    theme.palette.mode === 'light'
+      ? 'dcv-root dcv-root--light'
+      : 'dcv-root dcv-root--dark'
+
   return (
-    <Stack
-      spacing={1}
-      border={`1px solid ${theme.palette.mode === 'light' ? theme.palette.grey[300] : theme.palette.grey.A700}`}
-      borderRadius="5px"
-      p={0}
-      sx={{
-        height: '100%',
-        minHeight: 0,
-        minWidth: 0,
-        overflow: 'hidden',
-        backgroundColor:
-          theme.palette.mode === 'light'
-            ? 'white'
-            : theme.palette.background.default
-      }}
-    >
+    <div className={rootClassName}>
       <Paper
         elevation={0}
         sx={{
@@ -159,6 +151,7 @@ export function DocumentContentViewer({
           >
             Просмотр области
           </ProjButton>
+
           <ProjButton
             variant={
               mode.type === 'CREATE_RECTANGLE' ? 'contained' : 'outlined'
@@ -226,7 +219,7 @@ export function DocumentContentViewer({
 
         <Divider sx={{ mb: 1 }} />
 
-        <div style={{ flex: 1, minHeight: 0, minWidth: 0 }}>
+        <div className="dcv-viewer-container">
           {configBuffer !== null ? (
             <PdfViewer
               data={configBuffer}
@@ -273,6 +266,6 @@ export function DocumentContentViewer({
           ) : null}
         </div>
       </Paper>
-    </Stack>
+    </div>
   )
 }
