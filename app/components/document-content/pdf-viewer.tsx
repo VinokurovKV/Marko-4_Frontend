@@ -1,30 +1,38 @@
+// Project
+import { ProjButton } from '../buttons/button'
 // React
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 // EmbedPDF
-import { createPluginRegistration } from '@embedpdf/core' //MIT
+import { createPluginRegistration } from '@embedpdf/core'
 import { EmbedPDF } from '@embedpdf/core/react'
-import { usePdfiumEngine } from '@embedpdf/engines/react' //MIT
+import { usePdfiumEngine } from '@embedpdf/engines/react'
 import {
   DocumentContent,
   DocumentManagerPluginPackage,
   useDocumentManagerCapability
-} from '@embedpdf/plugin-document-manager/react' //MIT
+} from '@embedpdf/plugin-document-manager/react'
 import {
   Viewport,
   ViewportPluginPackage
-} from '@embedpdf/plugin-viewport/react' //MIT
+} from '@embedpdf/plugin-viewport/react'
 import {
   Scroller,
   ScrollPluginPackage,
   useScroll
-} from '@embedpdf/plugin-scroll/react' //MIT
-import { RenderLayer, RenderPluginPackage } from '@embedpdf/plugin-render/react' //MIT
-import { TilingLayer, TilingPluginPackage } from '@embedpdf/plugin-tiling/react' //MIT
+} from '@embedpdf/plugin-scroll/react'
+import { RenderLayer, RenderPluginPackage } from '@embedpdf/plugin-render/react'
+import { TilingLayer, TilingPluginPackage } from '@embedpdf/plugin-tiling/react'
 import {
   ZoomMode,
   ZoomPluginPackage,
   useZoom
-} from '@embedpdf/plugin-zoom/react' //MIT
+} from '@embedpdf/plugin-zoom/react'
+// Material UI
+import CircularProgress from '@mui/material/CircularProgress'
+import Box from '@mui/material/Box'
+import Alert from '@mui/material/Alert'
+import Fade from '@mui/material/Fade'
+import Typography from '@mui/material/Typography'
 
 export interface Rectangle {
   xMin: number
@@ -66,27 +74,11 @@ export type PdfViewerProps = {
 
 type PageSize = { width: number; height: number }
 
-function extractPageSizes(doc: unknown): PageSize[] {
-  if (!doc || typeof doc !== 'object') return []
-  if (!('pages' in doc)) return []
-
-  const pages = (doc as { pages?: unknown }).pages
-  if (!Array.isArray(pages)) return []
-
-  const sizes: PageSize[] = []
-  for (const p of pages) {
-    if (!p || typeof p !== 'object' || !('size' in p)) continue
-    const size = (p as { size?: unknown }).size
-    if (!size || typeof size !== 'object') continue
-
-    const w = (size as { width?: unknown }).width
-    const h = (size as { height?: unknown }).height
-    if (typeof w === 'number' && typeof h === 'number') {
-      sizes.push({ width: w, height: h })
-    }
-  }
-
-  return sizes
+type RenderPageArgs = {
+  pageIndex: number
+  width: number
+  height: number
+  scale?: number
 }
 
 function clampRect(r: Rectangle): Rectangle {
@@ -121,8 +113,42 @@ function findPageIndexByDocY(
   return -1
 }
 
+function extractPageSizes(doc: unknown): PageSize[] {
+  if (!doc || typeof doc !== 'object') return []
+  if (!('pages' in doc)) return []
+
+  const pages = (doc as { pages?: unknown }).pages
+  if (!Array.isArray(pages)) return []
+
+  const sizes: PageSize[] = []
+  for (const p of pages) {
+    if (!p || typeof p !== 'object' || !('size' in p)) continue
+    const size = (p as { size?: unknown }).size
+    if (!size || typeof size !== 'object') continue
+
+    const w = (size as { width?: unknown }).width
+    const h = (size as { height?: unknown }).height
+    if (typeof w === 'number' && typeof h === 'number') {
+      sizes.push({ width: w, height: h })
+    }
+  }
+  return sizes
+}
+
 export const PdfViewer: React.FC<PdfViewerProps> = (props) => {
   const { engine, isLoading, error } = usePdfiumEngine()
+
+  const [showLoader, setShowLoader] = React.useState(false)
+
+  React.useEffect(() => {
+    if (!isLoading && engine) {
+      setShowLoader(false)
+      return
+    }
+
+    const t = window.setTimeout(() => setShowLoader(true), 1000)
+    return () => window.clearTimeout(t)
+  }, [isLoading, engine])
 
   const plugins = useMemo(
     () => [
@@ -130,9 +156,7 @@ export const PdfViewer: React.FC<PdfViewerProps> = (props) => {
         initialDocuments: [{ buffer: props.data, name: 'document.pdf' }]
       }),
       createPluginRegistration(ViewportPluginPackage),
-      createPluginRegistration(ScrollPluginPackage, {
-        defaultPageGap: 10
-      }),
+      createPluginRegistration(ScrollPluginPackage, { defaultPageGap: 10 }),
       createPluginRegistration(RenderPluginPackage),
       createPluginRegistration(TilingPluginPackage, {
         tileSize: 768,
@@ -146,8 +170,42 @@ export const PdfViewer: React.FC<PdfViewerProps> = (props) => {
     [props.data]
   )
 
-  if (error) return <div>Engine error: {error.message}</div>
-  if (isLoading || !engine) return <div>Loading PDF Engine...</div>
+  if (error) {
+    return (
+      <Alert severity="error" variant="outlined" sx={{ my: 1 }}>
+        Engine error: {String(error.message ?? error)}
+      </Alert>
+    )
+  }
+
+  if (isLoading || !engine) {
+    return (
+      <Box
+        sx={{
+          height: 180,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}
+      >
+        <Fade in={showLoader} unmountOnExit>
+          <Box
+            sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: 1
+            }}
+          >
+            <CircularProgress size={28} />
+            <Typography variant="body2" color="text.secondary">
+              Загрузка PDF Engine…
+            </Typography>
+          </Box>
+        </Fade>
+      </Box>
+    )
+  }
 
   return (
     <div
@@ -156,6 +214,7 @@ export const PdfViewer: React.FC<PdfViewerProps> = (props) => {
         width: '100%',
         minHeight: 0,
         minWidth: 0,
+        overflow: 'hidden',
         display: 'flex',
         flexDirection: 'column'
       }}
@@ -168,12 +227,21 @@ export const PdfViewer: React.FC<PdfViewerProps> = (props) => {
                 isLoaded ? (
                   <PdfViewerBody documentId={activeDocumentId} {...props} />
                 ) : (
-                  <div>Loading PDF...</div>
+                  <Box
+                    sx={{
+                      height: 240,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                  >
+                    <CircularProgress size={72} />
+                  </Box>
                 )
               }
             </DocumentContent>
           ) : (
-            <div>No document</div>
+            <></>
           )
         }
       </EmbedPDF>
@@ -181,24 +249,18 @@ export const PdfViewer: React.FC<PdfViewerProps> = (props) => {
   )
 }
 
-type RenderPageArgs = {
-  pageIndex: number
-  width: number
-  height: number
-  scale?: number
-}
-
 const PdfViewerBody: React.FC<PdfViewerProps & { documentId: string }> = (
   props
 ) => {
   const { provides: docManager } = useDocumentManagerCapability()
   const { provides: scroll } = useScroll(props.documentId)
-  const { provides: zoom, state: zoomState } = useZoom(props.documentId)
+  const { provides: zoom } = useZoom(props.documentId)
 
   const [pageSizes, setPageSizes] = useState<PageSize[]>([])
   const offsetsY = useMemo(() => buildOffsetsY(pageSizes), [pageSizes])
 
   const areaElsRef = useRef<Map<number, HTMLDivElement>>(new Map())
+  const viewportHostRef = useRef<HTMLDivElement | null>(null)
 
   const [draftPx, setDraftPx] = useState<null | {
     pageIndex: number
@@ -209,30 +271,32 @@ const PdfViewerBody: React.FC<PdfViewerProps & { documentId: string }> = (
   }>(null)
 
   const pageScaleRef = useRef<Map<number, number>>(new Map())
-
-  const viewportHostRef = useRef<HTMLDivElement | null>(null)
-  const hasAutoFitRef = useRef(false)
-  const lastViewportSizeRef = useRef<{ w: number; h: number }>({ w: 0, h: 0 })
+  const fitDoneRef = useRef(false)
 
   useEffect(() => {
-    hasAutoFitRef.current = false
-    lastViewportSizeRef.current = { w: 0, h: 0 }
+    if (!docManager) return
+    const doc = docManager.getDocument(props.documentId) as unknown
+    const sizes = extractPageSizes(doc)
+    if (sizes.length > 0) setPageSizes(sizes)
+  }, [docManager, props.documentId])
+
+  useEffect(() => {
+    fitDoneRef.current = false
   }, [props.documentId])
 
   useEffect(() => {
     if (!zoom) return
-    if (hasAutoFitRef.current) return
-    const el = viewportHostRef.current
-    if (!el) return
+    const host = viewportHostRef.current
+    if (!host) return
 
     let raf = 0
     const tryFit = () => {
-      const w = el.clientWidth
-      const h = el.clientHeight
+      if (fitDoneRef.current) return
+      const w = host.clientWidth
+      const h = host.clientHeight
       if (w > 0 && h > 0) {
         zoom.requestZoom(ZoomMode.FitWidth)
-        hasAutoFitRef.current = true
-        lastViewportSizeRef.current = { w, h }
+        fitDoneRef.current = true
         return
       }
       raf = window.requestAnimationFrame(tryFit)
@@ -241,37 +305,6 @@ const PdfViewerBody: React.FC<PdfViewerProps & { documentId: string }> = (
     raf = window.requestAnimationFrame(tryFit)
     return () => window.cancelAnimationFrame(raf)
   }, [zoom, props.documentId])
-
-  useEffect(() => {
-    if (!zoom) return
-    const el = viewportHostRef.current
-    if (!el) return
-
-    const ro = new ResizeObserver(() => {
-      const w = el.clientWidth
-      const h = el.clientHeight
-      const prev = lastViewportSizeRef.current
-      if (w === prev.w && h === prev.h) return
-      lastViewportSizeRef.current = { w, h }
-
-      if (zoomState.zoomLevel === ZoomMode.FitWidth) {
-        zoom.requestZoom(ZoomMode.FitWidth)
-      }
-    })
-
-    ro.observe(el)
-    return () => ro.disconnect()
-  }, [zoom, zoomState.zoomLevel])
-
-  useEffect(() => {
-    if (!docManager) return
-
-    const doc = docManager.getDocument(props.documentId) as unknown
-    const sizes = extractPageSizes(doc)
-    if (sizes.length === 0) return
-
-    setPageSizes(sizes)
-  }, [docManager, props.documentId])
 
   const derivedAreas = useMemo(() => {
     if (!pageSizes.length) return []
@@ -311,7 +344,6 @@ const PdfViewerBody: React.FC<PdfViewerProps & { documentId: string }> = (
         pageNumber: a.pageIndex + 1,
         behavior: 'smooth'
       })
-
       window.setTimeout(() => {
         const el = areaElsRef.current.get(areaId)
         el?.scrollIntoView({
@@ -341,7 +373,18 @@ const PdfViewerBody: React.FC<PdfViewerProps & { documentId: string }> = (
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [props.mode])
+  }, [
+    props.mode,
+    props.onCreateRectangleCancel,
+    props.onUpdateAreaRectangleCancel
+  ])
+
+  const activeAreaId =
+    props.mode.type === 'BROWSE_AREA'
+      ? props.mode.areaId
+      : props.mode.type === 'UPDATE_AREA_RECTANGLE'
+        ? props.mode.areaId
+        : null
 
   return (
     <div
@@ -350,7 +393,8 @@ const PdfViewerBody: React.FC<PdfViewerProps & { documentId: string }> = (
         height: '100%',
         width: '100%',
         minHeight: 0,
-        minWidth: 0
+        minWidth: 0,
+        overflow: 'hidden'
       }}
     >
       <Viewport
@@ -358,16 +402,15 @@ const PdfViewerBody: React.FC<PdfViewerProps & { documentId: string }> = (
         style={{
           height: '100%',
           width: '100%',
+          background: '#f1f3f5',
           minHeight: 0,
-          minWidth: 0,
-          background: '#f1f3f5'
+          minWidth: 0
         }}
       >
         <Scroller
           documentId={props.documentId}
           renderPage={(page: RenderPageArgs) => {
             const { pageIndex, width, height } = page
-
             const fallbackScale = pageSizes[pageIndex]?.width
               ? width / pageSizes[pageIndex].width
               : 1
@@ -379,12 +422,6 @@ const PdfViewerBody: React.FC<PdfViewerProps & { documentId: string }> = (
             const pageAreas = derivedAreas.filter(
               (a) => a.pageIndex === pageIndex
             )
-            const activeAreaId =
-              props.mode.type === 'BROWSE_AREA' ||
-              props.mode.type === 'UPDATE_AREA_RECTANGLE'
-                ? props.mode.areaId
-                : null
-
             const draftOnPage =
               draftPx?.pageIndex === pageIndex ? draftPx : null
 
@@ -472,53 +509,29 @@ const PdfViewerBody: React.FC<PdfViewerProps & { documentId: string }> = (
                         </div>
 
                         {props.withDeleteAreaButtons && (
-                          <button
+                          <ProjButton
+                            variant="contained"
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation()
                               props.onDeleteAreaButtonClick?.({ areaId: a.id })
                             }}
-                            style={{
-                              position: 'absolute',
-                              right: props.withUpdateAreaButtons ? 86 : 6,
-                              top: 6,
-                              zIndex: 30,
-                              pointerEvents: 'auto',
-                              padding: '4px 8px',
-                              fontSize: 12,
-                              borderRadius: 8,
-                              border: '1px solid rgba(0,0,0,0.2)',
-                              background: 'grey',
-                              cursor: 'pointer'
-                            }}
                           >
                             Удалить
-                          </button>
+                          </ProjButton>
                         )}
 
                         {props.withUpdateAreaButtons && (
-                          <button
+                          <ProjButton
+                            variant="contained"
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation()
                               props.onUpdateAreaButtonClick?.({ areaId: a.id })
                             }}
-                            style={{
-                              position: 'absolute',
-                              right: 6,
-                              top: 6,
-                              zIndex: 30,
-                              pointerEvents: 'auto',
-                              padding: '4px 8px',
-                              fontSize: 12,
-                              borderRadius: 8,
-                              border: '1px solid rgba(0,0,0,0.2)',
-                              background: 'grey',
-                              cursor: 'pointer'
-                            }}
                           >
                             Изменить
-                          </button>
+                          </ProjButton>
                         )}
                       </div>
                     )
@@ -582,21 +595,22 @@ const PdfViewerBody: React.FC<PdfViewerProps & { documentId: string }> = (
                         yMax: Math.max(draftPx.y1, draftPx.y2) / pageScale
                       })
 
+                      const offY = offsetsY[pageIndex] ?? 0
                       const docRect: Rectangle = {
                         ...localRectPts,
-                        yMin: localRectPts.yMin + (offsetsY[pageIndex] ?? 0),
-                        yMax: localRectPts.yMax + (offsetsY[pageIndex] ?? 0)
+                        yMin: localRectPts.yMin + offY,
+                        yMax: localRectPts.yMax + offY
                       }
 
                       if (props.mode.type === 'CREATE_RECTANGLE') {
                         props.onCreateRectangle?.({ rectangle: docRect })
-                      }
-
-                      if (props.mode.type === 'UPDATE_AREA_RECTANGLE') {
-                        props.onUpdateAreaRectangle?.({
-                          areaId: props.mode.areaId,
-                          rectangle: docRect
-                        })
+                      } else {
+                        if (props.mode.type === 'UPDATE_AREA_RECTANGLE') {
+                          props.onUpdateAreaRectangle?.({
+                            areaId: props.mode.areaId,
+                            rectangle: docRect
+                          })
+                        }
                       }
 
                       setDraftPx(null)
