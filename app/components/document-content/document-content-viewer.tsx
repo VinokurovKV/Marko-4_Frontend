@@ -3,7 +3,7 @@ import type { DocumentPrimary } from '~/types'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
 import { useChangeDetector } from '~/hooks/change-detector'
-import { type PdfViewerMode, PdfViewer } from './pdf-viewer/pdf-viewer'
+import { type PdfViewerMode, PdfViewer, type PdfArea } from './pdf-viewer'
 // Material UI
 import Paper from '@mui/material/Paper'
 import Stack from '@mui/material/Stack'
@@ -30,6 +30,14 @@ export function DocumentContentViewer({
   )
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [mode, setMode] = React.useState<PdfViewerMode>(DEFAULT_MODE)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [areas, setAreas] = React.useState<PdfArea[]>([
+    {
+      id: 1,
+      name: 'Пример области #1',
+      rectangle: { xMin: 80, xMax: 260, yMin: 140, yMax: 220 }
+    }
+  ])
 
   useChangeDetector({
     detectedObjects: [document.id],
@@ -61,11 +69,8 @@ export function DocumentContentViewer({
           ? await new Response(configBlob).arrayBuffer()
           : null
       setConfigBuffer(buffer)
-      console.log('DocumentContentViewer: buffer set')
     })()
   }, [configBlob])
-
-  console.log('DocumentContentViewer: rerender')
 
   return (
     <Stack
@@ -79,23 +84,38 @@ export function DocumentContentViewer({
       p={0}
       sx={{
         height: '100%',
-        overflow: 'auto',
+        minHeight: 0,
+        minWidth: 0,
+        overflow: 'hidden',
         backgroundColor:
           theme.palette.mode === 'light'
             ? 'white'
             : theme.palette.background.default
       }}
     >
-      <Paper elevation={0} sx={{ p: 2 }}>
+      <Paper
+        elevation={0}
+        sx={{
+          p: 2,
+          flex: 1,
+          minHeight: 0,
+          minWidth: 0,
+          overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column'
+        }}
+      >
         {configBuffer !== null ? (
-          <PdfViewer
-            data={configBuffer}
-            areas={[]}
-            clickableAreas={false}
-            withUpdateAreaButtons={true}
-            withDeleteAreaButtons={true}
-            mode={mode}
-          />
+          <div style={{ flex: 1, minHeight: 0, minWidth: 0 }}>
+            <PdfViewer
+              data={configBuffer}
+              areas={areas}
+              clickableAreas={true}
+              withUpdateAreaButtons={true}
+              withDeleteAreaButtons={true}
+              mode={mode}
+            />
+          </div>
         ) : null}
       </Paper>
     </Stack>
