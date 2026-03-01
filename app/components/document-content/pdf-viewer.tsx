@@ -29,11 +29,23 @@ import {
   ZoomPluginPackage,
   useZoom
 } from '@embedpdf/plugin-zoom/react'
+import { InteractionManagerPluginPackage } from '@embedpdf/plugin-interaction-manager/react'
+import {
+  CapturePluginPackage,
+  type CaptureAreaEvent,
+  useCapture
+} from '@embedpdf/plugin-capture/react'
 // Material UI
 import CircularProgress from '@mui/material/CircularProgress'
 import Alert from '@mui/material/Alert'
 import Fade from '@mui/material/Fade'
 import Typography from '@mui/material/Typography'
+import EditIcon from '@mui/icons-material/Edit'
+import DeleteIcon from '@mui/icons-material/Delete'
+import Dialog from '@mui/material/Dialog'
+import DialogTitle from '@mui/material/DialogTitle'
+import DialogContent from '@mui/material/DialogContent'
+import DialogActions from '@mui/material/DialogActions'
 
 export interface Rectangle {
   xMin: number
@@ -140,6 +152,17 @@ function extractPageSizes(doc: unknown): PageSize[] {
   return sizes
 }
 
+function downloadBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  window.setTimeout(() => URL.revokeObjectURL(url), 10_000)
+}
+
 export const PdfViewer: React.FC<PdfViewerProps> = (props) => {
   const { engine, isLoading, error } = usePdfiumEngine()
   const [showLoader, setShowLoader] = React.useState(false)
@@ -161,6 +184,12 @@ export const PdfViewer: React.FC<PdfViewerProps> = (props) => {
       createPluginRegistration(ViewportPluginPackage),
       createPluginRegistration(ScrollPluginPackage, { defaultPageGap: 10 }),
       createPluginRegistration(RenderPluginPackage),
+      createPluginRegistration(InteractionManagerPluginPackage),
+      createPluginRegistration(CapturePluginPackage, {
+        scale: 2.0,
+        imageType: 'image/png',
+        withAnnotations: true
+      }),
       createPluginRegistration(TilingPluginPackage, {
         tileSize: 768,
         overlapPx: 5,
@@ -227,6 +256,7 @@ const PdfViewerBody: React.FC<PdfViewerProps & { documentId: string }> = (
   const { provides: docManager } = useDocumentManagerCapability()
   const { provides: scroll } = useScroll(props.documentId)
   const { provides: zoom } = useZoom(props.documentId)
+  const { provides: capture } = useCapture(props.documentId)
 
   const [pageSizes, setPageSizes] = useState<PageSize[]>([])
   const offsetsY = useMemo(() => buildOffsetsY(pageSizes), [pageSizes])
@@ -244,6 +274,54 @@ const PdfViewerBody: React.FC<PdfViewerProps & { documentId: string }> = (
 
   const pageScaleRef = useRef<Map<number, number>>(new Map())
   const fitDoneRef = useRef(false)
+
+  const [tooSmallOpen, setTooSmallOpen] = useState(false)
+  const [tooSmallText, setTooSmallText] = useState('')
+
+  const pendingCaptureRef = useRef<null | {
+    filename: string
+    pageIndex: number
+  }>(null)
+
+  const BTN_W_PX = 28
+  const BTN_H_PX = 28
+  const BTN_GAP_PX = 2
+
+  const ensureMinRectSizeByButtons = useCallback(
+    (wPx: number, hPx: number): boolean => {
+      const buttonsCount =
+        Number(Boolean(props.withDeleteAreaButtons)) +
+        Number(Boolean(props.withUpdateAreaButtons))
+
+      const minW = buttonsCount <= 1 ? BTN_W_PX : BTN_W_PX * 2 + BTN_GAP_PX
+      const minH = BTN_H_PX
+
+      if (wPx >= minW && hPx >= minH) return true
+
+      setTooSmallText(
+        `Слишком маленькая область: ${Math.round(wPx)}×${Math.round(
+          hPx
+        )} px. Минимум: ${minW}×${minH} px.`
+      )
+      setTooSmallOpen(true)
+      return false
+    },
+    [props.withDeleteAreaButtons, props.withUpdateAreaButtons]
+  )
+
+  useEffect(() => {
+    if (!capture) return
+    return capture.onCaptureArea((result: CaptureAreaEvent) => {
+      const pending = pendingCaptureRef.current
+      const filename =
+        pending && pending.pageIndex === result.pageIndex
+          ? pending.filename
+          : `capture_p${result.pageIndex + 1}.png`
+
+      downloadBlob(result.blob, filename)
+      pendingCaptureRef.current = null
+    })
+  }, [capture])
 
   useEffect(() => {
     if (!docManager) return
@@ -330,8 +408,6 @@ const PdfViewerBody: React.FC<PdfViewerProps & { documentId: string }> = (
 
   useEffect(() => {
     if (props.mode.type === 'BROWSE_AREA') scrollToArea(props.mode.areaId)
-    if (props.mode.type === 'UPDATE_AREA_RECTANGLE')
-      scrollToArea(props.mode.areaId)
   }, [props.mode, scrollToArea])
 
   useEffect(() => {
@@ -360,6 +436,21 @@ const PdfViewerBody: React.FC<PdfViewerProps & { documentId: string }> = (
 
   return (
     <div ref={viewportHostRef} className="pdfv-body-host">
+      <Dialog open={tooSmallOpen} onClose={() => setTooSmallOpen(false)}>
+        <DialogTitle>Область слишком маленькая</DialogTitle>
+        <DialogContent>
+          <Alert severity="warning">{tooSmallText}</Alert>
+        </DialogContent>
+        <DialogActions>
+          <ProjButton
+            variant="contained"
+            onClick={() => setTooSmallOpen(false)}
+          >
+            ОК
+          </ProjButton>
+        </DialogActions>
+      </Dialog>
+
       <Viewport documentId={props.documentId} className="pdfv-viewport">
         <Scroller
           documentId={props.documentId}
@@ -394,7 +485,9 @@ const PdfViewerBody: React.FC<PdfViewerProps & { documentId: string }> = (
               const h = (r.yMax - r.yMin) * scale
               const areaPosClass = `pdfv-area--id-${a.id}`
               pageDynamicCssParts.push(
-                `.${pageClass} .${areaPosClass}{left:${fmtPx(left)};top:${fmtPx(top)};width:${fmtPx(w)};height:${fmtPx(h)};}`
+                `.${pageClass} .${areaPosClass}{left:${fmtPx(left)};top:${fmtPx(
+                  top
+                )};width:${fmtPx(w)};height:${fmtPx(h)};}`
               )
             }
 
@@ -405,7 +498,9 @@ const PdfViewerBody: React.FC<PdfViewerProps & { documentId: string }> = (
               const h = Math.abs(draftOnPage.y2 - draftOnPage.y1)
               const draftClass = `pdfv-draft-rect--p${pageIndex}`
               pageDynamicCssParts.push(
-                `.${pageClass} .${draftClass}{left:${fmtPx(left)};top:${fmtPx(top)};width:${fmtPx(w)};height:${fmtPx(h)};}`
+                `.${pageClass} .${draftClass}{left:${fmtPx(left)};top:${fmtPx(
+                  top
+                )};width:${fmtPx(w)};height:${fmtPx(h)};}`
               )
             }
 
@@ -432,6 +527,35 @@ const PdfViewerBody: React.FC<PdfViewerProps & { documentId: string }> = (
                       props.clickableAreas ||
                       props.withUpdateAreaButtons ||
                       props.withDeleteAreaButtons
+
+                    const r = a.localRect
+                    const wPx = (r.xMax - r.xMin) * scale
+                    const hPx = (r.yMax - r.yMin) * scale
+
+                    const isTiny = wPx < 110 || hPx < 44
+
+                    const actionsStyle: React.CSSProperties = isTiny
+                      ? {
+                          position: 'absolute',
+                          right: 0,
+                          top: 0,
+                          display: 'flex',
+                          gap: 2
+                        }
+                      : {
+                          position: 'absolute',
+                          right: 6,
+                          bottom: 6,
+                          display: 'flex',
+                          gap: 2
+                        }
+
+                    const btnSx = {
+                      minWidth: 0,
+                      padding: isTiny ? '2px 4px' : '2px 6px',
+                      lineHeight: 1.1,
+                      fontSize: 12
+                    } as const
 
                     const areaPosClass = `pdfv-area--id-${a.id}`
 
@@ -465,30 +589,46 @@ const PdfViewerBody: React.FC<PdfViewerProps & { documentId: string }> = (
                           {a.name} (id={a.id})
                         </div>
 
-                        {props.withDeleteAreaButtons && (
-                          <ProjButton
-                            variant="contained"
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              props.onDeleteAreaButtonClick?.({ areaId: a.id })
-                            }}
+                        {(props.withDeleteAreaButtons ||
+                          props.withUpdateAreaButtons) && (
+                          <div
+                            style={actionsStyle}
+                            onClick={(e) => e.stopPropagation()}
                           >
-                            Удалить
-                          </ProjButton>
-                        )}
+                            {props.withDeleteAreaButtons && (
+                              <ProjButton
+                                variant="contained"
+                                type="button"
+                                sx={btnSx}
+                                title="Удалить"
+                                aria-label="Удалить область"
+                                onClick={() =>
+                                  props.onDeleteAreaButtonClick?.({
+                                    areaId: a.id
+                                  })
+                                }
+                              >
+                                <DeleteIcon fontSize="small" />
+                              </ProjButton>
+                            )}
 
-                        {props.withUpdateAreaButtons && (
-                          <ProjButton
-                            variant="contained"
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              props.onUpdateAreaButtonClick?.({ areaId: a.id })
-                            }}
-                          >
-                            Изменить
-                          </ProjButton>
+                            {props.withUpdateAreaButtons && (
+                              <ProjButton
+                                variant="contained"
+                                type="button"
+                                sx={btnSx}
+                                title="Изменить"
+                                aria-label="Изменить область"
+                                onClick={() =>
+                                  props.onUpdateAreaButtonClick?.({
+                                    areaId: a.id
+                                  })
+                                }
+                              >
+                                <EditIcon fontSize="small" />
+                              </ProjButton>
+                            )}
+                          </div>
                         )}
                       </div>
                     )
@@ -527,6 +667,14 @@ const PdfViewerBody: React.FC<PdfViewerProps & { documentId: string }> = (
                     onMouseUp={() => {
                       if (!draftPx || draftPx.pageIndex !== pageIndex) return
 
+                      const wPx = Math.abs(draftPx.x2 - draftPx.x1)
+                      const hPx = Math.abs(draftPx.y2 - draftPx.y1)
+
+                      if (!ensureMinRectSizeByButtons(wPx, hPx)) {
+                        setDraftPx(null)
+                        return
+                      }
+
                       const pageScale =
                         pageScaleRef.current.get(pageIndex) ?? scale
                       const localRectPts = clampRect({
@@ -541,6 +689,30 @@ const PdfViewerBody: React.FC<PdfViewerProps & { documentId: string }> = (
                         ...localRectPts,
                         yMin: localRectPts.yMin + offY,
                         yMax: localRectPts.yMax + offY
+                      }
+
+                      const captureRect = {
+                        x: localRectPts.xMin,
+                        y: localRectPts.yMin,
+                        width: localRectPts.xMax - localRectPts.xMin,
+                        height: localRectPts.yMax - localRectPts.yMin
+                      } as unknown as Record<string, number>
+
+                      if (capture) {
+                        const stamp = new Date()
+                          .toISOString()
+                          .replaceAll(':', '-')
+                          .replaceAll('.', '-')
+                        const suffix =
+                          props.mode.type === 'UPDATE_AREA_RECTANGLE'
+                            ? `_area-${props.mode.areaId}`
+                            : ''
+                        pendingCaptureRef.current = {
+                          filename: `capture${suffix}_p${pageIndex + 1}_${stamp}.png`,
+                          pageIndex
+                        }
+                        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+                        capture.captureArea(pageIndex, captureRect as any)
                       }
 
                       if (props.mode.type === 'CREATE_RECTANGLE') {

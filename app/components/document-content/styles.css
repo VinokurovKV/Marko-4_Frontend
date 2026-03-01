@@ -63,6 +63,8 @@
   min-height: 0;
   min-width: 0;
   background: hsl(220, 30%, 94%);
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 .pdfv-page {
   position: relative;
