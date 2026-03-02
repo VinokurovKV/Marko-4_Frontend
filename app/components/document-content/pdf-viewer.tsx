@@ -272,6 +272,17 @@ const PdfViewerBody: React.FC<PdfViewerProps & { documentId: string }> = (
     y2: number
   }>(null)
 
+  type Corner = 'nw' | 'ne' | 'sw' | 'se'
+  const [resize, setResize] = useState<null | {
+    areaId: number
+    pageIndex: number
+    corner: Corner
+    startClientX: number
+    startClientY: number
+    startLocalRect: Rectangle
+    liveLocalRect: Rectangle
+  }>(null)
+
   const pageScaleRef = useRef<Map<number, number>>(new Map())
   const fitDoneRef = useRef(false)
 
@@ -308,6 +319,66 @@ const PdfViewerBody: React.FC<PdfViewerProps & { documentId: string }> = (
     },
     [props.withDeleteAreaButtons, props.withUpdateAreaButtons]
   )
+
+  const localToDocRect = useCallback(
+    (pageIndex: number, localRect: Rectangle): Rectangle => {
+      const offY = offsetsY[pageIndex] ?? 0
+      return {
+        xMin: localRect.xMin,
+        xMax: localRect.xMax,
+        yMin: localRect.yMin + offY,
+        yMax: localRect.yMax + offY
+      }
+    },
+    [offsetsY]
+  )
+
+  useEffect(() => {
+    if (!resize) return
+
+    const onMove = (e: PointerEvent) => {
+      const pageScale = pageScaleRef.current.get(resize.pageIndex) ?? 1
+      const dx = (e.clientX - resize.startClientX) / pageScale
+      const dy = (e.clientY - resize.startClientY) / pageScale
+
+      const r = resize.startLocalRect
+      let next: Rectangle = { ...r }
+
+      if (resize.corner === 'nw') {
+        next.xMin = r.xMin + dx
+        next.yMin = r.yMin + dy
+      } else if (resize.corner === 'ne') {
+        next.xMax = r.xMax + dx
+        next.yMin = r.yMin + dy
+      } else if (resize.corner === 'sw') {
+        next.xMin = r.xMin + dx
+        next.yMax = r.yMax + dy
+      } else {
+        next.xMax = r.xMax + dx
+        next.yMax = r.yMax + dy
+      }
+
+      next = clampRect(next)
+
+      setResize((prev) => (prev ? { ...prev, liveLocalRect: next } : prev))
+    }
+
+    const onUp = () => {
+      const docRect = localToDocRect(resize.pageIndex, resize.liveLocalRect)
+      props.onUpdateAreaRectangle?.({
+        areaId: resize.areaId,
+        rectangle: docRect
+      })
+      setResize(null)
+    }
+
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', onUp, { once: true })
+    return () => {
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', onUp)
+    }
+  }, [resize, localToDocRect, props])
 
   useEffect(() => {
     if (!capture) return
@@ -413,12 +484,25 @@ const PdfViewerBody: React.FC<PdfViewerProps & { documentId: string }> = (
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return
-      if (props.mode.type === 'CREATE_RECTANGLE')
+      if (
+        props.mode.type !== 'CREATE_RECTANGLE' &&
+        props.mode.type !== 'UPDATE_AREA_RECTANGLE'
+      )
+        return
+
+      e.preventDefault()
+      e.stopPropagation()
+
+      if (props.mode.type === 'CREATE_RECTANGLE') {
         props.onCreateRectangleCancel?.()
-      if (props.mode.type === 'UPDATE_AREA_RECTANGLE')
+      } else {
         props.onUpdateAreaRectangleCancel?.()
+      }
+
       setDraftPx(null)
+      setResize(null)
     }
+
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [
@@ -446,7 +530,7 @@ const PdfViewerBody: React.FC<PdfViewerProps & { documentId: string }> = (
             variant="contained"
             onClick={() => setTooSmallOpen(false)}
           >
-            ОК
+            Ок
           </ProjButton>
         </DialogActions>
       </Dialog>
@@ -478,7 +562,12 @@ const PdfViewerBody: React.FC<PdfViewerProps & { documentId: string }> = (
             )
 
             for (const a of pageAreas) {
-              const r = a.localRect
+              const localRectForCss =
+                resize && resize.areaId === a.id
+                  ? resize.liveLocalRect
+                  : a.localRect
+
+              const r = localRectForCss
               const left = r.xMin * scale
               const top = r.yMin * scale
               const w = (r.xMax - r.xMin) * scale
@@ -528,10 +617,19 @@ const PdfViewerBody: React.FC<PdfViewerProps & { documentId: string }> = (
                       props.withUpdateAreaButtons ||
                       props.withDeleteAreaButtons
 
-                    const r = a.localRect
-                    const wPx = (r.xMax - r.xMin) * scale
-                    const hPx = (r.yMax - r.yMin) * scale
+                    const isEditingThisArea =
+                      props.mode.type === 'UPDATE_AREA_RECTANGLE' &&
+                      props.mode.areaId === a.id
 
+                    const localRectForUi =
+                      resize && resize.areaId === a.id
+                        ? resize.liveLocalRect
+                        : a.localRect
+
+                    const wPx =
+                      (localRectForUi.xMax - localRectForUi.xMin) * scale
+                    const hPx =
+                      (localRectForUi.yMax - localRectForUi.yMin) * scale
                     const isTiny = wPx < 110 || hPx < 44
 
                     const actionsStyle: React.CSSProperties = isTiny
@@ -557,6 +655,11 @@ const PdfViewerBody: React.FC<PdfViewerProps & { documentId: string }> = (
                       fontSize: 12
                     } as const
 
+                    const showAreaActions =
+                      props.mode.type !== 'UPDATE_AREA_RECTANGLE' &&
+                      (props.withDeleteAreaButtons ||
+                        props.withUpdateAreaButtons)
+
                     const areaPosClass = `pdfv-area--id-${a.id}`
 
                     const areaClassName = [
@@ -580,19 +683,23 @@ const PdfViewerBody: React.FC<PdfViewerProps & { documentId: string }> = (
                           else areaElsRef.current.delete(a.id)
                         }}
                         onClick={() => {
+                          if (
+                            props.mode.type === 'CREATE_RECTANGLE' ||
+                            props.mode.type === 'UPDATE_AREA_RECTANGLE'
+                          )
+                            return
                           if (!props.clickableAreas) return
                           props.onAreaClick?.({ areaId: a.id })
                         }}
                         title={a.name}
                       >
-                        <div className="pdfv-area-label">
-                          {a.name} (id={a.id})
-                        </div>
+                        <div className="pdfv-area-label">{a.name}</div>
 
-                        {(props.withDeleteAreaButtons ||
-                          props.withUpdateAreaButtons) && (
+                        {showAreaActions && (
                           <div
+                            className="pdfv-area-actions"
                             style={actionsStyle}
+                            onMouseDown={(e) => e.stopPropagation()}
                             onClick={(e) => e.stopPropagation()}
                           >
                             {props.withDeleteAreaButtons && (
@@ -630,6 +737,58 @@ const PdfViewerBody: React.FC<PdfViewerProps & { documentId: string }> = (
                             )}
                           </div>
                         )}
+
+                        {isEditingThisArea && (
+                          <>
+                            {(['nw', 'ne', 'sw', 'se'] as const).map(
+                              (corner) => (
+                                <div
+                                  key={corner}
+                                  onPointerDown={(e) => {
+                                    e.stopPropagation()
+                                    setResize({
+                                      areaId: a.id,
+                                      pageIndex,
+                                      corner,
+                                      startClientX: e.clientX,
+                                      startClientY: e.clientY,
+                                      startLocalRect: localRectForUi,
+                                      liveLocalRect: localRectForUi
+                                    })
+                                  }}
+                                  style={{
+                                    position: 'absolute',
+                                    width: 10,
+                                    height: 10,
+                                    borderRadius: 2,
+                                    background: 'rgba(0,0,0,0.45)',
+                                    border: '1px solid rgba(255,255,255,0.9)',
+                                    cursor:
+                                      corner === 'nw' || corner === 'se'
+                                        ? 'nwse-resize'
+                                        : 'nesw-resize',
+                                    left:
+                                      corner === 'nw' || corner === 'sw'
+                                        ? -5
+                                        : undefined,
+                                    right:
+                                      corner === 'ne' || corner === 'se'
+                                        ? -5
+                                        : undefined,
+                                    top:
+                                      corner === 'nw' || corner === 'ne'
+                                        ? -5
+                                        : undefined,
+                                    bottom:
+                                      corner === 'sw' || corner === 'se'
+                                        ? -5
+                                        : undefined
+                                  }}
+                                />
+                              )
+                            )}
+                          </>
+                        )}
                       </div>
                     )
                   })}
@@ -641,8 +800,7 @@ const PdfViewerBody: React.FC<PdfViewerProps & { documentId: string }> = (
                   )}
                 </div>
 
-                {(props.mode.type === 'CREATE_RECTANGLE' ||
-                  props.mode.type === 'UPDATE_AREA_RECTANGLE') && (
+                {props.mode.type === 'CREATE_RECTANGLE' && (
                   <div
                     className="pdfv-interaction-overlay"
                     onMouseDown={(e) => {
@@ -669,7 +827,6 @@ const PdfViewerBody: React.FC<PdfViewerProps & { documentId: string }> = (
 
                       const wPx = Math.abs(draftPx.x2 - draftPx.x1)
                       const hPx = Math.abs(draftPx.y2 - draftPx.y1)
-
                       if (!ensureMinRectSizeByButtons(wPx, hPx)) {
                         setDraftPx(null)
                         return
@@ -703,27 +860,15 @@ const PdfViewerBody: React.FC<PdfViewerProps & { documentId: string }> = (
                           .toISOString()
                           .replaceAll(':', '-')
                           .replaceAll('.', '-')
-                        const suffix =
-                          props.mode.type === 'UPDATE_AREA_RECTANGLE'
-                            ? `_area-${props.mode.areaId}`
-                            : ''
                         pendingCaptureRef.current = {
-                          filename: `capture${suffix}_p${pageIndex + 1}_${stamp}.png`,
+                          filename: `capture_p${pageIndex + 1}_${stamp}.png`,
                           pageIndex
                         }
-                        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+                        //eslint-disable-next-line @typescript-eslint/no-unsafe-argument
                         capture.captureArea(pageIndex, captureRect as any)
                       }
 
-                      if (props.mode.type === 'CREATE_RECTANGLE') {
-                        props.onCreateRectangle?.({ rectangle: docRect })
-                      } else if (props.mode.type === 'UPDATE_AREA_RECTANGLE') {
-                        props.onUpdateAreaRectangle?.({
-                          areaId: props.mode.areaId,
-                          rectangle: docRect
-                        })
-                      }
-
+                      props.onCreateRectangle?.({ rectangle: docRect })
                       setDraftPx(null)
                     }}
                   />

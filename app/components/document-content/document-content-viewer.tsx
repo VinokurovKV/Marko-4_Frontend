@@ -160,15 +160,6 @@ export function DocumentContentViewer({
           >
             Создать область
           </ProjButton>
-
-          {mode.type !== 'DEFAULT' && (
-            <ProjButton
-              variant="contained"
-              onClick={() => setMode({ type: 'DEFAULT' })}
-            >
-              По умолчанию
-            </ProjButton>
-          )}
         </Stack>
 
         <Dialog
