@@ -182,3 +182,15 @@
   bottom: -5px;
   cursor: nwse-resize;
 }
+.pdfv-selection-host {
+  position: absolute;
+  inset: 0;
+  z-index: 15; 
+  pointer-events: auto;
+}
+.pdfv-selection-menu {
+  position: absolute;
+  left: 8px;
+  pointer-events:​ auto;
+  z-index: 30;
+}

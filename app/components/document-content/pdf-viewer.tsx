@@ -37,7 +37,8 @@ import {
 } from '@embedpdf/plugin-capture/react'
 import {
   SelectionPluginPackage,
-  SelectionLayer
+  SelectionLayer,
+  useSelectionCapability
 } from '@embedpdf/plugin-selection/react'
 import { PagePointerProvider } from '@embedpdf/plugin-interaction-manager/react'
 // Material UI
@@ -264,6 +265,35 @@ const PdfViewerBody: React.FC<PdfViewerProps & { documentId: string }> = (
   const { provides: scroll } = useScroll(props.documentId)
   const { provides: zoom } = useZoom(props.documentId)
   const { provides: capture } = useCapture(props.documentId)
+
+  const { provides: selectionCapability } = useSelectionCapability()
+  const [hasSelection, setHasSelection] = useState(false)
+
+  useEffect(() => {
+    if (!selectionCapability) return
+    const scope = selectionCapability.forDocument(props.documentId)
+    return scope.onSelectionChange((sel) => setHasSelection(!!sel))
+  }, [selectionCapability, props.documentId])
+
+  useEffect(() => {
+    if (!selectionCapability) return
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      const isCopy =
+        (e.ctrlKey || e.metaKey) && (e.key === 'c' || e.key === 'C')
+      if (!isCopy) return
+      if (!hasSelection) return
+
+      e.preventDefault()
+      e.stopPropagation()
+      selectionCapability.forDocument(props.documentId).copyToClipboard()
+    }
+
+    window.addEventListener('keydown', onKeyDown, { capture: true })
+    return () =>
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+      window.removeEventListener('keydown', onKeyDown, { capture: true } as any)
+  }, [selectionCapability, props.documentId, hasSelection])
 
   const isTextMode = props.interactionMode === 'TEXT'
 
@@ -514,7 +544,6 @@ const PdfViewerBody: React.FC<PdfViewerProps & { documentId: string }> = (
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return
 
-      // 1) сначала снимаем подсветку после browse area
       if (browseReq !== null) {
         e.preventDefault()
         e.stopPropagation()
@@ -522,7 +551,6 @@ const PdfViewerBody: React.FC<PdfViewerProps & { documentId: string }> = (
         return
       }
 
-      // 2) потом — твоя текущая логика отмены create/update
       if (
         props.mode.type !== 'CREATE_RECTANGLE' &&
         props.mode.type !== 'UPDATE_AREA_RECTANGLE'
@@ -687,6 +715,9 @@ const PdfViewerBody: React.FC<PdfViewerProps & { documentId: string }> = (
                         documentId={props.documentId}
                         pageIndex={pageIndex}
                         scale={scale}
+                        textStyle={{
+                          background: 'rgba(0, 120, 255, 0.25)'
+                        }}
                       />
                     </div>
                   )}
