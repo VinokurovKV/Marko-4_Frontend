@@ -1,10 +1,22 @@
+import { Handle, Position, type NodeProps } from 'reactflow'
+import './styles.css'
+import { useState } from 'react'
+
 export type AcyclicGraphVertexType =
-  /** type for a case when selected vertex doesn't exist in a graph */
   | 'DEFAULT'
-  /** types for a case when selected vertex exists in a graph */
   | 'SELECTED'
   | 'RELATED'
   | 'SECONDARY'
+
+export interface VertexData {
+  code: string
+  atomicityFlag: boolean
+  atomicityCoef: number
+  modifier: string
+  origin: string
+  coverage: number
+  test: string
+}
 
 export interface AcyclicGraphVertexViewerProps<VertexData> {
   id: number
@@ -17,9 +29,57 @@ export interface AcyclicGraphVertexViewerProps<VertexData> {
   onClick?: (id: number) => void
 }
 
-export function AcyclicGraphVertexViewer<VertexData>(
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  props: AcyclicGraphVertexViewerProps<VertexData>
-) {
-  return null
+export default function AcyclicGraphVertexViewer({
+  data: { id, level, hasParents, hasChildren, data, type, collapsed, onClick }
+}: NodeProps<AcyclicGraphVertexViewerProps<VertexData>>) {
+  const [isHovered, setIsHovered] = useState(false)
+
+  const handleClick = () => {
+    onClick?.(id)
+  }
+
+  const handleMouseEnter = () => {
+    setIsHovered(true)
+  }
+
+  const handleMouseLeave = () => {
+    setIsHovered(false)
+  }
+
+  return (
+    <div
+      className={`acyclic-vertex ${type.toLowerCase()} ${collapsed ? 'collapsed' : ''}`}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      onClick={handleClick}
+    >
+      {hasParents && (
+        <Handle
+          type="target"
+          position={Position.Top}
+          className="vertex-handle"
+        />
+      )}
+      {hasChildren && (
+        <Handle
+          type="source"
+          position={Position.Bottom}
+          className="vertex-handle"
+        />
+      )}
+
+      <div className="vertex-code">
+        {data.code}
+        {isHovered && (
+          <div className="vertex-tooltip">
+            <div>ID: {id}</div>
+            <div>Level: {level}</div>
+            <div>Coverage: {data.coverage}%</div>
+          </div>
+        )}
+      </div>
+
+      {collapsed && <div className="collapsed-indicator">C</div>}
+    </div>
+  )
 }

@@ -8,83 +8,72 @@
   box-shadow: none !important;
 }
 
-.react-flow__node-rectangle {
-  border: none !important;
-  box-shadow: none !important;
-}
-
-div.rectangle {
-  border: 7px solid black;
-  border-radius: 10px;
-}
-div.rectangle.selected {
-  box-shadow: 0 0 30px 15px rgb(56, 116, 203);
-  /* outline: 0px solid rgb(56, 116, 203); */
-  /* border-color: blue; */
-  /* border-width: 10px; */
-}
-/* div.rectangle.selected,
-div.rectangle.related {
-  border-color: blue;
-  border-width: 10px;
-} */
-/* div.rectangle.related {
-  border-style: dashed;
-} */
-div.rectangle-content {
+div.acyclic-vertex {
+  border-radius: 8px;
+  padding: 12px;
+  min-width: 150px;
+  min-height: 80px;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  position: relative;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
+  border: 1px solid rgb(200, 200, 200);
+  background-color: hsl(210, 100%, 65%);
+}
+
+div.acyclic-vertex:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+div.acyclic-vertex.selected {
+  border: 2px solid rgb(0, 100, 255);
+  background-color: rgba(0, 120, 255, 0.8);
+}
+
+div.acyclic-vertex.related {
+  border: 2px solid rgb(0, 180, 80);
+  background-color: rgba(0, 200, 100, 0.8);
+}
+
+div.acyclic-vertex.secondary {
+  border: 2px solid rgb(180, 180, 180);
+  background-color: rgba(200, 200, 200, 0.8);
+}
+
+div.acyclic-vertex .vertex-code {
+  font-weight: bold;
+  font-size: 14px;
   text-align: center;
-  width: 100%;
-  height: 100%;
+  color: #333;
 }
-div.rectangle-content span {
-  font-weight: 600;
-  font-size: 2em;
-}
-div.graph-stats {
-  /* position: absolute;
-  top: 10px;
-  left: 10px;
-  z-index: 1000; */
-  /* display: flex; */
-  /* gap: 10px; */
-}
-/* button {
-  border: none;
-  border-radius: 4px;
+
+div.acyclic-vertex.selected .vertex-code,
+div.acyclic-vertex.selected .collapsed-indicator {
   color: white;
-  padding: 4px 8px;
-  cursor: pointer;
-  font-size: 0.7rem;
 }
-button.disabled {
-  background-color: #ccc;
-  cursor: not-allowed;
+
+div.acyclic-vertex .collapsed-indicator {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  background: rgba(0,0,0,0.1);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 10px;
+  color: #666;
 }
-button[data-action='hide-level']:not(.disabled) {
-  background-color: red;
-}
-button[data-action='show-level']:not(.disabled) {
-  background-color: green;
-}
-button[data-action='reset-selection']:not(.disabled) {
-  background-color: blue;
-}
-button[data-action='delete-edge']:not(.disabled) {
-  background-color: purple;
-}
-button[data-action='toggle-level3-mode']:not(.disabled) {
-  background-color: navy;
-} */
+
 div.levels {
   padding: 8px 16px;
   background-color: 'rgba(255, 255, 255, 0.9)';
   border-radius: 4px;
   font-weight: bold;
 }
+
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -98,6 +87,7 @@ div.levels {
   padding-top: 100px;
   z-index: 1000;
 }
+
 .modal-content {
   background: white;
   border-radius: 8px;
@@ -106,30 +96,36 @@ div.levels {
   max-width: 90vw;
   animation: modal-appear 0.2s ease-out;
 }
+
 .modal-header {
   padding: 20px 20px 0;
   border-bottom: none;
 }
+
 .modal-header h3 {
   margin: 0;
   color: #333;
   font-size: 18px;
   font-weight: 600;
 }
+
 .modal-body {
   padding: 20px;
 }
+
 .modal-body p {
   margin: 0;
   color: #666;
   line-height: 1.5;
 }
+
 .modal-footer {
   padding: 0 20px 20px;
   display: flex;
   justify-content: flex-end;
   gap: 10px;
 }
+
 .modal-button {
   padding: 8px 16px;
   border: none;
@@ -139,20 +135,25 @@ div.levels {
   font-weight: 500;
   transition: all 0.2s;
 }
+
 .cancel-button {
   background-color: #f5f5f5;
   color: #333;
 }
+
 .cancel-button:hover {
   background-color: #e0e0e0;
 }
+
 .confirm-button {
   background-color: #dc3545;
   color: white;
 }
+
 .confirm-button:hover {
   background-color: #c82333;
 }
+
 .choice-modal-content {
   background: white;
   border-radius: 8px;
@@ -161,22 +162,26 @@ div.levels {
   max-width: 90vw;
   animation: modal-appear 0.2s ease-out;
 }
+
 .choice-modal-body {
   padding: 20px;
   text-align: center;
 }
+
 .choice-modal-body p {
   margin: 0 0 20px 0;
   color: #666;
   line-height: 1.5;
   font-size: 16px;
 }
+
 .choice-modal-footer {
   padding: 0 20px 20px;
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
+
 .choice-modal-button {
   padding: 12px 16px;
   border: none;
@@ -187,232 +192,31 @@ div.levels {
   transition: all 0.2s;
   width: 100%;
 }
+
 .choice-modal-button.path-to-root {
   background-color: #4caf50;
   color: white;
 }
+
 .choice-modal-button.path-to-root:hover {
   background-color: #45a049;
 }
+
 .choice-modal-button.subtree {
   background-color: #2196f3;
   color: white;
 }
+
 .choice-modal-button.subtree:hover {
   background-color: #1976d2;
 }
+
 .choice-modal-button.cancel {
   background-color: #f5f5f5;
   color: #333;
   border: 1px solid #ddd;
 }
+
 .choice-modal-button.cancel:hover {
   background-color: #e0e0e0;
 }
-
-/* .react-flow__node {
-  border: none !important;
-  box-shadow: none !important;
-}
-
-.react-flow__node-default {
-  border: none !important;
-  box-shadow: none !important;
-}
-
-.react-flow__node-rectangle {
-  border: none !important;
-  box-shadow: none !important;
-}
-
-div.rectangle {
-  border: 7px solid black !important;
-  border-radius: 10px !important;
-}
-div.rectangle.selected,
-div.rectangle.related {
-  border-color: blue !important;
-  border-width: 10px !important;
-}
-div.rectangle.related {
-  border-style: dashed !important;
-}
-div.rectangle-content {
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: center !important;
-  justify-content: center !important;
-  text-align: center !important;
-  width: 100% !important;
-  height: 100% !important;
-}
-div.rectangle-content span {
-  font-weight: 600 !important;
-  font-size: 2em !important;
-}
-div.graph-stats {
-  position: absolute !important;
-  top: 10px !important;
-  left: 10px !important;
-  z-index: 1000 !important;
-  display: flex !important;
-  gap: 10px !important;
-}
-button {
-  border: none !important;
-  border-radius: 4px !important;
-  color: white !important;
-  padding: 8px 16px !important;
-  cursor: pointer !important;
-}
-button.disabled {
-  background-color: #ccc !important;
-  cursor: not-allowed !important;
-}
-button[data-action='hide-level']:not(.disabled) {
-  background-color: red !important;
-}
-button[data-action='show-level']:not(.disabled) {
-  background-color: green !important;
-}
-button[data-action='reset-selection']:not(.disabled) {
-  background-color: blue !important;
-}
-button[data-action='delete-edge']:not(.disabled) {
-  background-color: purple !important;
-}
-button[data-action='toggle-level3-mode']:not(.disabled) {
-  background-color: navy !important;
-}
-div.levels {
-  padding: 8px 16px;
-  background-color: 'rgba(255, 255, 255, 0.9)' !important;
-  border-radius: 4px !important;
-  font-weight: bold !important;
-}
-.modal-overlay {
-  position: fixed !important;
-  top: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
-  bottom: 0 !important;
-  background-color: rgba(0, 0, 0, 0.5) !important;
-  display: flex !important;
-  justify-content: center !important;
-  align-items: flex-start !important;
-  padding-top: 100px !important;
-  z-index: 1000 !important;
-}
-.modal-content {
-  background: white !important;
-  border-radius: 8px !important;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15) !important;
-  width: 400px !important;
-  max-width: 90vw !important;
-  animation: modal-appear 0.2s ease-out !important;
-}
-.modal-header {
-  padding: 20px 20px 0 !important;
-  border-bottom: none !important;
-}
-.modal-header h3 {
-  margin: 0 !important;
-  color: #333 !important;
-  font-size: 18px !important;
-  font-weight: 600 !important;
-}
-.modal-body {
-  padding: 20px !important;
-}
-.modal-body p {
-  margin: 0 !important;
-  color: #666 !important;
-  line-height: 1.5 !important;
-}
-.modal-footer {
-  padding: 0 20px 20px !important;
-  display: flex !important;
-  justify-content: flex-end !important;
-  gap: 10px !important;
-}
-.modal-button {
-  padding: 8px 16px !important;
-  border: none !important;
-  border-radius: 4px !important;
-  cursor: pointer !important;
-  font-size: 14px !important;
-  font-weight: 500 !important;
-  transition: all 0.2s !important;
-}
-.cancel-button {
-  background-color: #f5f5f5 !important;
-  color: #333 !important;
-}
-.cancel-button:hover {
-  background-color: #e0e0e0 !important;
-}
-.confirm-button {
-  background-color: #dc3545 !important;
-  color: white !important;
-}
-.confirm-button:hover {
-  background-color: #c82333 !important;
-}
-.choice-modal-content {
-  background: white !important;
-  border-radius: 8px !important;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15) !important;
-  width: 450px !important;
-  max-width: 90vw !important;
-  animation: modal-appear 0.2s ease-out !important;
-}
-.choice-modal-body {
-  padding: 20px !important;
-  text-align: center !important;
-}
-.choice-modal-body p {
-  margin: 0 0 20px 0 !important;
-  color: #666 !important;
-  line-height: 1.5 !important;
-  font-size: 16px !important;
-}
-.choice-modal-footer {
-  padding: 0 20px 20px !important;
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 10px !important;
-}
-.choice-modal-button {
-  padding: 12px 16px !important;
-  border: none !important;
-  border-radius: 6px !important;
-  cursor: pointer !important;
-  font-size: 14px !important;
-  font-weight: 500 !important;
-  transition: all 0.2s !important;
-  width: 100% !important;
-}
-.choice-modal-button.path-to-root {
-  background-color: #4caf50 !important;
-  color: white !important;
-}
-.choice-modal-button.path-to-root:hover {
-  background-color: #45a049 !important;
-}
-.choice-modal-button.subtree {
-  background-color: #2196f3 !important;
-  color: white !important;
-}
-.choice-modal-button.subtree:hover {
-  background-color: #1976d2 !important;
-}
-.choice-modal-button.cancel {
-  background-color: #f5f5f5 !important;
-  color: #333 !important;
-  border: 1px solid #ddd !important;
-}
-.choice-modal-button.cancel:hover {
-  background-color: #e0e0e0 !important;
-}
-
- */

@@ -3,17 +3,30 @@ import type { DocumentPrimary } from '~/types'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
 import { useChangeDetector } from '~/hooks/change-detector'
-import { type PdfViewerMode, PdfViewer } from './pdf-viewer/pdf-viewer'
+import { PdfViewer, type PdfViewerMode, type PdfArea } from './pdf-viewer'
+import { ProjButton } from '../buttons/button'
+// Styles
+import './styles.css'
+// React
+import * as React from 'react'
 // Material UI
 import Paper from '@mui/material/Paper'
 import Stack from '@mui/material/Stack'
+import Divider from '@mui/material/Divider'
 import { useTheme } from '@mui/material/styles'
-// React
-import * as React from 'react'
+import Dialog from '@mui/material/Dialog'
+import DialogTitle from '@mui/material/DialogTitle'
+import DialogContent from '@mui/material/DialogContent'
+import DialogActions from '@mui/material/DialogActions'
+import FormControl from '@mui/material/FormControl'
+import InputLabel from '@mui/material/InputLabel'
+import Select from '@mui/material/Select'
+import MenuItem from '@mui/material/MenuItem'
+import Typography from '@mui/material/Typography'
+import GridOnIcon from '@mui/icons-material/GridOn'
+import TextSnippetIcon from '@mui/icons-material/TextSnippet'
 
-const DEFAULT_MODE: PdfViewerMode = {
-  type: 'DEFAULT'
-}
+const DEFAULT_MODE: PdfViewerMode = { type: 'DEFAULT' }
 
 export interface DocumentContentViewerProps {
   document: DocumentPrimary
@@ -24,12 +37,60 @@ export function DocumentContentViewer({
 }: DocumentContentViewerProps) {
   const theme = useTheme()
   const notifier = useNotifier()
+
   const [configBlob, setConfigBlob] = React.useState<Blob | null>(null)
   const [configBuffer, setConfigBuffer] = React.useState<ArrayBuffer | null>(
     null
   )
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
   const [mode, setMode] = React.useState<PdfViewerMode>(DEFAULT_MODE)
+  const [areas, setAreas] = React.useState<PdfArea[]>([])
+
+  type InteractionMode = 'AREAS' | 'TEXT'
+
+  const [interactionMode, setInteractionMode] =
+    React.useState<InteractionMode>('AREAS')
+
+  React.useEffect(() => {
+    setAreas([])
+  }, [document.id])
+
+  const getNextAreaId = React.useCallback((list: PdfArea[]) => {
+    const used = new Set(list.map((a) => a.id))
+    let id = 1
+    while (used.has(id)) id++
+    return id
+  }, [])
+
+  const [isBrowseDialogOpen, setIsBrowseDialogOpen] = React.useState(false)
+  const [browseAreaId, setBrowseAreaId] = React.useState<number | null>(null)
+
+  const openBrowseDialog = React.useCallback(() => {
+    if (areas.length === 0) return
+
+    const currentId =
+      mode.type === 'BROWSE_AREA' || mode.type === 'UPDATE_AREA_RECTANGLE'
+        ? mode.areaId
+        : null
+
+    const initial =
+      currentId !== null && areas.some((a) => a.id === currentId)
+        ? currentId
+        : [...areas].sort((a, b) => a.id - b.id)[0].id
+
+    setBrowseAreaId(initial)
+    setIsBrowseDialogOpen(true)
+  }, [areas, mode])
+
+  const closeBrowseDialog = React.useCallback(() => {
+    setIsBrowseDialogOpen(false)
+  }, [])
+
+  const goToSelectedArea = React.useCallback(() => {
+    if (browseAreaId === null) return
+    setMode({ type: 'BROWSE_AREA', areaId: browseAreaId })
+    setIsBrowseDialogOpen(false)
+  }, [browseAreaId])
 
   useChangeDetector({
     detectedObjects: [document.id],
@@ -61,43 +122,174 @@ export function DocumentContentViewer({
           ? await new Response(configBlob).arrayBuffer()
           : null
       setConfigBuffer(buffer)
-      console.log('DocumentContentViewer: buffer set')
     })()
   }, [configBlob])
 
-  console.log('DocumentContentViewer: rerender')
+  const rootClassName =
+    theme.palette.mode === 'light'
+      ? 'dcv-root dcv-root--light'
+      : 'dcv-root dcv-root--dark'
 
   return (
-    <Stack
-      spacing={1}
-      border={`1px solid ${
-        theme.palette.mode === 'light'
-          ? theme.palette.grey[300]
-          : theme.palette.grey.A700
-      }`}
-      borderRadius="5px"
-      p={0}
-      sx={{
-        height: '100%',
-        overflow: 'auto',
-        backgroundColor:
-          theme.palette.mode === 'light'
-            ? 'white'
-            : theme.palette.background.default
-      }}
-    >
-      <Paper elevation={0} sx={{ p: 2 }}>
-        {configBuffer !== null ? (
-          <PdfViewer
-            data={configBuffer}
-            areas={[]}
-            clickableAreas={false}
-            withUpdateAreaButtons={true}
-            withDeleteAreaButtons={true}
-            mode={mode}
-          />
-        ) : null}
+    <div className={rootClassName}>
+      <Paper
+        elevation={0}
+        sx={{
+          p: 2,
+          flex: 1,
+          minHeight: 0,
+          minWidth: 0,
+          overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column'
+        }}
+      >
+        <Stack
+          direction="row"
+          spacing={1}
+          alignItems="center"
+          sx={{ mb: 1, flex: '0 0 auto' }}
+        >
+          <ProjButton
+            variant="contained"
+            onClick={openBrowseDialog}
+            disabled={areas.length === 0}
+          >
+            Просмотр области
+          </ProjButton>
+
+          <ProjButton
+            variant={
+              mode.type === 'CREATE_RECTANGLE' ? 'contained' : 'outlined'
+            }
+            onClick={() => setMode({ type: 'CREATE_RECTANGLE' })}
+          >
+            Создать область
+          </ProjButton>
+
+          <div style={{ flex: 1 }} />
+
+          <ProjButton
+            variant="outlined"
+            title={
+              interactionMode === 'AREAS'
+                ? 'Режим: просмотр областей'
+                : 'Режим: чтение текста'
+            }
+            aria-label="Переключить режим"
+            onClick={() => {
+              setInteractionMode((prev) => {
+                const next = prev === 'AREAS' ? 'TEXT' : 'AREAS'
+                if (next === 'TEXT') setMode({ type: 'DEFAULT' })
+                return next
+              })
+            }}
+            sx={{ minWidth: 0, px: 1 }}
+          >
+            {interactionMode === 'AREAS' ? (
+              <GridOnIcon fontSize="small" />
+            ) : (
+              <TextSnippetIcon fontSize="small" />
+            )}
+          </ProjButton>
+        </Stack>
+
+        <Dialog
+          open={isBrowseDialogOpen}
+          onClose={closeBrowseDialog}
+          maxWidth="xs"
+          fullWidth
+        >
+          <DialogTitle>Просмотр области</DialogTitle>
+
+          <DialogContent>
+            {areas.length === 0 ? (
+              <Typography variant="body2" color="text.secondary">
+                Нет созданных областей.
+              </Typography>
+            ) : (
+              <FormControl fullWidth sx={{ mt: 1 }}>
+                <InputLabel id="browse-area-select-label">Область</InputLabel>
+                <Select
+                  labelId="browse-area-select-label"
+                  label="Область"
+                  value={browseAreaId ?? ''}
+                  onChange={(e) => setBrowseAreaId(Number(e.target.value))}
+                >
+                  {[...areas]
+                    .sort((a, b) => a.id - b.id)
+                    .map((a) => (
+                      <MenuItem key={a.id} value={a.id}>
+                        {a.id} — {a.name}
+                      </MenuItem>
+                    ))}
+                </Select>
+              </FormControl>
+            )}
+          </DialogContent>
+
+          <DialogActions>
+            <ProjButton onClick={closeBrowseDialog}>Отмена</ProjButton>
+            <ProjButton
+              variant="contained"
+              onClick={goToSelectedArea}
+              disabled={browseAreaId === null}
+            >
+              Перейти
+            </ProjButton>
+          </DialogActions>
+        </Dialog>
+
+        <Divider sx={{ mb: 1 }} />
+
+        <div className="dcv-viewer-container">
+          {configBuffer !== null ? (
+            <PdfViewer
+              data={configBuffer}
+              areas={areas}
+              clickableAreas={true}
+              withUpdateAreaButtons={true}
+              withDeleteAreaButtons={true}
+              mode={mode}
+              interactionMode={interactionMode}
+              onAreaClick={({ areaId }) =>
+                setMode({ type: 'BROWSE_AREA', areaId })
+              }
+              onUpdateAreaButtonClick={({ areaId }) =>
+                setMode({ type: 'UPDATE_AREA_RECTANGLE', areaId })
+              }
+              onDeleteAreaButtonClick={({ areaId }) => {
+                setAreas((prev) => prev.filter((a) => a.id !== areaId))
+                setMode((prevMode) => {
+                  if (
+                    (prevMode.type === 'BROWSE_AREA' ||
+                      prevMode.type === 'UPDATE_AREA_RECTANGLE') &&
+                    prevMode.areaId === areaId
+                  ) {
+                    return { type: 'DEFAULT' }
+                  }
+                  return prevMode
+                })
+              }}
+              onCreateRectangle={({ rectangle }) => {
+                setAreas((prev) => {
+                  const id = getNextAreaId(prev)
+                  return [...prev, { id, name: `Область ${id}`, rectangle }]
+                })
+                setMode({ type: 'DEFAULT' })
+              }}
+              onCreateRectangleCancel={() => setMode({ type: 'DEFAULT' })}
+              onUpdateAreaRectangle={({ areaId, rectangle }) => {
+                setAreas((prev) =>
+                  prev.map((a) => (a.id === areaId ? { ...a, rectangle } : a))
+                )
+                setMode({ type: 'DEFAULT' })
+              }}
+              onUpdateAreaRectangleCancel={() => setMode({ type: 'DEFAULT' })}
+            />
+          ) : null}
+        </div>
       </Paper>
-    </Stack>
+    </div>
   )
 }
