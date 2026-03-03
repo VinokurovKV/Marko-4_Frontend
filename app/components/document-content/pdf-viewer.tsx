@@ -940,7 +940,7 @@ const PdfViewerBody: React.FC<PdfViewerProps & { documentId: string }> = (
                             filename: `capture_p${pageIndex + 1}_${stamp}.png`,
                             pageIndex
                           }
-
+                          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
                           capture.captureArea(pageIndex, captureRect as any)
                         }
 
