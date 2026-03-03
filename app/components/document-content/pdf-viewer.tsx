@@ -473,6 +473,7 @@ const PdfViewerBody: React.FC<PdfViewerProps & { documentId: string }> = (
         pageNumber: a.pageIndex + 1,
         behavior: 'smooth'
       })
+
       window.setTimeout(() => {
         const el = areaElsRef.current.get(areaId)
         el?.scrollIntoView({
@@ -485,13 +486,43 @@ const PdfViewerBody: React.FC<PdfViewerProps & { documentId: string }> = (
     [derivedAreas, scroll]
   )
 
+  type BrowseRequest = { areaId: number; seq: number } | null
+  const [browseReq, setBrowseReq] = useState<BrowseRequest>(null)
+  const browseSeqRef = useRef(0)
+  const lastBrowseModeRef = useRef<PdfViewerMode | null>(null)
+
   useEffect(() => {
-    if (props.mode.type === 'BROWSE_AREA') scrollToArea(props.mode.areaId)
-  }, [props.mode, scrollToArea])
+    if (props.mode.type !== 'BROWSE_AREA') {
+      lastBrowseModeRef.current = props.mode
+      setBrowseReq(null)
+      return
+    }
+
+    if (lastBrowseModeRef.current === props.mode) return
+    lastBrowseModeRef.current = props.mode
+
+    browseSeqRef.current += 1
+    setBrowseReq({ areaId: props.mode.areaId, seq: browseSeqRef.current })
+  }, [props.mode])
+
+  useEffect(() => {
+    if (!browseReq) return
+    scrollToArea(browseReq.areaId)
+  }, [browseReq?.seq, scrollToArea])
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return
+
+      // 1) сначала снимаем подсветку после browse area
+      if (browseReq !== null) {
+        e.preventDefault()
+        e.stopPropagation()
+        setBrowseReq(null)
+        return
+      }
+
+      // 2) потом — твоя текущая логика отмены create/update
       if (
         props.mode.type !== 'CREATE_RECTANGLE' &&
         props.mode.type !== 'UPDATE_AREA_RECTANGLE'
@@ -514,17 +545,42 @@ const PdfViewerBody: React.FC<PdfViewerProps & { documentId: string }> = (
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [
+    browseReq,
     props.mode,
     props.onCreateRectangleCancel,
     props.onUpdateAreaRectangleCancel
   ])
 
+  useEffect(() => {
+    const onPointerDown = (e: PointerEvent) => {
+      if (browseReq === null) return
+      const host = viewportHostRef.current
+      if (!host) return
+
+      const path = e.composedPath?.() ?? []
+      const clickedInside =
+        path.includes(host) ||
+        (e.target instanceof Node && host.contains(e.target))
+
+      if (!clickedInside) return
+      setBrowseReq(null)
+    }
+
+    window.addEventListener('pointerdown', onPointerDown, { capture: true })
+    return () => {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+      window.removeEventListener('pointerdown', onPointerDown, {
+        capture: true
+      } as any)
+    }
+  }, [browseReq])
+
+  const browsedAreaId = browseReq?.areaId ?? null
+
   const activeAreaId =
-    props.mode.type === 'BROWSE_AREA'
+    props.mode.type === 'UPDATE_AREA_RECTANGLE'
       ? props.mode.areaId
-      : props.mode.type === 'UPDATE_AREA_RECTANGLE'
-        ? props.mode.areaId
-        : null
+      : browsedAreaId
 
   return (
     <div ref={viewportHostRef} className="pdfv-body-host">
@@ -658,22 +714,6 @@ const PdfViewerBody: React.FC<PdfViewerProps & { documentId: string }> = (
                         (localRectForUi.yMax - localRectForUi.yMin) * scale
                       const isTiny = wPx < 110 || hPx < 44
 
-                      const actionsStyle: React.CSSProperties = isTiny
-                        ? {
-                            position: 'absolute',
-                            right: 0,
-                            top: 0,
-                            display: 'flex',
-                            gap: 2
-                          }
-                        : {
-                            position: 'absolute',
-                            right: 6,
-                            bottom: 6,
-                            display: 'flex',
-                            gap: 2
-                          }
-
                       const btnSx = {
                         minWidth: 0,
                         padding: isTiny ? '2px 4px' : '2px 6px',
@@ -730,8 +770,7 @@ const PdfViewerBody: React.FC<PdfViewerProps & { documentId: string }> = (
 
                           {showAreaActions && (
                             <div
-                              className="pdfv-area-actions"
-                              style={actionsStyle}
+                              className={`pdfv-area-actions ${isTiny ? 'pdfv-area-actions--tiny' : ''}`}
                               onMouseDown={(e) => e.stopPropagation()}
                               onClick={(e) => e.stopPropagation()}
                             >
@@ -777,6 +816,7 @@ const PdfViewerBody: React.FC<PdfViewerProps & { documentId: string }> = (
                                 (corner) => (
                                   <div
                                     key={corner}
+                                    className={`pdfv-resize-handle pdfv-resize-handle--${corner}`}
                                     onPointerDown={(e) => {
                                       e.stopPropagation()
                                       setResize({
@@ -788,34 +828,6 @@ const PdfViewerBody: React.FC<PdfViewerProps & { documentId: string }> = (
                                         startLocalRect: localRectForUi,
                                         liveLocalRect: localRectForUi
                                       })
-                                    }}
-                                    style={{
-                                      position: 'absolute',
-                                      width: 10,
-                                      height: 10,
-                                      borderRadius: 2,
-                                      background: 'rgba(0,0,0,0.45)',
-                                      border: '1px solid rgba(255,255,255,0.9)',
-                                      cursor:
-                                        corner === 'nw' || corner === 'se'
-                                          ? 'nwse-resize'
-                                          : 'nesw-resize',
-                                      left:
-                                        corner === 'nw' || corner === 'sw'
-                                          ? -5
-                                          : undefined,
-                                      right:
-                                        corner === 'ne' || corner === 'se'
-                                          ? -5
-                                          : undefined,
-                                      top:
-                                        corner === 'nw' || corner === 'ne'
-                                          ? -5
-                                          : undefined,
-                                      bottom:
-                                        corner === 'sw' || corner === 'se'
-                                          ? -5
-                                          : undefined
                                     }}
                                   />
                                 )
@@ -897,7 +909,7 @@ const PdfViewerBody: React.FC<PdfViewerProps & { documentId: string }> = (
                             filename: `capture_p${pageIndex + 1}_${stamp}.png`,
                             pageIndex
                           }
-                          //eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+                          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
                           capture.captureArea(pageIndex, captureRect as any)
                         }
 

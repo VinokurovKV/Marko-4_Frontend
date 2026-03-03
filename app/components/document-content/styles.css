@@ -142,3 +142,43 @@
   opacity: 1;
   pointer-events: auto;
 }
+.pdfv-area-actions {
+  position: absolute;
+  display: flex;
+  gap: 2px;
+  right: 6px;
+  bottom: 6px;
+}
+.pdfv-area-actions--tiny {
+  right: 0;
+  top: 0;
+  bottom: auto;
+}
+.pdfv-resize-handle {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+}
+.pdfv-resize-handle--nw {
+  left: -5px;
+  top: -5px;
+  cursor: nwse-resize;
+}
+.pdfv-resize-handle--ne {
+  right: -5px;
+  top: -5px;
+  cursor: nesw-resize;
+}
+.pdfv-resize-handle--sw {
+  left: -5px;
+  bottom: -5px;
+  cursor: nesw-resize;
+}
+.pdfv-resize-handle--se {
+  right: -5px;
+  bottom: -5px;
+  cursor: nwse-resize;
+}
