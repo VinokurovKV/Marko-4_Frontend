@@ -35,6 +35,11 @@ import {
   type CaptureAreaEvent,
   useCapture
 } from '@embedpdf/plugin-capture/react'
+import {
+  SelectionPluginPackage,
+  SelectionLayer
+} from '@embedpdf/plugin-selection/react'
+import { PagePointerProvider } from '@embedpdf/plugin-interaction-manager/react'
 // Material UI
 import CircularProgress from '@mui/material/CircularProgress'
 import Alert from '@mui/material/Alert'
@@ -73,6 +78,7 @@ export type PdfViewerProps = {
   withUpdateAreaButtons: boolean
   withDeleteAreaButtons: boolean
   mode: PdfViewerMode
+  interactionMode: 'AREAS' | 'TEXT'
   onAreaClick?: (data: { areaId: number }) => void | null
   onUpdateAreaButtonClick?: (data: { areaId: number }) => void | null
   onDeleteAreaButtonClick?: (data: { areaId: number }) => void | null
@@ -197,7 +203,8 @@ export const PdfViewer: React.FC<PdfViewerProps> = (props) => {
       }),
       createPluginRegistration(ZoomPluginPackage, {
         defaultZoomLevel: ZoomMode.Automatic
-      })
+      }),
+      createPluginRegistration(SelectionPluginPackage)
     ],
     [props.data]
   )
@@ -257,6 +264,8 @@ const PdfViewerBody: React.FC<PdfViewerProps & { documentId: string }> = (
   const { provides: scroll } = useScroll(props.documentId)
   const { provides: zoom } = useZoom(props.documentId)
   const { provides: capture } = useCapture(props.documentId)
+
+  const isTextMode = props.interactionMode === 'TEXT'
 
   const [pageSizes, setPageSizes] = useState<PageSize[]>([])
   const offsetsY = useMemo(() => buildOffsetsY(pageSizes), [pageSizes])
@@ -359,7 +368,6 @@ const PdfViewerBody: React.FC<PdfViewerProps & { documentId: string }> = (
       }
 
       next = clampRect(next)
-
       setResize((prev) => (prev ? { ...prev, liveLocalRect: next } : prev))
     }
 
@@ -596,283 +604,309 @@ const PdfViewerBody: React.FC<PdfViewerProps & { documentId: string }> = (
             const pageDynamicCss = pageDynamicCssParts.join('')
 
             return (
-              <div className={`pdfv-page ${pageClass}`}>
+              <div
+                className={`pdfv-page ${pageClass}`}
+                draggable={false}
+                onDragStart={(e) => e.preventDefault()}
+              >
                 <style>{pageDynamicCss}</style>
 
-                <RenderLayer
+                <PagePointerProvider
                   documentId={props.documentId}
                   pageIndex={pageIndex}
-                  scale={scale}
-                />
-                <TilingLayer
-                  documentId={props.documentId}
-                  pageIndex={pageIndex}
-                />
+                >
+                  <RenderLayer
+                    documentId={props.documentId}
+                    pageIndex={pageIndex}
+                    scale={scale}
+                  />
+                  <TilingLayer
+                    documentId={props.documentId}
+                    pageIndex={pageIndex}
+                  />
 
-                <div className="pdfv-overlay">
-                  {pageAreas.map((a) => {
-                    const isActive = activeAreaId === a.id
-                    const canInteract =
-                      props.clickableAreas ||
-                      props.withUpdateAreaButtons ||
-                      props.withDeleteAreaButtons
+                  {isTextMode && (
+                    <div className="pdfv-selection-host">
+                      <SelectionLayer
+                        documentId={props.documentId}
+                        pageIndex={pageIndex}
+                        scale={scale}
+                      />
+                    </div>
+                  )}
 
-                    const isEditingThisArea =
-                      props.mode.type === 'UPDATE_AREA_RECTANGLE' &&
-                      props.mode.areaId === a.id
+                  <div className="pdfv-overlay">
+                    {pageAreas.map((a) => {
+                      const isActive = activeAreaId === a.id
 
-                    const localRectForUi =
-                      resize && resize.areaId === a.id
-                        ? resize.liveLocalRect
-                        : a.localRect
+                      const clickableInThisMode =
+                        !isTextMode && props.clickableAreas
+                      const canInteract =
+                        !isTextMode &&
+                        (props.clickableAreas ||
+                          props.withUpdateAreaButtons ||
+                          props.withDeleteAreaButtons)
 
-                    const wPx =
-                      (localRectForUi.xMax - localRectForUi.xMin) * scale
-                    const hPx =
-                      (localRectForUi.yMax - localRectForUi.yMin) * scale
-                    const isTiny = wPx < 110 || hPx < 44
+                      const localRectForUi =
+                        resize && resize.areaId === a.id
+                          ? resize.liveLocalRect
+                          : a.localRect
 
-                    const actionsStyle: React.CSSProperties = isTiny
-                      ? {
-                          position: 'absolute',
-                          right: 0,
-                          top: 0,
-                          display: 'flex',
-                          gap: 2
-                        }
-                      : {
-                          position: 'absolute',
-                          right: 6,
-                          bottom: 6,
-                          display: 'flex',
-                          gap: 2
-                        }
+                      const wPx =
+                        (localRectForUi.xMax - localRectForUi.xMin) * scale
+                      const hPx =
+                        (localRectForUi.yMax - localRectForUi.yMin) * scale
+                      const isTiny = wPx < 110 || hPx < 44
 
-                    const btnSx = {
-                      minWidth: 0,
-                      padding: isTiny ? '2px 4px' : '2px 6px',
-                      lineHeight: 1.1,
-                      fontSize: 12
-                    } as const
+                      const actionsStyle: React.CSSProperties = isTiny
+                        ? {
+                            position: 'absolute',
+                            right: 0,
+                            top: 0,
+                            display: 'flex',
+                            gap: 2
+                          }
+                        : {
+                            position: 'absolute',
+                            right: 6,
+                            bottom: 6,
+                            display: 'flex',
+                            gap: 2
+                          }
 
-                    const showAreaActions =
-                      props.mode.type !== 'UPDATE_AREA_RECTANGLE' &&
-                      (props.withDeleteAreaButtons ||
-                        props.withUpdateAreaButtons)
+                      const btnSx = {
+                        minWidth: 0,
+                        padding: isTiny ? '2px 4px' : '2px 6px',
+                        lineHeight: 1.1,
+                        fontSize: 12
+                      } as const
 
-                    const areaPosClass = `pdfv-area--id-${a.id}`
+                      const showAreaActions =
+                        !isTextMode &&
+                        props.mode.type !== 'UPDATE_AREA_RECTANGLE' &&
+                        (props.withDeleteAreaButtons ||
+                          props.withUpdateAreaButtons)
 
-                    const areaClassName = [
-                      'pdfv-area',
-                      areaPosClass,
-                      isActive ? 'pdfv-area--active' : 'pdfv-area--inactive',
-                      canInteract
-                        ? 'pdfv-area--interactive'
-                        : 'pdfv-area--noninteractive',
-                      props.clickableAreas
-                        ? 'pdfv-area--clickable'
-                        : 'pdfv-area--notclickable'
-                    ].join(' ')
+                      const isEditingThisArea =
+                        !isTextMode &&
+                        props.mode.type === 'UPDATE_AREA_RECTANGLE' &&
+                        props.mode.areaId === a.id
 
-                    return (
-                      <div
-                        key={a.id}
-                        className={areaClassName}
-                        ref={(el) => {
-                          if (el) areaElsRef.current.set(a.id, el)
-                          else areaElsRef.current.delete(a.id)
-                        }}
-                        onClick={() => {
-                          if (
-                            props.mode.type === 'CREATE_RECTANGLE' ||
-                            props.mode.type === 'UPDATE_AREA_RECTANGLE'
-                          )
-                            return
-                          if (!props.clickableAreas) return
-                          props.onAreaClick?.({ areaId: a.id })
-                        }}
-                        title={a.name}
-                      >
-                        <div className="pdfv-area-label">{a.name}</div>
+                      const areaPosClass = `pdfv-area--id-${a.id}`
 
-                        {showAreaActions && (
-                          <div
-                            className="pdfv-area-actions"
-                            style={actionsStyle}
-                            onMouseDown={(e) => e.stopPropagation()}
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            {props.withDeleteAreaButtons && (
-                              <ProjButton
-                                variant="contained"
-                                type="button"
-                                sx={btnSx}
-                                title="Удалить"
-                                aria-label="Удалить область"
-                                onClick={() =>
-                                  props.onDeleteAreaButtonClick?.({
-                                    areaId: a.id
-                                  })
-                                }
-                              >
-                                <DeleteIcon fontSize="small" />
-                              </ProjButton>
-                            )}
+                      const areaClassName = [
+                        'pdfv-area',
+                        areaPosClass,
+                        isActive ? 'pdfv-area--active' : 'pdfv-area--inactive',
+                        canInteract
+                          ? 'pdfv-area--interactive'
+                          : 'pdfv-area--noninteractive',
+                        clickableInThisMode
+                          ? 'pdfv-area--clickable'
+                          : 'pdfv-area--notclickable'
+                      ].join(' ')
 
-                            {props.withUpdateAreaButtons && (
-                              <ProjButton
-                                variant="contained"
-                                type="button"
-                                sx={btnSx}
-                                title="Изменить"
-                                aria-label="Изменить область"
-                                onClick={() =>
-                                  props.onUpdateAreaButtonClick?.({
-                                    areaId: a.id
-                                  })
-                                }
-                              >
-                                <EditIcon fontSize="small" />
-                              </ProjButton>
-                            )}
-                          </div>
-                        )}
+                      return (
+                        <div
+                          key={a.id}
+                          className={areaClassName}
+                          ref={(el) => {
+                            if (el) areaElsRef.current.set(a.id, el)
+                            else areaElsRef.current.delete(a.id)
+                          }}
+                          onClick={() => {
+                            if (isTextMode) return
+                            if (
+                              props.mode.type === 'CREATE_RECTANGLE' ||
+                              props.mode.type === 'UPDATE_AREA_RECTANGLE'
+                            )
+                              return
+                            if (!clickableInThisMode) return
+                            props.onAreaClick?.({ areaId: a.id })
+                          }}
+                          title={a.name}
+                        >
+                          <div className="pdfv-area-label">{a.name}</div>
 
-                        {isEditingThisArea && (
-                          <>
-                            {(['nw', 'ne', 'sw', 'se'] as const).map(
-                              (corner) => (
-                                <div
-                                  key={corner}
-                                  onPointerDown={(e) => {
-                                    e.stopPropagation()
-                                    setResize({
-                                      areaId: a.id,
-                                      pageIndex,
-                                      corner,
-                                      startClientX: e.clientX,
-                                      startClientY: e.clientY,
-                                      startLocalRect: localRectForUi,
-                                      liveLocalRect: localRectForUi
+                          {showAreaActions && (
+                            <div
+                              className="pdfv-area-actions"
+                              style={actionsStyle}
+                              onMouseDown={(e) => e.stopPropagation()}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {props.withDeleteAreaButtons && (
+                                <ProjButton
+                                  variant="contained"
+                                  type="button"
+                                  sx={btnSx}
+                                  title="Удалить"
+                                  aria-label="Удалить область"
+                                  onClick={() =>
+                                    props.onDeleteAreaButtonClick?.({
+                                      areaId: a.id
                                     })
-                                  }}
-                                  style={{
-                                    position: 'absolute',
-                                    width: 10,
-                                    height: 10,
-                                    borderRadius: 2,
-                                    background: 'rgba(0,0,0,0.45)',
-                                    border: '1px solid rgba(255,255,255,0.9)',
-                                    cursor:
-                                      corner === 'nw' || corner === 'se'
-                                        ? 'nwse-resize'
-                                        : 'nesw-resize',
-                                    left:
-                                      corner === 'nw' || corner === 'sw'
-                                        ? -5
-                                        : undefined,
-                                    right:
-                                      corner === 'ne' || corner === 'se'
-                                        ? -5
-                                        : undefined,
-                                    top:
-                                      corner === 'nw' || corner === 'ne'
-                                        ? -5
-                                        : undefined,
-                                    bottom:
-                                      corner === 'sw' || corner === 'se'
-                                        ? -5
-                                        : undefined
-                                  }}
-                                />
-                              )
-                            )}
-                          </>
-                        )}
-                      </div>
-                    )
-                  })}
+                                  }
+                                >
+                                  <DeleteIcon fontSize="small" />
+                                </ProjButton>
+                              )}
 
-                  {draftOnPage && (
+                              {props.withUpdateAreaButtons && (
+                                <ProjButton
+                                  variant="contained"
+                                  type="button"
+                                  sx={btnSx}
+                                  title="Изменить"
+                                  aria-label="Изменить область"
+                                  onClick={() =>
+                                    props.onUpdateAreaButtonClick?.({
+                                      areaId: a.id
+                                    })
+                                  }
+                                >
+                                  <EditIcon fontSize="small" />
+                                </ProjButton>
+                              )}
+                            </div>
+                          )}
+
+                          {isEditingThisArea && (
+                            <>
+                              {(['nw', 'ne', 'sw', 'se'] as const).map(
+                                (corner) => (
+                                  <div
+                                    key={corner}
+                                    onPointerDown={(e) => {
+                                      e.stopPropagation()
+                                      setResize({
+                                        areaId: a.id,
+                                        pageIndex,
+                                        corner,
+                                        startClientX: e.clientX,
+                                        startClientY: e.clientY,
+                                        startLocalRect: localRectForUi,
+                                        liveLocalRect: localRectForUi
+                                      })
+                                    }}
+                                    style={{
+                                      position: 'absolute',
+                                      width: 10,
+                                      height: 10,
+                                      borderRadius: 2,
+                                      background: 'rgba(0,0,0,0.45)',
+                                      border: '1px solid rgba(255,255,255,0.9)',
+                                      cursor:
+                                        corner === 'nw' || corner === 'se'
+                                          ? 'nwse-resize'
+                                          : 'nesw-resize',
+                                      left:
+                                        corner === 'nw' || corner === 'sw'
+                                          ? -5
+                                          : undefined,
+                                      right:
+                                        corner === 'ne' || corner === 'se'
+                                          ? -5
+                                          : undefined,
+                                      top:
+                                        corner === 'nw' || corner === 'ne'
+                                          ? -5
+                                          : undefined,
+                                      bottom:
+                                        corner === 'sw' || corner === 'se'
+                                          ? -5
+                                          : undefined
+                                    }}
+                                  />
+                                )
+                              )}
+                            </>
+                          )}
+                        </div>
+                      )
+                    })}
+
+                    {draftOnPage && (
+                      <div
+                        className={`pdfv-draft-rect pdfv-draft-rect--p${pageIndex}`}
+                      />
+                    )}
+                  </div>
+
+                  {!isTextMode && props.mode.type === 'CREATE_RECTANGLE' && (
                     <div
-                      className={`pdfv-draft-rect pdfv-draft-rect--p${pageIndex}`}
+                      className="pdfv-interaction-overlay"
+                      onMouseDown={(e) => {
+                        const rect = (
+                          e.currentTarget as HTMLDivElement
+                        ).getBoundingClientRect()
+                        const x = e.clientX - rect.left
+                        const y = e.clientY - rect.top
+                        setDraftPx({ pageIndex, x1: x, y1: y, x2: x, y2: y })
+                      }}
+                      onMouseMove={(e) => {
+                        if (!draftPx || draftPx.pageIndex !== pageIndex) return
+                        const rect = (
+                          e.currentTarget as HTMLDivElement
+                        ).getBoundingClientRect()
+                        const x = e.clientX - rect.left
+                        const y = e.clientY - rect.top
+                        setDraftPx((prev) =>
+                          prev ? { ...prev, x2: x, y2: y } : prev
+                        )
+                      }}
+                      onMouseUp={() => {
+                        if (!draftPx || draftPx.pageIndex !== pageIndex) return
+
+                        const wPx = Math.abs(draftPx.x2 - draftPx.x1)
+                        const hPx = Math.abs(draftPx.y2 - draftPx.y1)
+                        if (!ensureMinRectSizeByButtons(wPx, hPx)) {
+                          setDraftPx(null)
+                          return
+                        }
+
+                        const pageScale =
+                          pageScaleRef.current.get(pageIndex) ?? scale
+                        const localRectPts = clampRect({
+                          xMin: Math.min(draftPx.x1, draftPx.x2) / pageScale,
+                          xMax: Math.max(draftPx.x1, draftPx.x2) / pageScale,
+                          yMin: Math.min(draftPx.y1, draftPx.y2) / pageScale,
+                          yMax: Math.max(draftPx.y1, draftPx.y2) / pageScale
+                        })
+
+                        const offY = offsetsY[pageIndex] ?? 0
+                        const docRect: Rectangle = {
+                          ...localRectPts,
+                          yMin: localRectPts.yMin + offY,
+                          yMax: localRectPts.yMax + offY
+                        }
+
+                        const captureRect = {
+                          x: localRectPts.xMin,
+                          y: localRectPts.yMin,
+                          width: localRectPts.xMax - localRectPts.xMin,
+                          height: localRectPts.yMax - localRectPts.yMin
+                        } as unknown as Record<string, number>
+
+                        if (capture) {
+                          const stamp = new Date()
+                            .toISOString()
+                            .replaceAll(':', '-')
+                            .replaceAll('.', '-')
+                          pendingCaptureRef.current = {
+                            filename: `capture_p${pageIndex + 1}_${stamp}.png`,
+                            pageIndex
+                          }
+                          //eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+                          capture.captureArea(pageIndex, captureRect as any)
+                        }
+
+                        props.onCreateRectangle?.({ rectangle: docRect })
+                        setDraftPx(null)
+                      }}
                     />
                   )}
-                </div>
-
-                {props.mode.type === 'CREATE_RECTANGLE' && (
-                  <div
-                    className="pdfv-interaction-overlay"
-                    onMouseDown={(e) => {
-                      const rect = (
-                        e.currentTarget as HTMLDivElement
-                      ).getBoundingClientRect()
-                      const x = e.clientX - rect.left
-                      const y = e.clientY - rect.top
-                      setDraftPx({ pageIndex, x1: x, y1: y, x2: x, y2: y })
-                    }}
-                    onMouseMove={(e) => {
-                      if (!draftPx || draftPx.pageIndex !== pageIndex) return
-                      const rect = (
-                        e.currentTarget as HTMLDivElement
-                      ).getBoundingClientRect()
-                      const x = e.clientX - rect.left
-                      const y = e.clientY - rect.top
-                      setDraftPx((prev) =>
-                        prev ? { ...prev, x2: x, y2: y } : prev
-                      )
-                    }}
-                    onMouseUp={() => {
-                      if (!draftPx || draftPx.pageIndex !== pageIndex) return
-
-                      const wPx = Math.abs(draftPx.x2 - draftPx.x1)
-                      const hPx = Math.abs(draftPx.y2 - draftPx.y1)
-                      if (!ensureMinRectSizeByButtons(wPx, hPx)) {
-                        setDraftPx(null)
-                        return
-                      }
-
-                      const pageScale =
-                        pageScaleRef.current.get(pageIndex) ?? scale
-                      const localRectPts = clampRect({
-                        xMin: Math.min(draftPx.x1, draftPx.x2) / pageScale,
-                        xMax: Math.max(draftPx.x1, draftPx.x2) / pageScale,
-                        yMin: Math.min(draftPx.y1, draftPx.y2) / pageScale,
-                        yMax: Math.max(draftPx.y1, draftPx.y2) / pageScale
-                      })
-
-                      const offY = offsetsY[pageIndex] ?? 0
-                      const docRect: Rectangle = {
-                        ...localRectPts,
-                        yMin: localRectPts.yMin + offY,
-                        yMax: localRectPts.yMax + offY
-                      }
-
-                      const captureRect = {
-                        x: localRectPts.xMin,
-                        y: localRectPts.yMin,
-                        width: localRectPts.xMax - localRectPts.xMin,
-                        height: localRectPts.yMax - localRectPts.yMin
-                      } as unknown as Record<string, number>
-
-                      if (capture) {
-                        const stamp = new Date()
-                          .toISOString()
-                          .replaceAll(':', '-')
-                          .replaceAll('.', '-')
-                        pendingCaptureRef.current = {
-                          filename: `capture_p${pageIndex + 1}_${stamp}.png`,
-                          pageIndex
-                        }
-                        //eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-                        capture.captureArea(pageIndex, captureRect as any)
-                      }
-
-                      props.onCreateRectangle?.({ rectangle: docRect })
-                      setDraftPx(null)
-                    }}
-                  />
-                )}
+                </PagePointerProvider>
               </div>
             )
           }}

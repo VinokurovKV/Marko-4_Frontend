@@ -23,6 +23,8 @@ import InputLabel from '@mui/material/InputLabel'
 import Select from '@mui/material/Select'
 import MenuItem from '@mui/material/MenuItem'
 import Typography from '@mui/material/Typography'
+import GridOnIcon from '@mui/icons-material/GridOn'
+import TextSnippetIcon from '@mui/icons-material/TextSnippet'
 
 const DEFAULT_MODE: PdfViewerMode = { type: 'DEFAULT' }
 
@@ -42,8 +44,12 @@ export function DocumentContentViewer({
   )
 
   const [mode, setMode] = React.useState<PdfViewerMode>(DEFAULT_MODE)
-
   const [areas, setAreas] = React.useState<PdfArea[]>([])
+
+  type InteractionMode = 'AREAS' | 'TEXT'
+
+  const [interactionMode, setInteractionMode] =
+    React.useState<InteractionMode>('AREAS')
 
   React.useEffect(() => {
     setAreas([])
@@ -160,6 +166,32 @@ export function DocumentContentViewer({
           >
             Создать область
           </ProjButton>
+
+          <div style={{ flex: 1 }} />
+
+          <ProjButton
+            variant="outlined"
+            title={
+              interactionMode === 'AREAS'
+                ? 'Режим: просмотр областей'
+                : 'Режим: чтение текста'
+            }
+            aria-label="Переключить режим"
+            onClick={() => {
+              setInteractionMode((prev) => {
+                const next = prev === 'AREAS' ? 'TEXT' : 'AREAS'
+                if (next === 'TEXT') setMode({ type: 'DEFAULT' })
+                return next
+              })
+            }}
+            sx={{ minWidth: 0, px: 1 }}
+          >
+            {interactionMode === 'AREAS' ? (
+              <GridOnIcon fontSize="small" />
+            ) : (
+              <TextSnippetIcon fontSize="small" />
+            )}
+          </ProjButton>
         </Stack>
 
         <Dialog
@@ -219,6 +251,7 @@ export function DocumentContentViewer({
               withUpdateAreaButtons={true}
               withDeleteAreaButtons={true}
               mode={mode}
+              interactionMode={interactionMode}
               onAreaClick={({ areaId }) =>
                 setMode({ type: 'BROWSE_AREA', areaId })
               }
