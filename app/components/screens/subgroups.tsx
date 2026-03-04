@@ -15,11 +15,10 @@ import * as React from 'react'
 // Material UI
 import ViewStreamIcon from '@mui/icons-material/ViewStream'
 
-export interface SubgroupsScreenProps
-  extends Omit<
-    SubgroupsGridProps,
-    'navigationMode' | 'navigationModeSelectedRowId'
-  > {
+export interface SubgroupsScreenProps extends Omit<
+  SubgroupsGridProps,
+  'navigationMode' | 'navigationModeSelectedRowId'
+> {
   children: React.ReactNode
 }
 

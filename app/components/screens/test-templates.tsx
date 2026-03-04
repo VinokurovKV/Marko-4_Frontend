@@ -15,11 +15,10 @@ import * as React from 'react'
 // Material UI
 import FoundationIcon from '@mui/icons-material/Foundation'
 
-export interface TestTemplatesScreenProps
-  extends Omit<
-    TestTemplatesGridProps,
-    'navigationMode' | 'navigationModeSelectedRowId'
-  > {
+export interface TestTemplatesScreenProps extends Omit<
+  TestTemplatesGridProps,
+  'navigationMode' | 'navigationModeSelectedRowId'
+> {
   children: React.ReactNode
 }
 

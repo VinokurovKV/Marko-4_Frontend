@@ -15,11 +15,10 @@ import * as React from 'react'
 // Material UI
 import HiveIcon from '@mui/icons-material/Hive'
 
-export interface CoveragesScreenProps
-  extends Omit<
-    CoveragesGridProps,
-    'navigationMode' | 'navigationModeSelectedRowId'
-  > {
+export interface CoveragesScreenProps extends Omit<
+  CoveragesGridProps,
+  'navigationMode' | 'navigationModeSelectedRowId'
+> {
   children: React.ReactNode
 }
 

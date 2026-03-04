@@ -15,11 +15,10 @@ import * as React from 'react'
 // Material UI
 import DescriptionIcon from '@mui/icons-material/Description'
 
-export interface DocumentsScreenProps
-  extends Omit<
-    DocumentsGridProps,
-    'navigationMode' | 'navigationModeSelectedRowId'
-  > {
+export interface DocumentsScreenProps extends Omit<
+  DocumentsGridProps,
+  'navigationMode' | 'navigationModeSelectedRowId'
+> {
   children: React.ReactNode
 }
 

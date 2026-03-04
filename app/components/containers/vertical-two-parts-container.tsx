@@ -9,8 +9,10 @@ import * as React from 'react'
 import Container from '@mui/material/Container'
 import Stack from '@mui/material/Stack'
 
-export interface VerticalTwoPartsContainerProps
-  extends Omit<ContainerWithTitleProps, 'children'> {
+export interface VerticalTwoPartsContainerProps extends Omit<
+  ContainerWithTitleProps,
+  'children'
+> {
   proportions: '30_70' | '45_55' | '50_50' | '60_40' | '100_0' | 'needed_rest'
   children: [React.ReactNode, React.ReactNode]
 }

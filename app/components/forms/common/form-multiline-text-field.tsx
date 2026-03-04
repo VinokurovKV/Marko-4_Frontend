@@ -4,8 +4,10 @@ import { type FormTextFieldProps, FormTextField } from './form-text-field'
 import { styled } from '@mui/material/styles'
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
-export interface FormMultilineTextFieldProps
-  extends Omit<FormTextFieldProps, 'multiline'> {}
+export interface FormMultilineTextFieldProps extends Omit<
+  FormTextFieldProps,
+  'multiline'
+> {}
 
 export const FormTextFieldStyled = styled(FormTextField)({
   '& .MuiInputBase-root': {

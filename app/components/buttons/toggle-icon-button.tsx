@@ -16,8 +16,10 @@ type Icon = OverridableComponent<SvgIconTypeMap<{}, 'svg'>> & {
   muiName: string
 }
 
-interface ToggleIconButtonWithoutTooltipProps
-  extends Omit<IconButtonProps, 'size' | 'onClick' | 'onToggle'> {
+interface ToggleIconButtonWithoutTooltipProps extends Omit<
+  IconButtonProps,
+  'size' | 'onClick' | 'onToggle'
+> {
   ActiveIcon: Icon
   InactiveIcon: Icon
   active: boolean
@@ -55,8 +57,7 @@ const ToggleIconButtonWithoutTooltip = styled(
   }
 }))
 
-export interface ToggleIconButtonProps
-  extends ToggleIconButtonWithoutTooltipProps {
+export interface ToggleIconButtonProps extends ToggleIconButtonWithoutTooltipProps {
   activePrompt: string
   inactivePrompt: string
 }

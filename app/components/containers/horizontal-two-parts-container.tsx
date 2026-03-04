@@ -8,8 +8,10 @@ import * as React from 'react'
 // Material UI
 import Grid from '@mui/material/Grid'
 
-export interface HorizontalTwoPartsContainerProps
-  extends Omit<ContainerWithTitleProps, 'children'> {
+export interface HorizontalTwoPartsContainerProps extends Omit<
+  ContainerWithTitleProps,
+  'children'
+> {
   proportions:
     | 'EQUAL'
     | 'ONE_TWO'

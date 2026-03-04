@@ -12,11 +12,10 @@ import * as React from 'react'
 // Material UI
 import TheaterComedyIcon from '@mui/icons-material/TheaterComedy'
 
-export interface RolesScreenProps
-  extends Omit<
-    RolesGridProps,
-    'navigationMode' | 'navigationModeSelectedRowId'
-  > {
+export interface RolesScreenProps extends Omit<
+  RolesGridProps,
+  'navigationMode' | 'navigationModeSelectedRowId'
+> {
   children: React.ReactNode
 }
 

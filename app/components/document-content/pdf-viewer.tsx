@@ -170,11 +170,49 @@ function downloadBlob(blob: Blob, filename: string) {
   window.setTimeout(() => URL.revokeObjectURL(url), 10_000)
 }
 
+async function detectBlobImgAllowed(): Promise<boolean> {
+  try {
+    const canvas = document.createElement('canvas')
+    canvas.width = 1
+    canvas.height = 1
+
+    const blob: Blob = await new Promise((resolve, reject) => {
+      canvas.toBlob(
+        (b) => (b ? resolve(b) : reject(new Error('toBlob failed'))),
+        'image/png'
+      )
+    })
+
+    const url = URL.createObjectURL(blob)
+    const ok: boolean = await new Promise((resolve) => {
+      const img = new Image()
+      const t = window.setTimeout(() => resolve(false), 800)
+      img.onload = () => {
+        window.clearTimeout(t)
+        resolve(true)
+      }
+      img.onerror = () => {
+        window.clearTimeout(t)
+        resolve(false)
+      }
+      img.src = url
+    })
+
+    URL.revokeObjectURL(url)
+    return ok
+  } catch {
+    return false
+  }
+}
+
 export const PdfViewer: React.FC<PdfViewerProps> = (props) => {
   const { engine, isLoading, error } = usePdfiumEngine()
   const [showLoader, setShowLoader] = React.useState(false)
+  const [blobImgAllowed, setBlobImgAllowed] = React.useState<boolean | null>(
+    null
+  )
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (!isLoading && engine) {
       setShowLoader(false)
       return
@@ -182,6 +220,17 @@ export const PdfViewer: React.FC<PdfViewerProps> = (props) => {
     const t = window.setTimeout(() => setShowLoader(true), 1000)
     return () => window.clearTimeout(t)
   }, [isLoading, engine])
+
+  useEffect(() => {
+    let cancelled = false
+    void (async () => {
+      const ok = await detectBlobImgAllowed()
+      if (!cancelled) setBlobImgAllowed(ok)
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const plugins = useMemo(
     () => [
@@ -197,17 +246,21 @@ export const PdfViewer: React.FC<PdfViewerProps> = (props) => {
         imageType: 'image/png',
         withAnnotations: true
       }),
-      createPluginRegistration(TilingPluginPackage, {
-        tileSize: 768,
-        overlapPx: 5,
-        extraRings: 0
-      }),
+      ...(blobImgAllowed === true
+        ? [
+            createPluginRegistration(TilingPluginPackage, {
+              tileSize: 768,
+              overlapPx: 5,
+              extraRings: 0
+            })
+          ]
+        : []),
       createPluginRegistration(ZoomPluginPackage, {
         defaultZoomLevel: ZoomMode.Automatic
       }),
       createPluginRegistration(SelectionPluginPackage)
     ],
-    [props.data]
+    [props.data, blobImgAllowed]
   )
 
   if (error) {
@@ -241,7 +294,11 @@ export const PdfViewer: React.FC<PdfViewerProps> = (props) => {
             <DocumentContent documentId={activeDocumentId}>
               {({ isLoaded }: { isLoaded: boolean }) =>
                 isLoaded ? (
-                  <PdfViewerBody documentId={activeDocumentId} {...props} />
+                  <PdfViewerBody
+                    documentId={activeDocumentId}
+                    enableTiling={blobImgAllowed === true}
+                    {...props}
+                  />
                 ) : (
                   <div className="pdfv-document-loader">
                     <CircularProgress size={72} />
@@ -258,9 +315,12 @@ export const PdfViewer: React.FC<PdfViewerProps> = (props) => {
   )
 }
 
-const PdfViewerBody: React.FC<PdfViewerProps & { documentId: string }> = (
-  props
-) => {
+const PdfViewerBody: React.FC<
+  PdfViewerProps & {
+    documentId: string
+    enableTiling: boolean
+  }
+> = (props) => {
   const { provides: docManager } = useDocumentManagerCapability()
   const { provides: scroll } = useScroll(props.documentId)
   const { provides: zoom } = useZoom(props.documentId)
@@ -704,10 +764,12 @@ const PdfViewerBody: React.FC<PdfViewerProps & { documentId: string }> = (
                     pageIndex={pageIndex}
                     scale={scale}
                   />
-                  <TilingLayer
-                    documentId={props.documentId}
-                    pageIndex={pageIndex}
-                  />
+                  {props.enableTiling && (
+                    <TilingLayer
+                      documentId={props.documentId}
+                      pageIndex={pageIndex}
+                    />
+                  )}
 
                   {isTextMode && (
                     <div className="pdfv-selection-host">

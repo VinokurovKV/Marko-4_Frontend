@@ -12,11 +12,10 @@ import * as React from 'react'
 // Material UI
 import TagIcon from '@mui/icons-material/Tag'
 
-export interface TagsScreenProps
-  extends Omit<
-    TagsGridProps,
-    'navigationMode' | 'navigationModeSelectedRowId'
-  > {
+export interface TagsScreenProps extends Omit<
+  TagsGridProps,
+  'navigationMode' | 'navigationModeSelectedRowId'
+> {
   children: React.ReactNode
 }
 

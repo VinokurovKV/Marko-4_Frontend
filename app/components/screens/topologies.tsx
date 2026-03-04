@@ -15,11 +15,10 @@ import * as React from 'react'
 // Material UI
 import LanIcon from '@mui/icons-material/Lan'
 
-export interface TopologiesScreenProps
-  extends Omit<
-    TopologiesGridProps,
-    'navigationMode' | 'navigationModeSelectedRowId'
-  > {
+export interface TopologiesScreenProps extends Omit<
+  TopologiesGridProps,
+  'navigationMode' | 'navigationModeSelectedRowId'
+> {
   children: React.ReactNode
 }
 

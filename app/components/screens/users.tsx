@@ -12,11 +12,10 @@ import * as React from 'react'
 // Material UI
 import PersonIcon from '@mui/icons-material/Person'
 
-export interface UsersScreenProps
-  extends Omit<
-    UsersGridProps,
-    'navigationMode' | 'navigationModeSelectedRowId'
-  > {
+export interface UsersScreenProps extends Omit<
+  UsersGridProps,
+  'navigationMode' | 'navigationModeSelectedRowId'
+> {
   children: React.ReactNode
 }
 
