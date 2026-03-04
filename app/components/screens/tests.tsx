@@ -12,11 +12,10 @@ import * as React from 'react'
 // Material UI
 import RuleIcon from '@mui/icons-material/Rule'
 
-export interface TestsScreenProps
-  extends Omit<
-    TestsGridProps,
-    'navigationMode' | 'navigationModeSelectedRowId'
-  > {
+export interface TestsScreenProps extends Omit<
+  TestsGridProps,
+  'navigationMode' | 'navigationModeSelectedRowId'
+> {
   children: React.ReactNode
 }
 

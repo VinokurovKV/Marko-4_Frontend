@@ -14,11 +14,10 @@ import * as React from 'react'
 // Material UI
 import TaskIcon from '@mui/icons-material/Task'
 
-export interface TasksScreenProps
-  extends Omit<
-    TasksGridProps,
-    'navigationMode' | 'navigationModeSelectedRowId'
-  > {
+export interface TasksScreenProps extends Omit<
+  TasksGridProps,
+  'navigationMode' | 'navigationModeSelectedRowId'
+> {
   children: React.ReactNode
 }
 

@@ -11,11 +11,10 @@ import Select, { type SelectProps } from '@mui/material/Select'
 // Other
 import capitalize from 'capitalize'
 
-export interface FormSelectProps<Value extends number | string>
-  extends Omit<
-    SelectProps<Value>,
-    'variant' | 'size' | 'name' | 'labelId' | 'label' | 'helperText'
-  > {
+export interface FormSelectProps<Value extends number | string> extends Omit<
+  SelectProps<Value>,
+  'variant' | 'size' | 'name' | 'labelId' | 'label' | 'helperText'
+> {
   name: string
   label: string
   items: {

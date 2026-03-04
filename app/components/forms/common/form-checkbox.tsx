@@ -4,8 +4,10 @@ import FormControlLabel from '@mui/material/FormControlLabel'
 import Checkbox, { type CheckboxProps } from '@mui/material/Checkbox'
 import Container from '@mui/material/Container'
 
-export interface FormCheckboxProps
-  extends Omit<CheckboxProps, 'variant' | 'size'> {
+export interface FormCheckboxProps extends Omit<
+  CheckboxProps,
+  'variant' | 'size'
+> {
   label: string
 }
 

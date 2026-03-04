@@ -12,11 +12,10 @@ import * as React from 'react'
 // Material UI
 import ViewWeekIcon from '@mui/icons-material/ViewWeek'
 
-export interface GroupsScreenProps
-  extends Omit<
-    GroupsGridProps,
-    'navigationMode' | 'navigationModeSelectedRowId'
-  > {
+export interface GroupsScreenProps extends Omit<
+  GroupsGridProps,
+  'navigationMode' | 'navigationModeSelectedRowId'
+> {
   children: React.ReactNode
 }
 

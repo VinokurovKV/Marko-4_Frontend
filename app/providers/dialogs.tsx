@@ -193,8 +193,10 @@ export interface AlertDialogPayload extends AlertOptions {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
-export interface AlertDialogProps
-  extends DialogProps<AlertDialogPayload, void> {}
+export interface AlertDialogProps extends DialogProps<
+  AlertDialogPayload,
+  void
+> {}
 
 export function AlertDialog({ open, payload, onClose }: AlertDialogProps) {
   const okButtonProps = useDialogLoadingButton(() => onClose())
@@ -220,8 +222,10 @@ export interface ConfirmDialogPayload extends ConfirmOptions {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
-export interface ConfirmDialogProps
-  extends DialogProps<ConfirmDialogPayload, boolean> {}
+export interface ConfirmDialogProps extends DialogProps<
+  ConfirmDialogPayload,
+  boolean
+> {}
 
 export function ConfirmDialog({ open, payload, onClose }: ConfirmDialogProps) {
   const cancelButtonProps = useDialogLoadingButton(() => onClose(false))
@@ -261,8 +265,10 @@ export interface PromptDialogPayload extends PromptOptions {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
-export interface PromptDialogProps
-  extends DialogProps<PromptDialogPayload, string | null> {}
+export interface PromptDialogProps extends DialogProps<
+  PromptDialogPayload,
+  string | null
+> {}
 
 export function PromptDialog({ open, payload, onClose }: PromptDialogProps) {
   const [input, setInput] = React.useState('')

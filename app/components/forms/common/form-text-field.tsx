@@ -3,8 +3,10 @@ import { styled } from '@mui/material/styles'
 import TextField, { type TextFieldProps } from '@mui/material/TextField'
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
-export interface FormTextFieldProps
-  extends Omit<TextFieldProps<'outlined'>, 'variant' | 'size'> {}
+export interface FormTextFieldProps extends Omit<
+  TextFieldProps<'outlined'>,
+  'variant' | 'size'
+> {}
 
 function FormTextFieldUnstyled(props: FormTextFieldProps) {
   return <TextField {...props} fullWidth size="small" variant="outlined" />

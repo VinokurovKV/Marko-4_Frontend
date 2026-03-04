@@ -12,11 +12,10 @@ import * as React from 'react'
 // Material UI
 import ComputerIcon from '@mui/icons-material/Computer'
 
-export interface DevicesScreenProps
-  extends Omit<
-    DevicesGridProps,
-    'navigationMode' | 'navigationModeSelectedRowId'
-  > {
+export interface DevicesScreenProps extends Omit<
+  DevicesGridProps,
+  'navigationMode' | 'navigationModeSelectedRowId'
+> {
   children: React.ReactNode
 }
 

@@ -12,11 +12,10 @@ import * as React from 'react'
 // Material UI
 import WidgetsIcon from '@mui/icons-material/Widgets'
 
-export interface DbcsScreenProps
-  extends Omit<
-    DbcsGridProps,
-    'navigationMode' | 'navigationModeSelectedRowId'
-  > {
+export interface DbcsScreenProps extends Omit<
+  DbcsGridProps,
+  'navigationMode' | 'navigationModeSelectedRowId'
+> {
   children: React.ReactNode
 }
 

@@ -16,11 +16,10 @@ import * as React from 'react'
 // Material UI
 import FormatListNumberedRtlIcon from '@mui/icons-material/FormatListNumberedRtl'
 
-export interface RequirementsScreenProps
-  extends Omit<
-    RequirementsGridProps,
-    'navigationMode' | 'navigationModeSelectedRowId'
-  > {
+export interface RequirementsScreenProps extends Omit<
+  RequirementsGridProps,
+  'navigationMode' | 'navigationModeSelectedRowId'
+> {
   children: React.ReactNode
 }
 

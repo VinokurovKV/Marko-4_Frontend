@@ -454,11 +454,6 @@ export default function AcyclicGraphViewer({
     maxDisplayedLayerWhenWithoutSelected !== null &&
     maxDisplayedLayerWhenWithoutSelected >= 5
 
-  console.log(
-    'levels',
-    vertexes.map((v) => [v.id, getVertexLevel(dataForVertexId.get(v.id)!)])
-  )
-
   return (
     <StackStyled sx={{ height: '100%' }}>
       <div className="graph-stats">

@@ -99,9 +99,8 @@ export function RequirementsHierarchyAcyclicViewer({
           selectedId={selectedId}
           setSelectedId={setSelectedId}
           fitOnSelectedIdChange={true}
-          onVertexClick={(vertexId: number) => {
-            console.log(vertexId)
-          }}
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          onVertexClick={(vertexId: number) => {}}
         />
       </Stack>
     </Stack>

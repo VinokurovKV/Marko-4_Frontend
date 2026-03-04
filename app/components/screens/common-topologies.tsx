@@ -15,11 +15,10 @@ import * as React from 'react'
 // Material UI
 import DeviceHubIcon from '@mui/icons-material/DeviceHub'
 
-export interface CommonTopologiesScreenProps
-  extends Omit<
-    CommonTopologiesGridProps,
-    'navigationMode' | 'navigationModeSelectedRowId'
-  > {
+export interface CommonTopologiesScreenProps extends Omit<
+  CommonTopologiesGridProps,
+  'navigationMode' | 'navigationModeSelectedRowId'
+> {
   children: React.ReactNode
 }
 

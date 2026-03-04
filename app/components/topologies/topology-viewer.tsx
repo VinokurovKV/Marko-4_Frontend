@@ -1113,7 +1113,6 @@ const memoizedCalculateVertexSizes = (() => {
 })()
 
 export function TopologyViewer({ config, vertexNames, showButtons }: TopologyViewerProps) {
-  console.log(config)
   const containerRef = React.useRef<HTMLDivElement>(null)
   const cyRef = React.useRef<cytoscape.Core | null>(null)
   const [interactive, setInteractive] = React.useState(false)

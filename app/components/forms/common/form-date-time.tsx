@@ -14,8 +14,10 @@ import FormControl from '@mui/material/FormControl'
 // Other
 import dayjs from 'dayjs'
 
-export interface FormDateTimeProps
-  extends Omit<DateTimePickerProps, 'name' | 'label' | 'value' | 'onChange'> {
+export interface FormDateTimeProps extends Omit<
+  DateTimePickerProps,
+  'name' | 'label' | 'value' | 'onChange'
+> {
   name: string
   label: string
   value: Date | null

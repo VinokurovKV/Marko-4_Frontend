@@ -16,8 +16,7 @@ import * as React from 'react'
 // Material UI
 import HubIcon from '@mui/icons-material/Hub'
 
-export interface RequirementsHierarchyScreenProps
-  extends RequirementsHierarchyAcyclicViewerProps {
+export interface RequirementsHierarchyScreenProps extends RequirementsHierarchyAcyclicViewerProps {
   children: React.ReactNode
 }
 
