@@ -39,7 +39,17 @@
     "react-router": "^7.9.2",
     "reactflow": "^11.11.4",
     "socket.io-client": "^4.8.1",
-    "zod": "^4.2.1"
+    "zod": "^4.2.1",
+    "@embedpdf/core": "^2.7.0",
+    "@embedpdf/plugin-capture": "^2.7.0",
+    "@embedpdf/plugin-document-manager": "^2.7.0",
+    "@embedpdf/plugin-interaction-manager": "^2.7.0",
+    "@embedpdf/plugin-render": "^2.7.0",
+    "@embedpdf/plugin-scroll": "^2.7.0",
+    "@embedpdf/plugin-selection": "2.7.0",
+    "@embedpdf/plugin-tiling": "^2.7.0",
+    "@embedpdf/plugin-viewport": "^2.7.0",
+    "@embedpdf/plugin-zoom": "^2.7.0"
   },
   "devDependencies": {
     "@react-router/dev": "^7.9.2",
