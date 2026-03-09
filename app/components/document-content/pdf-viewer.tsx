@@ -17,11 +17,7 @@ import {
   Viewport,
   ViewportPluginPackage
 } from '@embedpdf/plugin-viewport/react'
-import {
-  Scroller,
-  ScrollPluginPackage,
-  useScroll
-} from '@embedpdf/plugin-scroll/react'
+import { Scroller, ScrollPluginPackage } from '@embedpdf/plugin-scroll/react'
 import { RenderLayer, RenderPluginPackage } from '@embedpdf/plugin-render/react'
 import { TilingLayer, TilingPluginPackage } from '@embedpdf/plugin-tiling/react'
 import {
@@ -157,6 +153,21 @@ function extractPageSizes(doc: unknown): PageSize[] {
     }
   }
   return sizes
+}
+
+function isElementFullyVisibleInContainer(
+  el: HTMLElement,
+  container: HTMLElement
+): boolean {
+  const elRect = el.getBoundingClientRect()
+  const containerRect = container.getBoundingClientRect()
+
+  return (
+    elRect.top >= containerRect.top &&
+    elRect.bottom <= containerRect.bottom &&
+    elRect.left >= containerRect.left &&
+    elRect.right <= containerRect.right
+  )
 }
 
 function downloadBlob(blob: Blob, filename: string) {
@@ -322,7 +333,6 @@ const PdfViewerBody: React.FC<
   }
 > = (props) => {
   const { provides: docManager } = useDocumentManagerCapability()
-  const { provides: scroll } = useScroll(props.documentId)
   const { provides: zoom } = useZoom(props.documentId)
   const { provides: capture } = useCapture(props.documentId)
 
@@ -635,21 +645,22 @@ const PdfViewerBody: React.FC<
       const a = derivedAreas.find((x) => x.id === areaId)
       if (!a) return
 
-      scroll?.scrollToPage?.({
-        pageNumber: a.pageIndex + 1,
-        behavior: 'smooth'
-      })
+      const host = viewportHostRef.current
+      const el = areaElsRef.current.get(areaId)
 
-      window.setTimeout(() => {
-        const el = areaElsRef.current.get(areaId)
-        el?.scrollIntoView({
-          behavior: 'smooth',
-          block: 'center',
-          inline: 'center'
-        })
-      }, 200)
+      if (!host || !el) return
+
+      if (isElementFullyVisibleInContainer(el, host)) {
+        return
+      }
+
+      el.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+        inline: 'center'
+      })
     },
-    [derivedAreas, scroll]
+    [derivedAreas]
   )
 
   type BrowseRequest = { areaId: number; seq: number } | null
