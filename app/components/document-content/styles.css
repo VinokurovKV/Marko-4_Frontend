@@ -81,12 +81,12 @@
   border-radius: 4px;
 }
 .pdfv-area--active {
-  border: 2px solid hsl(210, 98%, 55%);
-  background: hsla(210, 98%, 55%, 0.2);
+  border: 2px solid hsl(0, 90%, 65%);
+  background: hsla(0, 90%, 65%, 0.2);
 }
 .pdfv-area--inactive {
-  border: 2px solid hsl(45, 90%, 65%);
-  background: hsla(45, 90%, 65%, 0.2);
+  border: 2px solid hsl(210, 100%, 65%);
+  background: hsla(210, 100%, 65%, 0.2);
 }
 .pdfv-area--interactive {
   pointer-events: auto;
@@ -242,6 +242,7 @@
 }
 .pdfv-thumb-image-wrap {
   overflow: hidden;
+  position: relative;
   border: 1px solid hsl(220, 20%, 82%);
   border-radius: 18px;
   background: white;
@@ -306,4 +307,22 @@
   min-height: 0;
   min-width: 0;
   overflow: hidden;
+}
+.pdfv-thumb-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.pdfv-thumb-area {
+  position: absolute;
+  box-sizing: border-box;
+  border: 1.5px solid hsl(210, 100%, 65%);
+  background: hsla(210, 100%, 65%, 0.2);
+  border-radius: 3px;
+}
+
+.pdfv-thumb-area--active {
+  border-color: hsl(0, 90%, 65%);
+  background: hsla(0, 90%, 65%, 0.2);
 }

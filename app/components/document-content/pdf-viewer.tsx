@@ -899,6 +899,9 @@ const PdfViewerBody: React.FC<
       <PdfThumbnailSidebar
         documentId={props.documentId}
         currentPageIndex={currentPageIndex}
+        areas={derivedAreas}
+        activeAreaId={activeAreaId}
+        pageSizes={pageSizes}
       />
 
       <div ref={viewportHostRef} className="pdfv-body-host">
@@ -1288,7 +1291,10 @@ type PdfThumbnailMeta = {
 const PdfThumbnailSidebar: React.FC<{
   documentId: string
   currentPageIndex: number | null
-}> = ({ documentId, currentPageIndex }) => {
+  areas: Array<PdfArea & { pageIndex: number; localRect: Rectangle }>
+  activeAreaId: number | null
+  pageSizes: PageSize[]
+}> = ({ documentId, currentPageIndex, areas, activeAreaId, pageSizes }) => {
   const { provides: scroll } = useScroll(documentId)
 
   return (
@@ -1301,6 +1307,14 @@ const PdfThumbnailSidebar: React.FC<{
           const height = Math.round(m.height)
 
           const isActive = currentPageIndex === m.pageIndex
+
+          const thumbAreas = areas.filter((a) => a.pageIndex === m.pageIndex)
+
+          const pageSize = pageSizes[m.pageIndex]
+          if (!pageSize) return null
+
+          const pageWidth = pageSize.width
+          const pageHeight = pageSize.height
 
           return (
             <div
@@ -1319,6 +1333,39 @@ const PdfThumbnailSidebar: React.FC<{
                   documentId={documentId}
                   meta={m as React.ComponentProps<typeof ThumbImg>['meta']}
                 />
+
+                <div className="pdfv-thumb-overlay">
+                  {thumbAreas.map((a) => {
+                    const left = (a.localRect.xMin / pageWidth) * width
+                    const top = (a.localRect.yMin / pageHeight) * height
+                    const rectWidth =
+                      ((a.localRect.xMax - a.localRect.xMin) / pageWidth) *
+                      width
+                    const rectHeight =
+                      ((a.localRect.yMax - a.localRect.yMin) / pageHeight) *
+                      height
+
+                    const isAreaActive = activeAreaId === a.id
+
+                    return (
+                      <div
+                        key={a.id}
+                        className={
+                          isAreaActive
+                            ? 'pdfv-thumb-area pdfv-thumb-area--active'
+                            : 'pdfv-thumb-area'
+                        }
+                        style={{
+                          left,
+                          top,
+                          width: Math.max(rectWidth, 2),
+                          height: Math.max(rectHeight, 2)
+                        }}
+                        title={a.name}
+                      />
+                    )
+                  })}
+                </div>
               </div>
 
               <div

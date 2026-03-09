@@ -187,8 +187,8 @@ export function DocumentContentViewer({
           >
             {mode.type !== 'DEFAULT' && (
               <Typography
-                variant="body2"
-                sx={{ whiteSpace: 'nowrap', color: 'info.main' }}
+                variant="caption"
+                sx={{ whiteSpace: 'nowrap', color: 'hsl(210, 98%, 55%)' }}
               >
                 Esc — режим по умолчанию
               </Typography>
