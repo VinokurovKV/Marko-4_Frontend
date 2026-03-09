@@ -281,9 +281,9 @@ export const PdfViewer: React.FC<PdfViewerProps> = (props) => {
       }),
       createPluginRegistration(SelectionPluginPackage),
       createPluginRegistration(ThumbnailPluginPackage, {
-        width: 120,
+        width: 150,
         gap: 12,
-        autoScroll: true
+        autoScroll: false
       })
     ],
     [props.data, blobImgAllowed]
@@ -388,6 +388,7 @@ const PdfViewerBody: React.FC<
 
   const areaElsRef = useRef<Map<number, HTMLDivElement>>(new Map())
   const viewportHostRef = useRef<HTMLDivElement | null>(null)
+  const [currentPageIndex, setCurrentPageIndex] = useState<number | null>(null)
 
   const [draftPx, setDraftPx] = useState<null | {
     pageIndex: number
@@ -748,6 +749,79 @@ const PdfViewerBody: React.FC<
   }, [browseReq, scrollToArea])
 
   useEffect(() => {
+    const host = viewportHostRef.current
+    if (!host) return
+
+    const viewportEl = host.querySelector('.pdfv-viewport')
+    const root = viewportEl instanceof HTMLElement ? viewportEl : host
+
+    let raf = 0
+
+    const parsePageIndex = (el: HTMLElement): number | null => {
+      const cls = Array.from(el.classList).find((c) =>
+        c.startsWith('pdfv-page--p')
+      )
+      if (!cls) return null
+
+      const value = Number(cls.replace('pdfv-page--p', ''))
+      return Number.isFinite(value) ? value : null
+    }
+
+    const updateCurrentPage = () => {
+      const pageElements = Array.from(
+        root.querySelectorAll<HTMLElement>('.pdfv-page')
+      )
+
+      if (pageElements.length === 0) {
+        setCurrentPageIndex(null)
+        return
+      }
+
+      const rootRect = root.getBoundingClientRect()
+      const rootCenterY = rootRect.top + rootRect.height / 2
+
+      let bestPageIndex: number | null = null
+      let bestDistance = Number.POSITIVE_INFINITY
+
+      for (const el of pageElements) {
+        const pageIndex = parsePageIndex(el)
+        if (pageIndex === null) continue
+
+        const rect = el.getBoundingClientRect()
+        const pageCenterY = rect.top + rect.height / 2
+        const distance = Math.abs(pageCenterY - rootCenterY)
+
+        if (distance < bestDistance) {
+          bestDistance = distance
+          bestPageIndex = pageIndex
+        }
+      }
+
+      setCurrentPageIndex(bestPageIndex)
+    }
+
+    const requestUpdate = () => {
+      window.cancelAnimationFrame(raf)
+      raf = window.requestAnimationFrame(updateCurrentPage)
+    }
+
+    requestUpdate()
+
+    root.addEventListener('scroll', requestUpdate, { passive: true })
+    window.addEventListener('resize', requestUpdate)
+
+    const mutationObserver = new MutationObserver(requestUpdate)
+    mutationObserver.observe(root, { childList: true, subtree: true })
+
+    return () => {
+      window.cancelAnimationFrame(raf)
+      root.removeEventListener('scroll', requestUpdate)
+      window.removeEventListener('resize', requestUpdate)
+      mutationObserver.disconnect()
+    }
+  }, [props.documentId])
+
+  useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return
 
@@ -822,7 +896,10 @@ const PdfViewerBody: React.FC<
 
   return (
     <div className="pdfv-layout">
-      <PdfThumbnailSidebar documentId={props.documentId} />
+      <PdfThumbnailSidebar
+        documentId={props.documentId}
+        currentPageIndex={currentPageIndex}
+      />
 
       <div ref={viewportHostRef} className="pdfv-body-host">
         <Dialog open={tooSmallOpen} onClose={() => setTooSmallOpen(false)}>
@@ -1208,39 +1285,54 @@ type PdfThumbnailMeta = {
   height: number
 }
 
-const PdfThumbnailSidebar: React.FC<{ documentId: string }> = ({
-  documentId
-}) => {
+const PdfThumbnailSidebar: React.FC<{
+  documentId: string
+  currentPageIndex: number | null
+}> = ({ documentId, currentPageIndex }) => {
   const { provides: scroll } = useScroll(documentId)
 
   return (
     <div className="pdfv-thumbs">
       <ThumbnailsPane documentId={documentId}>
-        {(m: PdfThumbnailMeta) => (
-          <div
-            key={m.pageIndex}
-            className="pdfv-thumb-item"
-            style={{
-              top: m.top,
-              height: m.wrapperHeight
-            }}
-            onClick={() =>
-              scroll?.scrollToPage({ pageNumber: m.pageIndex + 1 })
-            }
-          >
-            <div
-              className="pdfv-thumb-image-wrap"
-              style={{ width: m.width, height: m.height }}
-            >
-              <ThumbImg
-                documentId={documentId}
-                meta={m as React.ComponentProps<typeof ThumbImg>['meta']}
-              />
-            </div>
+        {(m: PdfThumbnailMeta) => {
+          const top = Math.round(m.top)
+          const wrapperHeight = Math.round(m.wrapperHeight)
+          const width = Math.round(m.width)
+          const height = Math.round(m.height)
 
-            <div className="pdfv-thumb-label">{m.pageIndex + 1}</div>
-          </div>
-        )}
+          const isActive = currentPageIndex === m.pageIndex
+
+          return (
+            <div
+              key={m.pageIndex}
+              className="pdfv-thumb-item"
+              style={{
+                top,
+                height: wrapperHeight
+              }}
+              onClick={() =>
+                scroll?.scrollToPage({ pageNumber: m.pageIndex + 1 })
+              }
+            >
+              <div className="pdfv-thumb-image-wrap" style={{ width, height }}>
+                <ThumbImg
+                  documentId={documentId}
+                  meta={m as React.ComponentProps<typeof ThumbImg>['meta']}
+                />
+              </div>
+
+              <div
+                className={
+                  isActive
+                    ? 'pdfv-thumb-label pdfv-thumb-label--active'
+                    : 'pdfv-thumb-label'
+                }
+              >
+                {m.pageIndex + 1}
+              </div>
+            </div>
+          )
+        }}
       </ThumbnailsPane>
     </div>
   )
