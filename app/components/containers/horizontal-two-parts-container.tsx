@@ -20,6 +20,7 @@ export interface HorizontalTwoPartsContainerProps extends Omit<
     | 'SEVEN_FIVE'
     | 'TWO_ONE'
     | 'ONE_ZERO'
+    | 'THREE_ONE'
   children: [React.ReactNode, React.ReactNode]
 }
 
@@ -43,7 +44,9 @@ export function HorizontalTwoPartsContainer(
                       ? 7
                       : props.proportions === 'TWO_ONE'
                         ? 8
-                        : 12
+                        : props.proportions === 'THREE_ONE'
+                          ? 9
+                          : 12
           }
           sx={{ height: '100%' }}
         >
@@ -63,7 +66,9 @@ export function HorizontalTwoPartsContainer(
                       ? 5
                       : props.proportions === 'TWO_ONE'
                         ? 4
-                        : 0
+                        : props.proportions === 'THREE_ONE'
+                          ? 3
+                          : 0
           }
           sx={{ height: '100%' }}
         >

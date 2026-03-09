@@ -48,7 +48,7 @@ export function DocumentViewer({
 
   return (
     <HorizontalTwoPartsContainer
-      proportions="TWO_ONE"
+      proportions="THREE_ONE"
       title={['Документ', `${document.code}`]}
     >
       <DocumentContentViewer document={document} />

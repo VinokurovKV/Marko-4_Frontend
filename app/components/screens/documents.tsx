@@ -1,9 +1,6 @@
 // Project
 import { type ProjBreadcrumbsProps } from '../breadcrumbs'
-import {
-  LayoutScreenContainer,
-  HorizontalTwoPartsContainer
-} from '../containers'
+import { LayoutScreenContainer } from '../containers'
 import {
   type DocumentsGridProps,
   DocumentsGrid
@@ -66,24 +63,20 @@ export function DocumentsScreen({ children, ...props }: DocumentsScreenProps) {
     ],
     [withDocument, documentId, documentCode]
   )
-  return (
+  return withDocument ? (
+    <LayoutScreenContainer breadcrumbsItems={breadcrumbsItems} title="">
+      {children}
+    </LayoutScreenContainer>
+  ) : (
     <LayoutScreenContainer
       title="документы"
       breadcrumbsItems={breadcrumbsItems}
     >
-      <HorizontalTwoPartsContainer
-        proportions={withDocument ? 'ONE_THREE' : 'ONE_ZERO'}
-      >
-        <DocumentsGrid
-          key={`${withDocument}`}
-          {...props}
-          navigationMode={withDocument}
-          navigationModeSelectedRowId={
-            withDocument ? (documentId ?? undefined) : undefined
-          }
-        />
-        {children}
-      </HorizontalTwoPartsContainer>
+      <DocumentsGrid
+        {...props}
+        navigationMode={false}
+        navigationModeSelectedRowId={undefined}
+      />
     </LayoutScreenContainer>
   )
 }
