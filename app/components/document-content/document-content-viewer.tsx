@@ -25,6 +25,7 @@ import MenuItem from '@mui/material/MenuItem'
 import Typography from '@mui/material/Typography'
 import GridOnIcon from '@mui/icons-material/GridOn'
 import TextSnippetIcon from '@mui/icons-material/TextSnippet'
+import Box from '@mui/material/Box'
 
 const DEFAULT_MODE: PdfViewerMode = { type: 'DEFAULT' }
 
@@ -50,6 +51,8 @@ export function DocumentContentViewer({
 
   const [interactionMode, setInteractionMode] =
     React.useState<InteractionMode>('AREAS')
+
+  const isAreasMode = interactionMode === 'AREAS'
 
   React.useEffect(() => {
     setAreas([])
@@ -146,52 +149,76 @@ export function DocumentContentViewer({
       >
         <Stack
           direction="row"
-          spacing={1}
           alignItems="center"
           sx={{ mb: 1, flex: '0 0 auto' }}
         >
-          <ProjButton
-            variant="contained"
-            onClick={openBrowseDialog}
-            disabled={areas.length === 0}
-          >
-            Просмотр области
-          </ProjButton>
+          <Stack direction="row" spacing={1} alignItems="center">
+            <ProjButton
+              variant="contained"
+              onClick={openBrowseDialog}
+              disabled={!isAreasMode || areas.length === 0}
+            >
+              Просмотр области
+            </ProjButton>
 
-          <ProjButton
-            variant={
-              mode.type === 'CREATE_RECTANGLE' ? 'contained' : 'outlined'
-            }
-            onClick={() => setMode({ type: 'CREATE_RECTANGLE' })}
-          >
-            Создать область
-          </ProjButton>
+            <ProjButton
+              variant={
+                isAreasMode && mode.type === 'CREATE_RECTANGLE'
+                  ? 'contained'
+                  : 'outlined'
+              }
+              onClick={() => {
+                if (!isAreasMode) return
+                setMode({ type: 'CREATE_RECTANGLE' })
+              }}
+              disabled={!isAreasMode}
+            >
+              Создать область
+            </ProjButton>
+          </Stack>
 
-          <div style={{ flex: 1 }} />
-
-          <ProjButton
-            variant="outlined"
-            title={
-              interactionMode === 'AREAS'
-                ? 'Режим: просмотр областей'
-                : 'Режим: чтение текста'
-            }
-            aria-label="Переключить режим"
-            onClick={() => {
-              setInteractionMode((prev) => {
-                const next = prev === 'AREAS' ? 'TEXT' : 'AREAS'
-                if (next === 'TEXT') setMode({ type: 'DEFAULT' })
-                return next
-              })
+          <Box
+            sx={{
+              flex: 1,
+              display: 'flex',
+              justifyContent: 'center',
+              minWidth: 0
             }}
-            sx={{ minWidth: 0, px: 1 }}
           >
-            {interactionMode === 'AREAS' ? (
-              <GridOnIcon fontSize="small" />
-            ) : (
-              <TextSnippetIcon fontSize="small" />
+            {mode.type !== 'DEFAULT' && (
+              <Typography
+                variant="body2"
+                sx={{ whiteSpace: 'nowrap', color: 'info.main' }}
+              >
+                Esc — режим по умолчанию
+              </Typography>
             )}
-          </ProjButton>
+          </Box>
+
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <ProjButton
+              variant="outlined"
+              title={
+                interactionMode === 'AREAS'
+                  ? 'Режим: просмотр областей'
+                  : 'Режим: чтение текста'
+              }
+              aria-label="Переключить режим"
+              onClick={() => {
+                setMode({ type: 'DEFAULT' })
+                setInteractionMode((prev) =>
+                  prev === 'AREAS' ? 'TEXT' : 'AREAS'
+                )
+              }}
+              sx={{ minWidth: 0, px: 1 }}
+            >
+              {interactionMode === 'AREAS' ? (
+                <GridOnIcon fontSize="small" />
+              ) : (
+                <TextSnippetIcon fontSize="small" />
+              )}
+            </ProjButton>
+          </Box>
         </Stack>
 
         <Dialog
@@ -279,11 +306,11 @@ export function DocumentContentViewer({
                 setMode({ type: 'DEFAULT' })
               }}
               onCreateRectangleCancel={() => setMode({ type: 'DEFAULT' })}
+              onBrowseAreaCancel={() => setMode({ type: 'DEFAULT' })}
               onUpdateAreaRectangle={({ areaId, rectangle }) => {
                 setAreas((prev) =>
                   prev.map((a) => (a.id === areaId ? { ...a, rectangle } : a))
                 )
-                setMode({ type: 'DEFAULT' })
               }}
               onUpdateAreaRectangleCancel={() => setMode({ type: 'DEFAULT' })}
             />

@@ -81,6 +81,7 @@ export type PdfViewerProps = {
   onDeleteAreaButtonClick?: (data: { areaId: number }) => void | null
   onCreateRectangle?: (data: { rectangle: Rectangle }) => void | null
   onCreateRectangleCancel?: () => void | null
+  onBrowseAreaCancel?: () => void | null
   onUpdateAreaRectangle?: (data: {
     areaId: number
     rectangle: Rectangle
@@ -695,6 +696,7 @@ const PdfViewerBody: React.FC<
         e.preventDefault()
         e.stopPropagation()
         setBrowseReq(null)
+        props.onBrowseAreaCancel?.()
         return
       }
 
@@ -740,6 +742,7 @@ const PdfViewerBody: React.FC<
 
       if (!clickedInside) return
       setBrowseReq(null)
+      props.onBrowseAreaCancel?.()
     }
 
     window.addEventListener('pointerdown', onPointerDown, { capture: true })
@@ -951,7 +954,9 @@ const PdfViewerBody: React.FC<
                           }}
                           title={a.name}
                         >
-                          <div className="pdfv-area-label">{a.name}</div>
+                          {!isTextMode && (
+                            <div className="pdfv-area-label">{a.name}</div>
+                          )}
 
                           {showAreaActions && (
                             <div
