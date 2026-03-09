@@ -17,7 +17,11 @@ import {
   Viewport,
   ViewportPluginPackage
 } from '@embedpdf/plugin-viewport/react'
-import { Scroller, ScrollPluginPackage } from '@embedpdf/plugin-scroll/react'
+import {
+  Scroller,
+  ScrollPluginPackage,
+  useScroll
+} from '@embedpdf/plugin-scroll/react'
 import { RenderLayer, RenderPluginPackage } from '@embedpdf/plugin-render/react'
 import { TilingLayer, TilingPluginPackage } from '@embedpdf/plugin-tiling/react'
 import {
@@ -37,6 +41,11 @@ import {
   useSelectionCapability
 } from '@embedpdf/plugin-selection/react'
 import { PagePointerProvider } from '@embedpdf/plugin-interaction-manager/react'
+import {
+  ThumbnailPluginPackage,
+  ThumbnailsPane,
+  ThumbImg
+} from '@embedpdf/plugin-thumbnail/react'
 // Material UI
 import CircularProgress from '@mui/material/CircularProgress'
 import Alert from '@mui/material/Alert'
@@ -270,7 +279,12 @@ export const PdfViewer: React.FC<PdfViewerProps> = (props) => {
       createPluginRegistration(ZoomPluginPackage, {
         defaultZoomLevel: ZoomMode.Automatic
       }),
-      createPluginRegistration(SelectionPluginPackage)
+      createPluginRegistration(SelectionPluginPackage),
+      createPluginRegistration(ThumbnailPluginPackage, {
+        width: 120,
+        gap: 12,
+        autoScroll: true
+      })
     ],
     [props.data, blobImgAllowed]
   )
@@ -336,6 +350,7 @@ const PdfViewerBody: React.FC<
   const { provides: docManager } = useDocumentManagerCapability()
   const { provides: zoom } = useZoom(props.documentId)
   const { provides: capture } = useCapture(props.documentId)
+  const { provides: scroll } = useScroll(props.documentId)
 
   const { provides: selectionCapability } = useSelectionCapability()
   const [hasSelection, setHasSelection] = useState(false)
@@ -647,31 +662,69 @@ const PdfViewerBody: React.FC<
       if (!a) return
 
       const host = viewportHostRef.current
+      if (!host) return
+
       const el = areaElsRef.current.get(areaId)
 
-      if (!host || !el) return
+      if (el) {
+        if (isElementFullyVisibleInContainer(el, host)) return
 
-      if (isElementFullyVisibleInContainer(el, host)) {
+        el.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center',
+          inline: 'center'
+        })
         return
       }
 
-      el.scrollIntoView({
-        behavior: 'smooth',
-        block: 'center',
-        inline: 'center'
+      const pageEl = document.querySelector(`.pdfv-page--p${a.pageIndex}`)
+
+      if (pageEl instanceof HTMLElement) {
+        if (isElementFullyVisibleInContainer(pageEl, host)) {
+          return
+        }
+      }
+
+      scroll?.scrollToPage({
+        pageNumber: a.pageIndex + 1,
+        behavior: 'smooth'
       })
+
+      let tries = 0
+      const maxTries = 20
+
+      const tick = () => {
+        const el = areaElsRef.current.get(areaId)
+        if (el) {
+          el.scrollIntoView({
+            behavior: 'smooth',
+            block: 'center',
+            inline: 'center'
+          })
+          return
+        }
+
+        tries++
+        if (tries < maxTries) {
+          requestAnimationFrame(tick)
+        }
+      }
+
+      requestAnimationFrame(tick)
     },
-    [derivedAreas]
+    [derivedAreas, scroll]
   )
 
   type BrowseRequest = { areaId: number; seq: number } | null
   const [browseReq, setBrowseReq] = useState<BrowseRequest>(null)
   const browseSeqRef = useRef(0)
   const lastBrowseModeRef = useRef<PdfViewerMode | null>(null)
+  const handledBrowseSeqRef = useRef<number | null>(null)
 
   useEffect(() => {
     if (props.mode.type !== 'BROWSE_AREA') {
       lastBrowseModeRef.current = props.mode
+      handledBrowseSeqRef.current = null
       setBrowseReq(null)
       return
     }
@@ -685,8 +738,14 @@ const PdfViewerBody: React.FC<
 
   useEffect(() => {
     if (!browseReq) return
+
+    if (handledBrowseSeqRef.current === browseReq.seq) {
+      return
+    }
+
+    handledBrowseSeqRef.current = browseReq.seq
     scrollToArea(browseReq.areaId)
-  }, [browseReq?.seq, scrollToArea])
+  }, [browseReq, scrollToArea])
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -762,373 +821,427 @@ const PdfViewerBody: React.FC<
       : browsedAreaId
 
   return (
-    <div ref={viewportHostRef} className="pdfv-body-host">
-      <Dialog open={tooSmallOpen} onClose={() => setTooSmallOpen(false)}>
-        <DialogTitle>Область слишком маленькая</DialogTitle>
-        <DialogContent>
-          <Alert severity="warning">{tooSmallText}</Alert>
-        </DialogContent>
-        <DialogActions>
-          <ProjButton
-            variant="contained"
-            onClick={() => setTooSmallOpen(false)}
-          >
-            Ок
-          </ProjButton>
-        </DialogActions>
-      </Dialog>
+    <div className="pdfv-layout">
+      <PdfThumbnailSidebar documentId={props.documentId} />
 
-      <Viewport documentId={props.documentId} className="pdfv-viewport">
-        <Scroller
-          documentId={props.documentId}
-          renderPage={(page: RenderPageArgs) => {
-            const { pageIndex, width, height } = page
-            const fallbackScale = pageSizes[pageIndex]?.width
-              ? width / pageSizes[pageIndex].width
-              : 1
-            const scale =
-              typeof page.scale === 'number' ? page.scale : fallbackScale
+      <div ref={viewportHostRef} className="pdfv-body-host">
+        <Dialog open={tooSmallOpen} onClose={() => setTooSmallOpen(false)}>
+          <DialogTitle>Область слишком маленькая</DialogTitle>
+          <DialogContent>
+            <Alert severity="warning">{tooSmallText}</Alert>
+          </DialogContent>
+          <DialogActions>
+            <ProjButton
+              variant="contained"
+              onClick={() => setTooSmallOpen(false)}
+            >
+              Ок
+            </ProjButton>
+          </DialogActions>
+        </Dialog>
 
-            pageScaleRef.current.set(pageIndex, scale)
+        <Viewport documentId={props.documentId} className="pdfv-viewport">
+          <Scroller
+            documentId={props.documentId}
+            renderPage={(page: RenderPageArgs) => {
+              const { pageIndex, width, height } = page
+              const fallbackScale = pageSizes[pageIndex]?.width
+                ? width / pageSizes[pageIndex].width
+                : 1
+              const scale =
+                typeof page.scale === 'number' ? page.scale : fallbackScale
 
-            const pageAreas = derivedAreas.filter(
-              (a) => a.pageIndex === pageIndex
-            )
-            const draftOnPage =
-              draftPx?.pageIndex === pageIndex ? draftPx : null
+              pageScaleRef.current.set(pageIndex, scale)
 
-            const pageClass = `pdfv-page--p${pageIndex}`
-
-            const pageDynamicCssParts: string[] = []
-            pageDynamicCssParts.push(
-              `.${pageClass}{width:${fmtPx(width)};height:${fmtPx(height)};}`
-            )
-
-            for (const a of pageAreas) {
-              const localRectForCss =
-                resize && resize.areaId === a.id
-                  ? resize.liveLocalRect
-                  : dragArea && dragArea.areaId === a.id
-                    ? dragArea.liveLocalRect
-                    : a.localRect
-
-              const r = localRectForCss
-              const left = r.xMin * scale
-              const top = r.yMin * scale
-              const w = (r.xMax - r.xMin) * scale
-              const h = (r.yMax - r.yMin) * scale
-              const areaPosClass = `pdfv-area--id-${a.id}`
-              pageDynamicCssParts.push(
-                `.${pageClass} .${areaPosClass}{left:${fmtPx(left)};top:${fmtPx(
-                  top
-                )};width:${fmtPx(w)};height:${fmtPx(h)};}`
+              const pageAreas = derivedAreas.filter(
+                (a) => a.pageIndex === pageIndex
               )
-            }
+              const draftOnPage =
+                draftPx?.pageIndex === pageIndex ? draftPx : null
 
-            if (draftOnPage) {
-              const left = Math.min(draftOnPage.x1, draftOnPage.x2)
-              const top = Math.min(draftOnPage.y1, draftOnPage.y2)
-              const w = Math.abs(draftOnPage.x2 - draftOnPage.x1)
-              const h = Math.abs(draftOnPage.y2 - draftOnPage.y1)
-              const draftClass = `pdfv-draft-rect--p${pageIndex}`
+              const pageClass = `pdfv-page--p${pageIndex}`
+
+              const pageDynamicCssParts: string[] = []
               pageDynamicCssParts.push(
-                `.${pageClass} .${draftClass}{left:${fmtPx(left)};top:${fmtPx(
-                  top
-                )};width:${fmtPx(w)};height:${fmtPx(h)};}`
+                `.${pageClass}{width:${fmtPx(width)};height:${fmtPx(height)};}`
               )
-            }
 
-            const pageDynamicCss = pageDynamicCssParts.join('')
+              for (const a of pageAreas) {
+                const localRectForCss =
+                  resize && resize.areaId === a.id
+                    ? resize.liveLocalRect
+                    : dragArea && dragArea.areaId === a.id
+                      ? dragArea.liveLocalRect
+                      : a.localRect
 
-            return (
-              <div
-                className={`pdfv-page ${pageClass}`}
-                draggable={false}
-                onDragStart={(e) => e.preventDefault()}
-              >
-                <style>{pageDynamicCss}</style>
+                const r = localRectForCss
+                const left = r.xMin * scale
+                const top = r.yMin * scale
+                const w = (r.xMax - r.xMin) * scale
+                const h = (r.yMax - r.yMin) * scale
+                const areaPosClass = `pdfv-area--id-${a.id}`
+                pageDynamicCssParts.push(
+                  `.${pageClass} .${areaPosClass}{left:${fmtPx(left)};top:${fmtPx(
+                    top
+                  )};width:${fmtPx(w)};height:${fmtPx(h)};}`
+                )
+              }
 
-                <PagePointerProvider
-                  documentId={props.documentId}
-                  pageIndex={pageIndex}
+              if (draftOnPage) {
+                const left = Math.min(draftOnPage.x1, draftOnPage.x2)
+                const top = Math.min(draftOnPage.y1, draftOnPage.y2)
+                const w = Math.abs(draftOnPage.x2 - draftOnPage.x1)
+                const h = Math.abs(draftOnPage.y2 - draftOnPage.y1)
+                const draftClass = `pdfv-draft-rect--p${pageIndex}`
+                pageDynamicCssParts.push(
+                  `.${pageClass} .${draftClass}{left:${fmtPx(left)};top:${fmtPx(
+                    top
+                  )};width:${fmtPx(w)};height:${fmtPx(h)};}`
+                )
+              }
+
+              const pageDynamicCss = pageDynamicCssParts.join('')
+
+              return (
+                <div
+                  className={`pdfv-page ${pageClass}`}
+                  draggable={false}
+                  onDragStart={(e) => e.preventDefault()}
                 >
-                  <RenderLayer
+                  <style>{pageDynamicCss}</style>
+
+                  <PagePointerProvider
                     documentId={props.documentId}
                     pageIndex={pageIndex}
-                    scale={scale}
-                  />
-                  {props.enableTiling && (
-                    <TilingLayer
+                  >
+                    <RenderLayer
                       documentId={props.documentId}
                       pageIndex={pageIndex}
+                      scale={scale}
                     />
-                  )}
-
-                  {isTextMode && (
-                    <div className="pdfv-selection-host">
-                      <SelectionLayer
+                    {props.enableTiling && (
+                      <TilingLayer
                         documentId={props.documentId}
                         pageIndex={pageIndex}
-                        scale={scale}
-                        textStyle={{
-                          background: 'rgba(0, 120, 255, 0.25)'
-                        }}
-                      />
-                    </div>
-                  )}
-
-                  <div className="pdfv-overlay">
-                    {pageAreas.map((a) => {
-                      const isActive = activeAreaId === a.id
-
-                      const clickableInThisMode =
-                        !isTextMode && props.clickableAreas
-                      const canInteract =
-                        !isTextMode &&
-                        (props.clickableAreas ||
-                          props.withUpdateAreaButtons ||
-                          props.withDeleteAreaButtons)
-
-                      const localRectForUi =
-                        resize && resize.areaId === a.id
-                          ? resize.liveLocalRect
-                          : dragArea && dragArea.areaId === a.id
-                            ? dragArea.liveLocalRect
-                            : a.localRect
-
-                      const wPx =
-                        (localRectForUi.xMax - localRectForUi.xMin) * scale
-                      const hPx =
-                        (localRectForUi.yMax - localRectForUi.yMin) * scale
-                      const isTiny = wPx < 110 || hPx < 44
-
-                      const btnSx = {
-                        minWidth: 0,
-                        padding: isTiny ? '2px 4px' : '2px 6px',
-                        lineHeight: 1.1,
-                        fontSize: 12
-                      } as const
-
-                      const showAreaActions =
-                        !isTextMode &&
-                        props.mode.type !== 'UPDATE_AREA_RECTANGLE' &&
-                        (props.withDeleteAreaButtons ||
-                          props.withUpdateAreaButtons)
-
-                      const isEditingThisArea =
-                        !isTextMode &&
-                        props.mode.type === 'UPDATE_AREA_RECTANGLE' &&
-                        props.mode.areaId === a.id
-
-                      const areaPosClass = `pdfv-area--id-${a.id}`
-
-                      const areaClassName = [
-                        'pdfv-area',
-                        areaPosClass,
-                        isActive ? 'pdfv-area--active' : 'pdfv-area--inactive',
-                        canInteract
-                          ? 'pdfv-area--interactive'
-                          : 'pdfv-area--noninteractive',
-                        clickableInThisMode
-                          ? 'pdfv-area--clickable'
-                          : 'pdfv-area--notclickable'
-                      ].join(' ')
-
-                      return (
-                        <div
-                          key={a.id}
-                          className={areaClassName}
-                          ref={(el) => {
-                            if (el) areaElsRef.current.set(a.id, el)
-                            else areaElsRef.current.delete(a.id)
-                          }}
-                          onClick={() => {
-                            if (isTextMode) return
-                            if (
-                              props.mode.type === 'CREATE_RECTANGLE' ||
-                              props.mode.type === 'UPDATE_AREA_RECTANGLE'
-                            )
-                              return
-                            if (!clickableInThisMode) return
-                            props.onAreaClick?.({ areaId: a.id })
-                          }}
-                          title={a.name}
-                        >
-                          {!isTextMode && (
-                            <div className="pdfv-area-label">{a.name}</div>
-                          )}
-
-                          {showAreaActions && (
-                            <div
-                              className={`pdfv-area-actions ${isTiny ? 'pdfv-area-actions--tiny' : ''}`}
-                              onMouseDown={(e) => e.stopPropagation()}
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              {props.withDeleteAreaButtons && (
-                                <ProjButton
-                                  variant="contained"
-                                  type="button"
-                                  sx={btnSx}
-                                  title="Удалить"
-                                  aria-label="Удалить область"
-                                  onClick={() =>
-                                    props.onDeleteAreaButtonClick?.({
-                                      areaId: a.id
-                                    })
-                                  }
-                                >
-                                  <DeleteIcon fontSize="small" />
-                                </ProjButton>
-                              )}
-
-                              {props.withUpdateAreaButtons && (
-                                <ProjButton
-                                  variant="contained"
-                                  type="button"
-                                  sx={btnSx}
-                                  title="Изменить"
-                                  aria-label="Изменить область"
-                                  onClick={() =>
-                                    props.onUpdateAreaButtonClick?.({
-                                      areaId: a.id
-                                    })
-                                  }
-                                >
-                                  <EditIcon fontSize="small" />
-                                </ProjButton>
-                              )}
-                            </div>
-                          )}
-
-                          {isEditingThisArea && (
-                            <>
-                              {(['nw', 'ne', 'sw', 'se'] as const).map(
-                                (corner) => (
-                                  <div
-                                    key={corner}
-                                    className={`pdfv-resize-handle pdfv-resize-handle--${corner}`}
-                                    onPointerDown={(e) => {
-                                      e.stopPropagation()
-                                      setResize({
-                                        areaId: a.id,
-                                        pageIndex,
-                                        corner,
-                                        startClientX: e.clientX,
-                                        startClientY: e.clientY,
-                                        startLocalRect: localRectForUi,
-                                        liveLocalRect: localRectForUi
-                                      })
-                                    }}
-                                  />
-                                )
-                              )}
-
-                              <div
-                                className="pdfv-drag-handle"
-                                onPointerDown={(e) => {
-                                  e.stopPropagation()
-                                  setDragArea({
-                                    areaId: a.id,
-                                    pageIndex,
-                                    startClientX: e.clientX,
-                                    startClientY: e.clientY,
-                                    startLocalRect: localRectForUi,
-                                    liveLocalRect: localRectForUi
-                                  })
-                                }}
-                              />
-                            </>
-                          )}
-                        </div>
-                      )
-                    })}
-
-                    {draftOnPage && (
-                      <div
-                        className={`pdfv-draft-rect pdfv-draft-rect--p${pageIndex}`}
                       />
                     )}
-                  </div>
 
-                  {!isTextMode && props.mode.type === 'CREATE_RECTANGLE' && (
-                    <div
-                      className="pdfv-interaction-overlay"
-                      onMouseDown={(e) => {
-                        const rect = (
-                          e.currentTarget as HTMLDivElement
-                        ).getBoundingClientRect()
-                        const x = e.clientX - rect.left
-                        const y = e.clientY - rect.top
-                        setDraftPx({ pageIndex, x1: x, y1: y, x2: x, y2: y })
-                      }}
-                      onMouseMove={(e) => {
-                        if (!draftPx || draftPx.pageIndex !== pageIndex) return
-                        const rect = (
-                          e.currentTarget as HTMLDivElement
-                        ).getBoundingClientRect()
-                        const x = e.clientX - rect.left
-                        const y = e.clientY - rect.top
-                        setDraftPx((prev) =>
-                          prev ? { ...prev, x2: x, y2: y } : prev
+                    {isTextMode && (
+                      <div className="pdfv-selection-host">
+                        <SelectionLayer
+                          documentId={props.documentId}
+                          pageIndex={pageIndex}
+                          scale={scale}
+                          textStyle={{
+                            background: 'rgba(0, 120, 255, 0.25)'
+                          }}
+                        />
+                      </div>
+                    )}
+
+                    <div className="pdfv-overlay">
+                      {pageAreas.map((a) => {
+                        const isActive = activeAreaId === a.id
+
+                        const clickableInThisMode =
+                          !isTextMode && props.clickableAreas
+                        const canInteract =
+                          !isTextMode &&
+                          (props.clickableAreas ||
+                            props.withUpdateAreaButtons ||
+                            props.withDeleteAreaButtons)
+
+                        const localRectForUi =
+                          resize && resize.areaId === a.id
+                            ? resize.liveLocalRect
+                            : dragArea && dragArea.areaId === a.id
+                              ? dragArea.liveLocalRect
+                              : a.localRect
+
+                        const wPx =
+                          (localRectForUi.xMax - localRectForUi.xMin) * scale
+                        const hPx =
+                          (localRectForUi.yMax - localRectForUi.yMin) * scale
+                        const isTiny = wPx < 110 || hPx < 44
+
+                        const btnSx = {
+                          minWidth: 0,
+                          padding: isTiny ? '2px 4px' : '2px 6px',
+                          lineHeight: 1.1,
+                          fontSize: 12
+                        } as const
+
+                        const showAreaActions =
+                          !isTextMode &&
+                          props.mode.type !== 'UPDATE_AREA_RECTANGLE' &&
+                          (props.withDeleteAreaButtons ||
+                            props.withUpdateAreaButtons)
+
+                        const isEditingThisArea =
+                          !isTextMode &&
+                          props.mode.type === 'UPDATE_AREA_RECTANGLE' &&
+                          props.mode.areaId === a.id
+
+                        const areaPosClass = `pdfv-area--id-${a.id}`
+
+                        const areaClassName = [
+                          'pdfv-area',
+                          areaPosClass,
+                          isActive
+                            ? 'pdfv-area--active'
+                            : 'pdfv-area--inactive',
+                          canInteract
+                            ? 'pdfv-area--interactive'
+                            : 'pdfv-area--noninteractive',
+                          clickableInThisMode
+                            ? 'pdfv-area--clickable'
+                            : 'pdfv-area--notclickable'
+                        ].join(' ')
+
+                        return (
+                          <div
+                            key={a.id}
+                            className={areaClassName}
+                            ref={(el) => {
+                              if (el) areaElsRef.current.set(a.id, el)
+                              else areaElsRef.current.delete(a.id)
+                            }}
+                            onClick={() => {
+                              if (isTextMode) return
+                              if (
+                                props.mode.type === 'CREATE_RECTANGLE' ||
+                                props.mode.type === 'UPDATE_AREA_RECTANGLE'
+                              )
+                                return
+                              if (!clickableInThisMode) return
+                              props.onAreaClick?.({ areaId: a.id })
+                            }}
+                            title={a.name}
+                          >
+                            {!isTextMode && (
+                              <div className="pdfv-area-label">{a.name}</div>
+                            )}
+
+                            {showAreaActions && (
+                              <div
+                                className={`pdfv-area-actions ${isTiny ? 'pdfv-area-actions--tiny' : ''}`}
+                                onMouseDown={(e) => e.stopPropagation()}
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                {props.withDeleteAreaButtons && (
+                                  <ProjButton
+                                    variant="contained"
+                                    type="button"
+                                    sx={btnSx}
+                                    title="Удалить"
+                                    aria-label="Удалить область"
+                                    onClick={() =>
+                                      props.onDeleteAreaButtonClick?.({
+                                        areaId: a.id
+                                      })
+                                    }
+                                  >
+                                    <DeleteIcon fontSize="small" />
+                                  </ProjButton>
+                                )}
+
+                                {props.withUpdateAreaButtons && (
+                                  <ProjButton
+                                    variant="contained"
+                                    type="button"
+                                    sx={btnSx}
+                                    title="Изменить"
+                                    aria-label="Изменить область"
+                                    onClick={() =>
+                                      props.onUpdateAreaButtonClick?.({
+                                        areaId: a.id
+                                      })
+                                    }
+                                  >
+                                    <EditIcon fontSize="small" />
+                                  </ProjButton>
+                                )}
+                              </div>
+                            )}
+
+                            {isEditingThisArea && (
+                              <>
+                                {(['nw', 'ne', 'sw', 'se'] as const).map(
+                                  (corner) => (
+                                    <div
+                                      key={corner}
+                                      className={`pdfv-resize-handle pdfv-resize-handle--${corner}`}
+                                      onPointerDown={(e) => {
+                                        e.stopPropagation()
+                                        setResize({
+                                          areaId: a.id,
+                                          pageIndex,
+                                          corner,
+                                          startClientX: e.clientX,
+                                          startClientY: e.clientY,
+                                          startLocalRect: localRectForUi,
+                                          liveLocalRect: localRectForUi
+                                        })
+                                      }}
+                                    />
+                                  )
+                                )}
+
+                                <div
+                                  className="pdfv-drag-handle"
+                                  onPointerDown={(e) => {
+                                    e.stopPropagation()
+                                    setDragArea({
+                                      areaId: a.id,
+                                      pageIndex,
+                                      startClientX: e.clientX,
+                                      startClientY: e.clientY,
+                                      startLocalRect: localRectForUi,
+                                      liveLocalRect: localRectForUi
+                                    })
+                                  }}
+                                />
+                              </>
+                            )}
+                          </div>
                         )
-                      }}
-                      onMouseUp={() => {
-                        if (!draftPx || draftPx.pageIndex !== pageIndex) return
+                      })}
 
-                        const wPx = Math.abs(draftPx.x2 - draftPx.x1)
-                        const hPx = Math.abs(draftPx.y2 - draftPx.y1)
-                        if (!ensureMinRectSizeByButtons(wPx, hPx)) {
-                          setDraftPx(null)
-                          return
-                        }
+                      {draftOnPage && (
+                        <div
+                          className={`pdfv-draft-rect pdfv-draft-rect--p${pageIndex}`}
+                        />
+                      )}
+                    </div>
 
-                        const pageScale =
-                          pageScaleRef.current.get(pageIndex) ?? scale
-                        const localRectPts = clampRect({
-                          xMin: Math.min(draftPx.x1, draftPx.x2) / pageScale,
-                          xMax: Math.max(draftPx.x1, draftPx.x2) / pageScale,
-                          yMin: Math.min(draftPx.y1, draftPx.y2) / pageScale,
-                          yMax: Math.max(draftPx.y1, draftPx.y2) / pageScale
-                        })
+                    {!isTextMode && props.mode.type === 'CREATE_RECTANGLE' && (
+                      <div
+                        className="pdfv-interaction-overlay"
+                        onMouseDown={(e) => {
+                          const rect = (
+                            e.currentTarget as HTMLDivElement
+                          ).getBoundingClientRect()
+                          const x = e.clientX - rect.left
+                          const y = e.clientY - rect.top
+                          setDraftPx({ pageIndex, x1: x, y1: y, x2: x, y2: y })
+                        }}
+                        onMouseMove={(e) => {
+                          if (!draftPx || draftPx.pageIndex !== pageIndex)
+                            return
+                          const rect = (
+                            e.currentTarget as HTMLDivElement
+                          ).getBoundingClientRect()
+                          const x = e.clientX - rect.left
+                          const y = e.clientY - rect.top
+                          setDraftPx((prev) =>
+                            prev ? { ...prev, x2: x, y2: y } : prev
+                          )
+                        }}
+                        onMouseUp={() => {
+                          if (!draftPx || draftPx.pageIndex !== pageIndex)
+                            return
 
-                        const offY = offsetsY[pageIndex] ?? 0
-                        const docRect: Rectangle = {
-                          ...localRectPts,
-                          yMin: localRectPts.yMin + offY,
-                          yMax: localRectPts.yMax + offY
-                        }
-
-                        const captureRect = {
-                          x: localRectPts.xMin,
-                          y: localRectPts.yMin,
-                          width: localRectPts.xMax - localRectPts.xMin,
-                          height: localRectPts.yMax - localRectPts.yMin
-                        } as unknown as Record<string, number>
-
-                        if (capture) {
-                          const stamp = new Date()
-                            .toISOString()
-                            .replaceAll(':', '-')
-                            .replaceAll('.', '-')
-                          pendingCaptureRef.current = {
-                            filename: `capture_p${pageIndex + 1}_${stamp}.png`,
-                            pageIndex
+                          const wPx = Math.abs(draftPx.x2 - draftPx.x1)
+                          const hPx = Math.abs(draftPx.y2 - draftPx.y1)
+                          if (!ensureMinRectSizeByButtons(wPx, hPx)) {
+                            setDraftPx(null)
+                            return
                           }
-                          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-                          capture.captureArea(pageIndex, captureRect as any)
-                        }
 
-                        props.onCreateRectangle?.({ rectangle: docRect })
-                        setDraftPx(null)
-                      }}
-                    />
-                  )}
-                </PagePointerProvider>
-              </div>
-            )
-          }}
-        />
-      </Viewport>
+                          const pageScale =
+                            pageScaleRef.current.get(pageIndex) ?? scale
+                          const localRectPts = clampRect({
+                            xMin: Math.min(draftPx.x1, draftPx.x2) / pageScale,
+                            xMax: Math.max(draftPx.x1, draftPx.x2) / pageScale,
+                            yMin: Math.min(draftPx.y1, draftPx.y2) / pageScale,
+                            yMax: Math.max(draftPx.y1, draftPx.y2) / pageScale
+                          })
+
+                          const offY = offsetsY[pageIndex] ?? 0
+                          const docRect: Rectangle = {
+                            ...localRectPts,
+                            yMin: localRectPts.yMin + offY,
+                            yMax: localRectPts.yMax + offY
+                          }
+
+                          const captureRect = {
+                            x: localRectPts.xMin,
+                            y: localRectPts.yMin,
+                            width: localRectPts.xMax - localRectPts.xMin,
+                            height: localRectPts.yMax - localRectPts.yMin
+                          } as unknown as Record<string, number>
+
+                          if (capture) {
+                            const stamp = new Date()
+                              .toISOString()
+                              .replaceAll(':', '-')
+                              .replaceAll('.', '-')
+                            pendingCaptureRef.current = {
+                              filename: `capture_p${pageIndex + 1}_${stamp}.png`,
+                              pageIndex
+                            }
+                            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+                            capture.captureArea(pageIndex, captureRect as any)
+                          }
+
+                          props.onCreateRectangle?.({ rectangle: docRect })
+                          setDraftPx(null)
+                        }}
+                      />
+                    )}
+                  </PagePointerProvider>
+                </div>
+              )
+            }}
+          />
+        </Viewport>
+      </div>
+    </div>
+  )
+}
+
+type PdfThumbnailMeta = {
+  pageIndex: number
+  top: number
+  wrapperHeight: number
+  width: number
+  height: number
+}
+
+const PdfThumbnailSidebar: React.FC<{ documentId: string }> = ({
+  documentId
+}) => {
+  const { provides: scroll } = useScroll(documentId)
+
+  return (
+    <div className="pdfv-thumbs">
+      <ThumbnailsPane documentId={documentId}>
+        {(m: PdfThumbnailMeta) => (
+          <div
+            key={m.pageIndex}
+            className="pdfv-thumb-item"
+            style={{
+              top: m.top,
+              height: m.wrapperHeight
+            }}
+            onClick={() =>
+              scroll?.scrollToPage({ pageNumber: m.pageIndex + 1 })
+            }
+          >
+            <div
+              className="pdfv-thumb-image-wrap"
+              style={{ width: m.width, height: m.height }}
+            >
+              <ThumbImg
+                documentId={documentId}
+                meta={m as React.ComponentProps<typeof ThumbImg>['meta']}
+              />
+            </div>
+
+            <div className="pdfv-thumb-label">{m.pageIndex + 1}</div>
+          </div>
+        )}
+      </ThumbnailsPane>
     </div>
   )
 }
