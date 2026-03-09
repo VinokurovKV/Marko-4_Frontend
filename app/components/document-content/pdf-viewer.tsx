@@ -372,10 +372,20 @@ const PdfViewerBody: React.FC<
   }>(null)
 
   type Corner = 'nw' | 'ne' | 'sw' | 'se'
+
   const [resize, setResize] = useState<null | {
     areaId: number
     pageIndex: number
     corner: Corner
+    startClientX: number
+    startClientY: number
+    startLocalRect: Rectangle
+    liveLocalRect: Rectangle
+  }>(null)
+
+  const [dragArea, setDragArea] = useState<null | {
+    areaId: number
+    pageIndex: number
     startClientX: number
     startClientY: number
     startLocalRect: Rectangle
@@ -432,6 +442,35 @@ const PdfViewerBody: React.FC<
     [offsetsY]
   )
 
+  const clampRectToPage = useCallback(
+    (pageIndex: number, rect: Rectangle): Rectangle => {
+      const page = pageSizes[pageIndex]
+      if (!page) return rect
+
+      const width = rect.xMax - rect.xMin
+      const height = rect.yMax - rect.yMin
+
+      let xMin = rect.xMin
+      let yMin = rect.yMin
+
+      if (xMin < 0) xMin = 0
+      if (yMin < 0) yMin = 0
+      if (xMin + width > page.width) xMin = page.width - width
+      if (yMin + height > page.height) yMin = page.height - height
+
+      xMin = Math.max(0, xMin)
+      yMin = Math.max(0, yMin)
+
+      return {
+        xMin,
+        xMax: xMin + width,
+        yMin,
+        yMax: yMin + height
+      }
+    },
+    [pageSizes]
+  )
+
   useEffect(() => {
     if (!resize) return
 
@@ -477,6 +516,43 @@ const PdfViewerBody: React.FC<
       window.removeEventListener('pointerup', onUp)
     }
   }, [resize, localToDocRect, props])
+
+  useEffect(() => {
+    if (!dragArea) return
+
+    const onMove = (e: PointerEvent) => {
+      const pageScale = pageScaleRef.current.get(dragArea.pageIndex) ?? 1
+      const dx = (e.clientX - dragArea.startClientX) / pageScale
+      const dy = (e.clientY - dragArea.startClientY) / pageScale
+
+      const r = dragArea.startLocalRect
+      const moved = clampRectToPage(dragArea.pageIndex, {
+        xMin: r.xMin + dx,
+        xMax: r.xMax + dx,
+        yMin: r.yMin + dy,
+        yMax: r.yMax + dy
+      })
+
+      setDragArea((prev) => (prev ? { ...prev, liveLocalRect: moved } : prev))
+    }
+
+    const onUp = () => {
+      const docRect = localToDocRect(dragArea.pageIndex, dragArea.liveLocalRect)
+      props.onUpdateAreaRectangle?.({
+        areaId: dragArea.areaId,
+        rectangle: docRect
+      })
+      setDragArea(null)
+    }
+
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', onUp, { once: true })
+
+    return () => {
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', onUp)
+    }
+  }, [dragArea, clampRectToPage, localToDocRect, props])
 
   useEffect(() => {
     if (!capture) return
@@ -628,6 +704,7 @@ const PdfViewerBody: React.FC<
 
       setDraftPx(null)
       setResize(null)
+      setDragArea(null)
     }
 
     window.addEventListener('keydown', onKeyDown)
@@ -717,7 +794,9 @@ const PdfViewerBody: React.FC<
               const localRectForCss =
                 resize && resize.areaId === a.id
                   ? resize.liveLocalRect
-                  : a.localRect
+                  : dragArea && dragArea.areaId === a.id
+                    ? dragArea.liveLocalRect
+                    : a.localRect
 
               const r = localRectForCss
               const left = r.xMin * scale
@@ -799,7 +878,9 @@ const PdfViewerBody: React.FC<
                       const localRectForUi =
                         resize && resize.areaId === a.id
                           ? resize.liveLocalRect
-                          : a.localRect
+                          : dragArea && dragArea.areaId === a.id
+                            ? dragArea.liveLocalRect
+                            : a.localRect
 
                       const wPx =
                         (localRectForUi.xMax - localRectForUi.xMin) * scale
@@ -925,6 +1006,21 @@ const PdfViewerBody: React.FC<
                                   />
                                 )
                               )}
+
+                              <div
+                                className="pdfv-drag-handle"
+                                onPointerDown={(e) => {
+                                  e.stopPropagation()
+                                  setDragArea({
+                                    areaId: a.id,
+                                    pageIndex,
+                                    startClientX: e.clientX,
+                                    startClientY: e.clientY,
+                                    startLocalRect: localRectForUi,
+                                    liveLocalRect: localRectForUi
+                                  })
+                                }}
+                              />
                             </>
                           )}
                         </div>

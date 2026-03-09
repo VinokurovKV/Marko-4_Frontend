@@ -182,6 +182,19 @@
   bottom: -5px;
   cursor: nwse-resize;
 }
+.pdfv-drag-handle {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  cursor: move;
+  z-index: 1;
+}
 .pdfv-selection-host {
   position: absolute;
   inset: 0;
