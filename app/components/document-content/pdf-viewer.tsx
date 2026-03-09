@@ -507,19 +507,22 @@ const PdfViewerBody: React.FC<
       const dy = (e.clientY - resize.startClientY) / pageScale
 
       const r = resize.startLocalRect
+      const page = pageSizes[resize.pageIndex]
+      if (!page) return
+
       let next: Rectangle = { ...r }
 
       if (resize.corner === 'nw') {
-        next.xMin = r.xMin + dx
+        next.xMin = Math.max(0, Math.min(r.xMax, r.xMin + dx))
         next.yMin = r.yMin + dy
       } else if (resize.corner === 'ne') {
-        next.xMax = r.xMax + dx
+        next.xMax = Math.min(page.width, Math.max(r.xMin, r.xMax + dx))
         next.yMin = r.yMin + dy
       } else if (resize.corner === 'sw') {
-        next.xMin = r.xMin + dx
+        next.xMin = Math.max(0, Math.min(r.xMax, r.xMin + dx))
         next.yMax = r.yMax + dy
       } else {
-        next.xMax = r.xMax + dx
+        next.xMax = Math.min(page.width, Math.max(r.xMin, r.xMax + dx))
         next.yMax = r.yMax + dy
       }
 
@@ -940,6 +943,9 @@ const PdfViewerBody: React.FC<
                 draftPx?.pageIndex === pageIndex ? draftPx : null
 
               const pageClass = `pdfv-page--p${pageIndex}`
+              const isDrawingMode =
+                props.mode.type === 'CREATE_RECTANGLE' ||
+                props.mode.type === 'UPDATE_AREA_RECTANGLE'
 
               const pageDynamicCssParts: string[] = []
               pageDynamicCssParts.push(
@@ -984,7 +990,7 @@ const PdfViewerBody: React.FC<
 
               return (
                 <div
-                  className={`pdfv-page ${pageClass}`}
+                  className={`pdfv-page ${pageClass}${isDrawingMode ? ' pdfv-page--drawing' : ''}`}
                   draggable={false}
                   onDragStart={(e) => e.preventDefault()}
                 >
@@ -1198,6 +1204,8 @@ const PdfViewerBody: React.FC<
                       <div
                         className="pdfv-interaction-overlay"
                         onMouseDown={(e) => {
+                          e.preventDefault()
+
                           const rect = (
                             e.currentTarget as HTMLDivElement
                           ).getBoundingClientRect()
@@ -1208,6 +1216,9 @@ const PdfViewerBody: React.FC<
                         onMouseMove={(e) => {
                           if (!draftPx || draftPx.pageIndex !== pageIndex)
                             return
+
+                          e.preventDefault()
+
                           const rect = (
                             e.currentTarget as HTMLDivElement
                           ).getBoundingClientRect()
@@ -1217,7 +1228,9 @@ const PdfViewerBody: React.FC<
                             prev ? { ...prev, x2: x, y2: y } : prev
                           )
                         }}
-                        onMouseUp={() => {
+                        onMouseUp={(e) => {
+                          e.preventDefault()
+
                           if (!draftPx || draftPx.pageIndex !== pageIndex)
                             return
 
