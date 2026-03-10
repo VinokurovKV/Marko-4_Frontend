@@ -32,6 +32,7 @@ import {
 import { InteractionManagerPluginPackage } from '@embedpdf/plugin-interaction-manager/react'
 import {
   CapturePluginPackage,
+  MarqueeCapture,
   type CaptureAreaEvent,
   useCapture
 } from '@embedpdf/plugin-capture/react'
@@ -57,6 +58,7 @@ import Dialog from '@mui/material/Dialog'
 import DialogTitle from '@mui/material/DialogTitle'
 import DialogContent from '@mui/material/DialogContent'
 import DialogActions from '@mui/material/DialogActions'
+import PhotoCameraIcon from '@mui/icons-material/PhotoCamera'
 
 export interface Rectangle {
   xMin: number
@@ -83,6 +85,7 @@ export type PdfViewerProps = {
   clickableAreas: boolean
   withUpdateAreaButtons: boolean
   withDeleteAreaButtons: boolean
+  withCaptureAreaButtons: boolean
   mode: PdfViewerMode
   interactionMode: 'AREAS' | 'TEXT'
   onAreaClick?: (data: { areaId: number }) => void | null
@@ -99,6 +102,38 @@ export type PdfViewerProps = {
 }
 
 type PageSize = { width: number; height: number }
+
+type CaptureRect = {
+  origin: {
+    x: number
+    y: number
+  }
+  size: {
+    width: number
+    height: number
+  }
+}
+
+const toCaptureRect = (rect: Rectangle): CaptureRect => ({
+  origin: {
+    x: rect.xMin,
+    y: rect.yMin
+  },
+  size: {
+    width: rect.xMax - rect.xMin,
+    height: rect.yMax - rect.yMin
+  }
+})
+
+const getDateStamp = (): string => {
+  const d = new Date()
+
+  const yy = String(d.getFullYear()).slice(-2)
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  const dd = String(d.getDate()).padStart(2, '0')
+
+  return `${yy}-${mm}-${dd}`
+}
 
 type RenderPageArgs = {
   pageIndex: number
@@ -178,17 +213,6 @@ function isElementFullyVisibleInContainer(
     elRect.left >= containerRect.left &&
     elRect.right <= containerRect.right
   )
-}
-
-function downloadBlob(blob: Blob, filename: string) {
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = filename
-  document.body.appendChild(a)
-  a.click()
-  a.remove()
-  window.setTimeout(() => URL.revokeObjectURL(url), 10_000)
 }
 
 async function detectBlobImgAllowed(): Promise<boolean> {
@@ -425,6 +449,9 @@ const PdfViewerBody: React.FC<
   const [tooSmallOpen, setTooSmallOpen] = useState(false)
   const [tooSmallText, setTooSmallText] = useState('')
 
+  const [capturedImageUrl, setCapturedImageUrl] = useState<string | null>(null)
+  const [capturedImageName, setCapturedImageName] = useState<string>('')
+
   const pendingCaptureRef = useRef<null | {
     filename: string
     pageIndex: number
@@ -438,9 +465,13 @@ const PdfViewerBody: React.FC<
     (wPx: number, hPx: number): boolean => {
       const buttonsCount =
         Number(Boolean(props.withDeleteAreaButtons)) +
-        Number(Boolean(props.withUpdateAreaButtons))
+        Number(Boolean(props.withUpdateAreaButtons)) +
+        Number(Boolean(props.withCaptureAreaButtons))
 
-      const minW = buttonsCount <= 1 ? BTN_W_PX : BTN_W_PX * 2 + BTN_GAP_PX
+      const minW =
+        buttonsCount <= 0
+          ? 0
+          : BTN_W_PX * buttonsCount + BTN_GAP_PX * (buttonsCount - 1)
       const minH = BTN_H_PX
 
       if (wPx >= minW && hPx >= minH) return true
@@ -453,7 +484,11 @@ const PdfViewerBody: React.FC<
       setTooSmallOpen(true)
       return false
     },
-    [props.withDeleteAreaButtons, props.withUpdateAreaButtons]
+    [
+      props.withDeleteAreaButtons,
+      props.withUpdateAreaButtons,
+      props.withCaptureAreaButtons
+    ]
   )
 
   const localToDocRect = useCallback(
@@ -586,6 +621,7 @@ const PdfViewerBody: React.FC<
 
   useEffect(() => {
     if (!capture) return
+
     return capture.onCaptureArea((result: CaptureAreaEvent) => {
       const pending = pendingCaptureRef.current
       const filename =
@@ -593,7 +629,14 @@ const PdfViewerBody: React.FC<
           ? pending.filename
           : `capture_p${result.pageIndex + 1}.png`
 
-      downloadBlob(result.blob, filename)
+      const url = URL.createObjectURL(result.blob)
+
+      setCapturedImageUrl((prev) => {
+        if (prev) URL.revokeObjectURL(prev)
+        return url
+      })
+      setCapturedImageName(filename)
+
       pendingCaptureRef.current = null
     })
   }, [capture])
@@ -897,6 +940,31 @@ const PdfViewerBody: React.FC<
       ? props.mode.areaId
       : browsedAreaId
 
+  const captureAreaScreenshot = useCallback(
+    (area: PdfArea & { pageIndex: number; localRect: Rectangle }) => {
+      console.log('captureAreaScreenshot', {
+        hasCapture: Boolean(capture),
+        area
+      })
+
+      if (!capture) {
+        return
+      }
+
+      const captureRect = toCaptureRect(area.localRect)
+
+      const stamp = getDateStamp()
+
+      pendingCaptureRef.current = {
+        filename: `area_${area.id}_${stamp}.png`,
+        pageIndex: area.pageIndex
+      }
+
+      capture.captureArea(area.pageIndex, captureRect)
+    },
+    [capture]
+  )
+
   return (
     <div className="pdfv-layout">
       <PdfThumbnailSidebar
@@ -909,9 +977,36 @@ const PdfViewerBody: React.FC<
 
       <div ref={viewportHostRef} className="pdfv-body-host">
         <Dialog open={tooSmallOpen} onClose={() => setTooSmallOpen(false)}>
-          <DialogTitle>Область слишком маленькая</DialogTitle>
+          <DialogTitle
+            sx={(theme) => ({
+              textAlign: 'center',
+              color:
+                theme.palette.mode === 'dark'
+                  ? 'hsl(220, 30%, 94%)'
+                  : 'hsl(220, 20%, 25%)'
+            })}
+          >
+            Область слишком маленькая
+          </DialogTitle>
           <DialogContent>
-            <Alert severity="warning">{tooSmallText}</Alert>
+            <Alert
+              severity="warning"
+              sx={(theme) => ({
+                backgroundColor:
+                  theme.palette.mode === 'dark'
+                    ? 'hsl(0, 94%, 80%)'
+                    : 'hsl(0, 92%, 90%)',
+                color:
+                  theme.palette.mode === 'dark'
+                    ? 'hsl(220, 30%, 94%)'
+                    : 'hsl(220, 20%, 25%)',
+                '& .MuiAlert-icon': {
+                  color: 'hsl(0, 90%, 30%)'
+                }
+              })}
+            >
+              {tooSmallText}
+            </Alert>
           </DialogContent>
           <DialogActions>
             <ProjButton
@@ -919,6 +1014,77 @@ const PdfViewerBody: React.FC<
               onClick={() => setTooSmallOpen(false)}
             >
               Ок
+            </ProjButton>
+          </DialogActions>
+        </Dialog>
+
+        <Dialog
+          open={capturedImageUrl !== null}
+          onClose={() => {
+            if (capturedImageUrl) URL.revokeObjectURL(capturedImageUrl)
+            setCapturedImageUrl(null)
+            setCapturedImageName('')
+          }}
+          maxWidth="md"
+          fullWidth
+          PaperProps={{
+            sx: (theme) => ({
+              backgroundColor:
+                theme.palette.mode === 'dark'
+                  ? 'hsl(220, 35%, 3%)'
+                  : 'hsl(220, 30%, 94%)',
+              color:
+                theme.palette.mode === 'dark'
+                  ? 'hsl(220, 30%, 94%)'
+                  : 'hsl(220, 20%, 25%)',
+              borderRadius: 4
+            })
+          }}
+        >
+          <DialogTitle
+            sx={{
+              textAlign: 'center'
+            }}
+          >
+            Предпросмотр снимка области
+          </DialogTitle>
+          <DialogContent dividers>
+            {capturedImageUrl && (
+              <img
+                src={capturedImageUrl}
+                alt={capturedImageName}
+                style={{
+                  display: 'block',
+                  maxWidth: '100%',
+                  height: 'auto',
+                  margin: '0 auto'
+                }}
+              />
+            )}
+          </DialogContent>
+          <DialogActions>
+            <ProjButton
+              onClick={() => {
+                if (!capturedImageUrl) return
+                const a = document.createElement('a')
+                a.href = capturedImageUrl
+                a.download = capturedImageName || 'capture.png'
+                document.body.appendChild(a)
+                a.click()
+                a.remove()
+              }}
+            >
+              Скачать
+            </ProjButton>
+            <ProjButton
+              variant="contained"
+              onClick={() => {
+                if (capturedImageUrl) URL.revokeObjectURL(capturedImageUrl)
+                setCapturedImageUrl(null)
+                setCapturedImageName('')
+              }}
+            >
+              Закрыть
             </ProjButton>
           </DialogActions>
         </Dialog>
@@ -1005,6 +1171,12 @@ const PdfViewerBody: React.FC<
                       pageIndex={pageIndex}
                       scale={scale}
                     />
+
+                    <MarqueeCapture
+                      documentId={props.documentId}
+                      pageIndex={pageIndex}
+                    />
+
                     {props.enableTiling && (
                       <TilingLayer
                         documentId={props.documentId}
@@ -1035,7 +1207,8 @@ const PdfViewerBody: React.FC<
                           !isTextMode &&
                           (props.clickableAreas ||
                             props.withUpdateAreaButtons ||
-                            props.withDeleteAreaButtons)
+                            props.withDeleteAreaButtons ||
+                            props.withCaptureAreaButtons)
 
                         const localRectForUi =
                           resize && resize.areaId === a.id
@@ -1061,7 +1234,8 @@ const PdfViewerBody: React.FC<
                           !isTextMode &&
                           props.mode.type !== 'UPDATE_AREA_RECTANGLE' &&
                           (props.withDeleteAreaButtons ||
-                            props.withUpdateAreaButtons)
+                            props.withUpdateAreaButtons ||
+                            props.withCaptureAreaButtons)
 
                         const isEditingThisArea =
                           !isTextMode &&
@@ -1145,6 +1319,22 @@ const PdfViewerBody: React.FC<
                                     }
                                   >
                                     <EditIcon fontSize="small" />
+                                  </ProjButton>
+                                )}
+
+                                {props.withCaptureAreaButtons && (
+                                  <ProjButton
+                                    variant="contained"
+                                    type="button"
+                                    sx={btnSx}
+                                    title="Скриншот области"
+                                    aria-label="Сделать скриншот области"
+                                    disabled={!capture}
+                                    onClick={() => {
+                                      captureAreaScreenshot(a)
+                                    }}
+                                  >
+                                    <PhotoCameraIcon fontSize="small" />
                                   </ProjButton>
                                 )}
                               </div>
@@ -1255,26 +1445,6 @@ const PdfViewerBody: React.FC<
                             ...localRectPts,
                             yMin: localRectPts.yMin + offY,
                             yMax: localRectPts.yMax + offY
-                          }
-
-                          const captureRect = {
-                            x: localRectPts.xMin,
-                            y: localRectPts.yMin,
-                            width: localRectPts.xMax - localRectPts.xMin,
-                            height: localRectPts.yMax - localRectPts.yMin
-                          } as unknown as Record<string, number>
-
-                          if (capture) {
-                            const stamp = new Date()
-                              .toISOString()
-                              .replaceAll(':', '-')
-                              .replaceAll('.', '-')
-                            pendingCaptureRef.current = {
-                              filename: `capture_p${pageIndex + 1}_${stamp}.png`,
-                              pageIndex
-                            }
-                            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-                            capture.captureArea(pageIndex, captureRect as any)
                           }
 
                           props.onCreateRectangle?.({ rectangle: docRect })

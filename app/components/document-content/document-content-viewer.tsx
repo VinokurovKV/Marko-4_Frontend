@@ -277,6 +277,7 @@ export function DocumentContentViewer({
               clickableAreas={true}
               withUpdateAreaButtons={true}
               withDeleteAreaButtons={true}
+              withCaptureAreaButtons={true}
               mode={mode}
               interactionMode={interactionMode}
               onAreaClick={({ areaId }) =>
