@@ -127,6 +127,8 @@ export function TestViewer({
       return null
     } else if (requirementId === null) {
       return test.description.text
+        .replaceAll('<ТР', '[ТР')
+        .replaceAll('ТР>', 'ТР]')
     }
     const requirementCode =
       requirementId !== null
