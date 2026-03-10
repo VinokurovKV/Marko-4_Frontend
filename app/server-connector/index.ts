@@ -174,7 +174,7 @@ import type {
   UpdateDocumentSuccessResultDto
 } from '@common/dtos/server-api/documents.dto'
 import type {
-  CreateFragmentBodyDto,
+  CreateFragmentBodyMainDto,
   CreateFragmentSuccessResultDto,
   DeleteFragmentBodyDto,
   DeleteFragmentSuccessResultDto,
@@ -203,7 +203,7 @@ import type {
   ReadFragmentsQueryDto,
   ReadFragmentsWithPrimaryPropsSuccessResultItemDto,
   ReadFragmentsWithUpToSecondaryPropsSuccessResultItemDto,
-  UpdateFragmentBodyDto,
+  UpdateFragmentBodyMainDto,
   UpdateFragmentSuccessResultDto
 } from '@common/dtos/server-api/fragments.dto'
 import type {
@@ -1837,14 +1837,26 @@ export class ServerConnector {
       : this.getObject('/fragments', params)
   }
   createFragment(
-    params: Params<CreateFragmentBodyDto>
+    main: Params<CreateFragmentBodyMainDto>,
+    config: File
   ): Result<CreateFragmentSuccessResultDto> {
-    return this.postForObject('/fragments/actions/create', params)
+    return this.postMultipartFormForObject(
+      '/fragments/actions/create',
+      new Map<string, MultipartFormVal>([
+        ['main', main],
+        ['config', config]
+      ])
+    )
   }
   updateFragment(
-    params: Params<UpdateFragmentBodyDto>
+    main: Params<UpdateFragmentBodyMainDto>,
+    config: File | undefined
   ): Result<UpdateFragmentSuccessResultDto> {
-    return this.postForObject('/fragments/actions/update', params)
+    const form = new Map<string, MultipartFormVal>([['main', main]])
+    if (config) {
+      form.set('config', config)
+    }
+    return this.postMultipartFormForObject('/fragments/actions/update', form)
   }
   deleteFragment(
     params: Params<DeleteFragmentBodyDto>
