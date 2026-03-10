@@ -125,6 +125,8 @@ export function TestViewer({
   const filteredDescriptionText = React.useMemo(() => {
     if (test.description?.text === undefined || test.description.text === '') {
       return null
+    } else if (requirementId === null) {
+      return test.description.text
     }
     const requirementCode =
       requirementId !== null
