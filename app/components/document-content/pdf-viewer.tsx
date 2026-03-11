@@ -86,11 +86,13 @@ export type PdfViewerProps = {
   withUpdateAreaButtons: boolean
   withDeleteAreaButtons: boolean
   withCaptureAreaButtons: boolean
+  withRenameAreaButtons: boolean
   mode: PdfViewerMode
   interactionMode: 'AREAS' | 'TEXT'
   onAreaClick?: (data: { areaId: number }) => void | null
   onUpdateAreaButtonClick?: (data: { areaId: number }) => void | null
   onDeleteAreaButtonClick?: (data: { areaId: number }) => void | null
+  onRenameAreaButtonClick?: (data: { areaId: number }) => void | null
   onCreateRectangle?: (data: { rectangle: Rectangle }) => void | null
   onCreateRectangleCancel?: () => void | null
   onBrowseAreaCancel?: () => void | null
@@ -307,7 +309,7 @@ export const PdfViewer: React.FC<PdfViewerProps> = (props) => {
       createPluginRegistration(ThumbnailPluginPackage, {
         width: 150,
         gap: 12,
-        autoScroll: false
+        autoScroll: true
       })
     ],
     [props.data, blobImgAllowed]
@@ -1278,8 +1280,26 @@ const PdfViewerBody: React.FC<
                             }}
                             title={a.name}
                           >
-                            {!isTextMode && (
-                              <div className="pdfv-area-label">{a.name}</div>
+                            {!isTextMode && a.name.trim().length > 0 && (
+                              <div
+                                className="pdfv-area-label-wrap"
+                                onMouseDown={(e) => e.stopPropagation()}
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  props.onRenameAreaButtonClick?.({
+                                    areaId: a.id
+                                  })
+                                }}
+                              >
+                                <div
+                                  className="pdfv-area-label"
+                                  title="Нажмите, чтобы изменить название"
+                                >
+                                  <span className="pdfv-area-label__text">
+                                    {a.name}
+                                  </span>
+                                </div>
+                              </div>
                             )}
 
                             {showAreaActions && (

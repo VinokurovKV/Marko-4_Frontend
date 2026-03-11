@@ -111,20 +111,31 @@
 .pdfv-area--notclickable {
   cursor: default;
 }
-.pdfv-area-label {
+.pdfv-area-label-wrap {
   position: absolute;
   left: 0;
-  top: -22px;
+  top: -26px;
+  pointer-events: auto;
+  cursor: pointer;
+}
+.pdfv-area-label {
+  display: inline-block;
   font-size: 12px;
-  padding: 2px 6px;
-  border-radius: 6px;
+  padding: 3px 8px;
+  border-radius: 8px;
   background: hsla(220, 20%, 25%, 0.85);
   color: hsl(220, 35%, 97%);
-  pointer-events: none;
-  max-width: 260px;
+  max-width: 320px;
+  box-sizing: border-box;
+}
+.pdfv-area-label__text {
+  display: block;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.pdfv-area-label:hover {
+  background: hsla(220, 20%, 25%, 0.95);
 }
 .pdfv-draft-rect {
   position: absolute;

@@ -3,7 +3,12 @@ import type { DocumentPrimary } from '~/types'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
 import { useChangeDetector } from '~/hooks/change-detector'
-import { PdfViewer, type PdfViewerMode, type PdfArea } from './pdf-viewer'
+import {
+  PdfViewer,
+  type PdfViewerMode,
+  type PdfArea,
+  type Rectangle
+} from './pdf-viewer'
 import { ProjButton } from '../buttons/button'
 // Styles
 import './styles.css'
@@ -26,6 +31,7 @@ import Typography from '@mui/material/Typography'
 import GridOnIcon from '@mui/icons-material/GridOn'
 import TextSnippetIcon from '@mui/icons-material/TextSnippet'
 import Box from '@mui/material/Box'
+import TextField from '@mui/material/TextField'
 
 const DEFAULT_MODE: PdfViewerMode = { type: 'DEFAULT' }
 
@@ -67,6 +73,30 @@ export function DocumentContentViewer({
 
   const [isBrowseDialogOpen, setIsBrowseDialogOpen] = React.useState(false)
   const [browseAreaId, setBrowseAreaId] = React.useState<number | null>(null)
+  const [isCreateAreaDialogOpen, setIsCreateAreaDialogOpen] =
+    React.useState(false)
+  const [, setPendingRectangle] = React.useState<Rectangle | null>(null)
+  const [newAreaName, setNewAreaName] = React.useState('')
+  const [editingAreaId, setEditingAreaId] = React.useState<number | null>(null)
+  const [creatingAreaId, setCreatingAreaId] = React.useState<number | null>(
+    null
+  )
+  const nextAreaIdForDialog = React.useMemo(
+    () => getNextAreaId(areas),
+    [areas, getNextAreaId]
+  )
+
+  const previousAreaNameForDialog = React.useMemo(() => {
+    if (editingAreaId === null) return ''
+
+    return areas.find((a) => a.id === editingAreaId)?.name ?? ''
+  }, [areas, editingAreaId])
+
+  const isCreateAreaNameEmpty =
+    editingAreaId === null && newAreaName.trim().length === 0
+
+  const isRenameAreaNameEmpty =
+    editingAreaId !== null && newAreaName.trim().length === 0
 
   const openBrowseDialog = React.useCallback(() => {
     if (areas.length === 0) return
@@ -94,6 +124,115 @@ export function DocumentContentViewer({
     setMode({ type: 'BROWSE_AREA', areaId: browseAreaId })
     setIsBrowseDialogOpen(false)
   }, [browseAreaId])
+
+  const openCreateAreaDialog = React.useCallback(
+    (rectangle: Rectangle) => {
+      const nextId = getNextAreaId(areas)
+
+      setAreas((prev) => [
+        ...prev,
+        {
+          id: nextId,
+          name: '',
+          rectangle
+        }
+      ])
+
+      setPendingRectangle(rectangle)
+      setCreatingAreaId(nextId)
+      setEditingAreaId(null)
+      setNewAreaName('')
+      setIsCreateAreaDialogOpen(true)
+    },
+    [areas, getNextAreaId]
+  )
+
+  const openRenameAreaDialog = React.useCallback(
+    (areaId: number) => {
+      const area = areas.find((a) => a.id === areaId)
+      if (!area) return
+
+      setPendingRectangle(null)
+      setEditingAreaId(areaId)
+      setNewAreaName(area.name)
+      setIsCreateAreaDialogOpen(true)
+    },
+    [areas]
+  )
+
+  const closeCreateAreaDialog = React.useCallback(() => {
+    const wasCreating = creatingAreaId !== null
+
+    if (creatingAreaId !== null) {
+      setAreas((prev) => prev.filter((a) => a.id !== creatingAreaId))
+    }
+
+    setIsCreateAreaDialogOpen(false)
+    setPendingRectangle(null)
+    setCreatingAreaId(null)
+    setEditingAreaId(null)
+    setNewAreaName('')
+
+    if (wasCreating) {
+      setMode({ type: 'DEFAULT' })
+    }
+  }, [creatingAreaId])
+
+  const confirmAreaName = React.useCallback(() => {
+    const trimmedName = newAreaName.trim()
+
+    if (editingAreaId !== null) {
+      const fallbackName = previousAreaNameForDialog
+
+      setAreas((prev) =>
+        prev.map((a) =>
+          a.id === editingAreaId
+            ? {
+                ...a,
+                name: trimmedName.length > 0 ? trimmedName : fallbackName
+              }
+            : a
+        )
+      )
+
+      setIsCreateAreaDialogOpen(false)
+      setPendingRectangle(null)
+      setCreatingAreaId(null)
+      setEditingAreaId(null)
+      setNewAreaName('')
+      return
+    }
+
+    if (creatingAreaId === null) return
+
+    setAreas((prev) =>
+      prev.map((a) =>
+        a.id === creatingAreaId
+          ? {
+              ...a,
+              name:
+                trimmedName.length > 0
+                  ? trimmedName
+                  : `Область ${creatingAreaId}`
+            }
+          : a
+      )
+    )
+
+    setIsCreateAreaDialogOpen(false)
+    setPendingRectangle(null)
+    setCreatingAreaId(null)
+    setEditingAreaId(null)
+    setNewAreaName('')
+    setMode({ type: 'DEFAULT' })
+  }, [editingAreaId, creatingAreaId, newAreaName, previousAreaNameForDialog])
+
+  const resetCreateAreaDialogState = React.useCallback(() => {
+    setPendingRectangle(null)
+    setEditingAreaId(null)
+    setCreatingAreaId(null)
+    setNewAreaName('')
+  }, [])
 
   useChangeDetector({
     detectedObjects: [document.id],
@@ -267,6 +406,128 @@ export function DocumentContentViewer({
           </DialogActions>
         </Dialog>
 
+        <Dialog
+          open={isCreateAreaDialogOpen}
+          onClose={closeCreateAreaDialog}
+          maxWidth="xs"
+          fullWidth
+          TransitionProps={{
+            onExited: resetCreateAreaDialogState
+          }}
+          PaperProps={{
+            sx: (theme) => ({
+              backgroundColor:
+                theme.palette.mode === 'dark'
+                  ? 'hsl(220, 35%, 3%)'
+                  : 'hsl(220, 30%, 94%)',
+              color:
+                theme.palette.mode === 'dark'
+                  ? 'hsl(220, 30%, 94%)'
+                  : 'hsl(220, 20%, 25%)',
+              borderRadius: 4
+            })
+          }}
+        >
+          <DialogTitle
+            sx={(theme) => ({
+              textAlign: 'center',
+              color:
+                theme.palette.mode === 'dark'
+                  ? 'hsl(220, 30%, 94%)'
+                  : 'hsl(220, 20%, 25%)'
+            })}
+          >
+            {editingAreaId === null ? 'Название области' : 'Изменение названия'}
+          </DialogTitle>
+
+          <DialogContent>
+            <TextField
+              autoFocus
+              fullWidth
+              margin="dense"
+              label="Название"
+              value={newAreaName}
+              onChange={(e) => setNewAreaName(e.target.value)}
+              helperText={
+                isCreateAreaNameEmpty
+                  ? `Название пусто, область будет названа "Область ${nextAreaIdForDialog}"`
+                  : isRenameAreaNameEmpty
+                    ? `Название пусто, будет возвращено предыдущее: "${previousAreaNameForDialog}"`
+                    : ' '
+              }
+              FormHelperTextProps={{
+                sx: isCreateAreaNameEmpty
+                  ? {
+                      color: 'hsl(45, 100%, 45%)',
+                      fontWeight: 500
+                    }
+                  : isRenameAreaNameEmpty
+                    ? {
+                        color: 'hsl(0, 75%, 55%)',
+                        fontWeight: 500
+                      }
+                    : undefined
+              }}
+              sx={
+                isCreateAreaNameEmpty
+                  ? {
+                      '& .MuiOutlinedInput-root': {
+                        '& fieldset': {
+                          borderColor: 'hsl(45, 100%, 45%)'
+                        },
+                        '&:hover fieldset': {
+                          borderColor: 'hsl(45, 100%, 45%)'
+                        },
+                        '&.Mui-focused fieldset': {
+                          borderColor: 'hsl(45, 100%, 45%)'
+                        }
+                      },
+                      '& .MuiInputLabel-root': {
+                        color: 'hsl(45, 100%, 45%)'
+                      },
+                      '& .MuiInputLabel-root.Mui-focused': {
+                        color: 'hsl(45, 100%, 45%)'
+                      }
+                    }
+                  : isRenameAreaNameEmpty
+                    ? {
+                        '& .MuiOutlinedInput-root': {
+                          '& fieldset': {
+                            borderColor: 'hsl(0, 75%, 55%)'
+                          },
+                          '&:hover fieldset': {
+                            borderColor: 'hsl(0, 75%, 55%)'
+                          },
+                          '&.Mui-focused fieldset': {
+                            borderColor: 'hsl(0, 75%, 55%)'
+                          }
+                        },
+                        '& .MuiInputLabel-root': {
+                          color: 'hsl(0, 75%, 55%)'
+                        },
+                        '& .MuiInputLabel-root.Mui-focused': {
+                          color: 'hsl(0, 75%, 55%)'
+                        }
+                      }
+                    : undefined
+              }
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  confirmAreaName()
+                }
+              }}
+            />
+          </DialogContent>
+
+          <DialogActions>
+            <ProjButton onClick={closeCreateAreaDialog}>Закрыть</ProjButton>
+            <ProjButton variant="contained" onClick={confirmAreaName}>
+              Сохранить
+            </ProjButton>
+          </DialogActions>
+        </Dialog>
+
         <Divider sx={{ mb: 1 }} />
 
         <div className="dcv-viewer-container">
@@ -278,6 +539,7 @@ export function DocumentContentViewer({
               withUpdateAreaButtons={true}
               withDeleteAreaButtons={true}
               withCaptureAreaButtons={true}
+              withRenameAreaButtons={true}
               mode={mode}
               interactionMode={interactionMode}
               onAreaClick={({ areaId }) =>
@@ -299,12 +561,11 @@ export function DocumentContentViewer({
                   return prevMode
                 })
               }}
+              onRenameAreaButtonClick={({ areaId }) => {
+                openRenameAreaDialog(areaId)
+              }}
               onCreateRectangle={({ rectangle }) => {
-                setAreas((prev) => {
-                  const id = getNextAreaId(prev)
-                  return [...prev, { id, name: `Область ${id}`, rectangle }]
-                })
-                setMode({ type: 'DEFAULT' })
+                openCreateAreaDialog(rectangle)
               }}
               onCreateRectangleCancel={() => setMode({ type: 'DEFAULT' })}
               onBrowseAreaCancel={() => setMode({ type: 'DEFAULT' })}
