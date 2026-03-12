@@ -32,10 +32,10 @@ import 'dayjs/locale/ru'
 // eslint-disable-next-line no-empty-pattern
 export function meta({}: Route.MetaArgs) {
   return [
-    { title: 'Марко-4' },
+    { title: 'Вестник' },
     {
       name: 'description',
-      content: 'Марко-4 - приложение для тестирования сетевых устройств'
+      content: 'Вестник - приложение для тестирования сетевых устройств'
     }
   ]
 }

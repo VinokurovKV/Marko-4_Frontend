@@ -12,7 +12,7 @@ export function BrandLabel() {
         transform: 'translate(0, 1px)'
       }}
     >
-      {'марко-4'.toUpperCase()}
+      {'вестник'.toUpperCase()}
     </Typography>
   )
 }
