@@ -11,16 +11,27 @@ import IconButton from '@mui/material/IconButton'
 import ClickAwayListener from '@mui/material/ClickAwayListener'
 import SearchIcon from '@mui/icons-material/Search'
 import ClearIcon from '@mui/icons-material/Clear'
+import Typography from '@mui/material/Typography'
+import NavigateNextIcon from '@mui/icons-material/NavigateNext'
+import NavigateBeforeIcon from '@mui/icons-material/NavigateBefore'
 
 export interface PdfSearchBoxProps {
   initialValue?: string
+  totalMatches: number
+  activeMatchIndex: number
   onSubmit: (value: string) => void
+  onPrevious: () => void
+  onNext: () => void
   onClear: () => void
 }
 
 export const PdfSearchBox = React.memo(function PdfSearchBox({
   initialValue = '',
+  totalMatches,
+  activeMatchIndex,
   onSubmit,
+  onPrevious,
+  onNext,
   onClear
 }: PdfSearchBoxProps) {
   const [inputValue, setInputValue] = React.useState(initialValue)
@@ -68,7 +79,7 @@ export const PdfSearchBox = React.memo(function PdfSearchBox({
               right: 0,
               zIndex: 20,
               p: 1,
-              width: 260,
+              width: 300,
               borderRadius: 2,
               backgroundColor:
                 theme.palette.mode === 'dark'
@@ -76,50 +87,130 @@ export const PdfSearchBox = React.memo(function PdfSearchBox({
                   : 'hsl(220, 35%, 99%)'
             })}
           >
-            <TextField
-              inputRef={inputRef}
-              size="small"
-              fullWidth
-              placeholder="Поиск..."
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault()
-                  onSubmit(inputValue.trim())
-                }
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+              <TextField
+                inputRef={inputRef}
+                size="small"
+                fullWidth
+                placeholder="Поиск..."
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
 
-                if (e.key === 'Escape') {
-                  e.preventDefault()
-                  setInputValue('')
-                  onClear()
-                  setOpen(false)
-                }
-              }}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon fontSize="small" />
-                  </InputAdornment>
-                ),
-                endAdornment: inputValue ? (
-                  <InputAdornment position="end">
-                    <IconButton
-                      size="small"
-                      aria-label="Очистить поиск"
-                      onClick={() => {
-                        setInputValue('')
-                        onClear()
-                        inputRef.current?.focus()
-                      }}
-                      edge="end"
-                    >
-                      <ClearIcon fontSize="small" />
-                    </IconButton>
-                  </InputAdornment>
-                ) : undefined
-              }}
-            />
+                    const trimmed = inputValue.trim()
+
+                    if (!trimmed) return
+
+                    if (trimmed !== initialValue) {
+                      onSubmit(trimmed)
+                    } else if (totalMatches > 0) {
+                      if (e.shiftKey) {
+                        onPrevious()
+                      } else {
+                        onNext()
+                      }
+                    } else {
+                      onSubmit(trimmed)
+                    }
+                  }
+
+                  if (e.key === 'Escape') {
+                    e.preventDefault()
+                    setInputValue('')
+                    onClear()
+                    setOpen(false)
+                  }
+                }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon fontSize="small" />
+                    </InputAdornment>
+                  ),
+                  endAdornment: inputValue ? (
+                    <InputAdornment position="end">
+                      <IconButton
+                        size="small"
+                        aria-label="Очистить поиск"
+                        onClick={() => {
+                          setInputValue('')
+                          onClear()
+                          inputRef.current?.focus()
+                        }}
+                        edge="end"
+                      >
+                        <ClearIcon fontSize="small" />
+                      </IconButton>
+                    </InputAdornment>
+                  ) : undefined
+                }}
+              />
+
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 1
+                }}
+              >
+                <Typography variant="caption" sx={{ whiteSpace: 'nowrap' }}>
+                  {inputValue.trim()
+                    ? totalMatches > 0
+                      ? `${activeMatchIndex} из ${totalMatches}`
+                      : 'Совпадений нет'
+                    : 'Введите текст'}
+                </Typography>
+
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  <IconButton
+                    size="small"
+                    aria-label="Предыдущее совпадение"
+                    onClick={() => {
+                      const trimmed = inputValue.trim()
+
+                      if (!trimmed) return
+
+                      if (trimmed !== initialValue) {
+                        onSubmit(trimmed)
+                        return
+                      }
+
+                      if (totalMatches > 0) {
+                        onPrevious()
+                      }
+                    }}
+                    disabled={!inputValue.trim()}
+                  >
+                    <NavigateBeforeIcon fontSize="small" />
+                  </IconButton>
+
+                  <IconButton
+                    size="small"
+                    aria-label="Следующее совпадение"
+                    onClick={() => {
+                      const trimmed = inputValue.trim()
+
+                      if (!trimmed) return
+
+                      if (trimmed !== initialValue) {
+                        onSubmit(trimmed)
+                        return
+                      }
+
+                      if (totalMatches > 0) {
+                        onNext()
+                      }
+                    }}
+                    disabled={!inputValue.trim()}
+                  >
+                    <NavigateNextIcon fontSize="small" />
+                  </IconButton>
+                </Box>
+              </Box>
+            </Box>
           </Paper>
         )}
       </Box>

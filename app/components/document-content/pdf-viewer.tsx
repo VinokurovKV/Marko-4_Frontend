@@ -92,6 +92,9 @@ export type PdfViewerProps = {
   mode: PdfViewerMode
   interactionMode: 'AREAS' | 'TEXT'
   searchText?: string
+  searchPreviousRequest?: number
+  searchNextRequest?: number
+  onSearchStateChange?: (data: { total: number; activeIndex: number }) => void
   onAreaClick?: (data: { areaId: number }) => void | null
   onUpdateAreaButtonClick?: (data: { areaId: number }) => void | null
   onDeleteAreaButtonClick?: (data: { areaId: number }) => void | null
@@ -381,7 +384,54 @@ const PdfViewerBody: React.FC<
   const { provides: zoom } = useZoom(props.documentId)
   const { provides: capture } = useCapture(props.documentId)
   const { provides: scroll } = useScroll(props.documentId)
-  const { provides: search } = useSearch(props.documentId)
+  const { provides: search, state: searchState } = useSearch(props.documentId)
+
+  const lastSearchTextRef = useRef('')
+  const searchTotalRef = useRef(0)
+  const searchActiveIndexRef = useRef(0)
+  const onSearchStateChangeRef = useRef(props.onSearchStateChange)
+  const handledSearchNextRequestRef = useRef(0)
+  const handledSearchPreviousRequestRef = useRef(0)
+
+  useEffect(() => {
+    onSearchStateChangeRef.current = props.onSearchStateChange
+  }, [props.onSearchStateChange])
+
+  const pushSearchState = React.useCallback(
+    (total: number, activeIndex: number) => {
+      searchTotalRef.current = total
+      searchActiveIndexRef.current = activeIndex
+
+      onSearchStateChangeRef.current?.({
+        total,
+        activeIndex
+      })
+    },
+    []
+  )
+
+  const syncSearchState = React.useCallback(
+    (state: unknown) => {
+      if (!state || typeof state !== 'object') {
+        pushSearchState(0, 0)
+        return
+      }
+
+      const s = state as {
+        total?: number
+        activeResultIndex?: number
+      }
+
+      const total = typeof s.total === 'number' ? s.total : 0
+      const activeIndex =
+        total > 0 && typeof s.activeResultIndex === 'number'
+          ? s.activeResultIndex + 1
+          : 0
+
+      pushSearchState(total, activeIndex)
+    },
+    [pushSearchState]
+  )
 
   const { provides: selectionCapability } = useSelectionCapability()
   const [hasSelection, setHasSelection] = useState(false)
@@ -769,6 +819,66 @@ const PdfViewerBody: React.FC<
     [derivedAreas, scroll]
   )
 
+  const getViewportScrollRoot = useCallback((): HTMLElement | null => {
+    const host = viewportHostRef.current
+    if (!host) return null
+
+    const viewportEl = host.querySelector('.pdfv-viewport')
+    return viewportEl instanceof HTMLElement ? viewportEl : host
+  }, [])
+
+  const scrollToSearchResult = useCallback(
+    (resultIndex: number, behavior: ScrollBehavior = 'smooth') => {
+      if (!search || resultIndex < 0) return
+
+      const state = search.getState()
+      const result = state.results[resultIndex]
+      const firstRect = result?.rects?.[0]
+
+      if (!result || !firstRect) return
+
+      const root = getViewportScrollRoot()
+      if (!root) return
+
+      const pageIndex = result.pageIndex
+
+      const tryScroll = (attempt: number) => {
+        const pageEl = root.querySelector(`.pdfv-page--p${pageIndex}`)
+
+        if (!(pageEl instanceof HTMLElement)) {
+          scroll?.scrollToPage({
+            pageNumber: pageIndex + 1,
+            behavior: 'auto'
+          })
+
+          if (attempt < 12) {
+            window.requestAnimationFrame(() => tryScroll(attempt + 1))
+          }
+
+          return
+        }
+
+        const pageScale = pageScaleRef.current.get(pageIndex) ?? 1
+        const rootRect = root.getBoundingClientRect()
+        const pageRect = pageEl.getBoundingClientRect()
+
+        const targetTop =
+          root.scrollTop +
+          (pageRect.top - rootRect.top) +
+          firstRect.origin.y * pageScale -
+          root.clientHeight / 3
+
+        root.scrollTo({
+          top: Math.max(0, targetTop),
+          behavior
+        })
+      }
+
+      tryScroll(0)
+    },
+    [getViewportScrollRoot, scroll, search]
+  )
+
   type BrowseRequest = { areaId: number; seq: number } | null
   const [browseReq, setBrowseReq] = useState<BrowseRequest>(null)
   const browseSeqRef = useRef(0)
@@ -979,12 +1089,106 @@ const PdfViewerBody: React.FC<
 
     if (!query) {
       search.stopSearch()
+      lastSearchTextRef.current = ''
+      handledSearchNextRequestRef.current = 0
+      handledSearchPreviousRequestRef.current = 0
+      pushSearchState(0, 0)
       return
     }
 
-    search.startSearch()
-    void search.searchAllPages(query)
-  }, [props.searchText, search])
+    const isNewQuery = lastSearchTextRef.current !== query
+    if (isNewQuery) {
+      handledSearchNextRequestRef.current = 0
+      handledSearchPreviousRequestRef.current = 0
+      pushSearchState(0, 0)
+    }
+
+    let cancelled = false
+
+    void (async () => {
+      search.startSearch()
+
+      try {
+        await search.searchAllPages(query).toPromise()
+      } catch {
+        return
+      }
+
+      if (cancelled) return
+
+      lastSearchTextRef.current = query
+      syncSearchState(search.getState())
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [props.searchText, search, pushSearchState, syncSearchState])
+
+  useEffect(() => {
+    const query = props.searchText?.trim() ?? ''
+
+    if (!query) return
+
+    syncSearchState(searchState)
+  }, [props.searchText, searchState, syncSearchState])
+
+  useEffect(() => {
+    if (!search) return
+
+    let cancelled = false
+
+    const unsubscribe = search.onActiveResultChange((activeIndex) => {
+      if (cancelled || activeIndex < 0) return
+
+      window.requestAnimationFrame(() => {
+        if (cancelled) return
+        scrollToSearchResult(activeIndex)
+      })
+    })
+
+    return () => {
+      cancelled = true
+      unsubscribe?.()
+    }
+  }, [search, scrollToSearchResult])
+
+  useEffect(() => {
+    if (!search) return
+    if (!props.searchNextRequest) return
+    if (props.searchNextRequest === handledSearchNextRequestRef.current) return
+
+    const query = props.searchText?.trim() ?? ''
+    if (!query) return
+    if (lastSearchTextRef.current !== query) return
+
+    const total = searchTotalRef.current
+    if (total <= 0) return
+
+    handledSearchNextRequestRef.current = props.searchNextRequest
+
+    const nextIndex = search.nextResult()
+    pushSearchState(total, nextIndex + 1)
+  }, [props.searchNextRequest, props.searchText, search, pushSearchState])
+
+  useEffect(() => {
+    if (!search) return
+    if (!props.searchPreviousRequest) return
+    if (props.searchPreviousRequest === handledSearchPreviousRequestRef.current)
+      return
+
+    const query = props.searchText?.trim() ?? ''
+    if (!query) return
+    if (lastSearchTextRef.current !== query) return
+
+    const total = searchTotalRef.current
+    if (total <= 0) return
+
+    handledSearchPreviousRequestRef.current = props.searchPreviousRequest
+
+    const previousIndex = search.previousResult()
+    pushSearchState(total, previousIndex + 1)
+  }, [props.searchPreviousRequest, props.searchText, search, pushSearchState])
 
   return (
     <div className="pdfv-layout">

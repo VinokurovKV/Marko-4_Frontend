@@ -87,6 +87,10 @@ export function DocumentContentViewer({
     [areas, getNextAreaId]
   )
   const [searchText, setSearchText] = React.useState('')
+  const [searchTotal, setSearchTotal] = React.useState(0)
+  const [searchActiveIndex, setSearchActiveIndex] = React.useState(0)
+  const [searchNextRequest, setSearchNextRequest] = React.useState(0)
+  const [searchPreviousRequest, setSearchPreviousRequest] = React.useState(0)
 
   const previousAreaNameForDialog = React.useMemo(() => {
     if (editingAreaId === null) return ''
@@ -351,11 +355,22 @@ export function DocumentContentViewer({
             sx={{ flexShrink: 0 }}
           >
             <PdfSearchBox
+              initialValue={searchText}
+              totalMatches={searchTotal}
+              activeMatchIndex={searchActiveIndex}
               onSubmit={(value) => {
                 setSearchText(value)
               }}
+              onPrevious={() => {
+                setSearchPreviousRequest((prev) => prev + 1)
+              }}
+              onNext={() => {
+                setSearchNextRequest((prev) => prev + 1)
+              }}
               onClear={() => {
                 setSearchText('')
+                setSearchTotal(0)
+                setSearchActiveIndex(0)
               }}
             />
 
@@ -567,6 +582,12 @@ export function DocumentContentViewer({
               mode={mode}
               interactionMode={interactionMode}
               searchText={searchText}
+              searchNextRequest={searchNextRequest}
+              searchPreviousRequest={searchPreviousRequest}
+              onSearchStateChange={({ total, activeIndex }) => {
+                setSearchTotal(total)
+                setSearchActiveIndex(activeIndex)
+              }}
               onAreaClick={({ areaId }) =>
                 setMode({ type: 'BROWSE_AREA', areaId })
               }
