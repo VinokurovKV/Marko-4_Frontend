@@ -47,6 +47,11 @@ import {
   ThumbnailsPane,
   ThumbImg
 } from '@embedpdf/plugin-thumbnail/react'
+import {
+  SearchPluginPackage,
+  useSearch,
+  SearchLayer
+} from '@embedpdf/plugin-search/react'
 // Material UI
 import CircularProgress from '@mui/material/CircularProgress'
 import Alert from '@mui/material/Alert'
@@ -89,6 +94,7 @@ export type PdfViewerProps = {
   withRenameAreaButtons: boolean
   mode: PdfViewerMode
   interactionMode: 'AREAS' | 'TEXT'
+  searchText?: string
   onAreaClick?: (data: { areaId: number }) => void | null
   onUpdateAreaButtonClick?: (data: { areaId: number }) => void | null
   onDeleteAreaButtonClick?: (data: { areaId: number }) => void | null
@@ -252,7 +258,7 @@ async function detectBlobImgAllowed(): Promise<boolean> {
   }
 }
 
-export const PdfViewer: React.FC<PdfViewerProps> = (props) => {
+export const PdfViewer = React.memo(function PdfViewer(props: PdfViewerProps) {
   const { engine, isLoading, error } = usePdfiumEngine()
   const [showLoader, setShowLoader] = React.useState(false)
   const [blobImgAllowed, setBlobImgAllowed] = React.useState<boolean | null>(
@@ -310,7 +316,8 @@ export const PdfViewer: React.FC<PdfViewerProps> = (props) => {
         width: 150,
         gap: 12,
         autoScroll: true
-      })
+      }),
+      createPluginRegistration(SearchPluginPackage)
     ],
     [props.data, blobImgAllowed]
   )
@@ -365,7 +372,7 @@ export const PdfViewer: React.FC<PdfViewerProps> = (props) => {
       </EmbedPDF>
     </div>
   )
-}
+})
 
 const PdfViewerBody: React.FC<
   PdfViewerProps & {
@@ -377,6 +384,7 @@ const PdfViewerBody: React.FC<
   const { provides: zoom } = useZoom(props.documentId)
   const { provides: capture } = useCapture(props.documentId)
   const { provides: scroll } = useScroll(props.documentId)
+  const { provides: search } = useSearch(props.documentId)
 
   const { provides: selectionCapability } = useSelectionCapability()
   const [hasSelection, setHasSelection] = useState(false)
@@ -967,6 +975,20 @@ const PdfViewerBody: React.FC<
     [capture]
   )
 
+  useEffect(() => {
+    if (!search) return
+
+    const query = props.searchText?.trim() ?? ''
+
+    if (!query) {
+      search.stopSearch()
+      return
+    }
+
+    search.startSearch()
+    void search.searchAllPages(query)
+  }, [props.searchText, search])
+
   return (
     <div className="pdfv-layout">
       <PdfThumbnailSidebar
@@ -1185,6 +1207,12 @@ const PdfViewerBody: React.FC<
                         pageIndex={pageIndex}
                       />
                     )}
+
+                    <SearchLayer
+                      documentId={props.documentId}
+                      pageIndex={pageIndex}
+                      scale={scale}
+                    />
 
                     {isTextMode && (
                       <div className="pdfv-selection-host">

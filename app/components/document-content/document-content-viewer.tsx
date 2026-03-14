@@ -10,6 +10,7 @@ import {
   type Rectangle
 } from './pdf-viewer'
 import { ProjButton } from '../buttons/button'
+import { PdfSearchBox } from './pdf-search-box'
 // Styles
 import './styles.css'
 // React
@@ -85,6 +86,7 @@ export function DocumentContentViewer({
     () => getNextAreaId(areas),
     [areas, getNextAreaId]
   )
+  const [searchText, setSearchText] = React.useState('')
 
   const previousAreaNameForDialog = React.useMemo(() => {
     if (editingAreaId === null) return ''
@@ -289,9 +291,17 @@ export function DocumentContentViewer({
         <Stack
           direction="row"
           alignItems="center"
-          sx={{ mb: 1, flex: '0 0 auto' }}
+          sx={{ mb: 1, flex: '0 0 auto', minWidth: 0 }}
         >
-          <Stack direction="row" spacing={1} alignItems="center">
+          <Stack
+            direction="row"
+            spacing={1}
+            alignItems="center"
+            sx={{
+              ml: 'var(--dcv-toolbar-offset)',
+              flexShrink: 0
+            }}
+          >
             <ProjButton
               variant="contained"
               onClick={openBrowseDialog}
@@ -334,7 +344,21 @@ export function DocumentContentViewer({
             )}
           </Box>
 
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <Stack
+            direction="row"
+            spacing={1}
+            alignItems="center"
+            sx={{ flexShrink: 0 }}
+          >
+            <PdfSearchBox
+              onSubmit={(value) => {
+                setSearchText(value)
+              }}
+              onClear={() => {
+                setSearchText('')
+              }}
+            />
+
             <ProjButton
               variant="outlined"
               title={
@@ -357,7 +381,7 @@ export function DocumentContentViewer({
                 <TextSnippetIcon fontSize="small" />
               )}
             </ProjButton>
-          </Box>
+          </Stack>
         </Stack>
 
         <Dialog
@@ -542,6 +566,7 @@ export function DocumentContentViewer({
               withRenameAreaButtons={true}
               mode={mode}
               interactionMode={interactionMode}
+              searchText={searchText}
               onAreaClick={({ areaId }) =>
                 setMode({ type: 'BROWSE_AREA', areaId })
               }

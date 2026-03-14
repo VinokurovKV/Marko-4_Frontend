@@ -15,6 +15,7 @@
     "@embedpdf/plugin-interaction-manager": "^2.7.0",
     "@embedpdf/plugin-render": "^2.7.0",
     "@embedpdf/plugin-scroll": "^2.7.0",
+    "@embedpdf/plugin-search": "^2.7.0",
     "@embedpdf/plugin-selection": "2.7.0",
     "@embedpdf/plugin-thumbnail": "^2.7.0",
     "@embedpdf/plugin-tiling": "^2.7.0",
