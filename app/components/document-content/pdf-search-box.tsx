@@ -19,6 +19,7 @@ export interface PdfSearchBoxProps {
   initialValue?: string
   totalMatches: number
   activeMatchIndex: number
+  isSearchPending: boolean
   onSubmit: (value: string) => void
   onPrevious: () => void
   onNext: () => void
@@ -29,6 +30,7 @@ export const PdfSearchBox = React.memo(function PdfSearchBox({
   initialValue = '',
   totalMatches,
   activeMatchIndex,
+  isSearchPending,
   onSubmit,
   onPrevious,
   onNext,
@@ -37,6 +39,9 @@ export const PdfSearchBox = React.memo(function PdfSearchBox({
   const [inputValue, setInputValue] = React.useState(initialValue)
   const [open, setOpen] = React.useState(false)
   const inputRef = React.useRef<HTMLInputElement | null>(null)
+  const trimmedInputValue = inputValue.trim()
+  const trimmedInitialValue = initialValue.trim()
+  const isSubmittedValue = trimmedInputValue === trimmedInitialValue
 
   React.useEffect(() => {
     setInputValue(initialValue)
@@ -59,7 +64,13 @@ export const PdfSearchBox = React.memo(function PdfSearchBox({
 
   return (
     <ClickAwayListener onClickAway={closeSearch}>
-      <Box sx={{ position: 'relative', display: 'inline-flex' }}>
+      <Box
+        sx={(theme) => ({
+          position: 'relative',
+          display: 'inline-flex',
+          zIndex: open ? theme.zIndex.modal + 1 : 'auto'
+        })}
+      >
         <ProjButton
           variant={open ? 'contained' : 'outlined'}
           title="Поиск по документу"
@@ -77,14 +88,14 @@ export const PdfSearchBox = React.memo(function PdfSearchBox({
               position: 'absolute',
               top: 'calc(100% + 8px)',
               right: 0,
-              zIndex: 20,
+              zIndex: theme.zIndex.modal + 2,
               p: 1,
               width: 300,
               borderRadius: 2,
               backgroundColor:
                 theme.palette.mode === 'dark'
-                  ? 'hsl(220, 35%, 10%)'
-                  : 'hsl(220, 35%, 99%)'
+                  ? 'hsl(220, 35%, 3%)'
+                  : 'hsl(220, 35%, 97%)'
             })}
           >
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
@@ -99,20 +110,23 @@ export const PdfSearchBox = React.memo(function PdfSearchBox({
                   if (e.key === 'Enter') {
                     e.preventDefault()
 
-                    const trimmed = inputValue.trim()
+                    if (!trimmedInputValue) return
 
-                    if (!trimmed) return
+                    if (!isSubmittedValue) {
+                      onSubmit(trimmedInputValue)
+                      return
+                    }
 
-                    if (trimmed !== initialValue) {
-                      onSubmit(trimmed)
-                    } else if (totalMatches > 0) {
+                    if (isSearchPending) {
+                      return
+                    }
+
+                    if (totalMatches > 0) {
                       if (e.shiftKey) {
                         onPrevious()
                       } else {
                         onNext()
                       }
-                    } else {
-                      onSubmit(trimmed)
                     }
                   }
 
@@ -157,10 +171,12 @@ export const PdfSearchBox = React.memo(function PdfSearchBox({
                 }}
               >
                 <Typography variant="caption" sx={{ whiteSpace: 'nowrap' }}>
-                  {inputValue.trim()
-                    ? totalMatches > 0
-                      ? `${activeMatchIndex} из ${totalMatches}`
-                      : 'Совпадений нет'
+                  {trimmedInputValue
+                    ? isSubmittedValue && isSearchPending
+                      ? 'Поиск...'
+                      : totalMatches > 0
+                        ? `${activeMatchIndex} из ${totalMatches}`
+                        : 'Совпадений нет'
                     : 'Введите текст'}
                 </Typography>
 
@@ -169,20 +185,20 @@ export const PdfSearchBox = React.memo(function PdfSearchBox({
                     size="small"
                     aria-label="Предыдущее совпадение"
                     onClick={() => {
-                      const trimmed = inputValue.trim()
+                      if (!trimmedInputValue) return
 
-                      if (!trimmed) return
-
-                      if (trimmed !== initialValue) {
-                        onSubmit(trimmed)
+                      if (!isSubmittedValue) {
+                        onSubmit(trimmedInputValue)
                         return
                       }
+
+                      if (isSearchPending) return
 
                       if (totalMatches > 0) {
                         onPrevious()
                       }
                     }}
-                    disabled={!inputValue.trim()}
+                    disabled={!trimmedInputValue || isSearchPending}
                   >
                     <NavigateBeforeIcon fontSize="small" />
                   </IconButton>
@@ -191,20 +207,20 @@ export const PdfSearchBox = React.memo(function PdfSearchBox({
                     size="small"
                     aria-label="Следующее совпадение"
                     onClick={() => {
-                      const trimmed = inputValue.trim()
+                      if (!trimmedInputValue) return
 
-                      if (!trimmed) return
-
-                      if (trimmed !== initialValue) {
-                        onSubmit(trimmed)
+                      if (!isSubmittedValue) {
+                        onSubmit(trimmedInputValue)
                         return
                       }
+
+                      if (isSearchPending) return
 
                       if (totalMatches > 0) {
                         onNext()
                       }
                     }}
-                    disabled={!inputValue.trim()}
+                    disabled={!trimmedInputValue || isSearchPending}
                   >
                     <NavigateNextIcon fontSize="small" />
                   </IconButton>

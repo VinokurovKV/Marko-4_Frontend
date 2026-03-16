@@ -11,6 +11,7 @@ import {
 } from './pdf-viewer'
 import { ProjButton } from '../buttons/button'
 import { PdfSearchBox } from './pdf-search-box'
+import { brand, gray, orange, red } from '~/theme/themePrimitives'
 // Styles
 import './styles.css'
 // React
@@ -82,15 +83,35 @@ export function DocumentContentViewer({
   const [creatingAreaId, setCreatingAreaId] = React.useState<number | null>(
     null
   )
+  const [isAreaDialogClosing, setIsAreaDialogClosing] = React.useState(false)
   const nextAreaIdForDialog = React.useMemo(
     () => getNextAreaId(areas),
     [areas, getNextAreaId]
+  )
+  const areaIdForDialogPreview = React.useMemo(
+    () => creatingAreaId ?? nextAreaIdForDialog,
+    [creatingAreaId, nextAreaIdForDialog]
   )
   const [searchText, setSearchText] = React.useState('')
   const [searchTotal, setSearchTotal] = React.useState(0)
   const [searchActiveIndex, setSearchActiveIndex] = React.useState(0)
   const [searchNextRequest, setSearchNextRequest] = React.useState(0)
   const [searchPreviousRequest, setSearchPreviousRequest] = React.useState(0)
+  const [isSearchPending, setIsSearchPending] = React.useState(false)
+
+  const handleSearchPendingChange = React.useCallback((isPending: boolean) => {
+    setIsSearchPending((prev) => (prev === isPending ? prev : isPending))
+  }, [])
+
+  const handleSearchStateChange = React.useCallback(
+    ({ total, activeIndex }: { total: number; activeIndex: number }) => {
+      setSearchTotal((prev) => (prev === total ? prev : total))
+      setSearchActiveIndex((prev) =>
+        prev === activeIndex ? prev : activeIndex
+      )
+    },
+    []
+  )
 
   const previousAreaNameForDialog = React.useMemo(() => {
     if (editingAreaId === null) return ''
@@ -103,6 +124,10 @@ export function DocumentContentViewer({
 
   const isRenameAreaNameEmpty =
     editingAreaId !== null && newAreaName.trim().length === 0
+
+  const showCreateAreaNameEmpty = !isAreaDialogClosing && isCreateAreaNameEmpty
+
+  const showRenameAreaNameEmpty = !isAreaDialogClosing && isRenameAreaNameEmpty
 
   const openBrowseDialog = React.useCallback(() => {
     if (areas.length === 0) return
@@ -148,6 +173,7 @@ export function DocumentContentViewer({
       setCreatingAreaId(nextId)
       setEditingAreaId(null)
       setNewAreaName('')
+      setIsAreaDialogClosing(false)
       setIsCreateAreaDialogOpen(true)
     },
     [areas, getNextAreaId]
@@ -161,6 +187,7 @@ export function DocumentContentViewer({
       setPendingRectangle(null)
       setEditingAreaId(areaId)
       setNewAreaName(area.name)
+      setIsAreaDialogClosing(false)
       setIsCreateAreaDialogOpen(true)
     },
     [areas]
@@ -173,11 +200,8 @@ export function DocumentContentViewer({
       setAreas((prev) => prev.filter((a) => a.id !== creatingAreaId))
     }
 
+    setIsAreaDialogClosing(true)
     setIsCreateAreaDialogOpen(false)
-    setPendingRectangle(null)
-    setCreatingAreaId(null)
-    setEditingAreaId(null)
-    setNewAreaName('')
 
     if (wasCreating) {
       setMode({ type: 'DEFAULT' })
@@ -189,47 +213,44 @@ export function DocumentContentViewer({
 
     if (editingAreaId !== null) {
       const fallbackName = previousAreaNameForDialog
+      const resolvedName = trimmedName.length > 0 ? trimmedName : fallbackName
 
       setAreas((prev) =>
         prev.map((a) =>
           a.id === editingAreaId
             ? {
                 ...a,
-                name: trimmedName.length > 0 ? trimmedName : fallbackName
+                name: resolvedName
               }
             : a
         )
       )
 
+      setNewAreaName(resolvedName)
+      setIsAreaDialogClosing(true)
       setIsCreateAreaDialogOpen(false)
-      setPendingRectangle(null)
-      setCreatingAreaId(null)
-      setEditingAreaId(null)
-      setNewAreaName('')
       return
     }
 
     if (creatingAreaId === null) return
+
+    const resolvedName =
+      trimmedName.length > 0 ? trimmedName : `Область ${creatingAreaId}`
 
     setAreas((prev) =>
       prev.map((a) =>
         a.id === creatingAreaId
           ? {
               ...a,
-              name:
-                trimmedName.length > 0
-                  ? trimmedName
-                  : `Область ${creatingAreaId}`
+              name: resolvedName
             }
           : a
       )
     )
 
+    setNewAreaName(resolvedName)
+    setIsAreaDialogClosing(true)
     setIsCreateAreaDialogOpen(false)
-    setPendingRectangle(null)
-    setCreatingAreaId(null)
-    setEditingAreaId(null)
-    setNewAreaName('')
     setMode({ type: 'DEFAULT' })
   }, [editingAreaId, creatingAreaId, newAreaName, previousAreaNameForDialog])
 
@@ -238,6 +259,7 @@ export function DocumentContentViewer({
     setEditingAreaId(null)
     setCreatingAreaId(null)
     setNewAreaName('')
+    setIsAreaDialogClosing(false)
   }, [])
 
   useChangeDetector({
@@ -273,6 +295,8 @@ export function DocumentContentViewer({
     })()
   }, [configBlob])
 
+  const isAnyTopDialogOpen = isBrowseDialogOpen || isCreateAreaDialogOpen
+
   const rootClassName =
     theme.palette.mode === 'light'
       ? 'dcv-root dcv-root--light'
@@ -295,7 +319,13 @@ export function DocumentContentViewer({
         <Stack
           direction="row"
           alignItems="center"
-          sx={{ mb: 1, flex: '0 0 auto', minWidth: 0 }}
+          sx={{
+            mb: 1,
+            flex: '0 0 auto',
+            minWidth: 0,
+            position: 'relative',
+            zIndex: theme.zIndex.modal + 10
+          }}
         >
           <Stack
             direction="row"
@@ -338,10 +368,10 @@ export function DocumentContentViewer({
               minWidth: 0
             }}
           >
-            {mode.type !== 'DEFAULT' && (
+            {mode.type !== 'DEFAULT' && !isAnyTopDialogOpen && (
               <Typography
                 variant="caption"
-                sx={{ whiteSpace: 'nowrap', color: 'hsl(210, 98%, 55%)' }}
+                sx={{ whiteSpace: 'nowrap', color: brand[600] }}
               >
                 Esc — режим по умолчанию
               </Typography>
@@ -358,6 +388,7 @@ export function DocumentContentViewer({
               initialValue={searchText}
               totalMatches={searchTotal}
               activeMatchIndex={searchActiveIndex}
+              isSearchPending={isSearchPending}
               onSubmit={(value) => {
                 setSearchText(value)
               }}
@@ -371,6 +402,7 @@ export function DocumentContentViewer({
                 setSearchText('')
                 setSearchTotal(0)
                 setSearchActiveIndex(0)
+                setIsSearchPending(false)
               }}
             />
 
@@ -456,13 +488,8 @@ export function DocumentContentViewer({
           PaperProps={{
             sx: (theme) => ({
               backgroundColor:
-                theme.palette.mode === 'dark'
-                  ? 'hsl(220, 35%, 3%)'
-                  : 'hsl(220, 30%, 94%)',
-              color:
-                theme.palette.mode === 'dark'
-                  ? 'hsl(220, 30%, 94%)'
-                  : 'hsl(220, 20%, 25%)',
+                theme.palette.mode === 'dark' ? gray[900] : gray[100],
+              color: theme.palette.mode === 'dark' ? gray[100] : gray[700],
               borderRadius: 4
             })
           }}
@@ -470,10 +497,7 @@ export function DocumentContentViewer({
           <DialogTitle
             sx={(theme) => ({
               textAlign: 'center',
-              color:
-                theme.palette.mode === 'dark'
-                  ? 'hsl(220, 30%, 94%)'
-                  : 'hsl(220, 20%, 25%)'
+              color: theme.palette.mode === 'dark' ? gray[100] : gray[700]
             })}
           >
             {editingAreaId === null ? 'Название области' : 'Изменение названия'}
@@ -489,7 +513,7 @@ export function DocumentContentViewer({
               onChange={(e) => setNewAreaName(e.target.value)}
               helperText={
                 isCreateAreaNameEmpty
-                  ? `Название пусто, область будет названа "Область ${nextAreaIdForDialog}"`
+                  ? `Название пусто, область будет названа "Область ${areaIdForDialogPreview}"`
                   : isRenameAreaNameEmpty
                     ? `Название пусто, будет возвращено предыдущее: "${previousAreaNameForDialog}"`
                     : ' '
@@ -497,55 +521,55 @@ export function DocumentContentViewer({
               FormHelperTextProps={{
                 sx: isCreateAreaNameEmpty
                   ? {
-                      color: 'hsl(45, 100%, 45%)',
+                      color: orange[400],
                       fontWeight: 500
                     }
                   : isRenameAreaNameEmpty
                     ? {
-                        color: 'hsl(0, 75%, 55%)',
+                        color: red[400],
                         fontWeight: 500
                       }
                     : undefined
               }}
               sx={
-                isCreateAreaNameEmpty
+                showCreateAreaNameEmpty
                   ? {
                       '& .MuiOutlinedInput-root': {
                         '& fieldset': {
-                          borderColor: 'hsl(45, 100%, 45%)'
+                          borderColor: orange[400]
                         },
                         '&:hover fieldset': {
-                          borderColor: 'hsl(45, 100%, 45%)'
+                          borderColor: orange[400]
                         },
                         '&.Mui-focused fieldset': {
-                          borderColor: 'hsl(45, 100%, 45%)'
+                          borderColor: orange[400]
                         }
                       },
                       '& .MuiInputLabel-root': {
-                        color: 'hsl(45, 100%, 45%)'
+                        color: orange[400]
                       },
                       '& .MuiInputLabel-root.Mui-focused': {
-                        color: 'hsl(45, 100%, 45%)'
+                        color: orange[400]
                       }
                     }
-                  : isRenameAreaNameEmpty
+                  : showRenameAreaNameEmpty
                     ? {
                         '& .MuiOutlinedInput-root': {
                           '& fieldset': {
-                            borderColor: 'hsl(0, 75%, 55%)'
+                            borderColor: red[400]
                           },
                           '&:hover fieldset': {
-                            borderColor: 'hsl(0, 75%, 55%)'
+                            borderColor: red[400]
                           },
                           '&.Mui-focused fieldset': {
-                            borderColor: 'hsl(0, 75%, 55%)'
+                            borderColor: red[400]
                           }
                         },
                         '& .MuiInputLabel-root': {
-                          color: 'hsl(0, 75%, 55%)'
+                          color: red[400]
                         },
                         '& .MuiInputLabel-root.Mui-focused': {
-                          color: 'hsl(0, 75%, 55%)'
+                          color: red[400]
                         }
                       }
                     : undefined
@@ -584,10 +608,8 @@ export function DocumentContentViewer({
               searchText={searchText}
               searchNextRequest={searchNextRequest}
               searchPreviousRequest={searchPreviousRequest}
-              onSearchStateChange={({ total, activeIndex }) => {
-                setSearchTotal(total)
-                setSearchActiveIndex(activeIndex)
-              }}
+              onSearchPendingChange={handleSearchPendingChange}
+              onSearchStateChange={handleSearchStateChange}
               onAreaClick={({ areaId }) =>
                 setMode({ type: 'BROWSE_AREA', areaId })
               }
