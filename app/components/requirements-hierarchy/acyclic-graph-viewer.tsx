@@ -1,14 +1,14 @@
 // Project
 import { ProjButton } from '../buttons/button'
 // React
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import ReactFlow, {
-  Controls,
   Background,
-  useNodesState,
-  useEdgesState,
+  Controls,
   type Edge,
-  type Node
+  type Node,
+  useEdgesState,
+  useNodesState
 } from 'reactflow'
 import 'reactflow/dist/style.css'
 // Other
@@ -22,9 +22,11 @@ import ConfirmationModal from './confirmation'
 import ChoiceModal from './choice'
 import calculateNodePositions from './graph-layouts/layout-tree'
 import './styles.css'
-//Material UI
+// Material UI
 import { styled } from '@mui/material/styles'
+import Box from '@mui/material/Box'
 import Divider from '@mui/material/Divider'
+import Paper from '@mui/material/Paper'
 import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
 
@@ -131,6 +133,7 @@ const useContainerSize = (
 
     if (containerRef.current) {
       resizeObserver.observe(containerRef.current)
+      updateSize()
     }
 
     window.addEventListener('resize', updateSize)
@@ -144,6 +147,158 @@ const useContainerSize = (
   return { containerRef, ...size }
 }
 
+const getMiniGraphNodeIds = (
+  selectedId: number | null,
+  vertexes: Vertex[]
+): number[] => {
+  if (selectedId === null) return []
+
+  const vertexMap = new Map<number, Vertex>()
+  vertexes.forEach((vertex) => {
+    vertexMap.set(vertex.id, vertex)
+  })
+
+  const result = new Set<number>()
+  const visitedUp = new Set<number>()
+  const visitedDown = new Set<number>()
+
+  const addParents = (vertexId: number) => {
+    if (visitedUp.has(vertexId)) return
+    visitedUp.add(vertexId)
+    result.add(vertexId)
+
+    const vertex = vertexMap.get(vertexId)
+    if (!vertex) return
+
+    vertex.parentsIds.forEach((parentId) => {
+      addParents(parentId)
+    })
+  }
+
+  const addChildren = (vertexId: number) => {
+    if (visitedDown.has(vertexId)) return
+    visitedDown.add(vertexId)
+    result.add(vertexId)
+
+    const vertex = vertexMap.get(vertexId)
+    if (!vertex) return
+
+    vertex.childIds.forEach((childId) => {
+      addChildren(childId)
+    })
+  }
+
+  addParents(selectedId)
+  addChildren(selectedId)
+
+  return Array.from(result).sort((a, b) => a - b)
+}
+
+const getMiniFlowData = (
+  selectedId: number | null,
+  vertexes: Vertex[],
+  dataForVertexId: Map<number, VertexData>
+): {
+  nodes: AcyclicGraphNode[]
+  edges: Edge[]
+} => {
+  const includedIds = new Set(getMiniGraphNodeIds(selectedId, vertexes))
+
+  if (includedIds.size === 0) {
+    return { nodes: [], edges: [] }
+  }
+
+  const includedVertexes = vertexes.filter((vertex) =>
+    includedIds.has(vertex.id)
+  )
+  const vertexMap = new Map<number, Vertex>()
+  includedVertexes.forEach((vertex) => {
+    vertexMap.set(vertex.id, vertex)
+  })
+
+  const nodesByLevel = new Map<number, Vertex[]>()
+
+  includedVertexes.forEach((vertex) => {
+    const vertexData = dataForVertexId.get(vertex.id)
+    if (!vertexData) return
+
+    const level = getVertexLevel(vertexData)
+
+    if (!nodesByLevel.has(level)) {
+      nodesByLevel.set(level, [])
+    }
+
+    nodesByLevel.get(level)!.push(vertex)
+  })
+
+  const sortedLevels = Array.from(nodesByLevel.keys()).sort((a, b) => a - b)
+
+  const nodes: AcyclicGraphNode[] = []
+  const edges: Edge[] = []
+
+  const levelHeight = 110
+  const nodeWidth = 170
+  const nodeSpacing = 30
+
+  sortedLevels.forEach((level, levelIndex) => {
+    const verticesInLevel = [...(nodesByLevel.get(level) || [])].sort(
+      (a, b) => a.id - b.id
+    )
+
+    const totalWidth =
+      verticesInLevel.length * nodeWidth +
+      Math.max(0, verticesInLevel.length - 1) * nodeSpacing
+    const startX = 180 - totalWidth / 2
+
+    verticesInLevel.forEach((vertex, vertexIndex) => {
+      const vertexData = dataForVertexId.get(vertex.id)
+      if (!vertexData) return
+
+      let type: AcyclicGraphVertexType = 'RELATED'
+      if (selectedId === vertex.id) {
+        type = 'SELECTED'
+      }
+
+      nodes.push({
+        id: vertex.id.toString(),
+        type: 'acyclicGraphVertex',
+        position: {
+          x: startX + vertexIndex * (nodeWidth + nodeSpacing) + nodeWidth / 2,
+          y: levelIndex * levelHeight + 40
+        },
+        data: {
+          id: vertex.id,
+          level,
+          hasParents: vertex.parentsIds.some((id) => includedIds.has(id)),
+          hasChildren: vertex.childIds.some((id) => includedIds.has(id)),
+          data: vertexData,
+          type,
+          collapsed: false
+        },
+        draggable: false,
+        selectable: false
+      })
+    })
+  })
+
+  includedVertexes.forEach((vertex) => {
+    vertex.childIds.forEach((childId) => {
+      if (!includedIds.has(childId)) return
+
+      edges.push({
+        id: `mini-${vertex.id}-${childId}`,
+        source: vertex.id.toString(),
+        target: childId.toString(),
+        type: 'default',
+        animated: false,
+        ...edgeStyle
+      })
+    })
+  })
+
+  return { nodes, edges }
+}
+
 export default function AcyclicGraphViewer({
   vertexes,
   dataForVertexId,
@@ -154,7 +309,11 @@ export default function AcyclicGraphViewer({
   setSelectedId,
   onVertexClick
 }: AcyclicGraphViewerProps) {
-  const { width: containerWidth, height: containerHeight } = useContainerSize()
+  const {
+    containerRef,
+    width: containerWidth,
+    height: containerHeight
+  } = useContainerSize()
 
   const convertToNodes = useCallback((): AcyclicGraphNode[] => {
     const verticesByLevel = new Map<number, Vertex[]>()
@@ -229,7 +388,7 @@ export default function AcyclicGraphViewer({
           position: { x, y },
           data: {
             id: vertex.id,
-            level: level,
+            level,
             hasParents: vertex.parentsIds.length > 0,
             hasChildren: vertex.childIds.length > 0,
             data: vertexData,
@@ -309,6 +468,11 @@ export default function AcyclicGraphViewer({
     setAllEdges
   ])
 
+  const miniFlowData = useMemo(
+    () => getMiniFlowData(selectedId, vertexes, dataForVertexId),
+    [selectedId, vertexes, dataForVertexId]
+  )
+
   const showNextLevel = () => {
     if (
       maxDisplayedLayerWhenWithoutSelected === null ||
@@ -335,9 +499,8 @@ export default function AcyclicGraphViewer({
       node: Node<AcyclicGraphVertexViewerProps<VertexData>>
     ) => {
       const nodeId = node.id
-      const vertexId = parseInt(nodeId)
-      const nodeData = node.data
-      const nodeLevel = nodeData.level
+      const vertexId = parseInt(nodeId, 10)
+      const nodeLevel = node.data.level
 
       if (selectedId === vertexId) {
         onVertexClick?.(vertexId)
@@ -426,7 +589,7 @@ export default function AcyclicGraphViewer({
     setSelectedEdgeId(null)
     setNodeDisplayMode(null)
     setSelectedId(null)
-  }, [])
+  }, [setSelectedId])
 
   const filteredNodes = allNodes.filter((node) => {
     if (selectedNodeId !== null && nodeDisplayMode !== null) {
@@ -460,26 +623,25 @@ export default function AcyclicGraphViewer({
           <ProjButton
             variant="contained"
             type="button"
-            //dataAction="hide-level"
             className={`${hideButtonDisabled ? 'disabled' : ''}`}
             disabled={hideButtonDisabled}
             onClick={hideLastLevel}
           >
             Скрыть уровень
           </ProjButton>
+
           <ProjButton
             variant="contained"
             type="button"
-            //dataAction="show-level"
             className={`${showButtonDisabled ? 'disabled' : ''}`}
             disabled={showButtonDisabled}
             onClick={showNextLevel}
           >
             Раскрыть уровень
           </ProjButton>
+
           <ProjButton
             type="button"
-            //dataAction="reset-selection"
             className={`${selectedNodeId === null && selectedEdgeId === null && nodeDisplayMode === null ? 'disabled' : ''}`}
             disabled={
               selectedNodeId === null &&
@@ -490,9 +652,9 @@ export default function AcyclicGraphViewer({
           >
             Сбросить выделение
           </ProjButton>
+
           <ProjButton
             type="button"
-            //dataAction="delete-edge"
             className={`${selectedEdgeId === null ? 'disabled' : ''}`}
             disabled={selectedEdgeId === null}
             onClick={deleteSelectedEdge}
@@ -500,6 +662,7 @@ export default function AcyclicGraphViewer({
             Удалить связь
           </ProjButton>
         </Stack>
+
         <div className="levels">
           <Typography fontSize={12}>
             Макс. уровень: {maxDisplayedLayerWhenWithoutSelected ?? 'все'}
@@ -510,6 +673,7 @@ export default function AcyclicGraphViewer({
           </Typography>
         </div>
       </div>
+
       <Divider />
 
       <ChoiceModal
@@ -532,31 +696,111 @@ export default function AcyclicGraphViewer({
         cancelText="Отмена"
       />
 
-      <ReactFlow
-        style={{ width: '100%', height: '100%' }}
-        nodes={filteredNodes}
-        edges={filteredEdges}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        onNodeClick={handleNodeClick}
-        onEdgeClick={handleEdgeClick}
-        onPaneClick={handlePaneClick}
-        nodeTypes={nodeTypes}
-        fitView={fitOnSelectedIdChange}
-        minZoom={0.05}
-        nodesDraggable={false}
-        panOnScroll={true}
-        panOnScrollSpeed={1}
-        panOnDrag={[1, 2]}
-        selectionOnDrag={true}
-        zoomOnScroll={true}
-        zoomOnPinch={true}
-        zoomOnDoubleClick={true}
-        proOptions={{ hideAttribution: true }}
+      <Box
+        ref={containerRef}
+        sx={{
+          display: 'flex',
+          minHeight: 0,
+          flex: 1,
+          overflow: 'hidden'
+        }}
       >
-        <Controls showInteractive={false} />
-        <Background />
-      </ReactFlow>
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          <ReactFlow
+            style={{ width: '100%', height: '100%' }}
+            nodes={filteredNodes}
+            edges={filteredEdges}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            onNodeClick={handleNodeClick}
+            onEdgeClick={handleEdgeClick}
+            onPaneClick={handlePaneClick}
+            nodeTypes={nodeTypes}
+            fitView={fitOnSelectedIdChange}
+            minZoom={0.05}
+            nodesDraggable={false}
+            panOnScroll={true}
+            panOnScrollSpeed={1}
+            panOnDrag={[1, 2]}
+            selectionOnDrag={true}
+            zoomOnScroll={true}
+            zoomOnPinch={true}
+            zoomOnDoubleClick={true}
+            proOptions={{ hideAttribution: true }}
+          >
+            <Controls showInteractive={false} />
+            <Background />
+          </ReactFlow>
+        </Box>
+
+        {selectedId !== null && (
+          <>
+            <Divider orientation="vertical" flexItem />
+            <Paper
+              elevation={0}
+              sx={{
+                width: 360,
+                minWidth: 360,
+                maxWidth: 360,
+                borderRadius: 0,
+                backgroundColor: '#fafafa',
+                display: 'flex',
+                flexDirection: 'column'
+              }}
+            >
+              <Box
+                sx={{
+                  px: 2,
+                  pt: 2,
+                  pb: 1,
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center'
+                }}
+              >
+                <Typography fontSize={14} fontWeight={700} textAlign="center">
+                  Мини-граф
+                </Typography>
+              </Box>
+
+              <Box sx={{ flex: 1, minHeight: 0 }}>
+                <ReactFlow
+                  nodes={miniFlowData.nodes}
+                  edges={miniFlowData.edges}
+                  nodeTypes={nodeTypes}
+                  fitView
+                  fitViewOptions={{
+                    padding: 0.35,
+                    minZoom: 0.01,
+                    maxZoom: 1
+                  }}
+                  minZoom={0.01}
+                  maxZoom={1.5}
+                  nodesDraggable={false}
+                  nodesConnectable={false}
+                  elementsSelectable={false}
+                  edgesFocusable={false}
+                  nodesFocusable={false}
+                  panOnDrag={false}
+                  panOnScroll={false}
+                  zoomOnScroll={false}
+                  zoomOnPinch={false}
+                  zoomOnDoubleClick={false}
+                  preventScrolling={false}
+                  proOptions={{ hideAttribution: true }}
+                >
+                  <Controls
+                    showInteractive={false}
+                    showZoom={true}
+                    showFitView={true}
+                  />
+                  <Background />
+                </ReactFlow>
+              </Box>
+            </Paper>
+          </>
+        )}
+      </Box>
     </StackStyled>
   )
 }

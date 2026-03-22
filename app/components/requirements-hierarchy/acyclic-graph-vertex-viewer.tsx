@@ -38,19 +38,11 @@ export default function AcyclicGraphVertexViewer({
     onClick?.(id)
   }
 
-  const handleMouseEnter = () => {
-    setIsHovered(true)
-  }
-
-  const handleMouseLeave = () => {
-    setIsHovered(false)
-  }
-
   return (
     <div
       className={`acyclic-vertex ${type.toLowerCase()} ${collapsed ? 'collapsed' : ''}`}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
       onClick={handleClick}
     >
       {hasParents && (
@@ -60,6 +52,7 @@ export default function AcyclicGraphVertexViewer({
           className="vertex-handle"
         />
       )}
+
       {hasChildren && (
         <Handle
           type="source"

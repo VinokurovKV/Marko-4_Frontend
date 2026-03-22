@@ -191,7 +191,8 @@ const calculateNodePositions = (
     if (parentColumns.length === 0) return null
 
     return (
-      parentColumns.reduce((sum, value) => sum + value, 0) / parentColumns.length
+      parentColumns.reduce((sum, value) => sum + value, 0) /
+      parentColumns.length
     )
   }
 

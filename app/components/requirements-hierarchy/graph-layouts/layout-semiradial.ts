@@ -5,8 +5,6 @@ import {
 } from '../acyclic-graph-vertex-viewer'
 import { type Vertex } from '../acyclic-graph-viewer'
 
-/* eslint-disable */
-
 type AcyclicGraphNode = Node<AcyclicGraphVertexViewerProps<VertexData>>
 
 const calculateNodePositions = (
@@ -94,5 +92,3 @@ const calculateNodePositions = (
 }
 
 export default calculateNodePositions
-
-/* eslint-enable */

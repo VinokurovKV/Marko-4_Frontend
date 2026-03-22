@@ -5,8 +5,6 @@ import {
 } from '../acyclic-graph-vertex-viewer'
 import { type Vertex } from '../acyclic-graph-viewer'
 
-/* eslint-disable */
-
 type AcyclicGraphNode = Node<AcyclicGraphVertexViewerProps<VertexData>>
 
 const calculateNodePositions = (
@@ -38,7 +36,9 @@ const calculateNodePositions = (
   const centerX = containerWidth / 2
   const centerY = containerHeight / 2
 
-  const sortNodesWithinLevel = (nodes: AcyclicGraphNode[]): AcyclicGraphNode[] => {
+  const sortNodesWithinLevel = (
+    nodes: AcyclicGraphNode[]
+  ): AcyclicGraphNode[] => {
     return [...nodes].sort((a, b) => parseInt(a.id, 10) - parseInt(b.id, 10))
   }
 
@@ -48,7 +48,8 @@ const calculateNodePositions = (
 
     if (levelNodes.length === 0) return
 
-    const radius = level === 0 ? ROOT_RADIUS : ROOT_RADIUS + level * LEVEL_RADIUS_STEP
+    const radius =
+      level === 0 ? ROOT_RADIUS : ROOT_RADIUS + level * LEVEL_RADIUS_STEP
 
     if (levelNodes.length === 1) {
       nodePositions.set(levelNodes[0].id, {
