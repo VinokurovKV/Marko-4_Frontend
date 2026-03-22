@@ -2,8 +2,10 @@ import { type Node } from 'reactflow'
 import {
   type AcyclicGraphVertexViewerProps,
   type VertexData
-} from './acyclic-graph-vertex-viewer'
-import { type Vertex } from './acyclic-graph-viewer'
+} from '../acyclic-graph-vertex-viewer'
+import { type Vertex } from '../acyclic-graph-viewer'
+
+/* eslint-disable */
 
 type AcyclicGraphNode = Node<AcyclicGraphVertexViewerProps<VertexData>>
 
@@ -319,3 +321,5 @@ const calculateNodePositions = (
 }
 
 export default calculateNodePositions
+
+/* eslint-enable */

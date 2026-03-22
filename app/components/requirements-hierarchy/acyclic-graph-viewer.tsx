@@ -20,8 +20,7 @@ import AcyclicGraphVertexViewer, {
 import { edgeStyle } from './requirements'
 import ConfirmationModal from './confirmation'
 import ChoiceModal from './choice'
-//import calculateNodePositions from './layout_final'
-import calculateNodePositions from './layout_tree'
+import calculateNodePositions from './graph-layouts/layout-tree'
 import './styles.css'
 //Material UI
 import { styled } from '@mui/material/styles'

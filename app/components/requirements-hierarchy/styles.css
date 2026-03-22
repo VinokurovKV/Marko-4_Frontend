@@ -15,61 +15,58 @@ div.acyclic-vertex {
   min-height: 80px;
   cursor: pointer;
   transition: transform 0.2s, box-shadow 0.2s;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 8px hsla(220, 30%, 6%, 0.1);
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid rgb(200, 200, 200);
-  background-color: hsl(210, 100%, 65%);
+  border: 2px solid hsl(220, 30%, 6%);
+  background-color: hsl(210, 98%, 55%);
 }
 
 div.acyclic-vertex:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  box-shadow: 0 4px 12px hsla(220, 30%, 6%, 0.3);
 }
 
 div.acyclic-vertex.selected {
-  border: 2px solid rgb(0, 100, 255);
-  background-color: rgba(0, 120, 255, 0.8);
+  background-color: hsla(120, 59%, 30%, 0.8);
 }
 
 div.acyclic-vertex.related {
-  border: 2px solid rgb(0, 180, 80);
-  background-color: rgba(0, 200, 100, 0.8);
+  background-color: hsla(210, 98%, 42%, 0.8);
 }
 
 div.acyclic-vertex.secondary {
-  border: 2px solid rgb(180, 180, 180);
-  background-color: rgba(200, 200, 200, 0.8);
+  background-color: hsla(220, 20%, 42%, 0.8);
 }
 
 div.acyclic-vertex .vertex-code {
   font-weight: bold;
   font-size: 14px;
   text-align: center;
-  color: #333;
+  color: hsl(220, 30%, 94%);
 }
 
 div.acyclic-vertex.selected .vertex-code,
 div.acyclic-vertex.selected .collapsed-indicator {
-  color: white;
+  color: hsl(220, 30%, 94%);
 }
 
 div.acyclic-vertex .collapsed-indicator {
   position: absolute;
   top: 5px;
   right: 5px;
-  background: rgba(0,0,0,0.1);
+  background: hsla(220, 30%, 6%, 0.1);
   border-radius: 4px;
   padding: 2px 6px;
   font-size: 10px;
-  color: #666;
+  color: hsl(220, 30%, 94%);
 }
 
 div.levels {
   padding: 8px 16px;
-  background-color: 'rgba(255, 255, 255, 0.9)';
+  background-color: hsl(220, 35%, 97%);
   border-radius: 4px;
   font-weight: bold;
 }
@@ -80,7 +77,7 @@ div.levels {
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: hsla(220, 35%, 3%, 0.5);
   display: flex;
   justify-content: center;
   align-items: flex-start;
@@ -89,9 +86,9 @@ div.levels {
 }
 
 .modal-content {
-  background: white;
+  background: hsl(220, 35%, 97%);
   border-radius: 8px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 20px hsla(220, 30%, 6%, 0.1);
   width: 400px;
   max-width: 90vw;
   animation: modal-appear 0.2s ease-out;
@@ -104,7 +101,7 @@ div.levels {
 
 .modal-header h3 {
   margin: 0;
-  color: #333;
+  color: hsl(220, 20%, 25%);
   font-size: 18px;
   font-weight: 600;
 }
@@ -115,7 +112,7 @@ div.levels {
 
 .modal-body p {
   margin: 0;
-  color: #666;
+  color: hsl(220, 20%, 42%);
   line-height: 1.5;
 }
 
@@ -137,17 +134,17 @@ div.levels {
 }
 
 .cancel-button {
-  background-color: #f5f5f5;
-  color: #333;
+  background-color: hsl(220, 30%, 94%);
+  color: hsl(220, 20%, 25%);
 }
 
 .cancel-button:hover {
-  background-color: #e0e0e0;
+  background-color: hsl(220, 20%, 80%);
 }
 
 .confirm-button {
   background-color: #dc3545;
-  color: white;
+  color: hsl(220, 35%, 97%);
 }
 
 .confirm-button:hover {
