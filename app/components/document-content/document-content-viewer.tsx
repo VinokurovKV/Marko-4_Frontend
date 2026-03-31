@@ -198,6 +198,9 @@ export function DocumentContentViewer({
     [creatingAreaDraft, nextAreaOrderNumber]
   )
   const [searchText, setSearchText] = React.useState('')
+  const [isSearchCaseSensitive, setIsSearchCaseSensitive] =
+    React.useState(false)
+  const [isSearchWholeWord, setIsSearchWholeWord] = React.useState(false)
   const [searchTotal, setSearchTotal] = React.useState(0)
   const [searchActiveIndex, setSearchActiveIndex] = React.useState(0)
   const [searchNextRequest, setSearchNextRequest] = React.useState(0)
@@ -626,11 +629,19 @@ export function DocumentContentViewer({
           >
             <PdfSearchBox
               initialValue={searchText}
+              caseSensitive={isSearchCaseSensitive}
+              wholeWord={isSearchWholeWord}
               totalMatches={searchTotal}
               activeMatchIndex={searchActiveIndex}
               isSearchPending={isSearchPending}
               onSubmit={(value) => {
                 setSearchText(value)
+              }}
+              onCaseSensitiveChange={(value) => {
+                setIsSearchCaseSensitive(value)
+              }}
+              onWholeWordChange={(value) => {
+                setIsSearchWholeWord(value)
               }}
               onPrevious={() => {
                 setSearchPreviousRequest((prev) => prev + 1)
@@ -676,6 +687,9 @@ export function DocumentContentViewer({
           onClose={closeBrowseDialog}
           maxWidth="xs"
           fullWidth
+          sx={{
+            zIndex: (theme) => theme.zIndex.modal + 20
+          }}
         >
           <DialogTitle>Просмотр области</DialogTitle>
 
@@ -722,6 +736,9 @@ export function DocumentContentViewer({
           onClose={closeCreateAreaDialog}
           maxWidth="xs"
           fullWidth
+          sx={{
+            zIndex: (theme) => theme.zIndex.modal + 20
+          }}
           TransitionProps={{
             onExited: resetCreateAreaDialogState
           }}
@@ -846,6 +863,8 @@ export function DocumentContentViewer({
               mode={mode}
               interactionMode={interactionMode}
               searchText={searchText}
+              searchCaseSensitive={isSearchCaseSensitive}
+              searchWholeWord={isSearchWholeWord}
               searchNextRequest={searchNextRequest}
               searchPreviousRequest={searchPreviousRequest}
               onSearchPendingChange={handleSearchPendingChange}

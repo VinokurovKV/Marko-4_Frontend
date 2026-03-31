@@ -14,24 +14,50 @@ import ClearIcon from '@mui/icons-material/Clear'
 import Typography from '@mui/material/Typography'
 import NavigateNextIcon from '@mui/icons-material/NavigateNext'
 import NavigateBeforeIcon from '@mui/icons-material/NavigateBefore'
+import Icon from '@mui/material/Icon'
 
 export interface PdfSearchBoxProps {
   initialValue?: string
+  caseSensitive: boolean
+  wholeWord: boolean
   totalMatches: number
   activeMatchIndex: number
   isSearchPending: boolean
   onSubmit: (value: string) => void
+  onCaseSensitiveChange: (value: boolean) => void
+  onWholeWordChange: (value: boolean) => void
   onPrevious: () => void
   onNext: () => void
   onClear: () => void
 }
 
+const SymbolIcon = ({ children }: { children: React.ReactNode }) => (
+  <Icon
+    sx={{
+      fontFamily: '"Material Symbols Outlined"',
+      fontSize: 20,
+      fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24",
+      fontFeatureSettings: "'liga'",
+      lineHeight: 1,
+      display: 'inline-flex',
+      alignItems: 'center',
+      justifyContent: 'center'
+    }}
+  >
+    {children}
+  </Icon>
+)
+
 export const PdfSearchBox = React.memo(function PdfSearchBox({
   initialValue = '',
+  caseSensitive,
+  wholeWord,
   totalMatches,
   activeMatchIndex,
   isSearchPending,
   onSubmit,
+  onCaseSensitiveChange,
+  onWholeWordChange,
   onPrevious,
   onNext,
   onClear
@@ -42,6 +68,7 @@ export const PdfSearchBox = React.memo(function PdfSearchBox({
   const trimmedInputValue = inputValue.trim()
   const trimmedInitialValue = initialValue.trim()
   const isSubmittedValue = trimmedInputValue === trimmedInitialValue
+  const hasMatches = totalMatches > 0
 
   React.useEffect(() => {
     setInputValue(initialValue)
@@ -90,7 +117,7 @@ export const PdfSearchBox = React.memo(function PdfSearchBox({
               right: 0,
               zIndex: theme.zIndex.modal + 2,
               p: 1,
-              width: 300,
+              width: 'min(350px, calc(100vw - 32px))',
               borderRadius: 2,
               backgroundColor:
                 theme.palette.mode === 'dark'
@@ -117,11 +144,11 @@ export const PdfSearchBox = React.memo(function PdfSearchBox({
                       return
                     }
 
-                    if (isSearchPending) {
+                    if (isSearchPending && !hasMatches) {
                       return
                     }
 
-                    if (totalMatches > 0) {
+                    if (hasMatches) {
                       if (e.shiftKey) {
                         onPrevious()
                       } else {
@@ -167,20 +194,57 @@ export const PdfSearchBox = React.memo(function PdfSearchBox({
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  gap: 1
+                  gap: 1,
+                  minWidth: 0
                 }}
               >
-                <Typography variant="caption" sx={{ whiteSpace: 'nowrap' }}>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    whiteSpace: 'nowrap',
+                    flex: '1 1 auto',
+                    minWidth: 0
+                  }}
+                >
                   {trimmedInputValue
                     ? isSubmittedValue && isSearchPending
-                      ? 'Поиск...'
-                      : totalMatches > 0
+                      ? hasMatches
+                        ? `${activeMatchIndex} из ${totalMatches} (поиск продолжается...)`
+                        : 'Поиск...'
+                      : hasMatches
                         ? `${activeMatchIndex} из ${totalMatches}`
                         : 'Совпадений нет'
                     : 'Введите текст'}
                 </Typography>
 
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 0.5,
+                    flexShrink: 0
+                  }}
+                >
+                  <ProjButton
+                    variant={caseSensitive ? 'contained' : 'outlined'}
+                    title="Учитывать регистр"
+                    aria-label="Учитывать регистр"
+                    onClick={() => onCaseSensitiveChange(!caseSensitive)}
+                    sx={{ minWidth: 0, px: 1, py: 0.25 }}
+                  >
+                    <SymbolIcon>match_case</SymbolIcon>
+                  </ProjButton>
+
+                  <ProjButton
+                    variant={wholeWord ? 'contained' : 'outlined'}
+                    title="Искать слово целиком"
+                    aria-label="Искать слово целиком"
+                    onClick={() => onWholeWordChange(!wholeWord)}
+                    sx={{ minWidth: 0, px: 1, py: 0.25 }}
+                  >
+                    <SymbolIcon>match_word</SymbolIcon>
+                  </ProjButton>
+
                   <IconButton
                     size="small"
                     aria-label="Предыдущее совпадение"
@@ -192,13 +256,15 @@ export const PdfSearchBox = React.memo(function PdfSearchBox({
                         return
                       }
 
-                      if (isSearchPending) return
+                      if (isSearchPending && !hasMatches) return
 
-                      if (totalMatches > 0) {
+                      if (hasMatches) {
                         onPrevious()
                       }
                     }}
-                    disabled={!trimmedInputValue || isSearchPending}
+                    disabled={
+                      !trimmedInputValue || (!hasMatches && isSearchPending)
+                    }
                   >
                     <NavigateBeforeIcon fontSize="small" />
                   </IconButton>
@@ -214,13 +280,15 @@ export const PdfSearchBox = React.memo(function PdfSearchBox({
                         return
                       }
 
-                      if (isSearchPending) return
+                      if (isSearchPending && !hasMatches) return
 
-                      if (totalMatches > 0) {
+                      if (hasMatches) {
                         onNext()
                       }
                     }}
-                    disabled={!trimmedInputValue || isSearchPending}
+                    disabled={
+                      !trimmedInputValue || (!hasMatches && isSearchPending)
+                    }
                   >
                     <NavigateNextIcon fontSize="small" />
                   </IconButton>

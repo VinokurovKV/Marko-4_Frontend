@@ -9,6 +9,7 @@ import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { createPluginRegistration } from '@embedpdf/core'
 import { EmbedPDF } from '@embedpdf/core/react'
 import { usePdfiumEngine } from '@embedpdf/engines/react'
+import { MatchFlag } from '@embedpdf/models'
 import {
   DocumentContent,
   DocumentManagerPluginPackage,
@@ -92,6 +93,8 @@ export type PdfViewerProps = {
   mode: PdfViewerMode
   interactionMode: 'AREAS' | 'TEXT'
   searchText?: string
+  searchCaseSensitive?: boolean
+  searchWholeWord?: boolean
   searchPreviousRequest?: number
   searchNextRequest?: number
   onSearchPendingChange?: (isPending: boolean) => void
@@ -147,6 +150,8 @@ const getDateStamp = (): string => {
 
   return `${yy}-${mm}-${dd}`
 }
+
+const SEARCH_TIMEOUT_MS = 15000
 
 type RenderPageArgs = {
   pageIndex: number
@@ -402,12 +407,30 @@ const PdfViewerBody: React.FC<
     searchRef.current = search
   }, [search])
 
+  useEffect(() => {
+    const searchApi = searchRef.current
+    if (!searchApi) return
+
+    const flags: MatchFlag[] = []
+
+    if (props.searchCaseSensitive) {
+      flags.push(MatchFlag.MatchCase)
+    }
+
+    if (props.searchWholeWord) {
+      flags.push(MatchFlag.MatchWholeWord)
+    }
+
+    searchApi.setFlags(flags)
+  }, [props.documentId, props.searchCaseSensitive, props.searchWholeWord])
+
   const lastSearchTextRef = useRef('')
   const searchTotalRef = useRef(0)
   const searchActiveIndexRef = useRef(0)
   const onSearchStateChangeRef = useRef(props.onSearchStateChange)
   const handledSearchNextRequestRef = useRef(0)
   const handledSearchPreviousRequestRef = useRef(0)
+  const preferredSearchResultIndexRef = useRef<number | null>(null)
 
   useEffect(() => {
     onSearchStateChangeRef.current = props.onSearchStateChange
@@ -983,12 +1006,6 @@ const PdfViewerBody: React.FC<
     [getViewportScrollRoot]
   )
 
-  const scrollToSearchResultRef = useRef(scrollToSearchResult)
-
-  useEffect(() => {
-    scrollToSearchResultRef.current = scrollToSearchResult
-  }, [scrollToSearchResult])
-
   type BrowseRequest = { areaId: number; seq: number } | null
   const [browseReq, setBrowseReq] = useState<BrowseRequest>(null)
   const browseSeqRef = useRef(0)
@@ -1196,13 +1213,39 @@ const PdfViewerBody: React.FC<
     const searchApi = searchRef.current
     if (!searchApi) return
 
+    let cancelled = false
+
+    const unsubscribe = searchApi.onStateChange((state) => {
+      if (cancelled) return
+
+      syncSearchState(state)
+      pushSearchPending(Boolean(state.loading))
+    })
+
+    syncSearchState(searchApi.getState())
+
+    return () => {
+      cancelled = true
+      unsubscribe?.()
+    }
+  }, [props.documentId, syncSearchState, pushSearchPending])
+
+  useEffect(() => {
+    const searchApi = searchRef.current
+    if (!searchApi) return
+
     const query = props.searchText?.trim() ?? ''
 
     if (!query) {
-      searchApi.stopSearch()
+      try {
+        searchApi.stopSearch()
+      } catch {
+        // noop
+      }
       lastSearchTextRef.current = ''
       handledSearchNextRequestRef.current = 0
       handledSearchPreviousRequestRef.current = 0
+      preferredSearchResultIndexRef.current = null
       lastSearchPendingRef.current = null
       lastPushedSearchStateRef.current = {
         total: -1,
@@ -1218,31 +1261,66 @@ const PdfViewerBody: React.FC<
     if (isNewQuery) {
       handledSearchNextRequestRef.current = 0
       handledSearchPreviousRequestRef.current = 0
+      preferredSearchResultIndexRef.current = null
       pushSearchState(0, 0)
     }
 
+    lastSearchTextRef.current = query
+
     let cancelled = false
     const runId = ++searchRunIdRef.current
-
     suppressActiveResultEffectRef.current = true
     pushSearchPending(true)
 
+    try {
+      searchApi.stopSearch()
+    } catch {
+      // noop
+    }
+
     void (async () => {
+      await new Promise<void>((resolve) => {
+        window.setTimeout(resolve, 0)
+      })
+
+      if (cancelled || searchRunIdRef.current !== runId) {
+        pushSearchPending(false)
+        return
+      }
+
       searchApi.startSearch()
 
       try {
-        await searchApi.searchAllPages(query).toPromise()
+        await Promise.race([
+          searchApi.searchAllPages(query).toPromise(),
+          new Promise<never>((_, reject) => {
+            window.setTimeout(() => {
+              reject(new Error('search timeout'))
+            }, SEARCH_TIMEOUT_MS)
+          })
+        ])
       } catch {
+        try {
+          searchApi.stopSearch()
+        } catch {
+          // noop
+        }
+
         if (!cancelled && searchRunIdRef.current === runId) {
+          const state = searchApi.getState() as {
+            activeResultIndex?: number
+            results?: Array<unknown>
+          }
+
+          syncSearchState(state)
           suppressActiveResultEffectRef.current = false
           pushSearchPending(false)
         }
+
         return
       }
 
       if (cancelled || searchRunIdRef.current !== runId) return
-
-      lastSearchTextRef.current = query
 
       const state = searchApi.getState() as {
         activeResultIndex?: number
@@ -1256,11 +1334,22 @@ const PdfViewerBody: React.FC<
         : searchTotalRef.current
 
       if (isNewQuery && total > 0) {
+        const preferredIndex = preferredSearchResultIndexRef.current
+        const currentActiveIndex =
+          searchActiveIndexRef.current > 0
+            ? searchActiveIndexRef.current - 1
+            : -1
         const resultIndex =
-          typeof state.activeResultIndex === 'number' &&
-          state.activeResultIndex >= 0
-            ? state.activeResultIndex
-            : searchApi.nextResult()
+          preferredIndex !== null &&
+          preferredIndex >= 0 &&
+          preferredIndex < total
+            ? searchApi.goToResult(preferredIndex)
+            : currentActiveIndex >= 0 && currentActiveIndex < total
+              ? searchApi.goToResult(currentActiveIndex)
+              : typeof state.activeResultIndex === 'number' &&
+                  state.activeResultIndex >= 0
+                ? state.activeResultIndex
+                : searchApi.nextResult()
 
         pushSearchState(total, resultIndex + 1)
 
@@ -1277,13 +1366,21 @@ const PdfViewerBody: React.FC<
 
     return () => {
       cancelled = true
+      try {
+        searchApi.stopSearch()
+      } catch {
+        // noop
+      }
     }
   }, [
     props.documentId,
     props.searchText,
+    props.searchCaseSensitive,
+    props.searchWholeWord,
     pushSearchState,
     pushSearchPending,
-    syncSearchState
+    syncSearchState,
+    scrollToSearchResult
   ])
 
   useEffect(() => {
@@ -1334,12 +1431,18 @@ const PdfViewerBody: React.FC<
     handledSearchNextRequestRef.current = props.searchNextRequest
 
     const nextIndex = searchApi.nextResult()
+    preferredSearchResultIndexRef.current = nextIndex
     pushSearchState(total, nextIndex + 1)
+
+    window.requestAnimationFrame(() => {
+      scrollToSearchResult(nextIndex)
+    })
   }, [
     props.documentId,
     props.searchNextRequest,
     props.searchText,
-    pushSearchState
+    pushSearchState,
+    scrollToSearchResult
   ])
 
   useEffect(() => {
@@ -1359,12 +1462,18 @@ const PdfViewerBody: React.FC<
     handledSearchPreviousRequestRef.current = props.searchPreviousRequest
 
     const previousIndex = searchApi.previousResult()
+    preferredSearchResultIndexRef.current = previousIndex
     pushSearchState(total, previousIndex + 1)
+
+    window.requestAnimationFrame(() => {
+      scrollToSearchResult(previousIndex)
+    })
   }, [
     props.documentId,
     props.searchPreviousRequest,
     props.searchText,
-    pushSearchState
+    pushSearchState,
+    scrollToSearchResult
   ])
 
   return (
