@@ -1,8 +1,9 @@
 // Project
-import type { DocumentPrimary } from '~/types'
+import type { DocumentTertiary } from '~/types'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
 import { useChangeDetector } from '~/hooks/change-detector'
+import { useFragmentsFiltered } from '~/hooks/resources'
 import {
   PdfViewer,
   type PdfViewerMode,
@@ -37,8 +38,48 @@ import TextField from '@mui/material/TextField'
 
 const DEFAULT_MODE: PdfViewerMode = { type: 'DEFAULT' }
 
+type ViewerArea = PdfArea & {
+  innerCode: string
+  orderNumber: number
+  createdFragmentId?: number
+}
+
+type CreatingAreaDraft = {
+  tempId: number
+  orderNumber: number
+  rectangle: Rectangle
+  configFile?: File
+}
+
+type PendingCreatedArea = {
+  tempId: number
+  orderNumber: number
+  name: string
+  rectangle: Rectangle
+  configFile?: File
+  createdFragmentId?: number
+}
+
+type OptimisticAreaPatch = {
+  name?: string
+  rectangle?: Rectangle
+}
+
+function toFragmentLocation(rectangle: Rectangle) {
+  return {
+    xLeft: rectangle.xMin,
+    xRight: rectangle.xMax,
+    yTop: rectangle.yMin,
+    yBottom: rectangle.yMax
+  }
+}
+
+function parseAreaOrderNumber(innerCode: string): number | null {
+  return /^\d+$/.test(innerCode) ? Number(innerCode) : null
+}
+
 export interface DocumentContentViewerProps {
-  document: DocumentPrimary
+  document: DocumentTertiary
 }
 
 export function DocumentContentViewer({
@@ -53,7 +94,16 @@ export function DocumentContentViewer({
   )
 
   const [mode, setMode] = React.useState<PdfViewerMode>(DEFAULT_MODE)
-  const [areas, setAreas] = React.useState<PdfArea[]>([])
+  const [creatingAreaDraft, setCreatingAreaDraft] =
+    React.useState<CreatingAreaDraft | null>(null)
+  const [pendingCreatedAreas, setPendingCreatedAreas] = React.useState<
+    PendingCreatedArea[]
+  >([])
+  const [optimisticAreaPatches, setOptimisticAreaPatches] = React.useState<
+    Record<number, OptimisticAreaPatch>
+  >({})
+  const [optimisticDeletedAreaIds, setOptimisticDeletedAreaIds] =
+    React.useState<number[]>([])
 
   type InteractionMode = 'AREAS' | 'TEXT'
 
@@ -61,36 +111,91 @@ export function DocumentContentViewer({
     React.useState<InteractionMode>('AREAS')
 
   const isAreasMode = interactionMode === 'AREAS'
-
-  React.useEffect(() => {
-    setAreas([])
-  }, [document.id])
-
-  const getNextAreaId = React.useCallback((list: PdfArea[]) => {
-    const used = new Set(list.map((a) => a.id))
-    let id = 1
-    while (used.has(id)) id++
-    return id
-  }, [])
+  const fragments = useFragmentsFiltered(
+    'PRIMARY_PROPS',
+    document.fragmentIds ?? null
+  )
 
   const [isBrowseDialogOpen, setIsBrowseDialogOpen] = React.useState(false)
   const [browseAreaId, setBrowseAreaId] = React.useState<number | null>(null)
   const [isCreateAreaDialogOpen, setIsCreateAreaDialogOpen] =
     React.useState(false)
-  const [, setPendingRectangle] = React.useState<Rectangle | null>(null)
   const [newAreaName, setNewAreaName] = React.useState('')
   const [editingAreaId, setEditingAreaId] = React.useState<number | null>(null)
-  const [creatingAreaId, setCreatingAreaId] = React.useState<number | null>(
-    null
-  )
   const [isAreaDialogClosing, setIsAreaDialogClosing] = React.useState(false)
-  const nextAreaIdForDialog = React.useMemo(
-    () => getNextAreaId(areas),
-    [areas, getNextAreaId]
+
+  const areas = React.useMemo<ViewerArea[]>(() => {
+    const baseAreas = (fragments ?? [])
+      .filter((fragment) => !optimisticDeletedAreaIds.includes(fragment.id))
+      .map((fragment, index) => {
+        const optimisticPatch = optimisticAreaPatches[fragment.id]
+        const orderNumber =
+          parseAreaOrderNumber(fragment.innerCode) ?? index + 1
+
+        return {
+          id: fragment.id,
+          innerCode: fragment.innerCode,
+          orderNumber,
+          name:
+            optimisticPatch?.name ?? fragment.name ?? `Область ${orderNumber}`,
+          rectangle: optimisticPatch?.rectangle ?? {
+            xMin: fragment.location.xLeft,
+            xMax: fragment.location.xRight,
+            yMin: fragment.location.yTop,
+            yMax: fragment.location.yBottom
+          }
+        }
+      })
+
+    const visiblePendingAreas = pendingCreatedAreas
+      .filter(
+        (area) =>
+          area.createdFragmentId === undefined ||
+          !(fragments ?? []).some(
+            (fragment) => fragment.id === area.createdFragmentId
+          )
+      )
+      .map((area) => ({
+        id: area.tempId,
+        innerCode: String(area.orderNumber),
+        orderNumber: area.orderNumber,
+        name: area.name,
+        rectangle: area.rectangle,
+        createdFragmentId: area.createdFragmentId
+      }))
+
+    if (creatingAreaDraft === null) {
+      return [...baseAreas, ...visiblePendingAreas]
+    }
+
+    return [
+      ...baseAreas,
+      ...visiblePendingAreas,
+      {
+        id: creatingAreaDraft.tempId,
+        innerCode: String(creatingAreaDraft.orderNumber),
+        orderNumber: creatingAreaDraft.orderNumber,
+        name: newAreaName.trim(),
+        rectangle: creatingAreaDraft.rectangle
+      }
+    ]
+  }, [
+    fragments,
+    optimisticDeletedAreaIds,
+    optimisticAreaPatches,
+    pendingCreatedAreas,
+    creatingAreaDraft,
+    newAreaName
+  ])
+
+  const nextAreaOrderNumber = React.useMemo(
+    () => areas.reduce((max, area) => Math.max(max, area.orderNumber), 0) + 1,
+    [areas]
   )
+
   const areaIdForDialogPreview = React.useMemo(
-    () => creatingAreaId ?? nextAreaIdForDialog,
-    [creatingAreaId, nextAreaIdForDialog]
+    () => creatingAreaDraft?.orderNumber ?? nextAreaOrderNumber,
+    [creatingAreaDraft, nextAreaOrderNumber]
   )
   const [searchText, setSearchText] = React.useState('')
   const [searchTotal, setSearchTotal] = React.useState(0)
@@ -140,7 +245,7 @@ export function DocumentContentViewer({
     const initial =
       currentId !== null && areas.some((a) => a.id === currentId)
         ? currentId
-        : [...areas].sort((a, b) => a.id - b.id)[0].id
+        : [...areas].sort((a, b) => a.orderNumber - b.orderNumber)[0].id
 
     setBrowseAreaId(initial)
     setIsBrowseDialogOpen(true)
@@ -157,26 +262,19 @@ export function DocumentContentViewer({
   }, [browseAreaId])
 
   const openCreateAreaDialog = React.useCallback(
-    (rectangle: Rectangle) => {
-      const nextId = getNextAreaId(areas)
-
-      setAreas((prev) => [
-        ...prev,
-        {
-          id: nextId,
-          name: '',
-          rectangle
-        }
-      ])
-
-      setPendingRectangle(rectangle)
-      setCreatingAreaId(nextId)
+    (rectangle: Rectangle, configFile?: File) => {
+      setCreatingAreaDraft({
+        tempId: -Date.now(),
+        orderNumber: nextAreaOrderNumber,
+        rectangle,
+        configFile
+      })
       setEditingAreaId(null)
       setNewAreaName('')
       setIsAreaDialogClosing(false)
       setIsCreateAreaDialogOpen(true)
     },
-    [areas, getNextAreaId]
+    [nextAreaOrderNumber]
   )
 
   const openRenameAreaDialog = React.useCallback(
@@ -184,7 +282,6 @@ export function DocumentContentViewer({
       const area = areas.find((a) => a.id === areaId)
       if (!area) return
 
-      setPendingRectangle(null)
       setEditingAreaId(areaId)
       setNewAreaName(area.name)
       setIsAreaDialogClosing(false)
@@ -194,10 +291,10 @@ export function DocumentContentViewer({
   )
 
   const closeCreateAreaDialog = React.useCallback(() => {
-    const wasCreating = creatingAreaId !== null
+    const wasCreating = creatingAreaDraft !== null
 
-    if (creatingAreaId !== null) {
-      setAreas((prev) => prev.filter((a) => a.id !== creatingAreaId))
+    if (creatingAreaDraft !== null) {
+      setCreatingAreaDraft(null)
     }
 
     setIsAreaDialogClosing(true)
@@ -206,58 +303,146 @@ export function DocumentContentViewer({
     if (wasCreating) {
       setMode({ type: 'DEFAULT' })
     }
-  }, [creatingAreaId])
+  }, [creatingAreaDraft])
 
   const confirmAreaName = React.useCallback(() => {
     const trimmedName = newAreaName.trim()
 
-    if (editingAreaId !== null) {
-      const fallbackName = previousAreaNameForDialog
-      const resolvedName = trimmedName.length > 0 ? trimmedName : fallbackName
-
-      setAreas((prev) =>
-        prev.map((a) =>
-          a.id === editingAreaId
-            ? {
-                ...a,
-                name: resolvedName
-              }
-            : a
+    void (async () => {
+      if (editingAreaId !== null) {
+        const fallbackName = previousAreaNameForDialog
+        const resolvedName = trimmedName.length > 0 ? trimmedName : fallbackName
+        const pendingCreatedArea = pendingCreatedAreas.find(
+          (area) => area.tempId === editingAreaId
         )
-      )
 
+        if (pendingCreatedArea) {
+          setPendingCreatedAreas((prev) =>
+            prev.map((area) =>
+              area.tempId === editingAreaId
+                ? {
+                    ...area,
+                    name: resolvedName
+                  }
+                : area
+            )
+          )
+          setNewAreaName(resolvedName)
+          setIsAreaDialogClosing(true)
+          setIsCreateAreaDialogOpen(false)
+          return
+        }
+
+        setOptimisticAreaPatches((prev) => ({
+          ...prev,
+          [editingAreaId]: {
+            ...prev[editingAreaId],
+            name: resolvedName
+          }
+        }))
+        setNewAreaName(resolvedName)
+        setIsAreaDialogClosing(true)
+        setIsCreateAreaDialogOpen(false)
+
+        try {
+          await serverConnector.updateFragment(
+            {
+              id: editingAreaId,
+              name: resolvedName
+            },
+            undefined
+          )
+        } catch (error) {
+          setOptimisticAreaPatches((prev) => {
+            const next = { ...prev }
+            delete next[editingAreaId]
+            return next
+          })
+          notifier.showError(
+            error,
+            `не удалось изменить фрагмент документа для документа «${document.code}»`
+          )
+        }
+        return
+      }
+
+      if (creatingAreaDraft === null) return
+
+      if (!creatingAreaDraft.configFile) {
+        notifier.showError(
+          `не удалось создать фрагмент документа для документа «${document.code}»`
+        )
+        return
+      }
+
+      const resolvedName =
+        trimmedName.length > 0
+          ? trimmedName
+          : `Область ${creatingAreaDraft.orderNumber}`
+
+      const pendingArea: PendingCreatedArea = {
+        tempId: creatingAreaDraft.tempId,
+        orderNumber: creatingAreaDraft.orderNumber,
+        name: resolvedName,
+        rectangle: creatingAreaDraft.rectangle,
+        configFile: creatingAreaDraft.configFile
+      }
+
+      setPendingCreatedAreas((prev) => [...prev, pendingArea])
       setNewAreaName(resolvedName)
       setIsAreaDialogClosing(true)
       setIsCreateAreaDialogOpen(false)
-      return
-    }
+      setCreatingAreaDraft(null)
+      setMode({ type: 'DEFAULT' })
 
-    if (creatingAreaId === null) return
+      try {
+        const createFragmentSuccessResult =
+          await serverConnector.createFragment(
+            {
+              documentId: document.id,
+              innerCode: String(creatingAreaDraft.orderNumber),
+              name: resolvedName,
+              location: toFragmentLocation(creatingAreaDraft.rectangle)
+            },
+            creatingAreaDraft.configFile
+          )
 
-    const resolvedName =
-      trimmedName.length > 0 ? trimmedName : `Область ${creatingAreaId}`
+        const fragmentId = createFragmentSuccessResult.result.createdResourceId
 
-    setAreas((prev) =>
-      prev.map((a) =>
-        a.id === creatingAreaId
-          ? {
-              ...a,
-              name: resolvedName
-            }
-          : a
-      )
-    )
-
-    setNewAreaName(resolvedName)
-    setIsAreaDialogClosing(true)
-    setIsCreateAreaDialogOpen(false)
-    setMode({ type: 'DEFAULT' })
-  }, [editingAreaId, creatingAreaId, newAreaName, previousAreaNameForDialog])
+        setBrowseAreaId(fragmentId)
+        setPendingCreatedAreas((prev) =>
+          prev.map((area) =>
+            area.tempId === pendingArea.tempId
+              ? {
+                  ...area,
+                  createdFragmentId: fragmentId
+                }
+              : area
+          )
+        )
+      } catch (error) {
+        setPendingCreatedAreas((prev) =>
+          prev.filter((area) => area.tempId !== pendingArea.tempId)
+        )
+        notifier.showError(
+          error,
+          `не удалось создать фрагмент документа для документа «${document.code}»`
+        )
+      }
+    })()
+  }, [
+    editingAreaId,
+    newAreaName,
+    previousAreaNameForDialog,
+    creatingAreaDraft,
+    notifier,
+    document.id,
+    document.code
+  ])
 
   const resetCreateAreaDialogState = React.useCallback(() => {
-    setPendingRectangle(null)
     setEditingAreaId(null)
-    setCreatingAreaId(null)
+    setCreatingAreaDraft(null)
     setNewAreaName('')
     setIsAreaDialogClosing(false)
   }, [])
@@ -294,6 +479,61 @@ export function DocumentContentViewer({
       setConfigBuffer(buffer)
     })()
   }, [configBlob])
+
+  React.useEffect(() => {
+    if (fragments === null) return
+
+    setPendingCreatedAreas((prev) =>
+      prev.filter(
+        (area) =>
+          area.createdFragmentId === undefined ||
+          !fragments.some((fragment) => fragment.id === area.createdFragmentId)
+      )
+    )
+
+    setOptimisticDeletedAreaIds((prev) =>
+      prev.filter((fragmentId) =>
+        fragments.some((fragment) => fragment.id === fragmentId)
+      )
+    )
+
+    setOptimisticAreaPatches((prev) => {
+      const next = { ...prev }
+      for (const fragment of fragments) {
+        const patch = next[fragment.id]
+        if (!patch) continue
+
+        const serverName = fragment.name ?? ''
+        const patchNameMatches =
+          patch.name === undefined || patch.name === serverName
+        const patchRectangleMatches =
+          patch.rectangle === undefined ||
+          (patch.rectangle.xMin === fragment.location.xLeft &&
+            patch.rectangle.xMax === fragment.location.xRight &&
+            patch.rectangle.yMin === fragment.location.yTop &&
+            patch.rectangle.yMax === fragment.location.yBottom)
+
+        if (patchNameMatches && patchRectangleMatches) {
+          delete next[fragment.id]
+        }
+      }
+      return next
+    })
+  }, [fragments])
+
+  React.useEffect(() => {
+    setMode(DEFAULT_MODE)
+    setIsBrowseDialogOpen(false)
+    setBrowseAreaId(null)
+    setIsCreateAreaDialogOpen(false)
+    setCreatingAreaDraft(null)
+    setPendingCreatedAreas([])
+    setOptimisticAreaPatches({})
+    setOptimisticDeletedAreaIds([])
+    setEditingAreaId(null)
+    setNewAreaName('')
+    setIsAreaDialogClosing(false)
+  }, [document.id])
 
   const isAnyTopDialogOpen = isBrowseDialogOpen || isCreateAreaDialogOpen
 
@@ -454,10 +694,10 @@ export function DocumentContentViewer({
                   onChange={(e) => setBrowseAreaId(Number(e.target.value))}
                 >
                   {[...areas]
-                    .sort((a, b) => a.id - b.id)
+                    .sort((a, b) => a.orderNumber - b.orderNumber)
                     .map((a) => (
                       <MenuItem key={a.id} value={a.id}>
-                        {a.id} — {a.name}
+                        {a.innerCode} — {a.name}
                       </MenuItem>
                     ))}
                 </Select>
@@ -617,30 +857,125 @@ export function DocumentContentViewer({
                 setMode({ type: 'UPDATE_AREA_RECTANGLE', areaId })
               }
               onDeleteAreaButtonClick={({ areaId }) => {
-                setAreas((prev) => prev.filter((a) => a.id !== areaId))
-                setMode((prevMode) => {
-                  if (
-                    (prevMode.type === 'BROWSE_AREA' ||
-                      prevMode.type === 'UPDATE_AREA_RECTANGLE') &&
-                    prevMode.areaId === areaId
-                  ) {
-                    return { type: 'DEFAULT' }
+                void (async () => {
+                  const pendingCreatedArea = pendingCreatedAreas.find(
+                    (area) => area.tempId === areaId
+                  )
+
+                  if (pendingCreatedArea) {
+                    setPendingCreatedAreas((prev) =>
+                      prev.filter((area) => area.tempId !== areaId)
+                    )
+                    setMode((prevMode) =>
+                      (prevMode.type === 'BROWSE_AREA' ||
+                        prevMode.type === 'UPDATE_AREA_RECTANGLE') &&
+                      prevMode.areaId === areaId
+                        ? { type: 'DEFAULT' }
+                        : prevMode
+                    )
+                    return
                   }
-                  return prevMode
-                })
+
+                  setOptimisticDeletedAreaIds((prev) =>
+                    prev.includes(areaId) ? prev : [...prev, areaId]
+                  )
+
+                  try {
+                    await serverConnector.deleteFragment({
+                      id: areaId
+                    })
+
+                    setMode((prevMode) => {
+                      if (
+                        (prevMode.type === 'BROWSE_AREA' ||
+                          prevMode.type === 'UPDATE_AREA_RECTANGLE') &&
+                        prevMode.areaId === areaId
+                      ) {
+                        return { type: 'DEFAULT' }
+                      }
+                      return prevMode
+                    })
+                  } catch (error) {
+                    setOptimisticDeletedAreaIds((prev) =>
+                      prev.filter((id) => id !== areaId)
+                    )
+                    notifier.showError(
+                      error,
+                      `не удалось удалить фрагмент документа для документа «${document.code}»`
+                    )
+                  }
+                })()
               }}
               onRenameAreaButtonClick={({ areaId }) => {
                 openRenameAreaDialog(areaId)
               }}
-              onCreateRectangle={({ rectangle }) => {
-                openCreateAreaDialog(rectangle)
+              onCreateRectangle={({ rectangle, configFile }) => {
+                openCreateAreaDialog(rectangle, configFile)
               }}
               onCreateRectangleCancel={() => setMode({ type: 'DEFAULT' })}
               onBrowseAreaCancel={() => setMode({ type: 'DEFAULT' })}
-              onUpdateAreaRectangle={({ areaId, rectangle }) => {
-                setAreas((prev) =>
-                  prev.map((a) => (a.id === areaId ? { ...a, rectangle } : a))
-                )
+              onUpdateAreaRectangle={({ areaId, rectangle, configFile }) => {
+                void (async () => {
+                  const pendingCreatedArea = pendingCreatedAreas.find(
+                    (area) => area.tempId === areaId
+                  )
+
+                  if (pendingCreatedArea) {
+                    setPendingCreatedAreas((prev) =>
+                      prev.map((area) =>
+                        area.tempId === areaId
+                          ? {
+                              ...area,
+                              rectangle,
+                              configFile: configFile ?? area.configFile
+                            }
+                          : area
+                      )
+                    )
+                    return
+                  }
+
+                  if (!configFile) {
+                    notifier.showError(
+                      `не удалось изменить фрагмент документа для документа «${document.code}»`
+                    )
+                    return
+                  }
+
+                  const previousRectangle = areas.find(
+                    (area) => area.id === areaId
+                  )?.rectangle
+
+                  setOptimisticAreaPatches((prev) => ({
+                    ...prev,
+                    [areaId]: {
+                      ...prev[areaId],
+                      rectangle
+                    }
+                  }))
+
+                  try {
+                    await serverConnector.updateFragment(
+                      {
+                        id: areaId,
+                        location: toFragmentLocation(rectangle)
+                      },
+                      configFile
+                    )
+                  } catch (error) {
+                    setOptimisticAreaPatches((prev) => ({
+                      ...prev,
+                      [areaId]: {
+                        ...prev[areaId],
+                        rectangle: previousRectangle
+                      }
+                    }))
+                    notifier.showError(
+                      error,
+                      `не удалось изменить фрагмент документа для документа «${document.code}»`
+                    )
+                  }
+                })()
               }}
               onUpdateAreaRectangleCancel={() => setMode({ type: 'DEFAULT' })}
             />

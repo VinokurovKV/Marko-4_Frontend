@@ -100,12 +100,16 @@ export type PdfViewerProps = {
   onUpdateAreaButtonClick?: (data: { areaId: number }) => void | null
   onDeleteAreaButtonClick?: (data: { areaId: number }) => void | null
   onRenameAreaButtonClick?: (data: { areaId: number }) => void | null
-  onCreateRectangle?: (data: { rectangle: Rectangle }) => void | null
+  onCreateRectangle?: (data: {
+    rectangle: Rectangle
+    configFile?: File
+  }) => void | null
   onCreateRectangleCancel?: () => void | null
   onBrowseAreaCancel?: () => void | null
   onUpdateAreaRectangle?: (data: {
     areaId: number
     rectangle: Rectangle
+    configFile?: File
   }) => void | null
   onUpdateAreaRectangleCancel?: () => void | null
 }
@@ -556,11 +560,37 @@ const PdfViewerBody: React.FC<
   const pendingCaptureRef = useRef<null | {
     filename: string
     pageIndex: number
+    onCaptured?: (result: CaptureAreaEvent) => void
   }>(null)
 
   const BTN_W_PX = 28
   const BTN_H_PX = 28
   const BTN_GAP_PX = 2
+
+  const captureRectangleToFile = useCallback(
+    (pageIndex: number, localRect: Rectangle, filename: string) => {
+      if (!capture) {
+        return Promise.resolve<File | undefined>(undefined)
+      }
+
+      return new Promise<File | undefined>((resolve) => {
+        pendingCaptureRef.current = {
+          filename,
+          pageIndex,
+          onCaptured: (result) => {
+            resolve(
+              new File([result.blob], filename, {
+                type: result.blob.type || 'image/png'
+              })
+            )
+          }
+        }
+
+        capture.captureArea(pageIndex, toCaptureRect(localRect))
+      })
+    },
+    [capture]
+  )
 
   const ensureMinRectSizeByButtons = useCallback(
     (wPx: number, hPx: number): boolean => {
@@ -668,11 +698,22 @@ const PdfViewerBody: React.FC<
 
     const onUp = () => {
       const docRect = localToDocRect(resize.pageIndex, resize.liveLocalRect)
-      props.onUpdateAreaRectangle?.({
-        areaId: resize.areaId,
-        rectangle: docRect
-      })
-      setResize(null)
+      const fileName = `fragment_${resize.areaId}_${getDateStamp()}.png`
+
+      void (async () => {
+        const configFile = await captureRectangleToFile(
+          resize.pageIndex,
+          resize.liveLocalRect,
+          fileName
+        )
+
+        props.onUpdateAreaRectangle?.({
+          areaId: resize.areaId,
+          rectangle: docRect,
+          configFile
+        })
+        setResize(null)
+      })()
     }
 
     window.addEventListener('pointermove', onMove)
@@ -681,7 +722,7 @@ const PdfViewerBody: React.FC<
       window.removeEventListener('pointermove', onMove)
       window.removeEventListener('pointerup', onUp)
     }
-  }, [resize, localToDocRect, props])
+  }, [resize, localToDocRect, props, captureRectangleToFile])
 
   useEffect(() => {
     if (!dragArea) return
@@ -704,11 +745,22 @@ const PdfViewerBody: React.FC<
 
     const onUp = () => {
       const docRect = localToDocRect(dragArea.pageIndex, dragArea.liveLocalRect)
-      props.onUpdateAreaRectangle?.({
-        areaId: dragArea.areaId,
-        rectangle: docRect
-      })
-      setDragArea(null)
+      const fileName = `fragment_${dragArea.areaId}_${getDateStamp()}.png`
+
+      void (async () => {
+        const configFile = await captureRectangleToFile(
+          dragArea.pageIndex,
+          dragArea.liveLocalRect,
+          fileName
+        )
+
+        props.onUpdateAreaRectangle?.({
+          areaId: dragArea.areaId,
+          rectangle: docRect,
+          configFile
+        })
+        setDragArea(null)
+      })()
     }
 
     window.addEventListener('pointermove', onMove)
@@ -718,13 +770,18 @@ const PdfViewerBody: React.FC<
       window.removeEventListener('pointermove', onMove)
       window.removeEventListener('pointerup', onUp)
     }
-  }, [dragArea, clampRectToPage, localToDocRect, props])
+  }, [dragArea, clampRectToPage, localToDocRect, props, captureRectangleToFile])
 
   useEffect(() => {
     if (!capture) return
 
     return capture.onCaptureArea((result: CaptureAreaEvent) => {
       const pending = pendingCaptureRef.current
+      if (pending?.pageIndex === result.pageIndex && pending.onCaptured) {
+        pendingCaptureRef.current = null
+        pending.onCaptured(result)
+        return
+      }
       const filename =
         pending && pending.pageIndex === result.pageIndex
           ? pending.filename
@@ -1816,8 +1873,21 @@ const PdfViewerBody: React.FC<
                             yMax: localRectPts.yMax + offY
                           }
 
-                          props.onCreateRectangle?.({ rectangle: docRect })
-                          setDraftPx(null)
+                          const fileName = `fragment_p${pageIndex + 1}_${getDateStamp()}.png`
+
+                          void (async () => {
+                            const configFile = await captureRectangleToFile(
+                              pageIndex,
+                              localRectPts,
+                              fileName
+                            )
+
+                            props.onCreateRectangle?.({
+                              rectangle: docRect,
+                              configFile
+                            })
+                            setDraftPx(null)
+                          })()
                         }}
                       />
                     )}
