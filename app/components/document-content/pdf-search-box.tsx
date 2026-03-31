@@ -1,5 +1,6 @@
 // Project
 import { ProjButton } from '../buttons/button'
+import { gray } from '~/theme/themePrimitives'
 // React
 import * as React from 'react'
 // Material UI
@@ -120,9 +121,7 @@ export const PdfSearchBox = React.memo(function PdfSearchBox({
               width: 'min(350px, calc(100vw - 32px))',
               borderRadius: 2,
               backgroundColor:
-                theme.palette.mode === 'dark'
-                  ? 'hsl(220, 35%, 3%)'
-                  : 'hsl(220, 35%, 97%)'
+                theme.palette.mode === 'dark' ? gray[900] : gray[50]
             })}
           >
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>

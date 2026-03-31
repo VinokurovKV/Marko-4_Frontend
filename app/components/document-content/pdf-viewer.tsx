@@ -1,6 +1,7 @@
 // Project
 import { ProjButton } from '../buttons/button'
 import { PdfViewerThumbnails } from './pdf-viewer-thumbnails'
+import { gray, red } from '~/theme/themePrimitives'
 // Styles
 import './styles.css'
 // React
@@ -1491,10 +1492,7 @@ const PdfViewerBody: React.FC<
           <DialogTitle
             sx={(theme) => ({
               textAlign: 'center',
-              color:
-                theme.palette.mode === 'dark'
-                  ? 'hsl(220, 30%, 94%)'
-                  : 'hsl(220, 20%, 25%)'
+              color: theme.palette.mode === 'dark' ? gray[100] : gray[700]
             })}
           >
             Область слишком маленькая
@@ -1504,15 +1502,10 @@ const PdfViewerBody: React.FC<
               severity="warning"
               sx={(theme) => ({
                 backgroundColor:
-                  theme.palette.mode === 'dark'
-                    ? 'hsl(0, 94%, 80%)'
-                    : 'hsl(0, 92%, 90%)',
-                color:
-                  theme.palette.mode === 'dark'
-                    ? 'hsl(220, 30%, 94%)'
-                    : 'hsl(220, 20%, 25%)',
+                  theme.palette.mode === 'dark' ? red[200] : red[100],
+                color: theme.palette.mode === 'dark' ? gray[100] : gray[700],
                 '& .MuiAlert-icon': {
-                  color: 'hsl(0, 90%, 30%)'
+                  color: red[500]
                 }
               })}
             >
@@ -1541,13 +1534,8 @@ const PdfViewerBody: React.FC<
           PaperProps={{
             sx: (theme) => ({
               backgroundColor:
-                theme.palette.mode === 'dark'
-                  ? 'hsl(220, 35%, 3%)'
-                  : 'hsl(220, 30%, 94%)',
-              color:
-                theme.palette.mode === 'dark'
-                  ? 'hsl(220, 30%, 94%)'
-                  : 'hsl(220, 20%, 25%)',
+                theme.palette.mode === 'dark' ? gray[900] : gray[100],
+              color: theme.palette.mode === 'dark' ? gray[100] : gray[700],
               borderRadius: 4
             })
           }}
