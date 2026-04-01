@@ -118,6 +118,10 @@
   pointer-events: auto;
   cursor: pointer;
 }
+.pdfv-area-label-wrap--passive {
+  pointer-events: none;
+  cursor: default;
+}
 .pdfv-area-label {
   display: inline-block;
   font-size: 12px;
@@ -127,6 +131,9 @@
   color: hsl(220, 35%, 97%);
   max-width: 320px;
   box-sizing: border-box;
+}
+.pdfv-area-label--passive {
+  cursor: default;
 }
 .pdfv-area-label__text {
   display: block;

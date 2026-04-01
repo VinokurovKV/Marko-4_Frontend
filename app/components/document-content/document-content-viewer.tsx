@@ -31,8 +31,8 @@ import InputLabel from '@mui/material/InputLabel'
 import Select from '@mui/material/Select'
 import MenuItem from '@mui/material/MenuItem'
 import Typography from '@mui/material/Typography'
-import GridOnIcon from '@mui/icons-material/GridOn'
 import TextSnippetIcon from '@mui/icons-material/TextSnippet'
+import ViewSidebarIcon from '@mui/icons-material/ViewSidebar'
 import Box from '@mui/material/Box'
 import TextField from '@mui/material/TextField'
 
@@ -206,6 +206,7 @@ export function DocumentContentViewer({
   const [searchNextRequest, setSearchNextRequest] = React.useState(0)
   const [searchPreviousRequest, setSearchPreviousRequest] = React.useState(0)
   const [isSearchPending, setIsSearchPending] = React.useState(false)
+  const [areThumbnailsVisible, setAreThumbnailsVisible] = React.useState(false)
 
   const handleSearchPendingChange = React.useCallback((isPending: boolean) => {
     setIsSearchPending((prev) => (prev === isPending ? prev : isPending))
@@ -580,9 +581,9 @@ export function DocumentContentViewer({
             }}
           >
             <ProjButton
-              variant="contained"
+              variant="outlined"
               onClick={openBrowseDialog}
-              disabled={!isAreasMode || areas.length === 0}
+              disabled={areas.length === 0}
             >
               Просмотр области
             </ProjButton>
@@ -658,13 +659,33 @@ export function DocumentContentViewer({
             />
 
             <ProjButton
-              variant="outlined"
+              variant={areThumbnailsVisible ? 'contained' : 'outlined'}
               title={
-                interactionMode === 'AREAS'
-                  ? 'Режим: просмотр областей'
-                  : 'Режим: чтение текста'
+                areThumbnailsVisible
+                  ? 'Скрыть миниатюры страниц'
+                  : 'Показать миниатюры страниц'
               }
-              aria-label="Переключить режим"
+              aria-label={
+                areThumbnailsVisible
+                  ? 'Скрыть миниатюры страниц'
+                  : 'Показать миниатюры страниц'
+              }
+              onClick={() =>
+                setAreThumbnailsVisible((prevVisible) => !prevVisible)
+              }
+              sx={{ minWidth: 0, px: 1 }}
+            >
+              <ViewSidebarIcon fontSize="small" />
+            </ProjButton>
+
+            <ProjButton
+              variant={interactionMode === 'TEXT' ? 'contained' : 'outlined'}
+              title={
+                interactionMode === 'TEXT'
+                  ? 'Выключить режим чтения текста'
+                  : 'Включить режим чтения текста'
+              }
+              aria-label="Переключить режим чтения текста"
               onClick={() => {
                 setMode({ type: 'DEFAULT' })
                 setInteractionMode((prev) =>
@@ -673,11 +694,7 @@ export function DocumentContentViewer({
               }}
               sx={{ minWidth: 0, px: 1 }}
             >
-              {interactionMode === 'AREAS' ? (
-                <GridOnIcon fontSize="small" />
-              ) : (
-                <TextSnippetIcon fontSize="small" />
-              )}
+              <TextSnippetIcon fontSize="small" />
             </ProjButton>
           </Stack>
         </Stack>
@@ -687,9 +704,9 @@ export function DocumentContentViewer({
           onClose={closeBrowseDialog}
           maxWidth="xs"
           fullWidth
-          sx={{
-            zIndex: (theme) => theme.zIndex.modal + 20
-          }}
+          sx={(theme) => ({
+            zIndex: theme.zIndex.tooltip + 20
+          })}
         >
           <DialogTitle>Просмотр области</DialogTitle>
 
@@ -706,6 +723,16 @@ export function DocumentContentViewer({
                   label="Область"
                   value={browseAreaId ?? ''}
                   onChange={(e) => setBrowseAreaId(Number(e.target.value))}
+                  MenuProps={{
+                    sx: {
+                      zIndex: theme.zIndex.tooltip + 21
+                    },
+                    PaperProps: {
+                      sx: {
+                        zIndex: theme.zIndex.tooltip + 21
+                      }
+                    }
+                  }}
                 >
                   {[...areas]
                     .sort((a, b) => a.orderNumber - b.orderNumber)
@@ -736,9 +763,9 @@ export function DocumentContentViewer({
           onClose={closeCreateAreaDialog}
           maxWidth="xs"
           fullWidth
-          sx={{
-            zIndex: (theme) => theme.zIndex.modal + 20
-          }}
+          sx={(theme) => ({
+            zIndex: theme.zIndex.tooltip + 20
+          })}
           TransitionProps={{
             onExited: resetCreateAreaDialogState
           }}
@@ -862,6 +889,7 @@ export function DocumentContentViewer({
               withRenameAreaButtons={true}
               mode={mode}
               interactionMode={interactionMode}
+              showThumbnails={areThumbnailsVisible}
               searchText={searchText}
               searchCaseSensitive={isSearchCaseSensitive}
               searchWholeWord={isSearchWholeWord}

@@ -89,6 +89,7 @@ export type PdfViewerProps = {
   withRenameAreaButtons: boolean
   mode: PdfViewerMode
   interactionMode: 'AREAS' | 'TEXT'
+  showThumbnails?: boolean
   searchText?: string
   searchCaseSensitive?: boolean
   searchWholeWord?: boolean
@@ -301,6 +302,39 @@ function findPageIndexByDocY(
     if (docY >= top && docY < bottom) return i
   }
   return -1
+}
+
+function splitAreaByPages(
+  area: PdfArea,
+  pageSizes: PageSize[],
+  offsetsY: number[]
+): Array<PdfArea & { pageIndex: number; localRect: Rectangle }> {
+  const segments: Array<PdfArea & { pageIndex: number; localRect: Rectangle }> =
+    []
+
+  for (let pageIndex = 0; pageIndex < pageSizes.length; pageIndex++) {
+    const pageTop = offsetsY[pageIndex]
+    const pageBottom = pageTop + pageSizes[pageIndex].height
+    const overlapTop = Math.max(area.rectangle.yMin, pageTop)
+    const overlapBottom = Math.min(area.rectangle.yMax, pageBottom)
+
+    if (overlapBottom <= overlapTop) {
+      continue
+    }
+
+    segments.push({
+      ...area,
+      pageIndex,
+      localRect: {
+        xMin: area.rectangle.xMin,
+        xMax: area.rectangle.xMax,
+        yMin: overlapTop - pageTop,
+        yMax: overlapBottom - pageTop
+      }
+    })
+  }
+
+  return segments
 }
 
 function extractPageSizes(doc: unknown): PageSize[] {
@@ -1036,6 +1070,14 @@ const PdfViewerBody: React.FC<
     >
   }, [props.areas, pageSizes, offsetsY])
 
+  const thumbnailAreas = useMemo(() => {
+    if (!pageSizes.length) return []
+
+    return props.areas.flatMap((area) =>
+      splitAreaByPages(area, pageSizes, offsetsY)
+    )
+  }, [props.areas, pageSizes, offsetsY])
+
   const scrollToArea = useCallback(
     (areaId: number) => {
       const a = derivedAreas.find((x) => x.id === areaId)
@@ -1044,53 +1086,58 @@ const PdfViewerBody: React.FC<
       const host = viewportHostRef.current
       if (!host) return
 
-      const el = areaElsRef.current.get(areaId)
+      const viewportEl = host.querySelector('.pdfv-viewport')
+      const root = viewportEl instanceof HTMLElement ? viewportEl : host
 
-      if (el) {
-        if (isElementFullyVisibleInContainer(el, host)) return
-
-        el.scrollIntoView({
-          behavior: 'smooth',
-          block: 'center',
-          inline: 'center'
-        })
-        return
-      }
-
-      const pageEl = document.querySelector(`.pdfv-page--p${a.pageIndex}`)
-
-      if (pageEl instanceof HTMLElement) {
-        if (isElementFullyVisibleInContainer(pageEl, host)) {
-          return
-        }
-      }
-
-      scrollRef.current?.scrollToPage({
-        pageNumber: a.pageIndex + 1,
-        behavior: 'smooth'
-      })
-
-      let tries = 0
-      const maxTries = 20
-
-      const tick = () => {
+      const tryScroll = (attempt: number) => {
         const el = areaElsRef.current.get(areaId)
         if (el) {
-          el.scrollIntoView({
-            behavior: 'smooth',
-            block: 'center',
-            inline: 'center'
+          if (isElementFullyVisibleInContainer(el, root)) return
+
+          const elRect = el.getBoundingClientRect()
+          const rootRect = root.getBoundingClientRect()
+          const targetTop =
+            root.scrollTop +
+            (elRect.top - rootRect.top) -
+            (root.clientHeight - elRect.height) / 2
+
+          root.scrollTo({
+            top: Math.max(0, targetTop),
+            behavior: 'auto'
           })
           return
         }
 
-        tries++
-        if (tries < maxTries) {
-          requestAnimationFrame(tick)
+        const pageEl = root.querySelector(`.pdfv-page--p${a.pageIndex}`)
+        if (!(pageEl instanceof HTMLElement)) {
+          scrollRef.current?.scrollToPage({
+            pageNumber: a.pageIndex + 1,
+            behavior: 'auto'
+          })
+
+          if (attempt < 12) {
+            window.requestAnimationFrame(() => tryScroll(attempt + 1))
+          }
+
+          return
         }
+
+        const pageScale = pageScaleRef.current.get(a.pageIndex) ?? 1
+        const rootRect = root.getBoundingClientRect()
+        const pageRect = pageEl.getBoundingClientRect()
+        const targetTop =
+          root.scrollTop +
+          (pageRect.top - rootRect.top) +
+          a.localRect.yMin * pageScale -
+          root.clientHeight / 3
+
+        root.scrollTo({
+          top: Math.max(0, targetTop),
+          behavior: 'auto'
+        })
       }
 
-      requestAnimationFrame(tick)
+      tryScroll(0)
     },
     [derivedAreas]
   )
@@ -1720,16 +1767,24 @@ const PdfViewerBody: React.FC<
 
   return (
     <div className="pdfv-layout">
-      <PdfViewerThumbnails
-        documentId={props.documentId}
-        currentPageIndex={currentPageIndex}
-        areas={derivedAreas}
-        activeAreaId={activeAreaId}
-        pageSizes={pageSizes}
-      />
+      {props.showThumbnails !== false && (
+        <PdfViewerThumbnails
+          documentId={props.documentId}
+          currentPageIndex={currentPageIndex}
+          areas={thumbnailAreas}
+          activeAreaId={activeAreaId}
+          pageSizes={pageSizes}
+        />
+      )}
 
       <div ref={viewportHostRef} className="pdfv-body-host">
-        <Dialog open={tooSmallOpen} onClose={() => setTooSmallOpen(false)}>
+        <Dialog
+          open={tooSmallOpen}
+          onClose={() => setTooSmallOpen(false)}
+          sx={(theme) => ({
+            zIndex: theme.zIndex.tooltip + 20
+          })}
+        >
           <DialogTitle
             sx={(theme) => ({
               textAlign: 'center',
@@ -1772,6 +1827,9 @@ const PdfViewerBody: React.FC<
           }}
           maxWidth="md"
           fullWidth
+          sx={(theme) => ({
+            zIndex: theme.zIndex.tooltip + 20
+          })}
           PaperProps={{
             sx: (theme) => ({
               backgroundColor:
@@ -1804,6 +1862,17 @@ const PdfViewerBody: React.FC<
           </DialogContent>
           <DialogActions>
             <ProjButton
+              variant="outlined"
+              onClick={() => {
+                if (capturedImageUrl) URL.revokeObjectURL(capturedImageUrl)
+                setCapturedImageUrl(null)
+                setCapturedImageName('')
+              }}
+            >
+              Закрыть
+            </ProjButton>
+            <ProjButton
+              variant="contained"
               onClick={() => {
                 if (!capturedImageUrl) return
                 const a = document.createElement('a')
@@ -1815,16 +1884,6 @@ const PdfViewerBody: React.FC<
               }}
             >
               Скачать
-            </ProjButton>
-            <ProjButton
-              variant="contained"
-              onClick={() => {
-                if (capturedImageUrl) URL.revokeObjectURL(capturedImageUrl)
-                setCapturedImageUrl(null)
-                setCapturedImageName('')
-              }}
-            >
-              Закрыть
             </ProjButton>
           </DialogActions>
         </Dialog>
@@ -2006,6 +2065,8 @@ const PdfViewerBody: React.FC<
                           !isTextMode &&
                           props.mode.type === 'UPDATE_AREA_RECTANGLE' &&
                           props.mode.areaId === a.id
+                        const showAreaLabel = a.name.trim().length > 0
+                        const isAreaLabelInteractive = !isTextMode
 
                         const areaPosClass = `pdfv-area--id-${a.id}`
 
@@ -2043,20 +2104,32 @@ const PdfViewerBody: React.FC<
                             }}
                             title={a.name}
                           >
-                            {!isTextMode && a.name.trim().length > 0 && (
+                            {showAreaLabel && (
                               <div
-                                className="pdfv-area-label-wrap"
-                                onMouseDown={(e) => e.stopPropagation()}
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  props.onRenameAreaButtonClick?.({
-                                    areaId: a.id
-                                  })
-                                }}
+                                className={`pdfv-area-label-wrap${isAreaLabelInteractive ? '' : ' pdfv-area-label-wrap--passive'}`}
+                                onMouseDown={
+                                  isAreaLabelInteractive
+                                    ? (e) => e.stopPropagation()
+                                    : undefined
+                                }
+                                onClick={
+                                  isAreaLabelInteractive
+                                    ? (e) => {
+                                        e.stopPropagation()
+                                        props.onRenameAreaButtonClick?.({
+                                          areaId: a.id
+                                        })
+                                      }
+                                    : undefined
+                                }
                               >
                                 <div
-                                  className="pdfv-area-label"
-                                  title="Нажмите, чтобы изменить название"
+                                  className={`pdfv-area-label${isAreaLabelInteractive ? '' : ' pdfv-area-label--passive'}`}
+                                  title={
+                                    isAreaLabelInteractive
+                                      ? 'Нажмите, чтобы изменить название'
+                                      : undefined
+                                  }
                                 >
                                   <span className="pdfv-area-label__text">
                                     {a.name}
