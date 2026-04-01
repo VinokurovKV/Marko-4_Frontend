@@ -348,6 +348,14 @@
   background: hsla(0, 90%, 65%, 0.2);
 }
 .pdfv-search-highlight {
-  background: rgba(255, 230, 0, 0.6);
-  border-radius: 3px;
+  position: absolute;
+  box-sizing: border-box;
+  pointer-events: none;
+  background: hsla(45, 90%, 40%, 0.2);
+  border: 1px solid hsla(45, 90%, 40%, 0.8);
+  border-radius: 2px;
+}
+.pdfv-search-highlight--active {
+  background: hsla(0, 90%, 65%, 0.2);
+  border-color: hsla(0, 90%, 65%, 0.8);
 }

@@ -70,6 +70,16 @@ export const PdfSearchBox = React.memo(function PdfSearchBox({
   const trimmedInitialValue = initialValue.trim()
   const isSubmittedValue = trimmedInputValue === trimmedInitialValue
   const hasMatches = totalMatches > 0
+  const searchStatusText =
+    !trimmedInputValue || !isSubmittedValue
+      ? 'Введите текст'
+      : isSearchPending
+        ? hasMatches
+          ? `${activeMatchIndex} из ${totalMatches} (поиск продолжается...)`
+          : 'Поиск...'
+        : hasMatches
+          ? `${activeMatchIndex} из ${totalMatches}`
+          : 'Совпадений нет'
 
   React.useEffect(() => {
     setInputValue(initialValue)
@@ -205,15 +215,7 @@ export const PdfSearchBox = React.memo(function PdfSearchBox({
                     minWidth: 0
                   }}
                 >
-                  {trimmedInputValue
-                    ? isSubmittedValue && isSearchPending
-                      ? hasMatches
-                        ? `${activeMatchIndex} из ${totalMatches} (поиск продолжается...)`
-                        : 'Поиск...'
-                      : hasMatches
-                        ? `${activeMatchIndex} из ${totalMatches}`
-                        : 'Совпадений нет'
-                    : 'Введите текст'}
+                  {searchStatusText}
                 </Typography>
 
                 <Box

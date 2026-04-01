@@ -10,7 +10,7 @@ import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { createPluginRegistration } from '@embedpdf/core'
 import { EmbedPDF } from '@embedpdf/core/react'
 import { usePdfiumEngine } from '@embedpdf/engines/react'
-import { MatchFlag } from '@embedpdf/models'
+import { MatchFlag, type SearchResult } from '@embedpdf/models'
 import {
   DocumentContent,
   DocumentManagerPluginPackage,
@@ -46,11 +46,7 @@ import {
 } from '@embedpdf/plugin-selection/react'
 import { PagePointerProvider } from '@embedpdf/plugin-interaction-manager/react'
 import { ThumbnailPluginPackage } from '@embedpdf/plugin-thumbnail/react'
-import {
-  SearchPluginPackage,
-  useSearch,
-  SearchLayer
-} from '@embedpdf/plugin-search/react'
+import { SearchPluginPackage, useSearch } from '@embedpdf/plugin-search/react'
 // Material UI
 import CircularProgress from '@mui/material/CircularProgress'
 import Alert from '@mui/material/Alert'
@@ -182,6 +178,116 @@ function buildOffsetsY(pageSizes: PageSize[]) {
     acc += p.height
   }
   return offsets
+}
+
+type DisplayedSearchResult = {
+  actualIndex: number
+  result: SearchResult
+}
+
+type SearchHighlightRect = SearchResult['rects'][number]
+
+const CYRILLIC_RE = /[\p{Script=Cyrillic}]/u
+const WORD_CHAR_RE = /[\p{L}\p{N}_]/u
+
+function hasCyrillicChars(value: string): boolean {
+  return CYRILLIC_RE.test(value)
+}
+
+function isWordChar(value: string): boolean {
+  return WORD_CHAR_RE.test(value)
+}
+
+function isWholeWordContextMatch(
+  context: SearchResult['context'] | undefined
+): boolean {
+  const before = context?.before ?? ''
+  const after = context?.after ?? ''
+  const beforeChar = before.length > 0 ? before[before.length - 1] : ''
+  const afterChar = after.length > 0 ? after[0] : ''
+
+  return !isWordChar(beforeChar) && !isWordChar(afterChar)
+}
+
+function getDisplayedSearchResults(
+  results: SearchResult[],
+  query: string,
+  searchWholeWord?: boolean
+): DisplayedSearchResult[] {
+  const useClientWholeWord = Boolean(searchWholeWord && hasCyrillicChars(query))
+
+  return results.flatMap((result, actualIndex) => {
+    if (useClientWholeWord && !isWholeWordContextMatch(result.context)) {
+      return []
+    }
+
+    return [{ actualIndex, result }]
+  })
+}
+
+function mergeSearchHighlightRects(
+  rects: SearchHighlightRect[]
+): SearchHighlightRect[] {
+  if (rects.length <= 1) return rects
+
+  const sortedRects = [...rects].sort((a, b) => {
+    const centerYDiff =
+      a.origin.y + a.size.height / 2 - (b.origin.y + b.size.height / 2)
+
+    if (Math.abs(centerYDiff) > 0.5) {
+      return centerYDiff
+    }
+
+    return a.origin.x - b.origin.x
+  })
+
+  const mergedRects: SearchHighlightRect[] = []
+
+  for (const rect of sortedRects) {
+    const rectTop = rect.origin.y
+    const rectBottom = rect.origin.y + rect.size.height
+    const rectCenterY = rect.origin.y + rect.size.height / 2
+
+    const targetRect = mergedRects.find((current) => {
+      const currentTop = current.origin.y
+      const currentBottom = current.origin.y + current.size.height
+      const currentCenterY = current.origin.y + current.size.height / 2
+      const overlapY =
+        Math.min(rectBottom, currentBottom) - Math.max(rectTop, currentTop)
+      const lineTolerance =
+        Math.max(rect.size.height, current.size.height) * 0.6
+
+      return (
+        overlapY > 0 || Math.abs(rectCenterY - currentCenterY) <= lineTolerance
+      )
+    })
+
+    if (!targetRect) {
+      mergedRects.push({
+        origin: { ...rect.origin },
+        size: { ...rect.size }
+      })
+      continue
+    }
+
+    const left = Math.min(targetRect.origin.x, rect.origin.x)
+    const top = Math.min(targetRect.origin.y, rect.origin.y)
+    const right = Math.max(
+      targetRect.origin.x + targetRect.size.width,
+      rect.origin.x + rect.size.width
+    )
+    const bottom = Math.max(
+      targetRect.origin.y + targetRect.size.height,
+      rect.origin.y + rect.size.height
+    )
+
+    targetRect.origin.x = left
+    targetRect.origin.y = top
+    targetRect.size.width = right - left
+    targetRect.size.height = bottom - top
+  }
+
+  return mergedRects
 }
 
 function findPageIndexByDocY(
@@ -413,21 +519,31 @@ const PdfViewerBody: React.FC<
     if (!searchApi) return
 
     const flags: MatchFlag[] = []
+    const query = props.searchText?.trim() ?? ''
+    const useClientWholeWord = Boolean(
+      props.searchWholeWord && hasCyrillicChars(query)
+    )
 
     if (props.searchCaseSensitive) {
       flags.push(MatchFlag.MatchCase)
     }
 
-    if (props.searchWholeWord) {
+    if (props.searchWholeWord && !useClientWholeWord) {
       flags.push(MatchFlag.MatchWholeWord)
     }
 
     searchApi.setFlags(flags)
-  }, [props.documentId, props.searchCaseSensitive, props.searchWholeWord])
+  }, [
+    props.documentId,
+    props.searchCaseSensitive,
+    props.searchText,
+    props.searchWholeWord
+  ])
 
   const lastSearchTextRef = useRef('')
   const searchTotalRef = useRef(0)
   const searchActiveIndexRef = useRef(0)
+  const displayedSearchResultsRef = useRef<DisplayedSearchResult[]>([])
   const onSearchStateChangeRef = useRef(props.onSearchStateChange)
   const handledSearchNextRequestRef = useRef(0)
   const handledSearchPreviousRequestRef = useRef(0)
@@ -450,6 +566,11 @@ const PdfViewerBody: React.FC<
     total: -1,
     activeIndex: -1
   })
+  const [customSearchResults, setCustomSearchResults] = useState<
+    DisplayedSearchResult[]
+  >([])
+  const [customSearchActiveActualIndex, setCustomSearchActiveActualIndex] =
+    useState(-1)
 
   useEffect(() => {
     onSearchPendingChangeRef.current = props.onSearchPendingChange
@@ -482,27 +603,57 @@ const PdfViewerBody: React.FC<
     []
   )
 
+  const syncDisplayedSearchResults = React.useCallback(
+    (state: unknown, query: string) => {
+      const s =
+        state && typeof state === 'object'
+          ? (state as {
+              results?: SearchResult[]
+              activeResultIndex?: number
+            })
+          : undefined
+
+      const rawResults = Array.isArray(s?.results) ? s.results : []
+      const displayedResults = getDisplayedSearchResults(
+        rawResults,
+        query,
+        props.searchWholeWord
+      )
+      const activeActualIndex =
+        typeof s?.activeResultIndex === 'number' ? s.activeResultIndex : -1
+      const activeDisplayedIndex = displayedResults.findIndex(
+        (item) => item.actualIndex === activeActualIndex
+      )
+
+      displayedSearchResultsRef.current = displayedResults
+      setCustomSearchResults(displayedResults)
+      setCustomSearchActiveActualIndex(activeActualIndex)
+
+      return {
+        displayedResults,
+        activeDisplayedIndex
+      }
+    },
+    [props.searchWholeWord]
+  )
+
   const syncSearchState = React.useCallback(
-    (state: unknown) => {
+    (state: unknown, query: string = props.searchText?.trim() ?? '') => {
+      const { displayedResults, activeDisplayedIndex } =
+        syncDisplayedSearchResults(state, query)
+
       if (!state || typeof state !== 'object') {
         pushSearchState(0, 0)
         return
       }
 
-      const s = state as {
-        total?: number
-        activeResultIndex?: number
-      }
-
-      const total = typeof s.total === 'number' ? s.total : 0
+      const total = displayedResults.length
       const activeIndex =
-        total > 0 && typeof s.activeResultIndex === 'number'
-          ? s.activeResultIndex + 1
-          : 0
+        total > 0 && activeDisplayedIndex >= 0 ? activeDisplayedIndex + 1 : 0
 
       pushSearchState(total, activeIndex)
     },
-    [pushSearchState]
+    [props.searchText, pushSearchState, syncDisplayedSearchResults]
   )
 
   const { provides: selectionCapability } = useSelectionCapability()
@@ -953,7 +1104,7 @@ const PdfViewerBody: React.FC<
   }, [])
 
   const scrollToSearchResult = useCallback(
-    (resultIndex: number, behavior: ScrollBehavior = 'smooth') => {
+    (resultIndex: number, behavior: ScrollBehavior = 'auto') => {
       const searchApi = searchRef.current
       const scrollApi = scrollRef.current
 
@@ -1219,17 +1370,47 @@ const PdfViewerBody: React.FC<
     const unsubscribe = searchApi.onStateChange((state) => {
       if (cancelled) return
 
-      syncSearchState(state)
+      const query = props.searchText?.trim() ?? ''
+      const preferredIndex = preferredSearchResultIndexRef.current
+
+      if (preferredIndex !== null) {
+        const displayedResults = getDisplayedSearchResults(
+          Array.isArray(state.results) ? state.results : [],
+          query,
+          props.searchWholeWord
+        )
+        const preferredDisplayedIndex = displayedResults.findIndex(
+          (item) => item.actualIndex === preferredIndex
+        )
+
+        if (preferredDisplayedIndex >= 0) {
+          displayedSearchResultsRef.current = displayedResults
+          setCustomSearchResults(displayedResults)
+          setCustomSearchActiveActualIndex(preferredIndex)
+          pushSearchState(displayedResults.length, preferredDisplayedIndex + 1)
+          pushSearchPending(Boolean(state.loading))
+          return
+        }
+      }
+
+      syncSearchState(state, query)
       pushSearchPending(Boolean(state.loading))
     })
 
-    syncSearchState(searchApi.getState())
+    syncSearchState(searchApi.getState(), props.searchText?.trim() ?? '')
 
     return () => {
       cancelled = true
       unsubscribe?.()
     }
-  }, [props.documentId, syncSearchState, pushSearchPending])
+  }, [
+    props.documentId,
+    props.searchText,
+    props.searchWholeWord,
+    syncSearchState,
+    pushSearchPending,
+    pushSearchState
+  ])
 
   useEffect(() => {
     const searchApi = searchRef.current
@@ -1252,6 +1433,9 @@ const PdfViewerBody: React.FC<
         total: -1,
         activeIndex: -1
       }
+      displayedSearchResultsRef.current = []
+      setCustomSearchResults([])
+      setCustomSearchActiveActualIndex(-1)
       suppressActiveResultEffectRef.current = false
       pushSearchState(0, 0)
       pushSearchPending(false)
@@ -1260,8 +1444,8 @@ const PdfViewerBody: React.FC<
 
     const isNewQuery = lastSearchTextRef.current !== query
     if (isNewQuery) {
-      handledSearchNextRequestRef.current = 0
-      handledSearchPreviousRequestRef.current = 0
+      handledSearchNextRequestRef.current = props.searchNextRequest ?? 0
+      handledSearchPreviousRequestRef.current = props.searchPreviousRequest ?? 0
       preferredSearchResultIndexRef.current = null
       pushSearchState(0, 0)
     }
@@ -1313,7 +1497,7 @@ const PdfViewerBody: React.FC<
             results?: Array<unknown>
           }
 
-          syncSearchState(state)
+          syncSearchState(state, query)
           suppressActiveResultEffectRef.current = false
           pushSearchPending(false)
         }
@@ -1325,40 +1509,61 @@ const PdfViewerBody: React.FC<
 
       const state = searchApi.getState() as {
         activeResultIndex?: number
-        results?: Array<unknown>
+        results?: SearchResult[]
       }
 
-      syncSearchState(state)
-
-      const total = Array.isArray(state.results)
-        ? state.results.length
-        : searchTotalRef.current
+      const displayedResults = getDisplayedSearchResults(
+        Array.isArray(state.results) ? state.results : [],
+        query,
+        props.searchWholeWord
+      )
+      const total = displayedResults.length
+      const preferredIndex = preferredSearchResultIndexRef.current
 
       if (isNewQuery && total > 0) {
-        const preferredIndex = preferredSearchResultIndexRef.current
-        const currentActiveIndex =
-          searchActiveIndexRef.current > 0
-            ? searchActiveIndexRef.current - 1
+        const preferredDisplayedIndex =
+          preferredIndex !== null
+            ? displayedResults.findIndex(
+                (item) => item.actualIndex === preferredIndex
+              )
             : -1
         const resultIndex =
-          preferredIndex !== null &&
-          preferredIndex >= 0 &&
-          preferredIndex < total
-            ? searchApi.goToResult(preferredIndex)
-            : currentActiveIndex >= 0 && currentActiveIndex < total
-              ? searchApi.goToResult(currentActiveIndex)
-              : typeof state.activeResultIndex === 'number' &&
-                  state.activeResultIndex >= 0
-                ? state.activeResultIndex
-                : searchApi.nextResult()
+          preferredDisplayedIndex >= 0
+            ? preferredIndex!
+            : displayedResults[0].actualIndex
 
-        pushSearchState(total, resultIndex + 1)
+        syncSearchState(
+          {
+            ...state,
+            activeResultIndex: resultIndex
+          },
+          query
+        )
 
         window.requestAnimationFrame(() => {
           scrollToSearchResult(resultIndex, 'auto')
           suppressActiveResultEffectRef.current = false
         })
+      } else if (preferredIndex !== null && total > 0) {
+        const preferredDisplayedIndex = displayedResults.findIndex(
+          (item) => item.actualIndex === preferredIndex
+        )
+
+        if (preferredDisplayedIndex >= 0) {
+          syncSearchState(
+            {
+              ...state,
+              activeResultIndex: preferredIndex
+            },
+            query
+          )
+        } else {
+          syncSearchState(state, query)
+        }
+
+        suppressActiveResultEffectRef.current = false
       } else {
+        syncSearchState(state, query)
         suppressActiveResultEffectRef.current = false
       }
 
@@ -1389,6 +1594,7 @@ const PdfViewerBody: React.FC<
     if (!searchApi) return
 
     let cancelled = false
+    const query = props.searchText?.trim() ?? ''
 
     const unsubscribe = searchApi.onActiveResultChange((activeIndex) => {
       if (
@@ -1399,9 +1605,12 @@ const PdfViewerBody: React.FC<
         return
       }
 
-      const total = searchTotalRef.current
-      if (total > 0) {
-        pushSearchState(total, activeIndex + 1)
+      const state = searchApi.getState()
+      const { displayedResults, activeDisplayedIndex } =
+        syncDisplayedSearchResults(state, query)
+
+      if (displayedResults.length > 0 && activeDisplayedIndex >= 0) {
+        pushSearchState(displayedResults.length, activeDisplayedIndex + 1)
       }
 
       window.requestAnimationFrame(() => {
@@ -1414,7 +1623,13 @@ const PdfViewerBody: React.FC<
       cancelled = true
       unsubscribe?.()
     }
-  }, [props.documentId, pushSearchState])
+  }, [
+    props.documentId,
+    props.searchText,
+    pushSearchState,
+    scrollToSearchResult,
+    syncDisplayedSearchResults
+  ])
 
   useEffect(() => {
     const searchApi = searchRef.current
@@ -1431,9 +1646,20 @@ const PdfViewerBody: React.FC<
 
     handledSearchNextRequestRef.current = props.searchNextRequest
 
-    const nextIndex = searchApi.nextResult()
+    const displayedResults = displayedSearchResultsRef.current
+    const currentDisplayedIndex = displayedResults.findIndex(
+      (item) => item.actualIndex === customSearchActiveActualIndex
+    )
+    const nextDisplayedIndex =
+      currentDisplayedIndex >= 0
+        ? (currentDisplayedIndex + 1) % displayedResults.length
+        : 0
+    const nextIndex = displayedResults[nextDisplayedIndex]?.actualIndex ?? -1
+    if (nextIndex < 0) return
+
+    searchApi.goToResult(nextIndex)
     preferredSearchResultIndexRef.current = nextIndex
-    pushSearchState(total, nextIndex + 1)
+    pushSearchState(total, nextDisplayedIndex + 1)
 
     window.requestAnimationFrame(() => {
       scrollToSearchResult(nextIndex)
@@ -1442,6 +1668,7 @@ const PdfViewerBody: React.FC<
     props.documentId,
     props.searchNextRequest,
     props.searchText,
+    customSearchActiveActualIndex,
     pushSearchState,
     scrollToSearchResult
   ])
@@ -1462,9 +1689,22 @@ const PdfViewerBody: React.FC<
 
     handledSearchPreviousRequestRef.current = props.searchPreviousRequest
 
-    const previousIndex = searchApi.previousResult()
+    const displayedResults = displayedSearchResultsRef.current
+    const currentDisplayedIndex = displayedResults.findIndex(
+      (item) => item.actualIndex === customSearchActiveActualIndex
+    )
+    const previousDisplayedIndex =
+      currentDisplayedIndex >= 0
+        ? (currentDisplayedIndex - 1 + displayedResults.length) %
+          displayedResults.length
+        : displayedResults.length - 1
+    const previousIndex =
+      displayedResults[previousDisplayedIndex]?.actualIndex ?? -1
+    if (previousIndex < 0) return
+
+    searchApi.goToResult(previousIndex)
     preferredSearchResultIndexRef.current = previousIndex
-    pushSearchState(total, previousIndex + 1)
+    pushSearchState(total, previousDisplayedIndex + 1)
 
     window.requestAnimationFrame(() => {
       scrollToSearchResult(previousIndex)
@@ -1473,6 +1713,7 @@ const PdfViewerBody: React.FC<
     props.documentId,
     props.searchPreviousRequest,
     props.searchText,
+    customSearchActiveActualIndex,
     pushSearchState,
     scrollToSearchResult
   ])
@@ -1683,12 +1924,6 @@ const PdfViewerBody: React.FC<
                       />
                     )}
 
-                    <SearchLayer
-                      documentId={props.documentId}
-                      pageIndex={pageIndex}
-                      scale={scale}
-                    />
-
                     {isTextMode && (
                       <div className="pdfv-selection-host">
                         <SelectionLayer
@@ -1703,6 +1938,31 @@ const PdfViewerBody: React.FC<
                     )}
 
                     <div className="pdfv-overlay">
+                      {customSearchResults
+                        .filter((item) => item.result.pageIndex === pageIndex)
+                        .map((item) =>
+                          mergeSearchHighlightRects(item.result.rects).map(
+                            (rect, rectIndex) => {
+                              const isActive =
+                                item.actualIndex ===
+                                customSearchActiveActualIndex
+
+                              return (
+                                <div
+                                  key={`search-${item.actualIndex}-${rectIndex}`}
+                                  className={`pdfv-search-highlight${isActive ? ' pdfv-search-highlight--active' : ''}`}
+                                  style={{
+                                    left: fmtPx(rect.origin.x * scale),
+                                    top: fmtPx(rect.origin.y * scale),
+                                    width: fmtPx(rect.size.width * scale),
+                                    height: fmtPx(rect.size.height * scale)
+                                  }}
+                                />
+                              )
+                            }
+                          )
+                        )}
+
                       {pageAreas.map((a) => {
                         const isActive = activeAreaId === a.id
 
