@@ -35,8 +35,11 @@ export function AccountMenu() {
   )
 
   const restrictedAcountMenuConfig: AcountMenuConfig = React.useMemo(() => {
-    return ACCOUNT_MENU_CONFIG.filter((item) =>
-      (item.requiredRights ?? []).every((right) => rightsSet.has(right))
+    return ACCOUNT_MENU_CONFIG.filter(
+      (item) =>
+        (item.requiredRights ?? []).every((right) => rightsSet.has(right)) &&
+        ((item.requiredAnyRights ?? []).length === 0 ||
+          (item.requiredAnyRights ?? []).some((right) => rightsSet.has(right)))
     )
   }, [rightsSet])
 

@@ -13,6 +13,7 @@ export default [
         route('login', 'routes/login.tsx'),
         layout('routes/authenticated-guard.tsx', [
           layout('routes/layout.tsx', [
+            route('profile', 'routes/profile.tsx'),
             route('roles', 'routes/roles.tsx', [
               route(':roleId', 'routes/role.tsx')
             ]),

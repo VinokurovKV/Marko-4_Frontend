@@ -14,4 +14,5 @@ export type AcountMenuConfig = {
   Icon: Icon
   href: string
   requiredRights?: Right[]
+  requiredAnyRights?: Right[]
 }[]
