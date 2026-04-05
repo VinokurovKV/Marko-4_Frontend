@@ -16,11 +16,46 @@ import {
   ColumnViewerChipsBlock,
   ColumnViewerFile,
   ColumnViewerItem,
+  ColumnViewerLinksBlock,
   ColumnViewerRef,
   ColumnViewerText
 } from '../common'
 // React
 import * as React from 'react'
+
+function getFragmentDisplayName(fragment: FragmentPrimary) {
+  if (fragment.name !== null && fragment.name.trim() !== '') {
+    return fragment.name
+  }
+
+  return `Область ${fragment.innerCode}`
+}
+
+function formatPageNumbers(pageNumbers: number[]) {
+  if (pageNumbers.length === 0) return null
+
+  const sorted = [...new Set(pageNumbers)].sort((a, b) => a - b)
+  const ranges: string[] = []
+  let rangeStart = sorted[0]
+  let prev = sorted[0]
+
+  for (let i = 1; i < sorted.length; i++) {
+    const current = sorted[i]
+
+    if (current === prev + 1) {
+      prev = current
+      continue
+    }
+
+    ranges.push(rangeStart === prev ? `${rangeStart}` : `${rangeStart}-${prev}`)
+    rangeStart = current
+    prev = current
+  }
+
+  ranges.push(rangeStart === prev ? `${rangeStart}` : `${rangeStart}-${prev}`)
+
+  return ranges.join(', ')
+}
 
 export interface DocumentViewerProps {
   tags: TagPrimary[] | null
@@ -34,6 +69,19 @@ export function DocumentViewer({
   fragments
 }: DocumentViewerProps) {
   const notifier = useNotifier()
+  const [fragmentPagesForId, setFragmentPagesForId] = React.useState<
+    Record<number, number[]>
+  >({})
+  const [browseAreaRequest, setBrowseAreaRequest] = React.useState<{
+    areaId: number
+    seq: number
+  } | null>(null)
+  const [previewAreaRequest, setPreviewAreaRequest] = React.useState<{
+    areaId: number
+    seq: number
+  } | null>(null)
+  const browseAreaRequestSeqRef = React.useRef(0)
+  const previewAreaRequestSeqRef = React.useRef(0)
   const getConfigBlob = React.useCallback(async () => {
     try {
       const data = await serverConnector.readDocumentConfig({
@@ -46,12 +94,33 @@ export function DocumentViewer({
     }
   }, [document])
 
+  const requestBrowseArea = React.useCallback((areaId: number) => {
+    browseAreaRequestSeqRef.current += 1
+    setBrowseAreaRequest({
+      areaId,
+      seq: browseAreaRequestSeqRef.current
+    })
+  }, [])
+
+  const requestPreviewArea = React.useCallback((areaId: number) => {
+    previewAreaRequestSeqRef.current += 1
+    setPreviewAreaRequest({
+      areaId,
+      seq: previewAreaRequestSeqRef.current
+    })
+  }, [])
+
   return (
     <HorizontalTwoPartsContainer
       proportions="THREE_ONE"
       title={['Документ', `${document.code}`]}
     >
-      <DocumentContentViewer document={document} />
+      <DocumentContentViewer
+        document={document}
+        onFragmentPagesChange={setFragmentPagesForId}
+        previewAreaRequest={previewAreaRequest}
+        browseAreaRequest={browseAreaRequest}
+      />
       <VerticalTwoPartsContainer proportions="50_50">
         <ColumnViewer>
           <ColumnViewerBlock title="основная информация">
@@ -100,7 +169,8 @@ export function DocumentViewer({
               emptyText={fragments !== null ? 'нет' : '???'}
               items={(fragments ?? []).map((fragment) => ({
                 text: fragment.innerCode,
-                href: `/fragments/${fragment.id}`
+                onClick: () => requestPreviewArea(fragment.id),
+                disableCapitalize: true
               }))}
             />
           </ColumnViewerBlock>
@@ -116,7 +186,23 @@ export function DocumentViewer({
         </ColumnViewer>
         <ColumnViewer>
           <ColumnViewerBlock title="фрагменты">
-            <ColumnViewerText text={undefined} emptyText="нет" />
+            <ColumnViewerLinksBlock
+              emptyText={fragments !== null ? 'нет' : '???'}
+              items={(fragments ?? []).map((fragment) => ({
+                text: getFragmentDisplayName(fragment),
+                secondaryText: (() => {
+                  const pagesText = formatPageNumbers(
+                    fragmentPagesForId[fragment.id] ?? []
+                  )
+
+                  return pagesText !== null
+                    ? `Код: ${fragment.innerCode} | Страницы: ${pagesText}`
+                    : `Код: ${fragment.innerCode}`
+                })(),
+                onClick: () => requestBrowseArea(fragment.id),
+                disableCapitalize: true
+              }))}
+            />
           </ColumnViewerBlock>
         </ColumnViewer>
       </VerticalTwoPartsContainer>

@@ -97,6 +97,11 @@ export type PdfViewerProps = {
   searchNextRequest?: number
   onSearchPendingChange?: (isPending: boolean) => void
   onSearchStateChange?: (data: { total: number; activeIndex: number }) => void
+  onAreaPagesChange?: (pagesForAreaId: Record<number, number[]>) => void
+  previewAreaRequest?: {
+    areaId: number
+    seq: number
+  } | null
   onAreaClick?: (data: { areaId: number }) => void | null
   onUpdateAreaButtonClick?: (data: { areaId: number }) => void | null
   onDeleteAreaButtonClick?: (data: { areaId: number }) => void | null
@@ -763,14 +768,20 @@ const PdfViewerBody: React.FC<
   const [tooSmallOpen, setTooSmallOpen] = useState(false)
   const [tooSmallText, setTooSmallText] = useState('')
 
+  const [isCapturePreviewOpen, setIsCapturePreviewOpen] = useState(false)
   const [capturedImageUrl, setCapturedImageUrl] = useState<string | null>(null)
   const [capturedImageName, setCapturedImageName] = useState<string>('')
+  const [capturePreviewMode, setCapturePreviewMode] = useState<
+    'SCREENSHOT' | 'FRAGMENT_PREVIEW'
+  >('SCREENSHOT')
+  const [capturePreviewTitle, setCapturePreviewTitle] = useState('')
 
   const pendingCaptureRef = useRef<null | {
     filename: string
     pageIndex: number
     onCaptured?: (result: CaptureAreaEvent) => void
   }>(null)
+  const handledPreviewAreaRequestSeqRef = useRef<number | null>(null)
 
   const BTN_W_PX = 28
   const BTN_H_PX = 28
@@ -800,6 +811,23 @@ const PdfViewerBody: React.FC<
     },
     [capture]
   )
+
+  const closeCapturePreviewDialog = useCallback(() => {
+    setIsCapturePreviewOpen(false)
+  }, [])
+
+  const resetCapturePreviewDialogState = useCallback(() => {
+    setCapturedImageUrl((prev) => {
+      if (prev) {
+        URL.revokeObjectURL(prev)
+      }
+
+      return null
+    })
+    setCapturedImageName('')
+    setCapturePreviewMode('SCREENSHOT')
+    setCapturePreviewTitle('')
+  }, [])
 
   const ensureMinRectSizeByButtons = useCallback(
     (wPx: number, hPx: number): boolean => {
@@ -1003,6 +1031,7 @@ const PdfViewerBody: React.FC<
         return url
       })
       setCapturedImageName(filename)
+      setIsCapturePreviewOpen(true)
 
       pendingCaptureRef.current = null
     })
@@ -1077,6 +1106,27 @@ const PdfViewerBody: React.FC<
       splitAreaByPages(area, pageSizes, offsetsY)
     )
   }, [props.areas, pageSizes, offsetsY])
+
+  const areaPagesForId = useMemo(() => {
+    const pagesForAreaId: Record<number, number[]> = {}
+
+    for (const area of thumbnailAreas) {
+      const pageNumber = area.pageIndex + 1
+      const pages = pagesForAreaId[area.id]
+
+      if (pages === undefined) {
+        pagesForAreaId[area.id] = [pageNumber]
+      } else if (!pages.includes(pageNumber)) {
+        pages.push(pageNumber)
+      }
+    }
+
+    return pagesForAreaId
+  }, [thumbnailAreas])
+
+  useEffect(() => {
+    props.onAreaPagesChange?.(areaPagesForId)
+  }, [props.onAreaPagesChange, areaPagesForId])
 
   const scrollToArea = useCallback(
     (areaId: number) => {
@@ -1385,11 +1435,6 @@ const PdfViewerBody: React.FC<
 
   const captureAreaScreenshot = useCallback(
     (area: PdfArea & { pageIndex: number; localRect: Rectangle }) => {
-      console.log('captureAreaScreenshot', {
-        hasCapture: Boolean(capture),
-        area
-      })
-
       if (!capture) {
         return
       }
@@ -1407,6 +1452,35 @@ const PdfViewerBody: React.FC<
     },
     [capture]
   )
+
+  const openAreaScreenshotPreview = useCallback(
+    (area: PdfArea & { pageIndex: number; localRect: Rectangle }) => {
+      setCapturePreviewMode('SCREENSHOT')
+      setCapturePreviewTitle(area.name)
+      captureAreaScreenshot(area)
+    },
+    [captureAreaScreenshot]
+  )
+
+  useEffect(() => {
+    if (props.previewAreaRequest == null) return
+    if (
+      handledPreviewAreaRequestSeqRef.current === props.previewAreaRequest.seq
+    ) {
+      return
+    }
+    if (!capture) return
+
+    const area = derivedAreas.find(
+      (item) => item.id === props.previewAreaRequest?.areaId
+    )
+    if (!area) return
+
+    handledPreviewAreaRequestSeqRef.current = props.previewAreaRequest.seq
+    setCapturePreviewMode('FRAGMENT_PREVIEW')
+    setCapturePreviewTitle(area.name)
+    captureAreaScreenshot(area)
+  }, [capture, captureAreaScreenshot, derivedAreas, props.previewAreaRequest])
 
   useEffect(() => {
     const searchApi = searchRef.current
@@ -1819,11 +1893,10 @@ const PdfViewerBody: React.FC<
         </Dialog>
 
         <Dialog
-          open={capturedImageUrl !== null}
-          onClose={() => {
-            if (capturedImageUrl) URL.revokeObjectURL(capturedImageUrl)
-            setCapturedImageUrl(null)
-            setCapturedImageName('')
+          open={isCapturePreviewOpen}
+          onClose={closeCapturePreviewDialog}
+          TransitionProps={{
+            onExited: resetCapturePreviewDialogState
           }}
           maxWidth="md"
           fullWidth
@@ -1844,7 +1917,10 @@ const PdfViewerBody: React.FC<
               textAlign: 'center'
             }}
           >
-            Предпросмотр снимка области
+            {capturePreviewMode === 'FRAGMENT_PREVIEW'
+              ? 'Предпросмотр фрагмента'
+              : 'Предпросмотр снимка области'}
+            {capturePreviewTitle !== '' ? `: ${capturePreviewTitle}` : ''}
           </DialogTitle>
           <DialogContent dividers>
             {capturedImageUrl && (
@@ -1861,30 +1937,25 @@ const PdfViewerBody: React.FC<
             )}
           </DialogContent>
           <DialogActions>
-            <ProjButton
-              variant="outlined"
-              onClick={() => {
-                if (capturedImageUrl) URL.revokeObjectURL(capturedImageUrl)
-                setCapturedImageUrl(null)
-                setCapturedImageName('')
-              }}
-            >
+            <ProjButton variant="outlined" onClick={closeCapturePreviewDialog}>
               Закрыть
             </ProjButton>
-            <ProjButton
-              variant="contained"
-              onClick={() => {
-                if (!capturedImageUrl) return
-                const a = document.createElement('a')
-                a.href = capturedImageUrl
-                a.download = capturedImageName || 'capture.png'
-                document.body.appendChild(a)
-                a.click()
-                a.remove()
-              }}
-            >
-              Скачать
-            </ProjButton>
+            {capturePreviewMode === 'SCREENSHOT' ? (
+              <ProjButton
+                variant="contained"
+                onClick={() => {
+                  if (!capturedImageUrl) return
+                  const a = document.createElement('a')
+                  a.href = capturedImageUrl
+                  a.download = capturedImageName || 'capture.png'
+                  document.body.appendChild(a)
+                  a.click()
+                  a.remove()
+                }}
+              >
+                Скачать
+              </ProjButton>
+            ) : null}
           </DialogActions>
         </Dialog>
 
@@ -2187,7 +2258,7 @@ const PdfViewerBody: React.FC<
                                     aria-label="Сделать скриншот области"
                                     disabled={!capture}
                                     onClick={() => {
-                                      captureAreaScreenshot(a)
+                                      openAreaScreenshotPreview(a)
                                     }}
                                   >
                                     <PhotoCameraIcon fontSize="small" />

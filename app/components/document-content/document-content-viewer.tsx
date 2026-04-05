@@ -80,13 +80,26 @@ function parseAreaOrderNumber(innerCode: string): number | null {
 
 export interface DocumentContentViewerProps {
   document: DocumentTertiary
+  onFragmentPagesChange?: (pagesForFragmentId: Record<number, number[]>) => void
+  previewAreaRequest?: {
+    areaId: number
+    seq: number
+  } | null
+  browseAreaRequest?: {
+    areaId: number
+    seq: number
+  } | null
 }
 
 export function DocumentContentViewer({
-  document
+  document,
+  onFragmentPagesChange,
+  previewAreaRequest,
+  browseAreaRequest
 }: DocumentContentViewerProps) {
   const theme = useTheme()
   const notifier = useNotifier()
+  const handledBrowseAreaRequestSeqRef = React.useRef<number | null>(null)
 
   const [configBlob, setConfigBlob] = React.useState<Blob | null>(null)
   const [configBuffer, setConfigBuffer] = React.useState<ArrayBuffer | null>(
@@ -264,6 +277,17 @@ export function DocumentContentViewer({
     setMode({ type: 'BROWSE_AREA', areaId: browseAreaId })
     setIsBrowseDialogOpen(false)
   }, [browseAreaId])
+
+  React.useEffect(() => {
+    if (browseAreaRequest == null) return
+    if (handledBrowseAreaRequestSeqRef.current === browseAreaRequest.seq) return
+    if (!areas.some((area) => area.id === browseAreaRequest.areaId)) return
+
+    handledBrowseAreaRequestSeqRef.current = browseAreaRequest.seq
+    setBrowseAreaId(browseAreaRequest.areaId)
+    setIsBrowseDialogOpen(false)
+    setMode({ type: 'BROWSE_AREA', areaId: browseAreaRequest.areaId })
+  }, [areas, browseAreaRequest])
 
   const openCreateAreaDialog = React.useCallback(
     (rectangle: Rectangle, configFile?: File) => {
@@ -897,6 +921,8 @@ export function DocumentContentViewer({
               searchPreviousRequest={searchPreviousRequest}
               onSearchPendingChange={handleSearchPendingChange}
               onSearchStateChange={handleSearchStateChange}
+              onAreaPagesChange={onFragmentPagesChange}
+              previewAreaRequest={previewAreaRequest}
               onAreaClick={({ areaId }) =>
                 setMode({ type: 'BROWSE_AREA', areaId })
               }
