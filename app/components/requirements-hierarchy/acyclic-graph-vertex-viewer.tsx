@@ -25,12 +25,23 @@ export interface AcyclicGraphVertexViewerProps<VertexData> {
   hasChildren: boolean
   data: VertexData
   type: AcyclicGraphVertexType
+  dimmed?: boolean
   collapsed: boolean
   onClick?: (id: number) => void
 }
 
 export default function AcyclicGraphVertexViewer({
-  data: { id, level, hasParents, hasChildren, data, type, collapsed, onClick }
+  data: {
+    id,
+    level,
+    hasParents,
+    hasChildren,
+    data,
+    type,
+    dimmed = false,
+    collapsed,
+    onClick
+  }
 }: NodeProps<AcyclicGraphVertexViewerProps<VertexData>>) {
   const [isHovered, setIsHovered] = useState(false)
 
@@ -40,7 +51,7 @@ export default function AcyclicGraphVertexViewer({
 
   return (
     <div
-      className={`acyclic-vertex ${type.toLowerCase()} ${collapsed ? 'collapsed' : ''}`}
+      className={`acyclic-vertex ${type.toLowerCase()} ${dimmed ? 'dimmed' : ''} ${collapsed ? 'collapsed' : ''}`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onClick={handleClick}

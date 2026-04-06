@@ -1,12 +1,22 @@
 // Project
 import { ProjButton } from '../buttons/button'
 // React
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState
+} from 'react'
 import ReactFlow, {
   Background,
   Controls,
   type Edge,
   type Node,
+  useNodesInitialized,
+  useReactFlow,
+  useStore,
   useEdgesState,
   useNodesState
 } from 'reactflow'
@@ -18,12 +28,10 @@ import AcyclicGraphVertexViewer, {
   type VertexData
 } from './acyclic-graph-vertex-viewer'
 import { edgeStyle } from './requirements'
-import ConfirmationModal from './confirmation'
-import ChoiceModal from './choice'
 import calculateNodePositions from './graph-layouts/layout-tree'
 import './styles.css'
 // Material UI
-import { styled } from '@mui/material/styles'
+import { alpha, styled, useTheme } from '@mui/material/styles'
 import Box from '@mui/material/Box'
 import Divider from '@mui/material/Divider'
 import Paper from '@mui/material/Paper'
@@ -59,9 +67,239 @@ export interface AcyclicGraphViewerProps {
 }
 
 type AcyclicGraphNode = Node<AcyclicGraphVertexViewerProps<VertexData>>
+type MiniGraphDisplayMode = 'ROOT_PATH' | 'ALL_RELATED'
 
 const nodeTypes = {
   acyclicGraphVertex: AcyclicGraphVertexViewer
+}
+
+const MAIN_FLOW_MIN_ZOOM = 0.05
+const MAIN_FLOW_MAX_ZOOM = 2
+const MAIN_FLOW_PINCH_ZOOM_SENSITIVITY_MULTIPLIER = 4
+const MINI_GRAPH_ZOOM_SENSITIVITY_MULTIPLIER = 2.5
+const MINI_GRAPH_FIT_VIEW_OPTIONS = {
+  padding: 0.35,
+  minZoom: 0.01,
+  maxZoom: 1
+} as const
+
+const isMacOs = () =>
+  typeof navigator !== 'undefined' &&
+  /(Mac|iPhone|iPod|iPad)/i.test(navigator.platform)
+
+const getBaseZoomDeltaFromWheelEvent = (event: WheelEvent) => {
+  const ctrlFactor = event.ctrlKey && isMacOs() ? 10 : 1
+  const deltaFactor =
+    event.deltaMode === 1 ? 0.05 : event.deltaMode !== 0 ? 1 : 0.002
+
+  return -event.deltaY * deltaFactor * ctrlFactor
+}
+
+function ReactFlowPinchZoomSensitivityController() {
+  const d3Zoom = useStore((state) => state.d3Zoom)
+  const d3Selection = useStore((state) => state.d3Selection)
+
+  useEffect(() => {
+    if (!d3Zoom || !d3Selection) {
+      return
+    }
+
+    const pane = d3Selection.node() as HTMLElement | null
+
+    if (pane === null) {
+      return
+    }
+
+    const handleWheel = (event: WheelEvent) => {
+      if (event.ctrlKey === false && event.metaKey === false) {
+        return
+      }
+
+      event.preventDefault()
+      event.stopPropagation()
+      event.stopImmediatePropagation()
+
+      const zoomValue: unknown = d3Selection.property('__zoom')
+
+      const currentZoom =
+        typeof zoomValue === 'object' &&
+        zoomValue !== null &&
+        'k' in zoomValue &&
+        typeof zoomValue.k === 'number'
+          ? zoomValue.k
+          : 1
+
+      const rect = pane.getBoundingClientRect()
+      const point: [number, number] = [
+        event.clientX - rect.left,
+        event.clientY - rect.top
+      ]
+      const zoom =
+        currentZoom *
+        Math.pow(
+          2,
+          getBaseZoomDeltaFromWheelEvent(event) *
+            MAIN_FLOW_PINCH_ZOOM_SENSITIVITY_MULTIPLIER
+        )
+
+      d3Zoom.scaleTo(d3Selection, zoom, point)
+    }
+
+    pane.addEventListener('wheel', handleWheel, {
+      capture: true,
+      passive: false
+    })
+
+    return () => {
+      pane.removeEventListener('wheel', handleWheel, true)
+    }
+  }, [d3Zoom, d3Selection])
+
+  return null
+}
+
+function MiniGraphWheelController() {
+  const d3Zoom = useStore((state) => state.d3Zoom)
+  const d3Selection = useStore((state) => state.d3Selection)
+
+  useEffect(() => {
+    if (!d3Zoom || !d3Selection) {
+      return
+    }
+
+    const pane = d3Selection.node() as HTMLElement | null
+
+    if (pane === null) {
+      return
+    }
+
+    const handleWheel = (event: WheelEvent) => {
+      if (
+        event.target instanceof Element &&
+        event.target.closest('.nowheel') !== null
+      ) {
+        return
+      }
+
+      event.preventDefault()
+      event.stopPropagation()
+      event.stopImmediatePropagation()
+
+      const zoomValue: unknown = d3Selection.property('__zoom')
+
+      const currentZoom =
+        typeof zoomValue === 'object' &&
+        zoomValue !== null &&
+        'k' in zoomValue &&
+        typeof zoomValue.k === 'number'
+          ? zoomValue.k
+          : 1
+
+      const isPinchGesture = event.ctrlKey || event.metaKey
+      const isLikelyMouseWheel =
+        event.deltaMode === 1 ||
+        (Math.abs(event.deltaY) >= 40 && Math.abs(event.deltaX) < 1)
+
+      if (isPinchGesture || isLikelyMouseWheel) {
+        const rect = pane.getBoundingClientRect()
+        const point: [number, number] = [
+          event.clientX - rect.left,
+          event.clientY - rect.top
+        ]
+        const zoom =
+          currentZoom *
+          Math.pow(
+            2,
+            getBaseZoomDeltaFromWheelEvent(event) *
+              MINI_GRAPH_ZOOM_SENSITIVITY_MULTIPLIER
+          )
+
+        d3Zoom.scaleTo(d3Selection, zoom, point)
+        return
+      }
+
+      const deltaNormalize = event.deltaMode === 1 ? 20 : 1
+      let deltaX = event.deltaX * deltaNormalize
+      let deltaY = event.deltaY * deltaNormalize
+
+      if (!isMacOs() && event.shiftKey) {
+        deltaX = event.deltaY * deltaNormalize
+        deltaY = 0
+      }
+
+      d3Zoom.translateBy(
+        d3Selection,
+        -(deltaX / currentZoom),
+        -(deltaY / currentZoom)
+      )
+    }
+
+    pane.addEventListener('wheel', handleWheel, {
+      capture: true,
+      passive: false
+    })
+
+    return () => {
+      pane.removeEventListener('wheel', handleWheel, true)
+    }
+  }, [d3Zoom, d3Selection])
+
+  return null
+}
+
+function MiniGraphAutoFit({
+  fitKey,
+  setReady
+}: {
+  fitKey: string
+  setReady: React.Dispatch<React.SetStateAction<boolean>>
+}) {
+  const reactFlow = useReactFlow()
+  const nodesInitialized = useNodesInitialized()
+  const viewportInitialized = useStore(
+    (state) =>
+      state.width > 0 &&
+      state.height > 0 &&
+      state.d3Zoom !== null &&
+      state.d3Selection !== null
+  )
+
+  useLayoutEffect(() => {
+    if (nodesInitialized === false || viewportInitialized === false) {
+      return
+    }
+
+    setReady(false)
+    let cancelled = false
+    let frameId = 0
+
+    const runFitView = () => {
+      if (cancelled) {
+        return
+      }
+
+      const fitted = reactFlow.fitView(MINI_GRAPH_FIT_VIEW_OPTIONS)
+
+      if (fitted) {
+        frameId = requestAnimationFrame(() => {
+          if (cancelled === false) {
+            setReady(true)
+          }
+        })
+      } else {
+        frameId = requestAnimationFrame(runFitView)
+      }
+    }
+
+    frameId = requestAnimationFrame(runFitView)
+
+    return () => {
+      cancelled = true
+      cancelAnimationFrame(frameId)
+    }
+  }, [reactFlow, nodesInitialized, viewportInitialized, fitKey, setReady])
+
+  return null
 }
 
 const getVertexLevel = (vertexData: VertexData): number => {
@@ -71,41 +309,6 @@ const getVertexLevel = (vertexData: VertexData): number => {
     if (typeof level === 'number' && Number.isFinite(level)) return level
   }
   return 0
-}
-
-const getPathToRoot = (nodeId: string, edges: Edge[]): Set<string> => {
-  const path = new Set<string>([nodeId])
-
-  const findParents = (currentId: string) => {
-    edges.forEach((edge) => {
-      if (edge.target === currentId && !path.has(edge.source)) {
-        path.add(edge.source)
-        findParents(edge.source)
-      }
-    })
-  }
-
-  findParents(nodeId)
-  return path
-}
-
-const getFullSubtree = (nodeId: string, edges: Edge[]): Set<string> => {
-  const fullSubtree = new Set<string>([nodeId])
-
-  const pathToRoot = getPathToRoot(nodeId, edges)
-  pathToRoot.forEach((node) => fullSubtree.add(node))
-
-  const addChildren = (currentId: string) => {
-    edges.forEach((edge) => {
-      if (edge.source === currentId && !fullSubtree.has(edge.target)) {
-        fullSubtree.add(edge.target)
-        addChildren(edge.target)
-      }
-    })
-  }
-
-  addChildren(nodeId)
-  return fullSubtree
 }
 
 const useContainerSize = (
@@ -149,7 +352,8 @@ const useContainerSize = (
 
 const getMiniGraphNodeIds = (
   selectedId: number | null,
-  vertexes: Vertex[]
+  vertexes: Vertex[],
+  displayMode: MiniGraphDisplayMode
 ): number[] => {
   if (selectedId === null) return []
 
@@ -189,7 +393,10 @@ const getMiniGraphNodeIds = (
   }
 
   addParents(selectedId)
-  addChildren(selectedId)
+
+  if (displayMode === 'ALL_RELATED') {
+    addChildren(selectedId)
+  }
 
   return Array.from(result).sort((a, b) => a - b)
 }
@@ -197,12 +404,15 @@ const getMiniGraphNodeIds = (
 const getMiniFlowData = (
   selectedId: number | null,
   vertexes: Vertex[],
-  dataForVertexId: Map<number, VertexData>
+  dataForVertexId: Map<number, VertexData>,
+  displayMode: MiniGraphDisplayMode
 ): {
   nodes: AcyclicGraphNode[]
   edges: Edge[]
 } => {
-  const includedIds = new Set(getMiniGraphNodeIds(selectedId, vertexes))
+  const includedIds = new Set(
+    getMiniGraphNodeIds(selectedId, vertexes, displayMode)
+  )
 
   if (includedIds.size === 0) {
     return { nodes: [], edges: [] }
@@ -273,6 +483,7 @@ const getMiniFlowData = (
           hasChildren: vertex.childIds.some((id) => includedIds.has(id)),
           data: vertexData,
           type,
+          dimmed: false,
           collapsed: false
         },
         draggable: false,
@@ -314,21 +525,25 @@ export default function AcyclicGraphViewer({
     width: containerWidth,
     height: containerHeight
   } = useContainerSize()
+  const theme = useTheme()
 
   const convertToNodes = useCallback((): AcyclicGraphNode[] => {
     const verticesByLevel = new Map<number, Vertex[]>()
-
     const vertexMap = new Map<number, Vertex>()
-    vertexes.forEach((v) => vertexMap.set(v.id, v))
+    vertexes.forEach((vertex) => {
+      vertexMap.set(vertex.id, vertex)
+    })
 
     const selectedVertex =
-      selectedId !== null ? vertexMap.get(selectedId) : null
-
-    const relatedIds = new Set<number>()
-    if (selectedVertex) {
-      selectedVertex.parentsIds.forEach((id) => relatedIds.add(id))
-      selectedVertex.childIds.forEach((id) => relatedIds.add(id))
-    }
+      selectedId !== null ? (vertexMap.get(selectedId) ?? null) : null
+    const connectedIds =
+      selectedId !== null
+        ? new Set(getMiniGraphNodeIds(selectedId, vertexes, 'ALL_RELATED'))
+        : null
+    const directlyRelatedIds =
+      selectedVertex !== null
+        ? new Set([...selectedVertex.parentsIds, ...selectedVertex.childIds])
+        : null
 
     vertexes.forEach((vertex) => {
       const vertexData = dataForVertexId.get(vertex.id)
@@ -371,14 +586,18 @@ export default function AcyclicGraphViewer({
         const vertexData = dataForVertexId.get(vertex.id)!
 
         let nodeType: AcyclicGraphVertexType = 'DEFAULT'
+        let dimmed = false
 
         if (selectedId !== null) {
           if (vertex.id === selectedId) {
             nodeType = 'SELECTED'
-          } else if (relatedIds.has(vertex.id)) {
+          } else if (directlyRelatedIds?.has(vertex.id)) {
             nodeType = 'RELATED'
-          } else {
+          } else if (connectedIds?.has(vertex.id)) {
             nodeType = 'SECONDARY'
+          } else {
+            nodeType = 'DEFAULT'
+            dimmed = true
           }
         }
 
@@ -393,6 +612,7 @@ export default function AcyclicGraphViewer({
             hasChildren: vertex.childIds.length > 0,
             data: vertexData,
             type: nodeType,
+            dimmed,
             collapsed: false
           }
         })
@@ -433,14 +653,9 @@ export default function AcyclicGraphViewer({
   const [loading, setLoading] = useState(true)
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null)
-
-  const [isChoiceModalOpen, setIsChoiceModalOpen] = useState(false)
-  const [clickedNodeId, setClickedNodeId] = useState<string | null>(null)
-  const [nodeDisplayMode, setNodeDisplayMode] = useState<
-    'path' | 'subtree' | null
-  >(null)
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
-  const [edgeToDelete, setEdgeToDelete] = useState<Edge | null>(null)
+  const [miniGraphReady, setMiniGraphReady] = useState(false)
+  const [miniGraphDisplayMode, setMiniGraphDisplayMode] =
+    useState<MiniGraphDisplayMode>('ALL_RELATED')
 
   useEffect(() => {
     if (containerWidth > 0 && containerHeight > 0) {
@@ -469,9 +684,29 @@ export default function AcyclicGraphViewer({
   ])
 
   const miniFlowData = useMemo(
-    () => getMiniFlowData(selectedId, vertexes, dataForVertexId),
-    [selectedId, vertexes, dataForVertexId]
+    () =>
+      getMiniFlowData(
+        selectedId,
+        vertexes,
+        dataForVertexId,
+        miniGraphDisplayMode
+      ),
+    [selectedId, vertexes, dataForVertexId, miniGraphDisplayMode]
   )
+  const miniGraphFitKey = useMemo(
+    () =>
+      [
+        selectedId ?? 'none',
+        miniGraphDisplayMode,
+        miniFlowData.nodes.map((node) => node.id).join(','),
+        miniFlowData.edges.map((edge) => edge.id).join(',')
+      ].join('|'),
+    [selectedId, miniGraphDisplayMode, miniFlowData.nodes, miniFlowData.edges]
+  )
+
+  useEffect(() => {
+    setMiniGraphReady(false)
+  }, [miniGraphFitKey])
 
   const showNextLevel = () => {
     if (
@@ -495,33 +730,24 @@ export default function AcyclicGraphViewer({
 
   const handleNodeClick = useCallback(
     (
-      event: React.MouseEvent,
+      _event: React.MouseEvent,
       node: Node<AcyclicGraphVertexViewerProps<VertexData>>
     ) => {
       const nodeId = node.id
       const vertexId = parseInt(nodeId, 10)
-      const nodeLevel = node.data.level
 
       if (selectedId === vertexId) {
         onVertexClick?.(vertexId)
         setSelectedId(null)
         setSelectedNodeId(null)
         setSelectedEdgeId(null)
-        setNodeDisplayMode(null)
         return
       }
 
       onVertexClick?.(vertexId)
       setSelectedId(vertexId)
-
-      if (nodeLevel === 3) {
-        setClickedNodeId(nodeId)
-        setIsChoiceModalOpen(true)
-      } else {
-        setSelectedNodeId((prev) => (prev === nodeId ? null : nodeId))
-        setSelectedEdgeId(null)
-        setNodeDisplayMode('path')
-      }
+      setSelectedNodeId(nodeId)
+      setSelectedEdgeId(null)
     },
     [onVertexClick, setSelectedId, selectedId]
   )
@@ -535,77 +761,11 @@ export default function AcyclicGraphViewer({
     setSelectedEdgeId(null)
   }, [])
 
-  const handlePathToRoot = useCallback(() => {
-    if (clickedNodeId) {
-      setSelectedNodeId(clickedNodeId)
-      setNodeDisplayMode('path')
-    }
-    setIsChoiceModalOpen(false)
-    setClickedNodeId(null)
-  }, [clickedNodeId])
-
-  const handleSubtree = useCallback(() => {
-    if (clickedNodeId) {
-      setSelectedNodeId(clickedNodeId)
-      setNodeDisplayMode('subtree')
-    }
-    setIsChoiceModalOpen(false)
-    setClickedNodeId(null)
-  }, [clickedNodeId])
-
-  const handleCancelChoice = useCallback(() => {
-    setIsChoiceModalOpen(false)
-    setClickedNodeId(null)
-  }, [])
-
-  const deleteSelectedEdge = useCallback(() => {
-    if (selectedEdgeId) {
-      const edge = allEdges.find((e) => e.id === selectedEdgeId)
-      if (edge) {
-        setEdgeToDelete(edge)
-        setIsDeleteModalOpen(true)
-      }
-    }
-  }, [selectedEdgeId, allEdges])
-
-  const confirmDelete = useCallback(() => {
-    if (edgeToDelete) {
-      setAllEdges((edges) =>
-        edges.filter((edge) => edge.id !== edgeToDelete.id)
-      )
-      setSelectedEdgeId(null)
-    }
-    setIsDeleteModalOpen(false)
-    setEdgeToDelete(null)
-  }, [edgeToDelete, setAllEdges])
-
-  const cancelDelete = useCallback(() => {
-    setIsDeleteModalOpen(false)
-    setEdgeToDelete(null)
-  }, [])
-
   const resetSelection = useCallback(() => {
     setSelectedNodeId(null)
     setSelectedEdgeId(null)
-    setNodeDisplayMode(null)
     setSelectedId(null)
   }, [setSelectedId])
-
-  const filteredNodes = allNodes.filter((node) => {
-    if (selectedNodeId !== null && nodeDisplayMode !== null) {
-      const connectedNodes = getFullSubtree(selectedNodeId, allEdges)
-      return connectedNodes.has(node.id)
-    }
-    return true
-  })
-
-  const filteredEdges = allEdges.filter((edge) => {
-    if (selectedNodeId !== null && nodeDisplayMode !== null) {
-      const connectedNodes = getFullSubtree(selectedNodeId, allEdges)
-      return connectedNodes.has(edge.source) && connectedNodes.has(edge.target)
-    }
-    return true
-  })
 
   if (loading) {
     return <div className="graph-loading">Загрузка графа...</div>
@@ -618,8 +778,33 @@ export default function AcyclicGraphViewer({
 
   return (
     <StackStyled sx={{ height: '100%' }}>
-      <div className="graph-stats">
-        <Stack direction="row" pt={2} pl={2} pr={2} spacing={1}>
+      <Box
+        sx={{
+          px: 2,
+          py: 2,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1,
+          flexWrap: 'wrap'
+        }}
+      >
+        <Box
+          sx={{
+            px: 1.5,
+            py: 1,
+            borderRadius: 1,
+            border: `1px solid ${theme.palette.divider}`,
+            backgroundColor: theme.palette.action.hover,
+            color: theme.palette.text.secondary
+          }}
+        >
+          <Typography fontSize={12}>
+            Макс. уровень: {maxDisplayedLayerWhenWithoutSelected ?? 'все'}
+            {selectedId !== null && ` | Выбран: ${selectedId}`}
+            {selectedEdgeId !== null && ` | Выбрана связь: ${selectedEdgeId}`}
+          </Typography>
+        </Box>
+        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
           <ProjButton
             variant="contained"
             type="button"
@@ -642,59 +827,16 @@ export default function AcyclicGraphViewer({
 
           <ProjButton
             type="button"
-            className={`${selectedNodeId === null && selectedEdgeId === null && nodeDisplayMode === null ? 'disabled' : ''}`}
-            disabled={
-              selectedNodeId === null &&
-              selectedEdgeId === null &&
-              nodeDisplayMode === null
-            }
+            className={`${selectedNodeId === null && selectedEdgeId === null ? 'disabled' : ''}`}
+            disabled={selectedNodeId === null && selectedEdgeId === null}
             onClick={resetSelection}
           >
             Сбросить выделение
           </ProjButton>
-
-          <ProjButton
-            type="button"
-            className={`${selectedEdgeId === null ? 'disabled' : ''}`}
-            disabled={selectedEdgeId === null}
-            onClick={deleteSelectedEdge}
-          >
-            Удалить связь
-          </ProjButton>
         </Stack>
-
-        <div className="levels">
-          <Typography fontSize={12}>
-            Макс. уровень: {maxDisplayedLayerWhenWithoutSelected ?? 'все'}
-            {selectedId !== null && ` | Выбран: ${selectedId}`}
-            {selectedEdgeId !== null && ` | Выбрана связь: ${selectedEdgeId}`}
-            {nodeDisplayMode &&
-              ` | Отображение: ${nodeDisplayMode === 'path' ? 'Путь до корня' : 'Поддерево'}`}
-          </Typography>
-        </div>
-      </div>
+      </Box>
 
       <Divider />
-
-      <ChoiceModal
-        isOpen={isChoiceModalOpen}
-        title="Выбор отображения"
-        message={`Выберите способ отображения для узла ${clickedNodeId}`}
-        onPathToRoot={handlePathToRoot}
-        onSubtree={handleSubtree}
-        onCancel={handleCancelChoice}
-        nodeId={clickedNodeId || ''}
-      />
-
-      <ConfirmationModal
-        isOpen={isDeleteModalOpen}
-        title="Удаление связи"
-        message={`Вы уверены, что хотите удалить связь между узлами ${edgeToDelete?.source} и ${edgeToDelete?.target}?`}
-        onConfirm={confirmDelete}
-        onCancel={cancelDelete}
-        confirmText="Удалить"
-        cancelText="Отмена"
-      />
 
       <Box
         ref={containerRef}
@@ -708,8 +850,8 @@ export default function AcyclicGraphViewer({
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <ReactFlow
             style={{ width: '100%', height: '100%' }}
-            nodes={filteredNodes}
-            edges={filteredEdges}
+            nodes={allNodes}
+            edges={allEdges}
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onNodeClick={handleNodeClick}
@@ -717,7 +859,6 @@ export default function AcyclicGraphViewer({
             onPaneClick={handlePaneClick}
             nodeTypes={nodeTypes}
             fitView={fitOnSelectedIdChange}
-            minZoom={0.05}
             nodesDraggable={false}
             panOnScroll={true}
             panOnScrollSpeed={1}
@@ -726,8 +867,11 @@ export default function AcyclicGraphViewer({
             zoomOnScroll={true}
             zoomOnPinch={true}
             zoomOnDoubleClick={true}
+            minZoom={MAIN_FLOW_MIN_ZOOM}
+            maxZoom={MAIN_FLOW_MAX_ZOOM}
             proOptions={{ hideAttribution: true }}
           >
+            <ReactFlowPinchZoomSensitivityController />
             <Controls showInteractive={false} />
             <Background />
           </ReactFlow>
@@ -735,7 +879,39 @@ export default function AcyclicGraphViewer({
 
         {selectedId !== null && (
           <>
-            <Divider orientation="vertical" flexItem />
+            <Box
+              sx={{
+                mx: 2,
+                width: 18,
+                alignSelf: 'stretch',
+                flex: '0 0 auto',
+                borderRadius: 999,
+                backgroundColor:
+                  theme.palette.mode === 'dark'
+                    ? alpha(theme.palette.common.white, 0.04)
+                    : alpha(theme.palette.common.black, 0.035),
+                border: '1px solid',
+                borderColor:
+                  theme.palette.mode === 'dark'
+                    ? alpha(theme.palette.common.white, 0.14)
+                    : alpha(theme.palette.common.black, 0.12),
+                position: 'relative',
+                '&::before': {
+                  content: '""',
+                  position: 'absolute',
+                  top: 0,
+                  bottom: 0,
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  width: 4,
+                  borderRadius: 999,
+                  backgroundColor:
+                    theme.palette.mode === 'dark'
+                      ? alpha(theme.palette.common.white, 0.45)
+                      : alpha(theme.palette.common.black, 0.32)
+                }
+              }}
+            />
             <Paper
               elevation={0}
               sx={{
@@ -743,7 +919,8 @@ export default function AcyclicGraphViewer({
                 minWidth: 360,
                 maxWidth: 360,
                 borderRadius: 0,
-                backgroundColor: '#fafafa',
+                backgroundColor: theme.palette.background.paper,
+                color: theme.palette.text.primary,
                 display: 'flex',
                 flexDirection: 'column'
               }}
@@ -754,26 +931,66 @@ export default function AcyclicGraphViewer({
                   pt: 2,
                   pb: 1,
                   display: 'flex',
+                  flexDirection: 'column',
                   justifyContent: 'center',
-                  alignItems: 'center'
+                  alignItems: 'center',
+                  gap: 1
                 }}
               >
                 <Typography fontSize={14} fontWeight={700} textAlign="center">
                   Мини-граф
                 </Typography>
+                <Stack
+                  direction="row"
+                  spacing={1}
+                  useFlexGap
+                  justifyContent="center"
+                >
+                  <ProjButton
+                    type="button"
+                    variant={
+                      miniGraphDisplayMode === 'ROOT_PATH'
+                        ? 'contained'
+                        : 'outlined'
+                    }
+                    onClick={() => {
+                      setMiniGraphDisplayMode('ROOT_PATH')
+                    }}
+                  >
+                    Путь до корня
+                  </ProjButton>
+                  <ProjButton
+                    type="button"
+                    variant={
+                      miniGraphDisplayMode === 'ALL_RELATED'
+                        ? 'contained'
+                        : 'outlined'
+                    }
+                    onClick={() => {
+                      setMiniGraphDisplayMode('ALL_RELATED')
+                    }}
+                  >
+                    Показ всех
+                  </ProjButton>
+                </Stack>
               </Box>
 
-              <Box sx={{ flex: 1, minHeight: 0 }}>
+              <Box
+                sx={{
+                  flex: 1,
+                  minHeight: 0,
+                  visibility: miniGraphReady ? 'visible' : 'hidden'
+                }}
+              >
                 <ReactFlow
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    backgroundColor: theme.palette.background.paper
+                  }}
                   nodes={miniFlowData.nodes}
                   edges={miniFlowData.edges}
                   nodeTypes={nodeTypes}
-                  fitView
-                  fitViewOptions={{
-                    padding: 0.35,
-                    minZoom: 0.01,
-                    maxZoom: 1
-                  }}
                   minZoom={0.01}
                   maxZoom={1.5}
                   nodesDraggable={false}
@@ -789,6 +1006,11 @@ export default function AcyclicGraphViewer({
                   preventScrolling={false}
                   proOptions={{ hideAttribution: true }}
                 >
+                  <MiniGraphWheelController />
+                  <MiniGraphAutoFit
+                    fitKey={miniGraphFitKey}
+                    setReady={setMiniGraphReady}
+                  />
                   <Controls
                     showInteractive={false}
                     showZoom={true}

@@ -41,6 +41,11 @@ div.acyclic-vertex.secondary {
   background-color: hsla(220, 20%, 42%, 0.8);
 }
 
+div.acyclic-vertex.dimmed {
+  background-color: hsla(220, 20%, 42%, 0.8);
+  opacity: 0.35;
+}
+
 div.acyclic-vertex .vertex-code {
   font-weight: bold;
   font-size: 14px;
