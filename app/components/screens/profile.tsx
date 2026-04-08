@@ -14,7 +14,6 @@ import {
   ColumnViewer,
   ColumnViewerBlock,
   ColumnViewerChipsBlock,
-  ColumnViewerItem,
   ColumnViewerText
 } from '../single-resource-viewers/common'
 // React
@@ -146,157 +145,151 @@ export function ProfileScreen({ userId, role, user }: ProfileScreenProps) {
 
   return (
     <LayoutScreenContainer title="профиль" breadcrumbsItems={breadcrumbsItems}>
-      <Stack spacing={1.5} sx={{ flex: 1, minHeight: 0 }}>
-        <Paper
-          variant="outlined"
-          sx={{
-            p: 2.25,
-            borderRadius: '8px'
-          }}
-        >
-          <Stack
-            direction={{ xs: 'column', md: 'row' }}
-            spacing={2.5}
-            alignItems={{ xs: 'flex-start', md: 'center' }}
-            justifyContent="space-between"
-          >
-            <Stack direction="row" spacing={1.75} alignItems="center">
-              <Stack
-                alignItems="center"
-                justifyContent="center"
-                sx={{
-                  width: 56,
-                  height: 56,
-                  borderRadius: '50%',
-                  bgcolor: 'primary.main',
-                  color: 'primary.contrastText',
-                  flexShrink: 0
-                }}
-              >
-                <PersonIcon />
-              </Stack>
-              <Stack spacing={0.35} sx={{ minWidth: 0 }}>
-                <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                  {summaryTitle}
-                </Typography>
-                <Typography color="textSecondary">{summarySubtitle}</Typography>
-              </Stack>
-            </Stack>
-            <Stack
-              direction="row"
-              spacing={2.5}
-              useFlexGap
-              flexWrap="wrap"
-              sx={{ width: '100%', maxWidth: '720px' }}
+      <Stack sx={{ flex: 1, minHeight: 0 }}>
+        <HorizontalTwoPartsContainer proportions="SEVEN_FIVE">
+          <ColumnViewer title="данные профиля">
+            <Paper
+              variant="outlined"
+              sx={{
+                p: 2.25,
+                borderRadius: '8px'
+              }}
             >
-              {profileFacts.map((fact) => (
+              <Stack spacing={2.25}>
+                <Stack direction="row" spacing={1.75} alignItems="center">
+                  <Stack
+                    alignItems="center"
+                    justifyContent="center"
+                    sx={{
+                      width: 56,
+                      height: 56,
+                      borderRadius: '50%',
+                      bgcolor: 'primary.main',
+                      color: 'primary.contrastText',
+                      flexShrink: 0
+                    }}
+                  >
+                    <PersonIcon />
+                  </Stack>
+                  <Stack spacing={0.35} sx={{ minWidth: 0 }}>
+                    <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                      {summaryTitle}
+                    </Typography>
+                    <Typography color="textSecondary">
+                      {summarySubtitle}
+                    </Typography>
+                  </Stack>
+                </Stack>
                 <Stack
-                  key={fact.label}
-                  spacing={0.35}
+                  direction={{ xs: 'column', sm: 'row' }}
+                  spacing={2}
+                  useFlexGap
+                  flexWrap="wrap"
                   sx={{
-                    minWidth: { xs: '100%', sm: '160px' },
-                    flex: '1 1 160px'
+                    pt: 2,
+                    borderTop: (theme) => `1px solid ${theme.palette.divider}`
                   }}
                 >
-                  <Typography color="textSecondary" fontSize="0.8rem">
-                    {fact.label}
-                  </Typography>
-                  <Typography sx={{ fontWeight: 600 }}>{fact.value}</Typography>
-                </Stack>
-              ))}
-            </Stack>
-          </Stack>
-        </Paper>
-        <Stack sx={{ flex: 1, minHeight: 0 }}>
-          <HorizontalTwoPartsContainer proportions="SEVEN_FIVE">
-            <ColumnViewer title="данные профиля">
-              <ColumnViewerBlock title="основная информация">
-                <ColumnViewerItem field="логин" val={user?.login ?? login} />
-                <ColumnViewerItem field="ФИО" val={fullName} />
-                <ColumnViewerItem field="телефон" val={user?.phone} />
-                <ColumnViewerItem field="e-mail" val={user?.email} />
-              </ColumnViewerBlock>
-              <ColumnViewerBlock title="описание">
-                {canReadProfile ? (
-                  <ColumnViewerText
-                    text={user?.description?.text}
-                    emptyText="нет"
-                  />
-                ) : (
-                  <Typography color="textSecondary">
-                    Недостаточно прав для просмотра расширенных данных профиля
-                  </Typography>
-                )}
-              </ColumnViewerBlock>
-            </ColumnViewer>
-            <ColumnViewer title="управление профилем">
-              <ColumnViewerBlock title="быстрые действия">
-                <Stack
-                  spacing={1.25}
-                  p={1}
-                  alignItems="center"
-                  sx={{ maxWidth: '280px', mx: 'auto' }}
-                >
-                  <ProjButton
-                    variant="contained"
-                    startIcon={<EditIcon />}
-                    disabled={canEditProfile === false || user === null}
-                    sx={primaryActionButtonSx}
-                    onClick={() => {
-                      setEditDialogIsActive(true)
-                    }}
-                  >
-                    Изменить профиль
-                  </ProjButton>
-                  <ProjButton
-                    variant="contained"
-                    startIcon={<LockResetIcon />}
-                    disabled={canChangePassword === false || userId === null}
-                    sx={primaryActionButtonSx}
-                    onClick={() => {
-                      setPassDialogIsActive(true)
-                    }}
-                  >
-                    Изменить пароль
-                  </ProjButton>
-                  {canEditProfile && user === null ? (
-                    <Typography
-                      color="textSecondary"
-                      fontSize="0.9rem"
-                      textAlign="center"
+                  {profileFacts.map((fact) => (
+                    <Stack
+                      key={fact.label}
+                      spacing={0.35}
+                      sx={{
+                        minWidth: { xs: '100%', sm: '160px' },
+                        flex: '1 1 160px'
+                      }}
                     >
-                      Для редактирования профиля сначала нужен доступ к
-                      просмотру собственных данных
-                    </Typography>
-                  ) : null}
+                      <Typography color="textSecondary" fontSize="0.8rem">
+                        {fact.label}
+                      </Typography>
+                      <Typography sx={{ fontWeight: 600 }}>
+                        {fact.value}
+                      </Typography>
+                    </Stack>
+                  ))}
                 </Stack>
-              </ColumnViewerBlock>
-              <ColumnViewerBlock title="доступ">
-                <Stack
-                  spacing={1.25}
-                  useFlexGap
-                  p={1}
-                  alignItems="center"
-                  sx={{ maxWidth: '320px', mx: 'auto', textAlign: 'center' }}
+              </Stack>
+            </Paper>
+            <ColumnViewerBlock title="описание">
+              {canReadProfile ? (
+                <ColumnViewerText
+                  text={user?.description?.text}
+                  emptyText="нет"
+                />
+              ) : (
+                <Typography color="textSecondary">
+                  Недостаточно прав для просмотра расширенных данных профиля
+                </Typography>
+              )}
+            </ColumnViewerBlock>
+          </ColumnViewer>
+          <ColumnViewer title="управление профилем">
+            <ColumnViewerBlock title="быстрые действия">
+              <Stack
+                spacing={1.25}
+                p={1}
+                alignItems="center"
+                sx={{ maxWidth: '280px', mx: 'auto' }}
+              >
+                <ProjButton
+                  variant="contained"
+                  startIcon={<EditIcon />}
+                  disabled={canEditProfile === false || user === null}
+                  sx={primaryActionButtonSx}
+                  onClick={() => {
+                    setEditDialogIsActive(true)
+                  }}
                 >
-                  <Typography color="textSecondary" fontSize="0.95rem">
-                    Активных прав: {rights.length}
-                  </Typography>
-                  <ProjButton
-                    variant="text"
-                    disabled={rights.length === 0}
-                    sx={compactActionButtonSx}
-                    onClick={() => {
-                      setRightsDialogIsActive(true)
-                    }}
+                  Изменить профиль
+                </ProjButton>
+                <ProjButton
+                  variant="contained"
+                  startIcon={<LockResetIcon />}
+                  disabled={canChangePassword === false || userId === null}
+                  sx={primaryActionButtonSx}
+                  onClick={() => {
+                    setPassDialogIsActive(true)
+                  }}
+                >
+                  Изменить пароль
+                </ProjButton>
+                {canEditProfile && user === null ? (
+                  <Typography
+                    color="textSecondary"
+                    fontSize="0.9rem"
+                    textAlign="center"
                   >
-                    Посмотреть права доступа
-                  </ProjButton>
-                </Stack>
-              </ColumnViewerBlock>
-            </ColumnViewer>
-          </HorizontalTwoPartsContainer>
-        </Stack>
+                    Для редактирования профиля сначала нужен доступ к просмотру
+                    собственных данных
+                  </Typography>
+                ) : null}
+              </Stack>
+            </ColumnViewerBlock>
+            <ColumnViewerBlock title="права">
+              <Stack
+                spacing={1.25}
+                useFlexGap
+                p={1}
+                alignItems="center"
+                sx={{ maxWidth: '320px', mx: 'auto', textAlign: 'center' }}
+              >
+                <Typography color="textSecondary" fontSize="0.95rem">
+                  Активных прав: {rights.length}
+                </Typography>
+                <ProjButton
+                  variant="text"
+                  disabled={rights.length === 0}
+                  sx={compactActionButtonSx}
+                  onClick={() => {
+                    setRightsDialogIsActive(true)
+                  }}
+                >
+                  Посмотреть права доступа
+                </ProjButton>
+              </Stack>
+            </ColumnViewerBlock>
+          </ColumnViewer>
+        </HorizontalTwoPartsContainer>
       </Stack>
       <UpdateSelfFormDialog
         isActive={editDialogIsActive}
