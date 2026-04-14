@@ -22,6 +22,7 @@ import {
   FormMultilineTextField,
   FormTextField
 } from '../common'
+import { RoleRightQuickGroups } from './role-right-quick-groups'
 // React
 import * as React from 'react'
 
@@ -141,6 +142,7 @@ export function UpdateRoleFormDialog(props: UpdateRoleFormDialogProps) {
     formInternal,
     data,
     errors,
+    handleFieldChange,
     handleTextFieldChange,
     handleAutocompleteMultipleSelectChange
   } = useForm<UpdateRoleFormData, UpdateRoleSuccessResultDto>({
@@ -150,6 +152,36 @@ export function UpdateRoleFormDialog(props: UpdateRoleFormDialogProps) {
     submitAction: submitAction,
     onSuccessSubmit: onSuccessSubmit
   })
+
+  const handleAddGroupedRights = React.useCallback(
+    (rightsToAdd: Right[]) => {
+      const newRightsSet = new Set([...(data.rights ?? EMPTY_RIGHTS_ARR)])
+      rightsToAdd.forEach((right) => {
+        newRightsSet.add(right)
+      })
+      handleFieldChange(
+        'rights',
+        allRights.filter((right) => newRightsSet.has(right))
+      )
+    },
+    [data.rights, handleFieldChange]
+  )
+
+  const handleToggleRight = React.useCallback(
+    (right: Right) => {
+      const newRightsSet = new Set([...(data.rights ?? EMPTY_RIGHTS_ARR)])
+      if (newRightsSet.has(right)) {
+        newRightsSet.delete(right)
+      } else {
+        newRightsSet.add(right)
+      }
+      handleFieldChange(
+        'rights',
+        allRights.filter((item) => newRightsSet.has(item))
+      )
+    },
+    [data.rights, handleFieldChange]
+  )
 
   const setIsActive = React.useCallback(
     (value: boolean | ((prevState: boolean) => boolean)) => {
@@ -198,6 +230,11 @@ export function UpdateRoleFormDialog(props: UpdateRoleFormDialogProps) {
           localizationForTitle={localizationForRight}
           error={!!errors?.rights}
           onChange={handleAutocompleteMultipleSelectChange}
+        />
+        <RoleRightQuickGroups
+          selectedRights={data.rights ?? EMPTY_RIGHTS_ARR}
+          onAddRights={handleAddGroupedRights}
+          onToggleRight={handleToggleRight}
         />
       </FormBlock>
       <FormBlock title="дополнительная информация">
