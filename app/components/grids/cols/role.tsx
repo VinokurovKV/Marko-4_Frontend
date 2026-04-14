@@ -1,6 +1,7 @@
 // Project
 import type { RolePrimary } from '~/types'
 import { GridRefCell } from '../cells/grid-ref-cell'
+import { RoleHoverPreview } from '~/components/roles/role-hover-preview'
 // React
 import * as React from 'react'
 // Material UI
@@ -30,6 +31,16 @@ export function useRoleCol(roles: RolePrimary[] | null | undefined) {
           hrefPrefix="/roles"
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
           hrefPath={params.row.roleId}
+          hoverPreview={{
+            renderContent: (active) => (
+              <RoleHoverPreview
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+                roleId={params.row.roleId as number}
+                active={active}
+                text={params.value}
+              />
+            )
+          }}
         />
       ),
       minWidth: 140,

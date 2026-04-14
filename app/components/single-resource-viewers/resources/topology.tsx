@@ -10,6 +10,7 @@ import {
   HorizontalTwoPartsContainer,
   VerticalTwoPartsContainer
 } from '~/components/containers'
+import { CommonTopologyHoverPreview } from '~/components/topologies/common-topology-hover-preview'
 import { TopologyConfigSchema } from '~/components/topologies/topology-config-schema'
 import {
   ColumnViewer,
@@ -53,6 +54,14 @@ export function TopologyViewer({
             field="общая топология"
             text={commonTopology?.code ?? '???'}
             href={`/common-topologies/${topology.commonTopologyId}`}
+            hoverPreview={{
+              renderContent: () => (
+                <CommonTopologyHoverPreview
+                  commonTopologyId={topology.commonTopologyId}
+                  text={commonTopology?.code}
+                />
+              )
+            }}
           />
           <ColumnViewerItem
             field="номер в общей топологии"

@@ -19,6 +19,8 @@ import {
   HorizontalTwoPartsContainer,
   VerticalTwoPartsContainer
 } from '~/components/containers'
+import { CommonTopologyHoverPreview } from '~/components/topologies/common-topology-hover-preview'
+import { TopologyHoverPreview } from '~/components/topologies/topology-hover-preview'
 import { TopologyConfigSchema } from '~/components/topologies/topology-config-schema'
 import { type FormSelectProps, FormSelect } from '~/components/forms/common'
 import {
@@ -265,11 +267,35 @@ export function TestViewer({
                   ? `/common-topologies/${commonTopology?.id}`
                   : undefined
               }
+              hoverPreview={
+                commonTopology !== null
+                  ? {
+                      renderContent: () => (
+                        <CommonTopologyHoverPreview
+                          commonTopologyId={commonTopology.id}
+                          text={commonTopology.code}
+                        />
+                      )
+                    }
+                  : undefined
+              }
             />
             <ColumnViewerRef
               field="топология"
               text={topology?.code ?? '???'}
               href={`/topologies/${test.topologyId}`}
+              hoverPreview={
+                topology !== null
+                  ? {
+                      renderContent: () => (
+                        <TopologyHoverPreview
+                          topologyId={topology.id}
+                          text={topology.code}
+                        />
+                      )
+                    }
+                  : undefined
+              }
             />
             <ColumnViewerRef
               field="шаблон"

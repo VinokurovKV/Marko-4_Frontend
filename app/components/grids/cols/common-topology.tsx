@@ -1,6 +1,7 @@
 // Project
 import type { CommonTopologyPrimary } from '~/types'
 import { GridRefCell } from '../cells/grid-ref-cell'
+import { CommonTopologyHoverPreview } from '~/components/topologies/common-topology-hover-preview'
 // React
 import * as React from 'react'
 // Material UI
@@ -36,6 +37,15 @@ export function useCommonTopologyCol(
           hrefPrefix="/common-topologies"
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
           hrefPath={params.row.commonTopologyId}
+          hoverPreview={{
+            renderContent: () => (
+              <CommonTopologyHoverPreview
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+                commonTopologyId={params.row.commonTopologyId as number}
+                text={params.value}
+              />
+            )
+          }}
         />
       ),
       minWidth: 140,

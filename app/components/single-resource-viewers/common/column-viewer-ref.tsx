@@ -6,6 +6,8 @@ import * as React from 'react'
 import { useTheme } from '@mui/material/styles'
 import Button from '@mui/material/Button'
 import Stack from '@mui/material/Stack'
+import Tooltip from '@mui/material/Tooltip'
+import type { TooltipProps } from '@mui/material/Tooltip'
 import Typography from '@mui/material/Typography'
 // Other
 import capitalize from 'capitalize'
@@ -17,6 +19,12 @@ export interface ColumnViewerRefProps {
   disableCapitalize?: boolean
   external?: boolean
   semiTransparent?: boolean
+  hoverPreview?: {
+    renderContent: (active: boolean) => React.ReactNode
+    enterDelay?: number
+    leaveDelay?: number
+    placement?: TooltipProps['placement']
+  }
 }
 
 function prepareHref(href: string) {
@@ -27,6 +35,7 @@ function prepareHref(href: string) {
 
 export function ColumnViewerRef(props: ColumnViewerRefProps) {
   const theme = useTheme()
+  const [hoverPreviewIsOpen, setHoverPreviewIsOpen] = React.useState(false)
 
   const handleClick = React.useCallback(
     (event: React.MouseEvent<HTMLAnchorElement, MouseEvent>) => {
@@ -44,54 +53,94 @@ export function ColumnViewerRef(props: ColumnViewerRefProps) {
       >
         {capitalize(props.field, true) + ':'}
       </Typography>
-      {props.text !== undefined ? (
-        props.external !== true ? (
-          <Button
-            component={Link}
-            to={props.href ?? ''}
-            disabled={props.href === undefined}
-            onClick={handleClick}
-            sx={{
-              justifyContent: 'start',
-              textTransform: 'none',
-              color: props.semiTransparent ? 'rgb(175, 199, 234)' : undefined,
-              ':hover': {
-                bgcolor:
-                  theme.palette.mode === 'light'
-                    ? 'rgb(239, 244, 251)'
-                    : 'rgb(40, 47, 54)'
-              },
-              transform: 'translateY(0.1rem)'
-            }}
-          >
-            {props.disableCapitalize
+      {props.text !== undefined
+        ? (() => {
+            const text = props.disableCapitalize
               ? props.text
-              : capitalize(props.text, true)}
-          </Button>
-        ) : (
-          <Button
-            component={'a'}
-            target="_blank"
-            rel="noopener noreferrer"
-            href={props.href !== undefined ? prepareHref(props.href) : ''}
-            onClick={handleClick}
-            sx={{
-              justifyContent: 'start',
-              textTransform: 'none',
-              color: props.semiTransparent ? 'rgb(175, 199, 234)' : undefined,
-              ':hover': {
-                bgcolor:
-                  theme.palette.mode === 'light'
-                    ? 'rgb(239, 244, 251)'
-                    : 'rgb(40, 47, 54)'
-              },
-              transform: 'translateY(0.1rem)'
-            }}
-          >
-            {props.disableCapitalize ? props.href : props.text}
-          </Button>
-        )
-      ) : null}
+              : capitalize(props.text, true)
+
+            const content =
+              props.external !== true ? (
+                <Button
+                  component={Link}
+                  to={props.href ?? ''}
+                  disabled={props.href === undefined}
+                  onClick={handleClick}
+                  sx={{
+                    justifyContent: 'start',
+                    textTransform: 'none',
+                    color: props.semiTransparent
+                      ? 'rgb(175, 199, 234)'
+                      : undefined,
+                    ':hover': {
+                      bgcolor:
+                        theme.palette.mode === 'light'
+                          ? 'rgb(239, 244, 251)'
+                          : 'rgb(40, 47, 54)'
+                    },
+                    transform: 'translateY(0.1rem)'
+                  }}
+                >
+                  {text}
+                </Button>
+              ) : (
+                <Button
+                  component={'a'}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  href={props.href !== undefined ? prepareHref(props.href) : ''}
+                  onClick={handleClick}
+                  sx={{
+                    justifyContent: 'start',
+                    textTransform: 'none',
+                    color: props.semiTransparent
+                      ? 'rgb(175, 199, 234)'
+                      : undefined,
+                    ':hover': {
+                      bgcolor:
+                        theme.palette.mode === 'light'
+                          ? 'rgb(239, 244, 251)'
+                          : 'rgb(40, 47, 54)'
+                    },
+                    transform: 'translateY(0.1rem)'
+                  }}
+                >
+                  {props.disableCapitalize ? props.href : props.text}
+                </Button>
+              )
+
+            return props.hoverPreview !== undefined ? (
+              <Tooltip
+                title={props.hoverPreview.renderContent(hoverPreviewIsOpen)}
+                placement={props.hoverPreview.placement ?? 'right-start'}
+                enterDelay={props.hoverPreview.enterDelay ?? 1100}
+                leaveDelay={props.hoverPreview.leaveDelay ?? 100}
+                onOpen={() => {
+                  setHoverPreviewIsOpen(true)
+                }}
+                onClose={() => {
+                  setHoverPreviewIsOpen(false)
+                }}
+                slotProps={{
+                  tooltip: {
+                    sx: {
+                      maxWidth: 'none',
+                      p: 0,
+                      bgcolor: theme.palette.background.paper,
+                      color: theme.palette.text.primary,
+                      border: `1px solid ${theme.palette.divider}`,
+                      boxShadow: theme.shadows[6]
+                    }
+                  }
+                }}
+              >
+                <span style={{ display: 'inline-block' }}>{content}</span>
+              </Tooltip>
+            ) : (
+              content
+            )
+          })()
+        : null}
     </Stack>
   )
 }

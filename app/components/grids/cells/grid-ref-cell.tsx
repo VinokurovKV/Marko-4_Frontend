@@ -5,6 +5,8 @@ import * as React from 'react'
 // Material UI
 import { useTheme } from '@mui/material/styles'
 import Button from '@mui/material/Button'
+import Tooltip from '@mui/material/Tooltip'
+import type { TooltipProps } from '@mui/material/Tooltip'
 import Typography from '@mui/material/Typography'
 // Other
 import capitalize from 'capitalize'
@@ -17,10 +19,17 @@ interface GridRefCellProps {
   disableCapitalize?: boolean
   disableRef?: boolean
   semiTransparent?: boolean
+  hoverPreview?: {
+    renderContent: (active: boolean) => React.ReactNode
+    enterDelay?: number
+    leaveDelay?: number
+    placement?: TooltipProps['placement']
+  }
 }
 
 export function GridRefCell(props: GridRefCellProps) {
   const theme = useTheme()
+  const [hoverPreviewIsOpen, setHoverPreviewIsOpen] = React.useState(false)
 
   const handleClick = React.useCallback(
     (event: React.MouseEvent<HTMLAnchorElement, MouseEvent>) => {
@@ -29,7 +38,15 @@ export function GridRefCell(props: GridRefCellProps) {
     []
   )
 
-  return props.text !== undefined ? (
+  if (props.text === undefined) {
+    return null
+  }
+
+  const text = props.disableCapitalize
+    ? props.text
+    : capitalize(props.text, true)
+
+  const content =
     props.disableRef === true ? (
       <Button
         disabled
@@ -47,7 +64,7 @@ export function GridRefCell(props: GridRefCellProps) {
             opacity: props.semiTransparent === true ? 0.4 : undefined
           }}
         >
-          {props.disableCapitalize ? props.text : capitalize(props.text, true)}
+          {text}
         </Typography>
       </Button>
     ) : (
@@ -73,8 +90,40 @@ export function GridRefCell(props: GridRefCellProps) {
           }
         }}
       >
-        {props.disableCapitalize ? props.text : capitalize(props.text, true)}
+        {text}
       </Button>
     )
-  ) : null
+
+  if (props.hoverPreview === undefined) {
+    return content
+  }
+
+  return (
+    <Tooltip
+      title={props.hoverPreview.renderContent(hoverPreviewIsOpen)}
+      placement={props.hoverPreview.placement ?? 'right-start'}
+      enterDelay={props.hoverPreview.enterDelay ?? 1100}
+      leaveDelay={props.hoverPreview.leaveDelay ?? 100}
+      onOpen={() => {
+        setHoverPreviewIsOpen(true)
+      }}
+      onClose={() => {
+        setHoverPreviewIsOpen(false)
+      }}
+      slotProps={{
+        tooltip: {
+          sx: {
+            maxWidth: 'none',
+            p: 0,
+            bgcolor: theme.palette.background.paper,
+            color: theme.palette.text.primary,
+            border: `1px solid ${theme.palette.divider}`,
+            boxShadow: theme.shadows[6]
+          }
+        }
+      }}
+    >
+      <span style={{ display: 'block', width: '100%' }}>{content}</span>
+    </Tooltip>
+  )
 }

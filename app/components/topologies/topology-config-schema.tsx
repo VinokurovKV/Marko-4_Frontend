@@ -17,11 +17,13 @@ const EMPTY_IFACE_NAME_PROMPT = 'БЕЗЫМЯННЫЙ ИНТЕРФЕЙС'
 export interface TopologyConfigSchemaProps {
   config: CommonTopologyConfig | null
   nullConfigTitle: string
+  height?: number | string
 }
 
 export function TopologyConfigSchema({
   config,
-  nullConfigTitle
+  nullConfigTitle,
+  height = '400px'
 }: TopologyConfigSchemaProps) {
   const theme = useTheme()
   const palette = theme.palette
@@ -83,7 +85,7 @@ export function TopologyConfigSchema({
   )
 
   return (
-    <Container sx={{ maxHeight: '100%', height: '400px', p: '0 !important' }}>
+    <Container sx={{ maxHeight: '100%', height: height, p: '0 !important' }}>
       <Stack
         height="100%"
         alignItems="center"

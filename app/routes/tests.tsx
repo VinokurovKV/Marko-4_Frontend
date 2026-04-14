@@ -1,6 +1,6 @@
 // Project
 import type {
-  TopologyPrimary,
+  TopologySecondary,
   DbcPrimary,
   TestTemplatePrimary,
   TestSecondary,
@@ -8,7 +8,7 @@ import type {
 } from '~/types'
 import { serverConnector } from '~/server-connector'
 import {
-  readTopologiesPrimary,
+  readTopologiesSecondary,
   readDbcsPrimary,
   readTestTemplatesPrimary,
   readTestsSecondary,
@@ -35,7 +35,7 @@ export async function clientLoader() {
   await serverConnector.connect()
   const [topologies, dbcs, testTemplates, tests, subgroups] = await Promise.all(
     [
-      readTopologiesPrimary(),
+      readTopologiesSecondary(),
       readDbcsPrimary(),
       readTestTemplatesPrimary(),
       readTestsSecondary(),
@@ -64,9 +64,9 @@ export default function TestsRoute({
   const meta = useMeta()
   const outlet = useOutlet()
 
-  const [topologies, setTopologies] = React.useState<TopologyPrimary[] | null>(
-    initialTopologies
-  )
+  const [topologies, setTopologies] = React.useState<
+    TopologySecondary[] | null
+  >(initialTopologies)
   const [dbcs, setDbcs] = React.useState<DbcPrimary[] | null>(initialDbcs)
   const [testTemplates, setTestTemplates] = React.useState<
     TestTemplatePrimary[] | null
@@ -76,7 +76,7 @@ export default function TestsRoute({
     initialSubgroups
   )
 
-  useTopologiesSubscription('PRIMARY_PROPS', setTopologies)
+  useTopologiesSubscription('UP_TO_SECONDARY_PROPS', setTopologies)
   useDbcsSubscription('PRIMARY_PROPS', setDbcs)
   useTestTemplatesSubscription('PRIMARY_PROPS', setTestTemplates)
   useTestsSubscription('UP_TO_SECONDARY_PROPS', setTests)

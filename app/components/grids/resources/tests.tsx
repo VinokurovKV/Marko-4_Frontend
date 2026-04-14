@@ -1,7 +1,7 @@
 // Project
 import { convertMediaTypeToFileExtension } from '@common/formats'
 import type {
-  TopologyPrimary,
+  TopologySecondary,
   DbcPrimary,
   TestTemplatePrimary,
   TestSecondary,
@@ -40,7 +40,7 @@ import { type GridColDef, type GridValidRowModel } from '@mui/x-data-grid'
 const MAX_TESTS_IN_MESSAGES = 3
 
 export interface TestsGridProps {
-  topologies: TopologyPrimary[] | null
+  topologies: TopologySecondary[] | null
   dbcs: DbcPrimary[] | null
   testTemplates: TestTemplatePrimary[] | null
   tests: TestSecondary[]
