@@ -1,6 +1,7 @@
 // Project
 import type { SubgroupPrimary } from '~/types'
 import { GridRefCell } from '../cells/grid-ref-cell'
+import { SubgroupHoverPreview } from '~/components/subgroups/subgroup-hover-preview'
 // React
 import * as React from 'react'
 // Material UI
@@ -35,6 +36,21 @@ export function useSubgroupCol(
           hrefPrefix="/hierarchy/subgroups"
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
           hrefPath={params.row.subgroupId}
+          hoverPreview={
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+            typeof params.row.subgroupId === 'number'
+              ? {
+                  renderContent: (active) => (
+                    <SubgroupHoverPreview
+                      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+                      subgroupId={params.row.subgroupId as number}
+                      active={active}
+                      text={params.value}
+                    />
+                  )
+                }
+              : undefined
+          }
         />
       ),
       minWidth: 140,

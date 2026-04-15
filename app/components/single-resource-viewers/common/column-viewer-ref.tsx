@@ -114,6 +114,7 @@ export function ColumnViewerRef(props: ColumnViewerRefProps) {
                 title={props.hoverPreview.renderContent(hoverPreviewIsOpen)}
                 placement={props.hoverPreview.placement ?? 'right-start'}
                 enterDelay={props.hoverPreview.enterDelay ?? 1100}
+                enterNextDelay={props.hoverPreview.enterDelay ?? 1100}
                 leaveDelay={props.hoverPreview.leaveDelay ?? 100}
                 onOpen={() => {
                   setHoverPreviewIsOpen(true)
