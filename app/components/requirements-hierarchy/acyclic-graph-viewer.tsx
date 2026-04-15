@@ -37,6 +37,9 @@ import Divider from '@mui/material/Divider'
 import Paper from '@mui/material/Paper'
 import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
+import FullscreenIcon from '@mui/icons-material/Fullscreen'
+import FullscreenExitIcon from '@mui/icons-material/FullscreenExit'
+import AccountTreeIcon from '@mui/icons-material/AccountTree'
 
 const StackStyled = styled(Stack)(() => [
   {
@@ -64,10 +67,19 @@ export interface AcyclicGraphViewerProps {
   selectedId: number | null
   setSelectedId: React.Dispatch<React.SetStateAction<number | null>>
   onVertexClick?: (vertexId: number) => void
+  isFullscreen?: boolean
+  onToggleFullscreen?: () => void
 }
 
 type AcyclicGraphNode = Node<AcyclicGraphVertexViewerProps<VertexData>>
 type MiniGraphDisplayMode = 'ROOT_PATH' | 'ALL_RELATED'
+type HoveredVertexPreview = {
+  id: number
+  level: number
+  data: VertexData
+}
+
+const HOVER_PREVIEW_DELAY_MS = 400
 
 const nodeTypes = {
   acyclicGraphVertex: AcyclicGraphVertexViewer
@@ -302,6 +314,48 @@ function MiniGraphAutoFit({
   return null
 }
 
+function MainGraphAutoFitOnRequest({ fitRequest }: { fitRequest: number }) {
+  const reactFlow = useReactFlow()
+  const nodesInitialized = useNodesInitialized()
+  const viewportInitialized = useStore(
+    (state) =>
+      state.width > 0 &&
+      state.height > 0 &&
+      state.d3Zoom !== null &&
+      state.d3Selection !== null
+  )
+
+  useLayoutEffect(() => {
+    if (
+      fitRequest === 0 ||
+      nodesInitialized === false ||
+      !viewportInitialized
+    ) {
+      return
+    }
+
+    let cancelled = false
+    let firstFrameId = 0
+    let secondFrameId = 0
+
+    firstFrameId = requestAnimationFrame(() => {
+      secondFrameId = requestAnimationFrame(() => {
+        if (cancelled === false) {
+          reactFlow.fitView()
+        }
+      })
+    })
+
+    return () => {
+      cancelled = true
+      cancelAnimationFrame(firstFrameId)
+      cancelAnimationFrame(secondFrameId)
+    }
+  }, [fitRequest, reactFlow, nodesInitialized, viewportInitialized])
+
+  return null
+}
+
 const getVertexLevel = (vertexData: VertexData): number => {
   const v = vertexData as unknown
   if (typeof v === 'object' && v !== null && 'level' in v) {
@@ -518,7 +572,9 @@ export default function AcyclicGraphViewer({
   fitOnSelectedIdChange = false,
   selectedId,
   setSelectedId,
-  onVertexClick
+  onVertexClick,
+  isFullscreen = false,
+  onToggleFullscreen
 }: AcyclicGraphViewerProps) {
   const {
     containerRef,
@@ -656,6 +712,14 @@ export default function AcyclicGraphViewer({
   const [miniGraphReady, setMiniGraphReady] = useState(false)
   const [miniGraphDisplayMode, setMiniGraphDisplayMode] =
     useState<MiniGraphDisplayMode>('ALL_RELATED')
+  const [isMiniGraphEnabled, setIsMiniGraphEnabled] = useState(true)
+  const [hoveredVertexPreview, setHoveredVertexPreview] =
+    useState<HoveredVertexPreview | null>(null)
+  const [mainGraphFitRequest, setMainGraphFitRequest] = useState(0)
+  const isFullscreenInitializedRef = useRef(false)
+  const hoverPreviewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null
+  )
 
   useEffect(() => {
     if (containerWidth > 0 && containerHeight > 0) {
@@ -708,6 +772,15 @@ export default function AcyclicGraphViewer({
     setMiniGraphReady(false)
   }, [miniGraphFitKey])
 
+  useEffect(() => {
+    if (isFullscreenInitializedRef.current === false) {
+      isFullscreenInitializedRef.current = true
+      return
+    }
+
+    setMainGraphFitRequest((prev) => prev + 1)
+  }, [isFullscreen])
+
   const showNextLevel = () => {
     if (
       maxDisplayedLayerWhenWithoutSelected === null ||
@@ -757,6 +830,45 @@ export default function AcyclicGraphViewer({
     setSelectedEdgeId((prev) => (prev === edge.id ? null : edge.id))
   }, [])
 
+  const handleNodeMouseEnter = useCallback(
+    (
+      _event: React.MouseEvent,
+      node: Node<AcyclicGraphVertexViewerProps<VertexData>>
+    ) => {
+      if (hoverPreviewTimerRef.current !== null) {
+        clearTimeout(hoverPreviewTimerRef.current)
+      }
+
+      const previewData: HoveredVertexPreview = {
+        id: node.data.id,
+        level: node.data.level,
+        data: node.data.data
+      }
+
+      hoverPreviewTimerRef.current = setTimeout(() => {
+        setHoveredVertexPreview(previewData)
+        hoverPreviewTimerRef.current = null
+      }, HOVER_PREVIEW_DELAY_MS)
+    },
+    []
+  )
+
+  const handleNodeMouseLeave = useCallback(() => {
+    if (hoverPreviewTimerRef.current !== null) {
+      clearTimeout(hoverPreviewTimerRef.current)
+      hoverPreviewTimerRef.current = null
+    }
+    setHoveredVertexPreview(null)
+  }, [])
+
+  useEffect(() => {
+    return () => {
+      if (hoverPreviewTimerRef.current !== null) {
+        clearTimeout(hoverPreviewTimerRef.current)
+      }
+    }
+  }, [])
+
   const handlePaneClick = useCallback(() => {
     setSelectedEdgeId(null)
   }, [])
@@ -775,6 +887,9 @@ export default function AcyclicGraphViewer({
   const showButtonDisabled =
     maxDisplayedLayerWhenWithoutSelected !== null &&
     maxDisplayedLayerWhenWithoutSelected >= 5
+  const isMiniGraphVisible = selectedId !== null && isMiniGraphEnabled
+  const isHoverPreviewVisible = hoveredVertexPreview !== null
+  const isRightPanelVisible = isMiniGraphVisible || isHoverPreviewVisible
 
   return (
     <StackStyled sx={{ height: '100%' }}>
@@ -804,7 +919,13 @@ export default function AcyclicGraphViewer({
             {selectedEdgeId !== null && ` | Выбрана связь: ${selectedEdgeId}`}
           </Typography>
         </Box>
-        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+        <Stack
+          direction="row"
+          spacing={1}
+          flexWrap="wrap"
+          useFlexGap
+          sx={{ flex: 1 }}
+        >
           <ProjButton
             variant="contained"
             type="button"
@@ -833,6 +954,46 @@ export default function AcyclicGraphViewer({
           >
             Сбросить выделение
           </ProjButton>
+          {onToggleFullscreen !== undefined ? (
+            <Box sx={{ ml: 'auto' }}>
+              <ProjButton
+                variant={isMiniGraphEnabled ? 'contained' : 'outlined'}
+                title={
+                  isMiniGraphEnabled ? 'Скрыть мини-граф' : 'Показать мини-граф'
+                }
+                aria-label={
+                  isMiniGraphEnabled ? 'Скрыть мини-граф' : 'Показать мини-граф'
+                }
+                onClick={() =>
+                  setIsMiniGraphEnabled((prevEnabled) => !prevEnabled)
+                }
+                sx={{ minWidth: 0, px: 1, mr: 1 }}
+              >
+                <AccountTreeIcon fontSize="small" />
+              </ProjButton>
+              <ProjButton
+                variant={isFullscreen ? 'contained' : 'outlined'}
+                title={
+                  isFullscreen
+                    ? 'Выйти из полноэкранного режима'
+                    : 'Развернуть на весь экран'
+                }
+                aria-label={
+                  isFullscreen
+                    ? 'Выйти из полноэкранного режима'
+                    : 'Развернуть на весь экран'
+                }
+                onClick={onToggleFullscreen}
+                sx={{ minWidth: 0, px: 1 }}
+              >
+                {isFullscreen ? (
+                  <FullscreenExitIcon fontSize="small" />
+                ) : (
+                  <FullscreenIcon fontSize="small" />
+                )}
+              </ProjButton>
+            </Box>
+          ) : null}
         </Stack>
       </Box>
 
@@ -855,6 +1016,8 @@ export default function AcyclicGraphViewer({
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onNodeClick={handleNodeClick}
+            onNodeMouseEnter={handleNodeMouseEnter}
+            onNodeMouseLeave={handleNodeMouseLeave}
             onEdgeClick={handleEdgeClick}
             onPaneClick={handlePaneClick}
             nodeTypes={nodeTypes}
@@ -872,12 +1035,13 @@ export default function AcyclicGraphViewer({
             proOptions={{ hideAttribution: true }}
           >
             <ReactFlowPinchZoomSensitivityController />
+            <MainGraphAutoFitOnRequest fitRequest={mainGraphFitRequest} />
             <Controls showInteractive={false} />
             <Background />
           </ReactFlow>
         </Box>
 
-        {selectedId !== null && (
+        {isRightPanelVisible && (
           <>
             <Box
               sx={{
@@ -922,103 +1086,202 @@ export default function AcyclicGraphViewer({
                 backgroundColor: theme.palette.background.paper,
                 color: theme.palette.text.primary,
                 display: 'flex',
-                flexDirection: 'column'
+                flexDirection: 'column',
+                overflow: 'hidden'
               }}
             >
-              <Box
-                sx={{
-                  px: 2,
-                  pt: 2,
-                  pb: 1,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  gap: 1
-                }}
-              >
-                <Typography fontSize={14} fontWeight={700} textAlign="center">
-                  Мини-граф
-                </Typography>
-                <Stack
-                  direction="row"
-                  spacing={1}
-                  useFlexGap
-                  justifyContent="center"
-                >
-                  <ProjButton
-                    type="button"
-                    variant={
-                      miniGraphDisplayMode === 'ROOT_PATH'
-                        ? 'contained'
-                        : 'outlined'
-                    }
-                    onClick={() => {
-                      setMiniGraphDisplayMode('ROOT_PATH')
-                    }}
-                  >
-                    Путь до корня
-                  </ProjButton>
-                  <ProjButton
-                    type="button"
-                    variant={
-                      miniGraphDisplayMode === 'ALL_RELATED'
-                        ? 'contained'
-                        : 'outlined'
-                    }
-                    onClick={() => {
-                      setMiniGraphDisplayMode('ALL_RELATED')
-                    }}
-                  >
-                    Показ всех
-                  </ProjButton>
-                </Stack>
-              </Box>
-
-              <Box
-                sx={{
-                  flex: 1,
-                  minHeight: 0,
-                  visibility: miniGraphReady ? 'visible' : 'hidden'
-                }}
-              >
-                <ReactFlow
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    backgroundColor: theme.palette.background.paper
+              {isHoverPreviewVisible ? (
+                <Box
+                  sx={{
+                    p: 2
                   }}
-                  nodes={miniFlowData.nodes}
-                  edges={miniFlowData.edges}
-                  nodeTypes={nodeTypes}
-                  minZoom={0.01}
-                  maxZoom={1.5}
-                  nodesDraggable={false}
-                  nodesConnectable={false}
-                  elementsSelectable={false}
-                  edgesFocusable={false}
-                  nodesFocusable={false}
-                  panOnDrag={false}
-                  panOnScroll={false}
-                  zoomOnScroll={false}
-                  zoomOnPinch={false}
-                  zoomOnDoubleClick={false}
-                  preventScrolling={false}
-                  proOptions={{ hideAttribution: true }}
                 >
-                  <MiniGraphWheelController />
-                  <MiniGraphAutoFit
-                    fitKey={miniGraphFitKey}
-                    setReady={setMiniGraphReady}
-                  />
-                  <Controls
-                    showInteractive={false}
-                    showZoom={true}
-                    showFitView={true}
-                  />
-                  <Background />
-                </ReactFlow>
-              </Box>
+                  <Box
+                    sx={{
+                      mt: 0.5,
+                      borderRadius: 1,
+                      border: `2px solid ${theme.palette.divider}`,
+                      backgroundColor: theme.palette.primary.main,
+                      color: theme.palette.primary.contrastText,
+                      px: 1.5,
+                      py: 1,
+                      textAlign: 'center',
+                      fontWeight: 700
+                    }}
+                  >
+                    {hoveredVertexPreview.data.code}
+                  </Box>
+                  <Stack
+                    spacing={1}
+                    sx={{
+                      mt: 1.5,
+                      p: 1.25,
+                      borderRadius: 1,
+                      border: `1px solid ${theme.palette.divider}`,
+                      backgroundColor:
+                        theme.palette.mode === 'dark'
+                          ? alpha(theme.palette.background.default, 0.35)
+                          : alpha(theme.palette.background.default, 0.55)
+                    }}
+                  >
+                    {[
+                      ['ID', String(hoveredVertexPreview.id)],
+                      ['Уровень', String(hoveredVertexPreview.level)],
+                      [
+                        'Покрытие',
+                        `${String(hoveredVertexPreview.data.coverage)}%`
+                      ],
+                      [
+                        'Атомарность',
+                        hoveredVertexPreview.data.atomicityFlag ? 'Да' : 'Нет'
+                      ],
+                      [
+                        'Коэф. атомарности',
+                        String(hoveredVertexPreview.data.atomicityCoef)
+                      ],
+                      [
+                        'Модификатор',
+                        hoveredVertexPreview.data.modifier || '—'
+                      ],
+                      ['Источник', hoveredVertexPreview.data.origin || '—'],
+                      ['Тест', hoveredVertexPreview.data.test || '—']
+                    ].map(([label, value], index, array) => (
+                      <Box key={label}>
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            gap: 1
+                          }}
+                        >
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              color: theme.palette.text.secondary,
+                              letterSpacing: 0.2
+                            }}
+                          >
+                            {label}
+                          </Typography>
+                          <Typography
+                            variant="body2"
+                            sx={{ fontWeight: 600, textAlign: 'right' }}
+                          >
+                            {value}
+                          </Typography>
+                        </Box>
+                        {index < array.length - 1 ? (
+                          <Divider sx={{ mt: 0.9 }} />
+                        ) : null}
+                      </Box>
+                    ))}
+                  </Stack>
+                </Box>
+              ) : null}
+              {isMiniGraphVisible ? (
+                <>
+                  {isHoverPreviewVisible ? <Divider /> : null}
+                  <Box
+                    sx={{
+                      px: 2,
+                      pt: 2,
+                      pb: 1,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      gap: 1
+                    }}
+                  >
+                    <Typography
+                      fontSize={14}
+                      fontWeight={700}
+                      textAlign="center"
+                    >
+                      Мини-граф
+                    </Typography>
+                    <Stack
+                      direction="row"
+                      spacing={1}
+                      useFlexGap
+                      justifyContent="center"
+                    >
+                      <ProjButton
+                        type="button"
+                        variant={
+                          miniGraphDisplayMode === 'ROOT_PATH'
+                            ? 'contained'
+                            : 'outlined'
+                        }
+                        onClick={() => {
+                          setMiniGraphDisplayMode('ROOT_PATH')
+                        }}
+                      >
+                        Путь до корня
+                      </ProjButton>
+                      <ProjButton
+                        type="button"
+                        variant={
+                          miniGraphDisplayMode === 'ALL_RELATED'
+                            ? 'contained'
+                            : 'outlined'
+                        }
+                        onClick={() => {
+                          setMiniGraphDisplayMode('ALL_RELATED')
+                        }}
+                      >
+                        Показ всех
+                      </ProjButton>
+                    </Stack>
+                  </Box>
+
+                  <Box
+                    sx={{
+                      flex: 1,
+                      minHeight: 0,
+                      visibility: miniGraphReady ? 'visible' : 'hidden'
+                    }}
+                  >
+                    <ReactFlow
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        backgroundColor: theme.palette.background.paper
+                      }}
+                      nodes={miniFlowData.nodes}
+                      edges={miniFlowData.edges}
+                      nodeTypes={nodeTypes}
+                      minZoom={0.01}
+                      maxZoom={1.5}
+                      nodesDraggable={false}
+                      nodesConnectable={false}
+                      elementsSelectable={false}
+                      edgesFocusable={false}
+                      nodesFocusable={false}
+                      panOnDrag={false}
+                      panOnScroll={false}
+                      zoomOnScroll={false}
+                      zoomOnPinch={false}
+                      zoomOnDoubleClick={false}
+                      preventScrolling={false}
+                      proOptions={{ hideAttribution: true }}
+                    >
+                      <MiniGraphWheelController />
+                      <MiniGraphAutoFit
+                        fitKey={miniGraphFitKey}
+                        setReady={setMiniGraphReady}
+                      />
+                      <Controls
+                        showInteractive={false}
+                        showZoom={true}
+                        showFitView={true}
+                      />
+                      <Background />
+                    </ReactFlow>
+                  </Box>
+                </>
+              ) : null}
             </Paper>
           </>
         )}

@@ -1,6 +1,5 @@
 import { Handle, Position, type NodeProps } from 'reactflow'
 import './styles.css'
-import { useState } from 'react'
 
 export type AcyclicGraphVertexType =
   | 'DEFAULT'
@@ -33,7 +32,6 @@ export interface AcyclicGraphVertexViewerProps<VertexData> {
 export default function AcyclicGraphVertexViewer({
   data: {
     id,
-    level,
     hasParents,
     hasChildren,
     data,
@@ -43,8 +41,6 @@ export default function AcyclicGraphVertexViewer({
     onClick
   }
 }: NodeProps<AcyclicGraphVertexViewerProps<VertexData>>) {
-  const [isHovered, setIsHovered] = useState(false)
-
   const handleClick = () => {
     onClick?.(id)
   }
@@ -52,8 +48,6 @@ export default function AcyclicGraphVertexViewer({
   return (
     <div
       className={`acyclic-vertex ${type.toLowerCase()} ${dimmed ? 'dimmed' : ''} ${collapsed ? 'collapsed' : ''}`}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
       onClick={handleClick}
     >
       {hasParents && (
@@ -72,16 +66,7 @@ export default function AcyclicGraphVertexViewer({
         />
       )}
 
-      <div className="vertex-code">
-        {data.code}
-        {isHovered && (
-          <div className="vertex-tooltip">
-            <div>ID: {id}</div>
-            <div>Level: {level}</div>
-            <div>Coverage: {data.coverage}%</div>
-          </div>
-        )}
-      </div>
+      <div className="vertex-code">{data.code}</div>
 
       {collapsed && <div className="collapsed-indicator">C</div>}
     </div>

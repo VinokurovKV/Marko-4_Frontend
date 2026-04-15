@@ -33,6 +33,8 @@ import MenuItem from '@mui/material/MenuItem'
 import Typography from '@mui/material/Typography'
 import TextSnippetIcon from '@mui/icons-material/TextSnippet'
 import ViewSidebarIcon from '@mui/icons-material/ViewSidebar'
+import FullscreenIcon from '@mui/icons-material/Fullscreen'
+import FullscreenExitIcon from '@mui/icons-material/FullscreenExit'
 import Box from '@mui/material/Box'
 import TextField from '@mui/material/TextField'
 
@@ -97,6 +99,7 @@ export function DocumentContentViewer({
   previewAreaRequest,
   browseAreaRequest
 }: DocumentContentViewerProps) {
+  const fullscreenContainerRef = React.useRef<HTMLDivElement | null>(null)
   const theme = useTheme()
   const notifier = useNotifier()
   const handledBrowseAreaRequestSeqRef = React.useRef<number | null>(null)
@@ -220,6 +223,20 @@ export function DocumentContentViewer({
   const [searchPreviousRequest, setSearchPreviousRequest] = React.useState(0)
   const [isSearchPending, setIsSearchPending] = React.useState(false)
   const [areThumbnailsVisible, setAreThumbnailsVisible] = React.useState(false)
+  const [isFullscreen, setIsFullscreen] = React.useState(false)
+
+  const toggleFullscreen = React.useCallback(() => {
+    const container = fullscreenContainerRef.current
+    if (container === null) return
+
+    void (async () => {
+      if (globalThis.document.fullscreenElement === container) {
+        await globalThis.document.exitFullscreen()
+      } else {
+        await container.requestFullscreen()
+      }
+    })()
+  }, [])
 
   const handleSearchPendingChange = React.useCallback((isPending: boolean) => {
     setIsSearchPending((prev) => (prev === isPending ? prev : isPending))
@@ -563,6 +580,27 @@ export function DocumentContentViewer({
     setIsAreaDialogClosing(false)
   }, [document.id])
 
+  React.useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(
+        globalThis.document.fullscreenElement === fullscreenContainerRef.current
+      )
+    }
+
+    handleFullscreenChange()
+    globalThis.document.addEventListener(
+      'fullscreenchange',
+      handleFullscreenChange
+    )
+
+    return () => {
+      globalThis.document.removeEventListener(
+        'fullscreenchange',
+        handleFullscreenChange
+      )
+    }
+  }, [])
+
   const isAnyTopDialogOpen = isBrowseDialogOpen || isCreateAreaDialogOpen
 
   const rootClassName =
@@ -571,7 +609,7 @@ export function DocumentContentViewer({
       : 'dcv-root dcv-root--dark'
 
   return (
-    <div className={rootClassName}>
+    <div ref={fullscreenContainerRef} className={rootClassName}>
       <Paper
         elevation={0}
         sx={{
@@ -719,6 +757,28 @@ export function DocumentContentViewer({
               sx={{ minWidth: 0, px: 1 }}
             >
               <TextSnippetIcon fontSize="small" />
+            </ProjButton>
+
+            <ProjButton
+              variant={isFullscreen ? 'contained' : 'outlined'}
+              title={
+                isFullscreen
+                  ? 'Выйти из полноэкранного режима'
+                  : 'Развернуть на весь экран'
+              }
+              aria-label={
+                isFullscreen
+                  ? 'Выйти из полноэкранного режима'
+                  : 'Развернуть на весь экран'
+              }
+              onClick={toggleFullscreen}
+              sx={{ minWidth: 0, px: 1 }}
+            >
+              {isFullscreen ? (
+                <FullscreenExitIcon fontSize="small" />
+              ) : (
+                <FullscreenIcon fontSize="small" />
+              )}
             </ProjButton>
           </Stack>
         </Stack>

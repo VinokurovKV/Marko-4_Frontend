@@ -53,6 +53,7 @@ export function RequirementsHierarchyAcyclicViewer({
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   tests
 }: RequirementsHierarchyAcyclicViewerProps) {
+  const fullscreenContainerRef = React.useRef<HTMLDivElement | null>(null)
   const theme = useTheme()
 
   const [
@@ -61,14 +62,54 @@ export function RequirementsHierarchyAcyclicViewer({
   ] = React.useState<number | null>(1)
 
   const [selectedId, setSelectedId] = React.useState<number | null>(null)
+  const [isFullscreen, setIsFullscreen] = React.useState(false)
+
+  const toggleFullscreen = React.useCallback(() => {
+    const container = fullscreenContainerRef.current
+    if (container === null) return
+
+    void (async () => {
+      if (globalThis.document.fullscreenElement === container) {
+        await globalThis.document.exitFullscreen()
+      } else {
+        await container.requestFullscreen()
+      }
+    })()
+  }, [])
 
   const dataForVertexIdAsVertexData = React.useMemo(
     () => buildVertexDataMap(dataForVertexId),
     [dataForVertexId]
   )
 
+  React.useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(
+        globalThis.document.fullscreenElement === fullscreenContainerRef.current
+      )
+    }
+
+    handleFullscreenChange()
+    globalThis.document.addEventListener(
+      'fullscreenchange',
+      handleFullscreenChange
+    )
+
+    return () => {
+      globalThis.document.removeEventListener(
+        'fullscreenchange',
+        handleFullscreenChange
+      )
+    }
+  }, [])
+
   return (
-    <Stack spacing={1} p={0} sx={{ height: '100%' }}>
+    <Stack
+      ref={fullscreenContainerRef}
+      spacing={1}
+      p={0}
+      sx={{ height: '100%' }}
+    >
       <Stack
         spacing={1}
         border={`1px solid ${
@@ -99,6 +140,8 @@ export function RequirementsHierarchyAcyclicViewer({
           selectedId={selectedId}
           setSelectedId={setSelectedId}
           fitOnSelectedIdChange={true}
+          isFullscreen={isFullscreen}
+          onToggleFullscreen={toggleFullscreen}
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
           onVertexClick={(vertexId: number) => {}}
         />
