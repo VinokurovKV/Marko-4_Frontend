@@ -11,6 +11,7 @@ import type {
   SubgroupPrimary,
   GroupPrimary
 } from '~/types'
+import { usePopupPreviewVisibilitySettings } from '~/hooks/popup-preview-visibility'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
 import { FlagIcon } from '~/components/icons'
@@ -61,6 +62,7 @@ export function TestViewer({
   subgroup,
   group
 }: TestViewerProps) {
+  const { settings } = usePopupPreviewVisibilitySettings()
   const notifier = useNotifier()
 
   const [requirementId, setRequirementId] = React.useState<number | null>(null)
@@ -268,7 +270,7 @@ export function TestViewer({
                   : undefined
               }
               hoverPreview={
-                commonTopology !== null
+                settings.commonTopology && commonTopology !== null
                   ? {
                       renderContent: () => (
                         <CommonTopologyHoverPreview
@@ -285,7 +287,7 @@ export function TestViewer({
               text={topology?.code ?? '???'}
               href={`/topologies/${test.topologyId}`}
               hoverPreview={
-                topology !== null
+                settings.topology && topology !== null
                   ? {
                       renderContent: () => (
                         <TopologyHoverPreview

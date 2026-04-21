@@ -14,6 +14,7 @@ export default [
         layout('routes/authenticated-guard.tsx', [
           layout('routes/layout.tsx', [
             route('profile', 'routes/profile.tsx'),
+            route('settings', 'routes/settings.tsx'),
             route('roles', 'routes/roles.tsx', [
               route(':roleId', 'routes/role.tsx')
             ]),

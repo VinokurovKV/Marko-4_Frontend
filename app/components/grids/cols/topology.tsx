@@ -1,5 +1,6 @@
 // Project
 import type { TopologySecondary } from '~/types'
+import { usePopupPreviewVisibilitySettings } from '~/hooks/popup-preview-visibility'
 import { GridRefCell } from '../cells/grid-ref-cell'
 import { TopologyHoverPreview } from '~/components/topologies/topology-hover-preview'
 // React
@@ -12,6 +13,8 @@ import capitalize from 'capitalize'
 export function useTopologyCol(
   topologies: TopologySecondary[] | null | undefined
 ) {
+  const { settings } = usePopupPreviewVisibilitySettings()
+
   const topologyForId = React.useMemo(
     () =>
       new Map<number, TopologySecondary>(
@@ -49,7 +52,9 @@ export function useTopologyCol(
             hrefPrefix="/topologies"
             hrefPath={params.row.topologyId}
             hoverPreview={
-              topology !== undefined && topology.commonTopologyId !== undefined
+              settings.topology &&
+              topology !== undefined &&
+              topology.commonTopologyId !== undefined
                 ? {
                     renderContent: () => (
                       <TopologyHoverPreview
@@ -66,7 +71,7 @@ export function useTopologyCol(
       minWidth: 140,
       flex: 1
     }),
-    [topologyCodeForId, topologyForId]
+    [topologyCodeForId, topologyForId, settings.topology]
   )
 
   return col

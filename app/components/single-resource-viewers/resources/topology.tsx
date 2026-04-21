@@ -6,6 +6,7 @@ import type {
   TopologyTertiary,
   TestPrimary
 } from '~/types'
+import { usePopupPreviewVisibilitySettings } from '~/hooks/popup-preview-visibility'
 import {
   HorizontalTwoPartsContainer,
   VerticalTwoPartsContainer
@@ -36,6 +37,8 @@ export function TopologyViewer({
   topology,
   tests
 }: TopologyViewerProps) {
+  const { settings } = usePopupPreviewVisibilitySettings()
+
   const topologyConfig = React.useMemo(() => {
     return commonTopology !== null && topology !== null
       ? calculateTopologyConfig(commonTopology.config, topology.vertexNames)
@@ -54,14 +57,18 @@ export function TopologyViewer({
             field="общая топология"
             text={commonTopology?.code ?? '???'}
             href={`/common-topologies/${topology.commonTopologyId}`}
-            hoverPreview={{
-              renderContent: () => (
-                <CommonTopologyHoverPreview
-                  commonTopologyId={topology.commonTopologyId}
-                  text={commonTopology?.code}
-                />
-              )
-            }}
+            hoverPreview={
+              settings.commonTopology
+                ? {
+                    renderContent: () => (
+                      <CommonTopologyHoverPreview
+                        commonTopologyId={topology.commonTopologyId}
+                        text={commonTopology?.code}
+                      />
+                    )
+                  }
+                : undefined
+            }
           />
           <ColumnViewerItem
             field="номер в общей топологии"

@@ -1,5 +1,6 @@
 // Project
 import type { SubgroupPrimary } from '~/types'
+import { usePopupPreviewVisibilitySettings } from '~/hooks/popup-preview-visibility'
 import { GridRefCell } from '../cells/grid-ref-cell'
 import { SubgroupHoverPreview } from '~/components/subgroups/subgroup-hover-preview'
 // React
@@ -12,6 +13,8 @@ import capitalize from 'capitalize'
 export function useSubgroupCol(
   subgroups: SubgroupPrimary[] | null | undefined
 ) {
+  const { settings } = usePopupPreviewVisibilitySettings()
+
   const subgroupCodeForId = React.useMemo(
     () =>
       new Map(
@@ -37,6 +40,7 @@ export function useSubgroupCol(
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
           hrefPath={params.row.subgroupId}
           hoverPreview={
+            settings.subgroup &&
             // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
             typeof params.row.subgroupId === 'number'
               ? {
@@ -56,7 +60,7 @@ export function useSubgroupCol(
       minWidth: 140,
       flex: 1
     }),
-    [subgroupCodeForId]
+    [subgroupCodeForId, settings.subgroup]
   )
 
   return col

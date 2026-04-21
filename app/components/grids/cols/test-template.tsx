@@ -1,5 +1,6 @@
 // Project
 import type { TestTemplatePrimary } from '~/types'
+import { usePopupPreviewVisibilitySettings } from '~/hooks/popup-preview-visibility'
 import { GridRefCell } from '../cells/grid-ref-cell'
 import { TestTemplateHoverPreview } from '~/components/test-templates/test-template-hover-preview'
 // React
@@ -12,6 +13,8 @@ import capitalize from 'capitalize'
 export function useTestTemplateCol(
   testTemplates: TestTemplatePrimary[] | null | undefined
 ) {
+  const { settings } = usePopupPreviewVisibilitySettings()
+
   const testTemplateCodeForId = React.useMemo(
     () =>
       new Map(
@@ -38,6 +41,7 @@ export function useTestTemplateCol(
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
           hrefPath={params.row.testTemplateId}
           hoverPreview={
+            settings.testTemplate &&
             // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
             typeof params.row.testTemplateId === 'number'
               ? {
@@ -57,7 +61,7 @@ export function useTestTemplateCol(
       minWidth: 140,
       flex: 1
     }),
-    [testTemplateCodeForId]
+    [testTemplateCodeForId, settings.testTemplate]
   )
 
   return col

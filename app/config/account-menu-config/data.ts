@@ -2,7 +2,7 @@
 import type { AcountMenuConfig } from './common'
 // Material UI
 import PersonIcon from '@mui/icons-material/Person'
-// import SettingsIcon from '@mui/icons-material/Settings'
+import SettingsIcon from '@mui/icons-material/Settings'
 
 export const ACCOUNT_MENU_CONFIG: AcountMenuConfig = [
   {
@@ -17,10 +17,10 @@ export const ACCOUNT_MENU_CONFIG: AcountMenuConfig = [
       'UPDATE_SELF_PASS',
       'UPDATE_USER_PASS'
     ]
+  },
+  {
+    title: 'настройки',
+    Icon: SettingsIcon,
+    href: '/settings'
   }
-  // {
-  //   title: 'настройки',
-  //   Icon: SettingsIcon,
-  //   href: '/settings'
-  // }
 ]

@@ -1,5 +1,6 @@
 // Project
 import type { RolePrimary } from '~/types'
+import { usePopupPreviewVisibilitySettings } from '~/hooks/popup-preview-visibility'
 import { GridRefCell } from '../cells/grid-ref-cell'
 import { RoleHoverPreview } from '~/components/roles/role-hover-preview'
 // React
@@ -10,6 +11,8 @@ import type { GridColDef, GridRenderCellParams } from '@mui/x-data-grid'
 import capitalize from 'capitalize'
 
 export function useRoleCol(roles: RolePrimary[] | null | undefined) {
+  const { settings } = usePopupPreviewVisibilitySettings()
+
   const roleNameForId = React.useMemo(
     () =>
       new Map(
@@ -31,22 +34,26 @@ export function useRoleCol(roles: RolePrimary[] | null | undefined) {
           hrefPrefix="/roles"
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
           hrefPath={params.row.roleId}
-          hoverPreview={{
-            renderContent: (active) => (
-              <RoleHoverPreview
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-                roleId={params.row.roleId as number}
-                active={active}
-                text={params.value}
-              />
-            )
-          }}
+          hoverPreview={
+            settings.roleRights
+              ? {
+                  renderContent: (active) => (
+                    <RoleHoverPreview
+                      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+                      roleId={params.row.roleId as number}
+                      active={active}
+                      text={params.value}
+                    />
+                  )
+                }
+              : undefined
+          }
         />
       ),
       minWidth: 140,
       flex: 1
     }),
-    [roleNameForId]
+    [roleNameForId, settings.roleRights]
   )
 
   return col
