@@ -2198,7 +2198,7 @@ const PdfViewerBody: React.FC<
                                   className={`pdfv-area-label${isAreaLabelInteractive ? '' : ' pdfv-area-label--passive'}`}
                                   title={
                                     isAreaLabelInteractive
-                                      ? 'Нажмите, чтобы изменить название'
+                                      ? 'Нажмите, чтобы изменить код'
                                       : undefined
                                   }
                                 >

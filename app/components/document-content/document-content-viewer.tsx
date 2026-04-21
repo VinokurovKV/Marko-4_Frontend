@@ -56,14 +56,14 @@ type CreatingAreaDraft = {
 type PendingCreatedArea = {
   tempId: number
   orderNumber: number
-  name: string
+  innerCode: string
   rectangle: Rectangle
   configFile?: File
   createdFragmentId?: number
 }
 
 type OptimisticAreaPatch = {
-  name?: string
+  innerCode?: string
   rectangle?: Rectangle
 }
 
@@ -146,14 +146,16 @@ export function DocumentContentViewer({
       .map((fragment, index) => {
         const optimisticPatch = optimisticAreaPatches[fragment.id]
         const orderNumber =
-          parseAreaOrderNumber(fragment.innerCode) ?? index + 1
+          parseAreaOrderNumber(
+            optimisticPatch?.innerCode ?? fragment.innerCode
+          ) ?? index + 1
+        const innerCode = optimisticPatch?.innerCode ?? fragment.innerCode
 
         return {
           id: fragment.id,
-          innerCode: fragment.innerCode,
+          innerCode,
           orderNumber,
-          name:
-            optimisticPatch?.name ?? fragment.name ?? `Область ${orderNumber}`,
+          name: innerCode,
           rectangle: optimisticPatch?.rectangle ?? {
             xMin: fragment.location.xLeft,
             xMax: fragment.location.xRight,
@@ -173,9 +175,9 @@ export function DocumentContentViewer({
       )
       .map((area) => ({
         id: area.tempId,
-        innerCode: String(area.orderNumber),
+        innerCode: area.innerCode,
         orderNumber: area.orderNumber,
-        name: area.name,
+        name: area.innerCode,
         rectangle: area.rectangle,
         createdFragmentId: area.createdFragmentId
       }))
@@ -189,7 +191,7 @@ export function DocumentContentViewer({
       ...visiblePendingAreas,
       {
         id: creatingAreaDraft.tempId,
-        innerCode: String(creatingAreaDraft.orderNumber),
+        innerCode: newAreaName.trim(),
         orderNumber: creatingAreaDraft.orderNumber,
         name: newAreaName.trim(),
         rectangle: creatingAreaDraft.rectangle
@@ -252,10 +254,10 @@ export function DocumentContentViewer({
     []
   )
 
-  const previousAreaNameForDialog = React.useMemo(() => {
+  const previousAreaInnerCodeForDialog = React.useMemo(() => {
     if (editingAreaId === null) return ''
 
-    return areas.find((a) => a.id === editingAreaId)?.name ?? ''
+    return areas.find((a) => a.id === editingAreaId)?.innerCode ?? ''
   }, [areas, editingAreaId])
 
   const isCreateAreaNameEmpty =
@@ -328,7 +330,7 @@ export function DocumentContentViewer({
       if (!area) return
 
       setEditingAreaId(areaId)
-      setNewAreaName(area.name)
+      setNewAreaName(area.innerCode)
       setIsAreaDialogClosing(false)
       setIsCreateAreaDialogOpen(true)
     },
@@ -355,8 +357,9 @@ export function DocumentContentViewer({
 
     void (async () => {
       if (editingAreaId !== null) {
-        const fallbackName = previousAreaNameForDialog
-        const resolvedName = trimmedName.length > 0 ? trimmedName : fallbackName
+        const fallbackInnerCode = previousAreaInnerCodeForDialog
+        const resolvedInnerCode =
+          trimmedName.length > 0 ? trimmedName : fallbackInnerCode
         const pendingCreatedArea = pendingCreatedAreas.find(
           (area) => area.tempId === editingAreaId
         )
@@ -367,12 +370,12 @@ export function DocumentContentViewer({
               area.tempId === editingAreaId
                 ? {
                     ...area,
-                    name: resolvedName
+                    innerCode: resolvedInnerCode
                   }
                 : area
             )
           )
-          setNewAreaName(resolvedName)
+          setNewAreaName(resolvedInnerCode)
           setIsAreaDialogClosing(true)
           setIsCreateAreaDialogOpen(false)
           return
@@ -382,10 +385,10 @@ export function DocumentContentViewer({
           ...prev,
           [editingAreaId]: {
             ...prev[editingAreaId],
-            name: resolvedName
+            innerCode: resolvedInnerCode
           }
         }))
-        setNewAreaName(resolvedName)
+        setNewAreaName(resolvedInnerCode)
         setIsAreaDialogClosing(true)
         setIsCreateAreaDialogOpen(false)
 
@@ -393,7 +396,7 @@ export function DocumentContentViewer({
           await serverConnector.updateFragment(
             {
               id: editingAreaId,
-              name: resolvedName
+              innerCode: resolvedInnerCode
             },
             undefined
           )
@@ -420,21 +423,21 @@ export function DocumentContentViewer({
         return
       }
 
-      const resolvedName =
+      const resolvedInnerCode =
         trimmedName.length > 0
           ? trimmedName
-          : `Область ${creatingAreaDraft.orderNumber}`
+          : String(creatingAreaDraft.orderNumber)
 
       const pendingArea: PendingCreatedArea = {
         tempId: creatingAreaDraft.tempId,
         orderNumber: creatingAreaDraft.orderNumber,
-        name: resolvedName,
+        innerCode: resolvedInnerCode,
         rectangle: creatingAreaDraft.rectangle,
         configFile: creatingAreaDraft.configFile
       }
 
       setPendingCreatedAreas((prev) => [...prev, pendingArea])
-      setNewAreaName(resolvedName)
+      setNewAreaName(resolvedInnerCode)
       setIsAreaDialogClosing(true)
       setIsCreateAreaDialogOpen(false)
       setCreatingAreaDraft(null)
@@ -445,8 +448,7 @@ export function DocumentContentViewer({
           await serverConnector.createFragment(
             {
               documentId: document.id,
-              innerCode: String(creatingAreaDraft.orderNumber),
-              name: resolvedName,
+              innerCode: resolvedInnerCode,
               location: toFragmentLocation(creatingAreaDraft.rectangle)
             },
             creatingAreaDraft.configFile
@@ -478,7 +480,7 @@ export function DocumentContentViewer({
   }, [
     editingAreaId,
     newAreaName,
-    previousAreaNameForDialog,
+    previousAreaInnerCodeForDialog,
     creatingAreaDraft,
     notifier,
     document.id,
@@ -548,9 +550,9 @@ export function DocumentContentViewer({
         const patch = next[fragment.id]
         if (!patch) continue
 
-        const serverName = fragment.name ?? ''
-        const patchNameMatches =
-          patch.name === undefined || patch.name === serverName
+        const patchInnerCodeMatches =
+          patch.innerCode === undefined ||
+          patch.innerCode === fragment.innerCode
         const patchRectangleMatches =
           patch.rectangle === undefined ||
           (patch.rectangle.xMin === fragment.location.xLeft &&
@@ -558,7 +560,7 @@ export function DocumentContentViewer({
             patch.rectangle.yMin === fragment.location.yTop &&
             patch.rectangle.yMax === fragment.location.yBottom)
 
-        if (patchNameMatches && patchRectangleMatches) {
+        if (patchInnerCodeMatches && patchRectangleMatches) {
           delete next[fragment.id]
         }
       }
@@ -822,7 +824,7 @@ export function DocumentContentViewer({
                     .sort((a, b) => a.orderNumber - b.orderNumber)
                     .map((a) => (
                       <MenuItem key={a.id} value={a.id}>
-                        {a.innerCode} — {a.name}
+                        {a.innerCode}
                       </MenuItem>
                     ))}
                 </Select>
@@ -868,7 +870,7 @@ export function DocumentContentViewer({
               color: theme.palette.mode === 'dark' ? gray[100] : gray[700]
             })}
           >
-            {editingAreaId === null ? 'Название области' : 'Изменение названия'}
+            {editingAreaId === null ? 'Код области' : 'Изменение кода'}
           </DialogTitle>
 
           <DialogContent>
@@ -876,14 +878,14 @@ export function DocumentContentViewer({
               autoFocus
               fullWidth
               margin="dense"
-              label="Название"
+              label="Код области"
               value={newAreaName}
               onChange={(e) => setNewAreaName(e.target.value)}
               helperText={
                 isCreateAreaNameEmpty
-                  ? `Название пусто, область будет названа "Область ${areaIdForDialogPreview}"`
+                  ? `Код пусто, будет использовано значение "${areaIdForDialogPreview}"`
                   : isRenameAreaNameEmpty
-                    ? `Название пусто, будет возвращено предыдущее: "${previousAreaNameForDialog}"`
+                    ? `Код пусто, будет возвращено предыдущее: "${previousAreaInnerCodeForDialog}"`
                     : ' '
               }
               FormHelperTextProps={{

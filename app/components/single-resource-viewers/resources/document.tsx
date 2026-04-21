@@ -24,11 +24,7 @@ import {
 import * as React from 'react'
 
 function getFragmentDisplayName(fragment: FragmentPrimary) {
-  if (fragment.name !== null && fragment.name.trim() !== '') {
-    return fragment.name
-  }
-
-  return `Область ${fragment.innerCode}`
+  return fragment.innerCode
 }
 
 function formatPageNumbers(pageNumbers: number[]) {
@@ -196,8 +192,8 @@ export function DocumentViewer({
                   )
 
                   return pagesText !== null
-                    ? `Код: ${fragment.innerCode} | Страницы: ${pagesText}`
-                    : `Код: ${fragment.innerCode}`
+                    ? `Страницы: ${pagesText}`
+                    : undefined
                 })(),
                 onClick: () => requestBrowseArea(fragment.id),
                 disableCapitalize: true
