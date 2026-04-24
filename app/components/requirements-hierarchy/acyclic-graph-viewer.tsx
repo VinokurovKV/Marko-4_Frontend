@@ -75,12 +75,7 @@ type AcyclicGraphNode = Node<AcyclicGraphVertexViewerProps<VertexData>>
 type MiniGraphDisplayMode = 'ROOT_PATH' | 'ALL_RELATED'
 type HoveredVertexPreview = {
   id: number
-  level: number
   data: VertexData
-}
-type HoveredVertexPreviewAnchor = {
-  x: number
-  y: number
 }
 
 const HOVER_PREVIEW_DELAY_MS = 400
@@ -721,9 +716,6 @@ export default function AcyclicGraphViewer({
   const [isMiniGraphEnabled, setIsMiniGraphEnabled] = useState(true)
   const [hoveredVertexPreview, setHoveredVertexPreview] =
     useState<HoveredVertexPreview | null>(null)
-  const [hoveredVertexPreviewAnchor, setHoveredVertexPreviewAnchor] =
-    useState<HoveredVertexPreviewAnchor | null>(null)
-  const [mainGraphZoom, setMainGraphZoom] = useState(1)
   const [mainGraphFitRequest, setMainGraphFitRequest] = useState(0)
   const isFullscreenInitializedRef = useRef(false)
   const isMiniGraphToggleInitializedRef = useRef(false)
@@ -886,7 +878,6 @@ export default function AcyclicGraphViewer({
           hoverPreviewTimerRef.current = null
         }
         setHoveredVertexPreview(null)
-        setHoveredVertexPreviewAnchor(null)
         return
       }
 
@@ -894,26 +885,13 @@ export default function AcyclicGraphViewer({
         clearTimeout(hoverPreviewTimerRef.current)
       }
 
-      const nodeElement = event.currentTarget as HTMLElement
-      const graphHostRect = mainGraphHostRef.current?.getBoundingClientRect()
-      const nodeRect = nodeElement.getBoundingClientRect()
-      const anchor: HoveredVertexPreviewAnchor | null =
-        graphHostRect !== undefined
-          ? {
-              x: nodeRect.left - graphHostRect.left + nodeRect.width / 2,
-              y: nodeRect.top - graphHostRect.top
-            }
-          : null
-
       const previewData: HoveredVertexPreview = {
         id: node.data.id,
-        level: node.data.level,
         data: node.data.data
       }
 
       hoverPreviewTimerRef.current = setTimeout(() => {
         setHoveredVertexPreview(previewData)
-        setHoveredVertexPreviewAnchor(anchor)
         hoverPreviewTimerRef.current = null
       }, HOVER_PREVIEW_DELAY_MS)
     },
@@ -932,7 +910,6 @@ export default function AcyclicGraphViewer({
 
     hoverPreviewHideTimerRef.current = setTimeout(() => {
       setHoveredVertexPreview(null)
-      setHoveredVertexPreviewAnchor(null)
       hoverPreviewHideTimerRef.current = null
     }, HOVER_PREVIEW_HIDE_DELAY_MS)
   }, [])
@@ -959,12 +936,7 @@ export default function AcyclicGraphViewer({
   }, [setSelectedId])
 
   const isMiniGraphVisible = selectedId !== null && isMiniGraphEnabled
-  const isHoverPreviewVisible =
-    hoveredVertexPreview !== null && hoveredVertexPreviewAnchor !== null
-  const hoverPreviewScale = Math.min(0.9, Math.max(0.55, mainGraphZoom))
-  const hoverPreviewWidth = Math.round(170 * hoverPreviewScale)
-  const hoverPreviewMainFontSize = `${Math.round(11 * hoverPreviewScale)}px`
-  const hoverPreviewSmallFontSize = `${Math.round(9 * hoverPreviewScale)}px`
+  const isHoverPreviewVisible = hoveredVertexPreview !== null
 
   useEffect(() => {
     const wasMiniGraphVisible = previousMiniGraphVisibleRef.current
@@ -991,35 +963,35 @@ export default function AcyclicGraphViewer({
         sx={{
           px: 2,
           py: 2,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 1,
-          flexWrap: 'wrap'
+          display: 'grid',
+          gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 1fr) auto' },
+          alignItems: 'start',
+          gap: 1.5
         }}
       >
-        <Box
-          sx={{
-            px: 1.5,
-            py: 1,
-            borderRadius: 1,
-            border: `1px solid ${theme.palette.divider}`,
-            backgroundColor: theme.palette.action.hover,
-            color: theme.palette.text.secondary
-          }}
-        >
-          <Typography fontSize={12}>
-            Макс. уровень: {maxDisplayedLayerWhenWithoutSelected ?? 'все'}
-            {selectedId !== null && ` | Выбран: ${selectedId}`}
-            {selectedEdgeId !== null && ` | Выбрана связь: ${selectedEdgeId}`}
-          </Typography>
-        </Box>
         <Stack
           direction="row"
           spacing={1}
           flexWrap="wrap"
           useFlexGap
-          sx={{ flex: 1 }}
+          sx={{ minWidth: 0 }}
         >
+          <Box
+            sx={{
+              px: 1.5,
+              py: 1,
+              borderRadius: 1,
+              border: `1px solid ${theme.palette.divider}`,
+              backgroundColor: theme.palette.action.hover,
+              color: theme.palette.text.secondary
+            }}
+          >
+            <Typography fontSize={12}>
+              Макс. уровень: {maxDisplayedLayerWhenWithoutSelected ?? 'все'}
+              {selectedId !== null && ` | Выбран: ${selectedId}`}
+              {selectedEdgeId !== null && ` | Выбрана связь: ${selectedEdgeId}`}
+            </Typography>
+          </Box>
           <ProjButton
             variant="contained"
             type="button"
@@ -1048,47 +1020,54 @@ export default function AcyclicGraphViewer({
           >
             Сбросить выделение
           </ProjButton>
-          {onToggleFullscreen !== undefined ? (
-            <Box sx={{ ml: 'auto' }}>
-              <ProjButton
-                variant={isMiniGraphEnabled ? 'contained' : 'outlined'}
-                title={
-                  isMiniGraphEnabled ? 'Скрыть мини-граф' : 'Показать мини-граф'
-                }
-                aria-label={
-                  isMiniGraphEnabled ? 'Скрыть мини-граф' : 'Показать мини-граф'
-                }
-                onClick={() =>
-                  setIsMiniGraphEnabled((prevEnabled) => !prevEnabled)
-                }
-                sx={{ minWidth: 0, px: 1, mr: 1 }}
-              >
-                <AccountTreeIcon fontSize="small" />
-              </ProjButton>
-              <ProjButton
-                variant={isFullscreen ? 'contained' : 'outlined'}
-                title={
-                  isFullscreen
-                    ? 'Выйти из полноэкранного режима'
-                    : 'Развернуть на весь экран'
-                }
-                aria-label={
-                  isFullscreen
-                    ? 'Выйти из полноэкранного режима'
-                    : 'Развернуть на весь экран'
-                }
-                onClick={onToggleFullscreen}
-                sx={{ minWidth: 0, px: 1 }}
-              >
-                {isFullscreen ? (
-                  <FullscreenExitIcon fontSize="small" />
-                ) : (
-                  <FullscreenIcon fontSize="small" />
-                )}
-              </ProjButton>
-            </Box>
-          ) : null}
         </Stack>
+        {onToggleFullscreen !== undefined ? (
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: { xs: 'flex-start', md: 'flex-end' },
+              gap: 1
+            }}
+          >
+            <ProjButton
+              variant={isMiniGraphEnabled ? 'contained' : 'outlined'}
+              title={
+                isMiniGraphEnabled ? 'Скрыть мини-граф' : 'Показать мини-граф'
+              }
+              aria-label={
+                isMiniGraphEnabled ? 'Скрыть мини-граф' : 'Показать мини-граф'
+              }
+              onClick={() =>
+                setIsMiniGraphEnabled((prevEnabled) => !prevEnabled)
+              }
+              sx={{ minWidth: 0, px: 1 }}
+            >
+              <AccountTreeIcon fontSize="small" />
+            </ProjButton>
+            <ProjButton
+              variant={isFullscreen ? 'contained' : 'outlined'}
+              title={
+                isFullscreen
+                  ? 'Выйти из полноэкранного режима'
+                  : 'Развернуть на весь экран'
+              }
+              aria-label={
+                isFullscreen
+                  ? 'Выйти из полноэкранного режима'
+                  : 'Развернуть на весь экран'
+              }
+              onClick={onToggleFullscreen}
+              sx={{ minWidth: 0, px: 1 }}
+            >
+              {isFullscreen ? (
+                <FullscreenExitIcon fontSize="small" />
+              ) : (
+                <FullscreenIcon fontSize="small" />
+              )}
+            </ProjButton>
+          </Box>
+        ) : null}
       </Box>
 
       <Divider />
@@ -1127,9 +1106,6 @@ export default function AcyclicGraphViewer({
             zoomOnScroll={true}
             zoomOnPinch={true}
             zoomOnDoubleClick={true}
-            onMove={(_, viewport) => {
-              setMainGraphZoom(viewport.zoom)
-            }}
             minZoom={MAIN_FLOW_MIN_ZOOM}
             maxZoom={MAIN_FLOW_MAX_ZOOM}
             proOptions={{ hideAttribution: true }}
@@ -1144,14 +1120,12 @@ export default function AcyclicGraphViewer({
               elevation={6}
               sx={{
                 position: 'absolute',
-                left: hoveredVertexPreviewAnchor.x,
-                top: hoveredVertexPreviewAnchor.y,
-                transform: 'translate(-50%, -100%)',
-                width: hoverPreviewWidth,
-                maxWidth: `min(${hoverPreviewWidth}px, calc(100% - 16px))`,
+                left: 10,
+                top: 10,
+                width: 'clamp(150px, 20vw, 180px)',
                 pointerEvents: 'none',
                 zIndex: 20,
-                p: 0.8,
+                p: 0.5,
                 borderRadius: 1
               }}
             >
@@ -1161,20 +1135,20 @@ export default function AcyclicGraphViewer({
                   border: `2px solid ${theme.palette.divider}`,
                   backgroundColor: theme.palette.primary.main,
                   color: theme.palette.primary.contrastText,
-                  px: 1.5,
-                  py: 0.45,
+                  px: 1,
+                  py: 0.35,
                   textAlign: 'center',
                   fontWeight: 700,
-                  fontSize: hoverPreviewMainFontSize
+                  fontSize: '10px'
                 }}
               >
                 {hoveredVertexPreview.data.code}
               </Box>
               <Stack
-                spacing={1}
+                spacing={0.5}
                 sx={{
-                  mt: 0.8,
-                  p: 0.5,
+                  mt: 0.5,
+                  p: 0.4,
                   borderRadius: 1,
                   border: `1px solid ${theme.palette.divider}`,
                   backgroundColor:
@@ -1184,7 +1158,6 @@ export default function AcyclicGraphViewer({
                 }}
               >
                 {[
-                  ['Уровень', String(hoveredVertexPreview.level)],
                   [
                     'Покрытие',
                     `${String(hoveredVertexPreview.data.coverage)}%`
@@ -1201,15 +1174,15 @@ export default function AcyclicGraphViewer({
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
-                        gap: 1
+                        gap: 0.6
                       }}
                     >
                       <Typography
                         variant="caption"
                         sx={{
                           color: theme.palette.text.secondary,
-                          letterSpacing: 0.2,
-                          fontSize: hoverPreviewSmallFontSize
+                          letterSpacing: 0.15,
+                          fontSize: '8px'
                         }}
                       >
                         {label}
@@ -1219,14 +1192,14 @@ export default function AcyclicGraphViewer({
                         sx={{
                           fontWeight: 600,
                           textAlign: 'right',
-                          fontSize: hoverPreviewMainFontSize
+                          fontSize: '10px'
                         }}
                       >
                         {value}
                       </Typography>
                     </Box>
                     {index < array.length - 1 ? (
-                      <Divider sx={{ mt: 0.45 }} />
+                      <Divider sx={{ mt: 0.3 }} />
                     ) : null}
                   </Box>
                 ))}
