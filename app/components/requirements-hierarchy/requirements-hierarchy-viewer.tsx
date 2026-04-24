@@ -10,8 +10,7 @@ import AcyclicGraphViewer from './acyclic-graph-viewer'
 import type { VertexData } from './acyclic-graph-vertex-viewer'
 
 import {
-  vertexes,
-  dataForVertexId,
+  buildRequirementsHierarchyGraphData,
   type RequirementVertexData
 } from './requirements'
 
@@ -48,7 +47,6 @@ function buildVertexDataMap(
 }
 
 export function RequirementsHierarchyAcyclicViewer({
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   requirementsHierarchy,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   tests
@@ -76,6 +74,11 @@ export function RequirementsHierarchyAcyclicViewer({
       }
     })()
   }, [])
+
+  const { vertexes, dataForVertexId } = React.useMemo(
+    () => buildRequirementsHierarchyGraphData(requirementsHierarchy),
+    [requirementsHierarchy]
+  )
 
   const dataForVertexIdAsVertexData = React.useMemo(
     () => buildVertexDataMap(dataForVertexId),
