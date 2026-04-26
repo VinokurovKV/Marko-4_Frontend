@@ -160,6 +160,10 @@ export function Sidebar({
             flexDirection: 'column',
             justifyContent: 'space-between',
             overflow: 'auto',
+            scrollbarWidth: 'none',
+            '&::-webkit-scrollbar': {
+              display: 'none'
+            },
             scrollbarGutter: mini ? 'stable' : 'auto',
             overflowX: 'hidden',
             pt: !mini ? 0 : 2,
@@ -194,57 +198,65 @@ export function Sidebar({
                         rightsSet.has(right)
                       )
                     )
-                    .map((item) => (
-                      <SidebarPageItem
-                        key={item.id}
-                        id={item.id}
-                        title={capitalize(item.title, true)}
-                        icon={<item.Icon />}
-                        href={'href' in item ? item.href : ''}
-                        selected={
-                          'href' in item
-                            ? !!matchPath(`${item.href}/*`, pathname)
-                            : item.nested.some(
-                                (item) =>
-                                  !!matchPath(`${item.href}/*`, pathname)
-                              )
-                        }
-                        expanded={expandedItemIds.includes(item.id)}
-                        nestedNavigation={
-                          'nested' in item ? (
-                            <List
-                              dense
-                              sx={{
-                                p: 0,
-                                my: 1,
-                                pl: mini ? 0 : 1,
-                                minWidth: LAYOUT_CONFIG.DRAWER_WIDTH
-                              }}
-                            >
-                              <React.Fragment>
-                                {item.nested
-                                  .filter((item) =>
-                                    (item.requiredRights ?? []).every((right) =>
-                                      rightsSet.has(right)
+                    .map((item, itemIndex, filteredItems) => (
+                      <React.Fragment key={item.id}>
+                        <SidebarPageItem
+                          id={item.id}
+                          title={capitalize(item.title, true)}
+                          icon={<item.Icon />}
+                          href={'href' in item ? item.href : ''}
+                          selected={
+                            'href' in item
+                              ? !!matchPath(`${item.href}/*`, pathname)
+                              : item.nested.some(
+                                  (item) =>
+                                    !!matchPath(`${item.href}/*`, pathname)
+                                )
+                          }
+                          expanded={expandedItemIds.includes(item.id)}
+                          nestedNavigation={
+                            'nested' in item ? (
+                              <List
+                                dense
+                                sx={{
+                                  p: 0,
+                                  my: 1,
+                                  pl: mini ? 0 : 1,
+                                  minWidth: LAYOUT_CONFIG.DRAWER_WIDTH
+                                }}
+                              >
+                                <React.Fragment>
+                                  {item.nested
+                                    .filter((item) =>
+                                      (item.requiredRights ?? []).every(
+                                        (right) => rightsSet.has(right)
+                                      )
                                     )
-                                  )
-                                  .map((item) => (
-                                    <SidebarPageItem
-                                      key={item.id}
-                                      id={item.id}
-                                      title={capitalize(item.title, true)}
-                                      icon={<item.Icon />}
-                                      href={item.href}
-                                      selected={
-                                        !!matchPath(`${item.href}/*`, pathname)
-                                      }
-                                    />
-                                  ))}
-                              </React.Fragment>
-                            </List>
-                          ) : undefined
-                        }
-                      />
+                                    .map((item) => (
+                                      <SidebarPageItem
+                                        key={item.id}
+                                        id={item.id}
+                                        title={capitalize(item.title, true)}
+                                        icon={<item.Icon />}
+                                        href={item.href}
+                                        selected={
+                                          !!matchPath(
+                                            `${item.href}/*`,
+                                            pathname
+                                          )
+                                        }
+                                      />
+                                    ))}
+                                </React.Fragment>
+                              </List>
+                            ) : undefined
+                          }
+                        />
+                        {item.dividerAfter === true &&
+                        itemIndex < filteredItems.length - 1 ? (
+                          <SidebarDividerItem />
+                        ) : null}
+                      </React.Fragment>
                     ))}
                 </React.Fragment>
               ))}

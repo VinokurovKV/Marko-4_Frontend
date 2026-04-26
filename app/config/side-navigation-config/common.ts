@@ -21,6 +21,7 @@ type SideNavigationConfigFirstLevelItem = {
   id: string
   title: string
   Icon: Icon
+  dividerAfter?: boolean
   requiredRights?: Right[]
 } & (
   | {

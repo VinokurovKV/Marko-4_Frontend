@@ -1,6 +1,7 @@
 export * from './coverage-type'
 export * from './device-type'
 export * from './document-type'
+export * from './event-type'
 export * from './requirement-modifier'
 export * from './requirement-origin'
 export * from './right'

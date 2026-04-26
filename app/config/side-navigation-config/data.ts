@@ -15,7 +15,7 @@ import FoundationIcon from '@mui/icons-material/Foundation'
 // import GridOnIcon from '@mui/icons-material/GridOn'
 // import GroupIcon from '@mui/icons-material/Group'
 import GroupsIcon from '@mui/icons-material/Groups'
-// import HistoryIcon from '@mui/icons-material/History'
+import HistoryIcon from '@mui/icons-material/History'
 // import HiveIcon from '@mui/icons-material/Hive'
 import HubIcon from '@mui/icons-material/Hub'
 import LanIcon from '@mui/icons-material/Lan'
@@ -45,13 +45,6 @@ export const SIDE_NAVIGATION_CONFIG: SideNavigationConfig = [
   {
     title: 'общее',
     nested: [
-      // {
-      //   id: 'events',
-      //   title: 'события',
-      //   Icon: HistoryIcon,
-      //   href: '/events',
-      //   requiredRights: ['READ_EVENT']
-      // },
       {
         id: 'tags',
         title: 'теги',
@@ -213,7 +206,7 @@ export const SIDE_NAVIGATION_CONFIG: SideNavigationConfig = [
     nested: [
       {
         id: 'access',
-        title: 'доступ',
+        title: 'управление',
         Icon: GroupsIcon,
         nested: [
           {
@@ -229,6 +222,13 @@ export const SIDE_NAVIGATION_CONFIG: SideNavigationConfig = [
             Icon: TheaterComedyIcon,
             href: '/roles',
             requiredRights: ['READ_ROLE']
+          },
+          {
+            id: 'events',
+            title: 'события',
+            Icon: HistoryIcon,
+            href: '/events',
+            requiredRights: ['READ_EVENT']
           }
         ]
       }

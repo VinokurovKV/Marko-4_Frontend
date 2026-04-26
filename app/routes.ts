@@ -21,6 +21,7 @@ export default [
             route('users', 'routes/users.tsx', [
               route(':userId', 'routes/user.tsx')
             ]),
+            route('events', 'routes/events.tsx'),
             route('tags', 'routes/tags.tsx', [
               route(':tagId', 'routes/tag.tsx')
             ]),
