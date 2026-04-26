@@ -13,6 +13,7 @@ export interface ColumnViewerChipsBlockProps {
     text: string
     href?: string
     onClick?: () => void
+    isActive?: boolean
     disableCapitalize?: boolean
     disableCapitalizeForHref?: boolean
   }[]
@@ -25,6 +26,24 @@ export function ColumnViewerChipsBlock(props: ColumnViewerChipsBlockProps) {
     item.disableCapitalize || item.disableCapitalizeForHref
       ? item.text
       : capitalize(item.text)
+
+  const getVariant = (item: ColumnViewerChipsBlockProps['items'][number]) =>
+    item.isActive ? 'filled' : 'outlined'
+
+  const getSx = (item: ColumnViewerChipsBlockProps['items'][number]) => ({
+    borderColor: item.isActive
+      ? theme.palette.primary.main
+      : theme.palette.primary.dark,
+    backgroundColor: item.isActive ? theme.palette.primary.main : undefined,
+    color: item.isActive ? theme.palette.primary.contrastText : undefined,
+    ':hover': {
+      bgcolor: item.isActive
+        ? `${theme.palette.primary.dark} !important`
+        : theme.palette.mode === 'light'
+          ? 'rgb(239, 244, 251) !important'
+          : 'rgb(40, 47, 54) !important'
+    }
+  })
 
   return (
     <Stack
@@ -42,8 +61,9 @@ export function ColumnViewerChipsBlock(props: ColumnViewerChipsBlockProps) {
           <Chip
             key={itemIndex}
             label={getLabel(item)}
-            variant="outlined"
+            variant={getVariant(item)}
             // sx={{ borderColor: theme.palette.primary.dark }}
+            sx={getSx(item)}
           />
         ) : item.href !== undefined ? (
           <Chip
@@ -51,34 +71,18 @@ export function ColumnViewerChipsBlock(props: ColumnViewerChipsBlockProps) {
             label={getLabel(item)}
             component={Link}
             to={item.href}
-            variant="outlined"
+            variant={getVariant(item)}
             clickable
-            sx={{
-              borderColor: theme.palette.primary.dark,
-              ':hover': {
-                bgcolor:
-                  theme.palette.mode === 'light'
-                    ? 'rgb(239, 244, 251) !important'
-                    : 'rgb(40, 47, 54) !important'
-              }
-            }}
+            sx={getSx(item)}
           />
         ) : (
           <Chip
             key={itemIndex}
             label={getLabel(item)}
-            variant="outlined"
+            variant={getVariant(item)}
             clickable
             onClick={item.onClick}
-            sx={{
-              borderColor: theme.palette.primary.dark,
-              ':hover': {
-                bgcolor:
-                  theme.palette.mode === 'light'
-                    ? 'rgb(239, 244, 251) !important'
-                    : 'rgb(40, 47, 54) !important'
-              }
-            }}
+            sx={getSx(item)}
           />
         )
       )}

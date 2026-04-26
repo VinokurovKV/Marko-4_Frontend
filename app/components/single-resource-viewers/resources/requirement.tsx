@@ -32,7 +32,10 @@ import {
 import * as React from 'react'
 // Material UI
 import Box from '@mui/material/Box'
+import CircularProgress from '@mui/material/CircularProgress'
 import Typography from '@mui/material/Typography'
+
+const FRAGMENT_SCREENSHOT_LOADER_DELAY_MS = 250
 
 export interface RequirementViewerProps {
   tags: TagPrimary[] | null
@@ -76,7 +79,22 @@ export function RequirementViewer({
     React.useState<string | null>(null)
   const [isFragmentScreenshotLoading, setIsFragmentScreenshotLoading] =
     React.useState(false)
+  const [showFragmentScreenshotLoader, setShowFragmentScreenshotLoader] =
+    React.useState(false)
   const screenshotRequestSeqRef = React.useRef(0)
+
+  React.useEffect(() => {
+    if (!isFragmentScreenshotLoading) {
+      setShowFragmentScreenshotLoader(false)
+      return
+    }
+    const timer = setTimeout(() => {
+      setShowFragmentScreenshotLoader(true)
+    }, FRAGMENT_SCREENSHOT_LOADER_DELAY_MS)
+    return () => {
+      clearTimeout(timer)
+    }
+  }, [isFragmentScreenshotLoading])
 
   React.useEffect(() => {
     return () => {
@@ -110,12 +128,6 @@ export function RequirementViewer({
 
       setSelectedFragmentId(fragmentId)
       setIsFragmentScreenshotLoading(true)
-      setSelectedFragmentScreenshotUrl((oldUrl) => {
-        if (oldUrl !== null) {
-          URL.revokeObjectURL(oldUrl)
-        }
-        return null
-      })
 
       void (async () => {
         try {
@@ -162,6 +174,7 @@ export function RequirementViewer({
     selectedFragmentId !== null
       ? (fragmentForId.get(selectedFragmentId) ?? null)
       : null
+  const hasReadyFragmentScreenshot = selectedFragmentScreenshotUrl !== null
 
   return (
     <HorizontalTwoPartsContainer
@@ -212,6 +225,7 @@ export function RequirementViewer({
               return {
                 text: `${documentCode ?? '???'} - ${fragment.innerCode}`,
                 onClick: () => handleFragmentClick(fragment.id),
+                isActive: selectedFragmentId === fragment.id,
                 disableCapitalize: true
               }
             })}
@@ -281,7 +295,7 @@ export function RequirementViewer({
       </ColumnViewer>
       {oneColumn ? null : (
         <VerticalTwoPartsContainer
-          proportions={selectedFragment === null ? '100_0' : '50_50'}
+          proportions={hasReadyFragmentScreenshot ? '50_50' : '100_0'}
         >
           <ColumnViewer>
             <ColumnViewerBlock title="описание">
@@ -292,26 +306,18 @@ export function RequirementViewer({
             </ColumnViewerBlock>
           </ColumnViewer>
           <ColumnViewer>
-            <ColumnViewerBlock
-              title={
-                selectedFragment !== null
-                  ? `скриншот фрагмента ${selectedFragment.innerCode}`
-                  : 'скриншот фрагмента'
-              }
-            >
-              {isFragmentScreenshotLoading ? (
-                <Typography textAlign="center" variant="body2">
-                  загрузка...
-                </Typography>
-              ) : selectedFragmentScreenshotUrl !== null ? (
-                <Box
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    p: 1
-                  }}
-                >
+            <ColumnViewerBlock title="скриншот фрагмента">
+              <Box
+                sx={{
+                  position: 'relative',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '100%',
+                  p: 1
+                }}
+              >
+                {selectedFragmentScreenshotUrl !== null ? (
                   <Box
                     component="img"
                     src={selectedFragmentScreenshotUrl}
@@ -321,18 +327,31 @@ export function RequirementViewer({
                         : 'Скриншот фрагмента'
                     }
                     sx={{
-                      maxWidth: '100%',
-                      maxHeight: '100%',
+                      width: '100%',
+                      height: 'auto',
                       objectFit: 'contain',
                       borderRadius: 1
                     }}
                   />
-                </Box>
-              ) : (
-                <Typography textAlign="center" variant="body2">
-                  выберите фрагмент слева
-                </Typography>
-              )}
+                ) : (
+                  <Typography textAlign="center" variant="body2">
+                    выберите фрагмент слева
+                  </Typography>
+                )}
+                {isFragmentScreenshotLoading && showFragmentScreenshotLoader ? (
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      inset: 0,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                  >
+                    <CircularProgress size={24} />
+                  </Box>
+                ) : null}
+              </Box>
             </ColumnViewerBlock>
           </ColumnViewer>
         </VerticalTwoPartsContainer>
