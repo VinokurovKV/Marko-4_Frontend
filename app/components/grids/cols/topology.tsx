@@ -56,10 +56,12 @@ export function useTopologyCol(
               topology !== undefined &&
               topology.commonTopologyId !== undefined
                 ? {
-                    renderContent: () => (
+                    renderContent: (_active, onReadyChange) => (
                       <TopologyHoverPreview
+                        key={topology.id}
                         topologyId={topology.id}
                         text={topology.code}
+                        onReadyChange={onReadyChange}
                       />
                     )
                   }

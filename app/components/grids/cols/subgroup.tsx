@@ -44,12 +44,15 @@ export function useSubgroupCol(
             // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
             typeof params.row.subgroupId === 'number'
               ? {
-                  renderContent: (active) => (
+                  renderContent: (active, onReadyChange) => (
                     <SubgroupHoverPreview
+                      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+                      key={params.row.subgroupId as number}
                       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
                       subgroupId={params.row.subgroupId as number}
                       active={active}
                       text={params.value}
+                      onReadyChange={onReadyChange}
                     />
                   )
                 }

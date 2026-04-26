@@ -43,11 +43,14 @@ export function useCommonTopologyCol(
           hoverPreview={
             settings.commonTopology
               ? {
-                  renderContent: () => (
+                  renderContent: (_active, onReadyChange) => (
                     <CommonTopologyHoverPreview
+                      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+                      key={params.row.commonTopologyId as number}
                       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
                       commonTopologyId={params.row.commonTopologyId as number}
                       text={params.value}
+                      onReadyChange={onReadyChange}
                     />
                   )
                 }

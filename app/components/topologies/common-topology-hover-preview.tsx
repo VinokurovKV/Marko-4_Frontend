@@ -17,11 +17,13 @@ const PREVIEW_HEIGHT = 220
 interface CommonTopologyHoverPreviewProps {
   commonTopologyId: number
   text?: string
+  onReadyChange?: (ready: boolean) => void
 }
 
 export function CommonTopologyHoverPreview({
   commonTopologyId,
-  text
+  text,
+  onReadyChange
 }: CommonTopologyHoverPreviewProps) {
   const commonTopology = useCommonTopology(
     'UP_TO_TERTIARY_PROPS',
@@ -34,6 +36,11 @@ export function CommonTopologyHoverPreview({
       capitalize(commonTopology?.code ?? text ?? 'схема общей топологии', true),
     [commonTopology, text]
   )
+  const ready = commonTopology !== null
+
+  React.useEffect(() => {
+    onReadyChange?.(ready)
+  }, [onReadyChange, ready])
 
   return (
     <Box sx={{ width: PREVIEW_WIDTH, p: 1.5 }}>

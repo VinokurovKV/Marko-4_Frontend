@@ -272,10 +272,12 @@ export function TestViewer({
               hoverPreview={
                 settings.commonTopology && commonTopology !== null
                   ? {
-                      renderContent: () => (
+                      renderContent: (_active, onReadyChange) => (
                         <CommonTopologyHoverPreview
+                          key={commonTopology.id}
                           commonTopologyId={commonTopology.id}
                           text={commonTopology.code}
+                          onReadyChange={onReadyChange}
                         />
                       )
                     }
@@ -289,10 +291,12 @@ export function TestViewer({
               hoverPreview={
                 settings.topology && topology !== null
                   ? {
-                      renderContent: () => (
+                      renderContent: (_active, onReadyChange) => (
                         <TopologyHoverPreview
+                          key={topology.id}
                           topologyId={topology.id}
                           text={topology.code}
+                          onReadyChange={onReadyChange}
                         />
                       )
                     }

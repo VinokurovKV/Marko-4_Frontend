@@ -18,12 +18,14 @@ interface SubgroupHoverPreviewProps {
   subgroupId: number
   active: boolean
   text?: string
+  onReadyChange?: (ready: boolean) => void
 }
 
 export function SubgroupHoverPreview({
   subgroupId,
   active,
-  text
+  text,
+  onReadyChange
 }: SubgroupHoverPreviewProps) {
   const subgroup = useSubgroup(
     'UP_TO_TERTIARY_PROPS',
@@ -44,6 +46,11 @@ export function SubgroupHoverPreview({
     () => capitalize(subgroup?.code ?? text ?? 'подгруппа', true),
     [subgroup, text]
   )
+  const ready = subgroup !== null && tests !== null
+
+  React.useEffect(() => {
+    onReadyChange?.(ready)
+  }, [onReadyChange, ready])
 
   return (
     <Box sx={{ width: PREVIEW_WIDTH, p: 1.5 }}>

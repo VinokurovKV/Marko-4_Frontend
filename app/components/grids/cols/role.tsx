@@ -37,12 +37,15 @@ export function useRoleCol(roles: RolePrimary[] | null | undefined) {
           hoverPreview={
             settings.roleRights
               ? {
-                  renderContent: (active) => (
+                  renderContent: (active, onReadyChange) => (
                     <RoleHoverPreview
+                      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+                      key={params.row.roleId as number}
                       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
                       roleId={params.row.roleId as number}
                       active={active}
                       text={params.value}
+                      onReadyChange={onReadyChange}
                     />
                   )
                 }

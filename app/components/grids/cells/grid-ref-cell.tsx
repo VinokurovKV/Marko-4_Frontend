@@ -20,7 +20,10 @@ interface GridRefCellProps {
   disableRef?: boolean
   semiTransparent?: boolean
   hoverPreview?: {
-    renderContent: (active: boolean) => React.ReactNode
+    renderContent: (
+      active: boolean,
+      onReadyChange: (ready: boolean) => void
+    ) => React.ReactNode
     enterDelay?: number
     leaveDelay?: number
     placement?: TooltipProps['placement']
@@ -29,7 +32,20 @@ interface GridRefCellProps {
 
 export function GridRefCell(props: GridRefCellProps) {
   const theme = useTheme()
-  const [hoverPreviewIsOpen, setHoverPreviewIsOpen] = React.useState(false)
+  const [hoverTargetIsHovered, setHoverTargetIsHovered] = React.useState(false)
+  const [tooltipIsOpen, setTooltipIsOpen] = React.useState(false)
+  const [previewIsReady, setPreviewIsReady] = React.useState(false)
+
+  const hoverPreviewIsActive = hoverTargetIsHovered || tooltipIsOpen
+  const previewIsVisible = hoverPreviewIsActive && previewIsReady
+
+  const handlePreviewReadyChange = React.useCallback((ready: boolean) => {
+    setPreviewIsReady((prevReady) => (prevReady === ready ? prevReady : ready))
+  }, [])
+
+  React.useEffect(() => {
+    setPreviewIsReady(false)
+  }, [props.hrefPrefix, props.hrefPath, props.text])
 
   const handleClick = React.useCallback(
     (event: React.MouseEvent<HTMLAnchorElement, MouseEvent>) => {
@@ -100,18 +116,27 @@ export function GridRefCell(props: GridRefCellProps) {
 
   return (
     <Tooltip
-      title={props.hoverPreview.renderContent(hoverPreviewIsOpen)}
+      title={props.hoverPreview.renderContent(
+        hoverPreviewIsActive,
+        handlePreviewReadyChange
+      )}
       placement={props.hoverPreview.placement ?? 'right-start'}
-      enterDelay={props.hoverPreview.enterDelay ?? 1100}
-      enterNextDelay={props.hoverPreview.enterDelay ?? 1100}
+      enterDelay={props.hoverPreview.enterDelay ?? 800}
+      enterNextDelay={props.hoverPreview.enterDelay ?? 800}
       leaveDelay={props.hoverPreview.leaveDelay ?? 100}
       onOpen={() => {
-        setHoverPreviewIsOpen(true)
+        setTooltipIsOpen(true)
       }}
       onClose={() => {
-        setHoverPreviewIsOpen(false)
+        setTooltipIsOpen(false)
       }}
       slotProps={{
+        popper: {
+          sx: {
+            visibility: previewIsVisible ? 'visible' : 'hidden',
+            pointerEvents: previewIsVisible ? 'auto' : 'none'
+          }
+        },
         tooltip: {
           sx: {
             maxWidth: 'none',
@@ -124,7 +149,17 @@ export function GridRefCell(props: GridRefCellProps) {
         }
       }}
     >
-      <span style={{ display: 'block', width: '100%' }}>{content}</span>
+      <span
+        style={{ display: 'block', width: '100%' }}
+        onMouseEnter={() => {
+          setHoverTargetIsHovered(true)
+        }}
+        onMouseLeave={() => {
+          setHoverTargetIsHovered(false)
+        }}
+      >
+        {content}
+      </span>
     </Tooltip>
   )
 }

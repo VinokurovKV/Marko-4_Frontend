@@ -19,19 +19,26 @@ interface RoleHoverPreviewProps {
   roleId: number
   active: boolean
   text?: string
+  onReadyChange?: (ready: boolean) => void
 }
 
 export function RoleHoverPreview({
   roleId,
   active,
-  text
+  text,
+  onReadyChange
 }: RoleHoverPreviewProps) {
   const role = useRole('UP_TO_TERTIARY_PROPS', roleId, false, active)
+  const ready = role !== null
 
   const title = React.useMemo(
     () => capitalize(role?.name ?? text ?? 'роль', true),
     [role, text]
   )
+
+  React.useEffect(() => {
+    onReadyChange?.(ready)
+  }, [onReadyChange, ready])
 
   return (
     <Box sx={{ width: PREVIEW_WIDTH, p: 1.5 }}>

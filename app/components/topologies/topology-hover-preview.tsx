@@ -18,11 +18,13 @@ const PREVIEW_HEIGHT = 220
 interface TopologyHoverPreviewProps {
   topologyId: number
   text?: string
+  onReadyChange?: (ready: boolean) => void
 }
 
 export function TopologyHoverPreview({
   topologyId,
-  text
+  text,
+  onReadyChange
 }: TopologyHoverPreviewProps) {
   const topology = useTopology('UP_TO_TERTIARY_PROPS', topologyId, false)
 
@@ -42,6 +44,11 @@ export function TopologyHoverPreview({
       ? calculateTopologyConfig(commonTopology.config, topology.vertexNames)
       : null
   }, [topology, commonTopology])
+  const ready = topologyConfig !== null
+
+  React.useEffect(() => {
+    onReadyChange?.(ready)
+  }, [onReadyChange, ready])
 
   return (
     <Box sx={{ width: PREVIEW_WIDTH, p: 1.5 }}>

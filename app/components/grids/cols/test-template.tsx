@@ -45,12 +45,15 @@ export function useTestTemplateCol(
             // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
             typeof params.row.testTemplateId === 'number'
               ? {
-                  renderContent: (active) => (
+                  renderContent: (active, onReadyChange) => (
                     <TestTemplateHoverPreview
+                      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+                      key={params.row.testTemplateId as number}
                       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
                       testTemplateId={params.row.testTemplateId as number}
                       active={active}
                       text={params.value}
+                      onReadyChange={onReadyChange}
                     />
                   )
                 }

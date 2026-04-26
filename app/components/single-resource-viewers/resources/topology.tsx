@@ -60,10 +60,12 @@ export function TopologyViewer({
             hoverPreview={
               settings.commonTopology
                 ? {
-                    renderContent: () => (
+                    renderContent: (_active, onReadyChange) => (
                       <CommonTopologyHoverPreview
+                        key={topology.commonTopologyId}
                         commonTopologyId={topology.commonTopologyId}
                         text={commonTopology?.code}
+                        onReadyChange={onReadyChange}
                       />
                     )
                   }

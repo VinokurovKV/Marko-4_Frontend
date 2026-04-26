@@ -17,11 +17,13 @@ interface TestTemplateHoverPreviewProps {
   testTemplateId: number
   active: boolean
   text?: string
+  onReadyChange?: (ready: boolean) => void
 }
 
 export function TestTemplateHoverPreview({
   testTemplateId,
-  active
+  active,
+  onReadyChange
 }: TestTemplateHoverPreviewProps) {
   const notifier = useNotifier()
 
@@ -31,6 +33,11 @@ export function TestTemplateHoverPreview({
     false,
     active
   )
+  const ready = testTemplate !== null
+
+  React.useEffect(() => {
+    onReadyChange?.(ready)
+  }, [onReadyChange, ready])
 
   const getConfigBlob = React.useCallback(
     async (id: number) => {
