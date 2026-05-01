@@ -29,6 +29,7 @@ import AcyclicGraphVertexViewer, {
 } from './acyclic-graph-vertex-viewer'
 import { edgeStyle } from './requirements'
 import calculateNodePositions from './graph-layouts/layout-tree'
+import { gray, green, orange, red } from '~/theme/themePrimitives'
 import './styles.css'
 // Material UI
 import { alpha, styled, useTheme } from '@mui/material/styles'
@@ -80,6 +81,20 @@ type HoveredVertexPreview = {
 
 const HOVER_PREVIEW_DELAY_MS = 400
 const HOVER_PREVIEW_HIDE_DELAY_MS = 180
+
+function parseCoverageFractionPercent(fraction: string): number | null {
+  const [coveredRaw, totalRaw] = fraction.split('/').map((part) => part.trim())
+  const covered = Number(coveredRaw)
+  const total = Number(totalRaw)
+  if (
+    Number.isFinite(covered) === false ||
+    Number.isFinite(total) === false ||
+    total <= 0
+  ) {
+    return null
+  }
+  return (covered / total) * 100
+}
 
 const nodeTypes = {
   acyclicGraphVertex: AcyclicGraphVertexViewer
@@ -872,15 +887,6 @@ export default function AcyclicGraphViewer({
         hoverPreviewHideTimerRef.current = null
       }
 
-      if (node.data.dimmed === true) {
-        if (hoverPreviewTimerRef.current !== null) {
-          clearTimeout(hoverPreviewTimerRef.current)
-          hoverPreviewTimerRef.current = null
-        }
-        setHoveredVertexPreview(null)
-        return
-      }
-
       if (hoverPreviewTimerRef.current !== null) {
         clearTimeout(hoverPreviewTimerRef.current)
       }
@@ -937,6 +943,45 @@ export default function AcyclicGraphViewer({
 
   const isMiniGraphVisible = selectedId !== null && isMiniGraphEnabled
   const isHoverPreviewVisible = hoveredVertexPreview !== null
+  const fullCoverageBadgeColor = useMemo(() => {
+    if (hoveredVertexPreview === null) {
+      return {
+        backgroundColor: theme.palette.primary.main,
+        color: theme.palette.primary.contrastText
+      }
+    }
+    const fraction = hoveredVertexPreview.data.fullCoverageFraction ?? ''
+    const percent = parseCoverageFractionPercent(fraction)
+    if (percent === null) {
+      return {
+        backgroundColor: theme.palette.primary.main,
+        color: theme.palette.primary.contrastText
+      }
+    }
+    if (percent === 0) {
+      return {
+        backgroundColor: theme.palette.mode === 'dark' ? red[400] : red[500],
+        color: theme.palette.common.white
+      }
+    }
+    if (percent < 50) {
+      return {
+        backgroundColor:
+          theme.palette.mode === 'dark' ? orange[400] : orange[500],
+        color: theme.palette.common.white
+      }
+    }
+    if (percent < 100) {
+      return {
+        backgroundColor: orange[300],
+        color: gray[800]
+      }
+    }
+    return {
+      backgroundColor: theme.palette.mode === 'dark' ? green[500] : green[400],
+      color: theme.palette.common.white
+    }
+  }, [hoveredVertexPreview, theme.palette.mode])
 
   useEffect(() => {
     const wasMiniGraphVisible = previousMiniGraphVisibleRef.current
@@ -988,7 +1033,6 @@ export default function AcyclicGraphViewer({
           >
             <Typography fontSize={12}>
               Макс. уровень: {maxDisplayedLayerWhenWithoutSelected ?? 'все'}
-              {selectedId !== null && ` | Выбран: ${selectedId}`}
               {selectedEdgeId !== null && ` | Выбрана связь: ${selectedEdgeId}`}
             </Typography>
           </Box>
@@ -1013,6 +1057,7 @@ export default function AcyclicGraphViewer({
           </ProjButton>
 
           <ProjButton
+            variant="contained"
             type="button"
             className={`${selectedNodeId === null && selectedEdgeId === null ? 'disabled' : ''}`}
             disabled={selectedNodeId === null && selectedEdgeId === null}
@@ -1121,11 +1166,11 @@ export default function AcyclicGraphViewer({
               sx={{
                 position: 'absolute',
                 left: 10,
-                top: 10,
-                width: 'clamp(150px, 20vw, 180px)',
+                top: 6,
+                width: 'clamp(180px, 24vw, 230px)',
                 pointerEvents: 'none',
                 zIndex: 20,
-                p: 0.5,
+                p: 0.6,
                 borderRadius: 1
               }}
             >
@@ -1133,13 +1178,13 @@ export default function AcyclicGraphViewer({
                 sx={{
                   borderRadius: 1,
                   border: `2px solid ${theme.palette.divider}`,
-                  backgroundColor: theme.palette.primary.main,
-                  color: theme.palette.primary.contrastText,
+                  backgroundColor: fullCoverageBadgeColor.backgroundColor,
+                  color: fullCoverageBadgeColor.color,
                   px: 1,
                   py: 0.35,
                   textAlign: 'center',
                   fontWeight: 700,
-                  fontSize: '10px'
+                  fontSize: '12px'
                 }}
               >
                 {hoveredVertexPreview.data.code}
@@ -1159,14 +1204,31 @@ export default function AcyclicGraphViewer({
               >
                 {[
                   [
-                    'Покрытие',
-                    `${String(hoveredVertexPreview.data.coverage)}%`
+                    'Покрытие всех',
+                    hoveredVertexPreview.data.fullCoverageFraction ?? '0 / 0'
                   ],
                   [
-                    'Атомарность',
-                    hoveredVertexPreview.data.atomicityFlag ? 'Да' : 'Нет'
+                    'Обязательные',
+                    hoveredVertexPreview.data.onlyMustCoverageFraction ??
+                      '0 / 0'
                   ],
-                  ['Тест', hoveredVertexPreview.data.test || '—']
+                  [
+                    'Обязательные и рекомендуемые',
+                    hoveredVertexPreview.data.mustAndShouldCoverageFraction ??
+                      '0 / 0'
+                  ],
+                  [
+                    'Рекомендуемые',
+                    hoveredVertexPreview.data.onlyShouldCoverageFraction ??
+                      '0 / 0'
+                  ],
+                  [
+                    'Возможные',
+                    hoveredVertexPreview.data.onlyMayCoverageFraction ?? '0 / 0'
+                  ],
+                  ...(hoveredVertexPreview.data.atomicityFlag
+                    ? [['Тест', hoveredVertexPreview.data.test || '—']]
+                    : [])
                 ].map(([label, value], index, array) => (
                   <Box key={label}>
                     <Box
@@ -1182,7 +1244,7 @@ export default function AcyclicGraphViewer({
                         sx={{
                           color: theme.palette.text.secondary,
                           letterSpacing: 0.15,
-                          fontSize: '8px'
+                          fontSize: '10px'
                         }}
                       >
                         {label}
@@ -1192,7 +1254,7 @@ export default function AcyclicGraphViewer({
                         sx={{
                           fontWeight: 600,
                           textAlign: 'right',
-                          fontSize: '10px'
+                          fontSize: '12px'
                         }}
                       >
                         {value}

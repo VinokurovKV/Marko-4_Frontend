@@ -21,15 +21,25 @@ export interface RequirementsHierarchyAcyclicViewerProps {
 
 type VertexDataWithLevel = VertexData & { level: number }
 
-function toVertexData(d: RequirementVertexData): VertexData {
+function toVertexData(
+  d: RequirementVertexData,
+  testCodeForId: Map<number, string>
+): VertexData {
   const base: VertexDataWithLevel = {
     code: d.code,
-    atomicityFlag: false,
-    atomicityCoef: 0,
-    modifier: '',
+    atomicityFlag: d.atomicityFlag,
+    atomicityCoef: d.atomicityCoef,
+    modifier: d.modifier,
     origin: '',
-    coverage: 0,
-    test: '',
+    fullCoverageFraction: d.fullCoverageFraction,
+    onlyMustCoverageFraction: d.onlyMustCoverageFraction,
+    mustAndShouldCoverageFraction: d.mustAndShouldCoverageFraction,
+    onlyShouldCoverageFraction: d.onlyShouldCoverageFraction,
+    onlyMayCoverageFraction: d.onlyMayCoverageFraction,
+    test:
+      d.atomicityFlag && d.testId !== null
+        ? (testCodeForId.get(d.testId) ?? '')
+        : '',
     level: d.level
   }
 
@@ -37,18 +47,18 @@ function toVertexData(d: RequirementVertexData): VertexData {
 }
 
 function buildVertexDataMap(
-  src: Map<number, RequirementVertexData>
+  src: Map<number, RequirementVertexData>,
+  testCodeForId: Map<number, string>
 ): Map<number, VertexData> {
   const out = new Map<number, VertexData>()
   for (const [id, d] of src.entries()) {
-    out.set(id, toVertexData(d))
+    out.set(id, toVertexData(d, testCodeForId))
   }
   return out
 }
 
 export function RequirementsHierarchyAcyclicViewer({
   requirementsHierarchy,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   tests
 }: RequirementsHierarchyAcyclicViewerProps) {
   const fullscreenContainerRef = React.useRef<HTMLDivElement | null>(null)
@@ -79,10 +89,14 @@ export function RequirementsHierarchyAcyclicViewer({
     () => buildRequirementsHierarchyGraphData(requirementsHierarchy),
     [requirementsHierarchy]
   )
+  const testCodeForId = React.useMemo(
+    () => new Map((tests ?? []).map((test) => [test.id, test.code])),
+    [tests]
+  )
 
   const dataForVertexIdAsVertexData = React.useMemo(
-    () => buildVertexDataMap(dataForVertexId),
-    [dataForVertexId]
+    () => buildVertexDataMap(dataForVertexId, testCodeForId),
+    [dataForVertexId, testCodeForId]
   )
 
   React.useEffect(() => {
