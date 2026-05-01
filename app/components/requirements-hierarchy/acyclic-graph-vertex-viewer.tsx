@@ -72,6 +72,10 @@ export default function AcyclicGraphVertexViewer({
   const coveragePercent = parseCoverageFractionPercent(
     data.fullCoverageFraction
   )
+  const normalizedCoveragePercent =
+    coveragePercent === null ? 0 : Math.max(0, Math.min(coveragePercent, 100))
+  const coverageFillPercent =
+    normalizedCoveragePercent === 0 ? 100 : normalizedCoveragePercent
   const borderColor =
     coveragePercent === null
       ? 'hsl(220, 30%, 6%)'
@@ -123,6 +127,15 @@ export default function AcyclicGraphVertexViewer({
       ) : null}
 
       <div className="vertex-code">{data.code}</div>
+      <span className="coverage-indicator-track" aria-hidden>
+        <span
+          className="coverage-indicator-fill"
+          style={{
+            width: `${coverageFillPercent}%`,
+            backgroundColor: borderColor
+          }}
+        />
+      </span>
 
       {collapsed && <div className="collapsed-indicator">C</div>}
     </div>
