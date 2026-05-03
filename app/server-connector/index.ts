@@ -760,6 +760,11 @@ import type {
   UpdateSliceBodyDto,
   UpdateSliceSuccessResultDto
 } from '@common/dtos/server-api/slices.dto'
+import { ExportQueryDto } from '@common/dtos/server-api/export.dto'
+import {
+  ImportBodyMainDto,
+  ImportSuccessResultDto
+} from '@common/dtos/server-api/import.dto'
 import type {
   SubscribeToActionInfosDataItemDto,
   SubscribeToActionInfosNotificationDto,
@@ -886,6 +891,8 @@ type ReadManyParams<
 > = DtoWithoutEnums<Omit<ReadParamsDto, 'scope'> & ScopeWrap>
 
 type Params<ParamsDto> = DtoWithoutEnums<ParamsDto>
+
+type Query<QueryDto> = DtoWithoutEnums<QueryDto>
 
 type Extra<ExtraDto> = DtoWithoutEnums<ExtraDto>
 
@@ -3565,6 +3572,23 @@ export class ServerConnector {
     params: Params<DeleteSlicesBodyDto>
   ): Result<DeleteSlicesSuccessResultDto> {
     return this.postForObject('/slices/actions/delete-many', params)
+  }
+  // Export
+  export(query: Query<ExportQueryDto>): Promise<Blob> {
+    return this.getBlob(`/export`, query)
+  }
+  // Import
+  import(
+    main: Params<ImportBodyMainDto>,
+    config: File
+  ): Result<ImportSuccessResultDto> {
+    return this.postMultipartFormForObject(
+      '/import',
+      new Map<string, MultipartFormVal>([
+        ['main', main],
+        ['config', config]
+      ])
+    )
   }
   // Subscriptions
   subscribeToSelfMeta(
