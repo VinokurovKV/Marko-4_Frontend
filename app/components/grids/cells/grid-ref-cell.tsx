@@ -132,6 +132,9 @@ export function GridRefCell(props: GridRefCellProps) {
       }}
       slotProps={{
         popper: {
+          popperOptions: {
+            strategy: 'fixed'
+          },
           sx: {
             visibility: previewIsVisible ? 'visible' : 'hidden',
             pointerEvents: previewIsVisible ? 'auto' : 'none'

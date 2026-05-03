@@ -7,9 +7,12 @@ import { localizationForEventType } from '~/localization'
 import type { RolePrimary, SystemEvent, UserSecondary } from '~/types'
 import { Grid } from '../grid'
 import { useDateTimeCol } from '../cols/date'
+import { useDialogs } from '~/providers/dialogs'
 // React
 import * as React from 'react'
 // Material UI
+import { useTheme } from '@mui/material/styles'
+import Button from '@mui/material/Button'
 import {
   type GridColDef,
   type GridRenderCellParams,
@@ -61,6 +64,8 @@ function formatEventTime(time: unknown) {
 }
 
 export function EventsGrid(props: EventsGridProps) {
+  const theme = useTheme()
+  const dialogs = useDialogs()
   const { settings } = usePopupPreviewVisibilitySettings()
   const rows: GridValidRowModel[] = props.events
   const timeCol = useDateTimeCol({
@@ -114,7 +119,54 @@ export function EventsGrid(props: EventsGridProps) {
           if (initiatorId === null) {
             return 'система'
           }
-          return userForId.get(initiatorId)?.login ?? '???'
+          return userForId.get(initiatorId)?.login ?? `[ID:${initiatorId}]`
+        },
+        renderCell: (params: GridRenderCellParams<any, string>) => {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          const initiatorId = params.row.initiatorId as number | null
+          if (initiatorId === null) {
+            return params.value ?? 'система'
+          }
+          const initiator = userForId.get(initiatorId)
+          if (initiator === undefined) {
+            return (
+              <Button
+                onClick={(event) => {
+                  event.stopPropagation()
+                  void dialogs.alert(
+                    'Пользователь был удалён, действие невозможно',
+                    {
+                      title: 'Переход недоступен',
+                      okText: 'Скрыть'
+                    }
+                  )
+                }}
+                sx={{
+                  width: '100%',
+                  justifyContent: 'start',
+                  textTransform: 'none',
+                  color: theme.palette.text.primary,
+                  ':hover': {
+                    bgcolor:
+                      theme.palette.mode === 'light'
+                        ? 'rgb(239, 244, 251)'
+                        : 'rgb(40, 47, 54)'
+                  }
+                }}
+              >
+                {params.value}
+              </Button>
+            )
+          }
+          return (
+            <GridRefCell
+              text={params.value}
+              hrefPrefix="/users"
+              hrefPath={initiatorId}
+              header
+              disableCapitalize
+            />
+          )
         }
       },
       {
@@ -130,8 +182,8 @@ export function EventsGrid(props: EventsGridProps) {
           }
           const roleId = userForId.get(initiatorId)?.roleId
           return roleId !== undefined
-            ? (roleNameForId.get(roleId) ?? '???')
-            : '???'
+            ? (roleNameForId.get(roleId) ?? 'Пользователь удалён')
+            : 'Пользователь удалён'
         },
         renderCell: (params: GridRenderCellParams<any, string>) => {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
@@ -140,14 +192,16 @@ export function EventsGrid(props: EventsGridProps) {
             return params.value ?? 'система'
           }
           const roleId = userForId.get(initiatorId)?.roleId
+          if (roleId === undefined) {
+            return 'Пользователь удалён'
+          }
           return (
             <GridRefCell
               text={params.value}
               hrefPrefix="/roles"
               hrefPath={roleId ?? -1}
-              disableRef={roleId === undefined}
               hoverPreview={
-                settings.roleRights && roleId !== undefined
+                settings.roleRights
                   ? {
                       renderContent: (active, onReadyChange) => (
                         <RoleHoverPreview
@@ -166,7 +220,7 @@ export function EventsGrid(props: EventsGridProps) {
         }
       }
     ],
-    [roleNameForId, settings.roleRights, timeCol, userForId]
+    [dialogs, roleNameForId, settings.roleRights, theme, timeCol, userForId]
   )
 
   return (
