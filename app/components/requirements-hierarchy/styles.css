@@ -10,7 +10,7 @@
 
 div.acyclic-vertex {
   border-radius: 8px;
-  padding: 12px;
+  padding: 12px 12px 18px;
   min-width: 150px;
   min-height: 80px;
   cursor: pointer;
@@ -66,6 +66,37 @@ div.acyclic-vertex .collapsed-indicator {
   padding: 2px 6px;
   font-size: 10px;
   color: hsl(220, 30%, 94%);
+}
+
+div.acyclic-vertex .atomic-indicator {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  background: hsla(220, 30%, 6%, 0.18);
+  color: hsl(220, 30%, 94%);
+}
+
+div.acyclic-vertex .coverage-indicator-track {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 6px;
+  height: 8px;
+  border-radius: 999px;
+  overflow: hidden;
+  background-color: hsla(220, 30%, 94%, 0.35);
+}
+
+div.acyclic-vertex .coverage-indicator-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
 }
 
 div.levels {

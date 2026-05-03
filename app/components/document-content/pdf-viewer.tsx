@@ -379,6 +379,19 @@ function isElementFullyVisibleInContainer(
   )
 }
 
+function isRectContained(inner: Rectangle, outer: Rectangle): boolean {
+  return (
+    inner.xMin >= outer.xMin &&
+    inner.xMax <= outer.xMax &&
+    inner.yMin >= outer.yMin &&
+    inner.yMax <= outer.yMax
+  )
+}
+
+function rectArea(rect: Rectangle): number {
+  return Math.max(0, rect.xMax - rect.xMin) * Math.max(0, rect.yMax - rect.yMin)
+}
+
 async function detectBlobImgAllowed(): Promise<boolean> {
   try {
     const canvas = document.createElement('canvas')
@@ -758,6 +771,8 @@ const PdfViewerBody: React.FC<
     pageIndex: number
     startClientX: number
     startClientY: number
+    startDocRect: Rectangle
+    liveDocRect: Rectangle
     startLocalRect: Rectangle
     liveLocalRect: Rectangle
   }>(null)
@@ -787,22 +802,18 @@ const PdfViewerBody: React.FC<
   const BTN_H_PX = 28
   const BTN_GAP_PX = 2
 
-  const captureRectangleToFile = useCallback(
-    (pageIndex: number, localRect: Rectangle, filename: string) => {
+  const captureRectangleToBlob = useCallback(
+    (pageIndex: number, localRect: Rectangle) => {
       if (!capture) {
-        return Promise.resolve<File | undefined>(undefined)
+        return Promise.resolve<Blob | undefined>(undefined)
       }
 
-      return new Promise<File | undefined>((resolve) => {
+      return new Promise<Blob | undefined>((resolve) => {
         pendingCaptureRef.current = {
-          filename,
+          filename: `capture_p${pageIndex + 1}.png`,
           pageIndex,
           onCaptured: (result) => {
-            resolve(
-              new File([result.blob], filename, {
-                type: result.blob.type || 'image/png'
-              })
-            )
+            resolve(result.blob)
           }
         }
 
@@ -810,6 +821,101 @@ const PdfViewerBody: React.FC<
       })
     },
     [capture]
+  )
+
+  const captureRectangleToFile = useCallback(
+    async (pageIndex: number, localRect: Rectangle, filename: string) => {
+      if (!capture) {
+        return undefined
+      }
+
+      const startPageOffsetY = offsetsY[pageIndex] ?? 0
+      const areaInDocument: PdfArea = {
+        id: -1,
+        name: filename,
+        rectangle: {
+          xMin: localRect.xMin,
+          xMax: localRect.xMax,
+          yMin: localRect.yMin + startPageOffsetY,
+          yMax: localRect.yMax + startPageOffsetY
+        }
+      }
+      const areaSegments = splitAreaByPages(areaInDocument, pageSizes, offsetsY)
+
+      if (areaSegments.length <= 1) {
+        const onePageBlob = await captureRectangleToBlob(pageIndex, localRect)
+        return onePageBlob
+          ? new File([onePageBlob], filename, {
+              type: onePageBlob.type || 'image/png'
+            })
+          : undefined
+      }
+
+      const segmentBlobs: Blob[] = []
+      for (const segment of areaSegments) {
+        const blob = await captureRectangleToBlob(
+          segment.pageIndex,
+          segment.localRect
+        )
+        if (!blob) {
+          return undefined
+        }
+        segmentBlobs.push(blob)
+      }
+
+      const decodedImages: HTMLImageElement[] = []
+      for (const blob of segmentBlobs) {
+        const blobUrl = URL.createObjectURL(blob)
+        try {
+          const image = await new Promise<HTMLImageElement>(
+            (resolve, reject) => {
+              const img = new Image()
+              img.onload = () => resolve(img)
+              img.onerror = () => reject(new Error('failed to decode image'))
+              img.src = blobUrl
+            }
+          )
+          decodedImages.push(image)
+        } finally {
+          URL.revokeObjectURL(blobUrl)
+        }
+      }
+
+      const canvas = document.createElement('canvas')
+      const targetWidth = Math.max(
+        1,
+        ...decodedImages.map((image) => image.width)
+      )
+      const targetHeight = Math.max(
+        1,
+        decodedImages.reduce((sum, image) => sum + image.height, 0)
+      )
+      canvas.width = targetWidth
+      canvas.height = targetHeight
+
+      const context = canvas.getContext('2d')
+      if (!context) {
+        return undefined
+      }
+
+      let offsetY = 0
+      for (const image of decodedImages) {
+        context.drawImage(image, 0, offsetY)
+        offsetY += image.height
+      }
+
+      const stitchedBlob = await new Promise<Blob | null>((resolve) => {
+        canvas.toBlob((blob) => resolve(blob), 'image/png')
+      })
+      if (!stitchedBlob) {
+        return undefined
+      }
+
+      return new File([stitchedBlob], filename, {
+        type: stitchedBlob.type || 'image/png'
+      })
+    },
+    [capture, offsetsY, pageSizes, captureRectangleToBlob]
   )
 
   const closeCapturePreviewDialog = useCallback(() => {
@@ -872,10 +978,15 @@ const PdfViewerBody: React.FC<
     [offsetsY]
   )
 
-  const clampRectToPage = useCallback(
-    (pageIndex: number, rect: Rectangle): Rectangle => {
-      const page = pageSizes[pageIndex]
-      if (!page) return rect
+  const clampRectToDocument = useCallback(
+    (rect: Rectangle): Rectangle => {
+      if (pageSizes.length === 0) return rect
+
+      const minPageWidth = Math.min(...pageSizes.map((page) => page.width))
+      const documentHeight = pageSizes.reduce(
+        (sum, page) => sum + page.height,
+        0
+      )
 
       const width = rect.xMax - rect.xMin
       const height = rect.yMax - rect.yMin
@@ -885,8 +996,8 @@ const PdfViewerBody: React.FC<
 
       if (xMin < 0) xMin = 0
       if (yMin < 0) yMin = 0
-      if (xMin + width > page.width) xMin = page.width - width
-      if (yMin + height > page.height) yMin = page.height - height
+      if (xMin + width > minPageWidth) xMin = minPageWidth - width
+      if (yMin + height > documentHeight) yMin = documentHeight - height
 
       xMin = Math.max(0, xMin)
       yMin = Math.max(0, yMin)
@@ -969,25 +1080,46 @@ const PdfViewerBody: React.FC<
       const dx = (e.clientX - dragArea.startClientX) / pageScale
       const dy = (e.clientY - dragArea.startClientY) / pageScale
 
-      const r = dragArea.startLocalRect
-      const moved = clampRectToPage(dragArea.pageIndex, {
-        xMin: r.xMin + dx,
-        xMax: r.xMax + dx,
-        yMin: r.yMin + dy,
-        yMax: r.yMax + dy
+      const movedDocRect = clampRectToDocument({
+        xMin: dragArea.startDocRect.xMin + dx,
+        xMax: dragArea.startDocRect.xMax + dx,
+        yMin: dragArea.startDocRect.yMin + dy,
+        yMax: dragArea.startDocRect.yMax + dy
       })
+      const offY = offsetsY[dragArea.pageIndex] ?? 0
+      const movedLocalRect = {
+        xMin: movedDocRect.xMin,
+        xMax: movedDocRect.xMax,
+        yMin: movedDocRect.yMin - offY,
+        yMax: movedDocRect.yMax - offY
+      }
 
-      setDragArea((prev) => (prev ? { ...prev, liveLocalRect: moved } : prev))
+      setDragArea((prev) =>
+        prev
+          ? {
+              ...prev,
+              liveDocRect: movedDocRect,
+              liveLocalRect: movedLocalRect
+            }
+          : prev
+      )
     }
 
     const onUp = () => {
-      const docRect = localToDocRect(dragArea.pageIndex, dragArea.liveLocalRect)
+      const docRect = dragArea.liveDocRect
       const fileName = `fragment_${dragArea.areaId}_${getDateStamp()}.png`
+      const offY = offsetsY[dragArea.pageIndex] ?? 0
+      const localRect = {
+        xMin: docRect.xMin,
+        xMax: docRect.xMax,
+        yMin: docRect.yMin - offY,
+        yMax: docRect.yMax - offY
+      }
 
       void (async () => {
         const configFile = await captureRectangleToFile(
           dragArea.pageIndex,
-          dragArea.liveLocalRect,
+          localRect,
           fileName
         )
 
@@ -1007,7 +1139,7 @@ const PdfViewerBody: React.FC<
       window.removeEventListener('pointermove', onMove)
       window.removeEventListener('pointerup', onUp)
     }
-  }, [dragArea, clampRectToPage, localToDocRect, props, captureRectangleToFile])
+  }, [dragArea, clampRectToDocument, offsetsY, props, captureRectangleToFile])
 
   useEffect(() => {
     if (!capture) return
@@ -1439,18 +1571,97 @@ const PdfViewerBody: React.FC<
         return
       }
 
-      const captureRect = toCaptureRect(area.localRect)
-
       const stamp = getDateStamp()
+      const filename = `area_${area.id}_${stamp}.png`
+      const areaSegments = splitAreaByPages(area, pageSizes, offsetsY)
 
-      pendingCaptureRef.current = {
-        filename: `area_${area.id}_${stamp}.png`,
-        pageIndex: area.pageIndex
-      }
+      void (async () => {
+        if (areaSegments.length === 0) {
+          return
+        }
 
-      capture.captureArea(area.pageIndex, captureRect)
+        if (areaSegments.length === 1) {
+          pendingCaptureRef.current = {
+            filename,
+            pageIndex: areaSegments[0].pageIndex
+          }
+          capture.captureArea(
+            areaSegments[0].pageIndex,
+            toCaptureRect(areaSegments[0].localRect)
+          )
+          return
+        }
+
+        const segmentBlobs: Blob[] = []
+        for (const segment of areaSegments) {
+          const blob = await captureRectangleToBlob(
+            segment.pageIndex,
+            segment.localRect
+          )
+          if (!blob) {
+            return
+          }
+          segmentBlobs.push(blob)
+        }
+
+        const decodedImages: HTMLImageElement[] = []
+        for (const blob of segmentBlobs) {
+          const blobUrl = URL.createObjectURL(blob)
+          try {
+            const image = await new Promise<HTMLImageElement>(
+              (resolve, reject) => {
+                const img = new Image()
+                img.onload = () => resolve(img)
+                img.onerror = () => reject(new Error('failed to decode image'))
+                img.src = blobUrl
+              }
+            )
+            decodedImages.push(image)
+          } finally {
+            URL.revokeObjectURL(blobUrl)
+          }
+        }
+
+        const canvas = document.createElement('canvas')
+        const targetWidth = Math.max(
+          1,
+          ...decodedImages.map((image) => image.width)
+        )
+        const targetHeight = Math.max(
+          1,
+          decodedImages.reduce((sum, image) => sum + image.height, 0)
+        )
+        canvas.width = targetWidth
+        canvas.height = targetHeight
+
+        const context = canvas.getContext('2d')
+        if (!context) {
+          return
+        }
+
+        let offsetY = 0
+        for (const image of decodedImages) {
+          context.drawImage(image, 0, offsetY)
+          offsetY += image.height
+        }
+
+        const stitchedBlob = await new Promise<Blob | null>((resolve) => {
+          canvas.toBlob((blob) => resolve(blob), 'image/png')
+        })
+        if (!stitchedBlob) {
+          return
+        }
+
+        const url = URL.createObjectURL(stitchedBlob)
+        setCapturedImageUrl((prev) => {
+          if (prev) URL.revokeObjectURL(prev)
+          return url
+        })
+        setCapturedImageName(filename)
+        setIsCapturePreviewOpen(true)
+      })()
     },
-    [capture]
+    [capture, pageSizes, offsetsY, captureRectangleToBlob]
   )
 
   const openAreaScreenshotPreview = useCallback(
@@ -1972,9 +2183,37 @@ const PdfViewerBody: React.FC<
 
               pageScaleRef.current.set(pageIndex, scale)
 
-              const pageAreas = derivedAreas.filter(
-                (a) => a.pageIndex === pageIndex
-              )
+              const getAreaLocalRect = (
+                area: PdfArea & { pageIndex: number; localRect: Rectangle }
+              ) =>
+                resize && resize.areaId === area.id
+                  ? resize.liveLocalRect
+                  : dragArea && dragArea.areaId === area.id
+                    ? dragArea.liveLocalRect
+                    : area.localRect
+
+              const pageAreas = derivedAreas
+                .filter((a) => a.pageIndex === pageIndex)
+                .sort((a, b) => {
+                  const aIsActive = a.id === activeAreaId
+                  const bIsActive = b.id === activeAreaId
+                  if (aIsActive !== bIsActive) {
+                    return aIsActive ? 1 : -1
+                  }
+
+                  const aRect = getAreaLocalRect(a)
+                  const bRect = getAreaLocalRect(b)
+                  const aInB = isRectContained(aRect, bRect)
+                  const bInA = isRectContained(bRect, aRect)
+
+                  if (aInB && !bInA) return 1
+                  if (bInA && !aInB) return -1
+
+                  const areaDiff = rectArea(bRect) - rectArea(aRect)
+                  if (areaDiff !== 0) return areaDiff
+
+                  return a.id - b.id
+                })
               const draftOnPage =
                 draftPx?.pageIndex === pageIndex ? draftPx : null
 
@@ -1989,12 +2228,7 @@ const PdfViewerBody: React.FC<
               )
 
               for (const a of pageAreas) {
-                const localRectForCss =
-                  resize && resize.areaId === a.id
-                    ? resize.liveLocalRect
-                    : dragArea && dragArea.areaId === a.id
-                      ? dragArea.liveLocalRect
-                      : a.localRect
+                const localRectForCss = getAreaLocalRect(a)
 
                 const r = localRectForCss
                 const left = r.xMin * scale
@@ -2105,12 +2339,7 @@ const PdfViewerBody: React.FC<
                             props.withDeleteAreaButtons ||
                             props.withCaptureAreaButtons)
 
-                        const localRectForUi =
-                          resize && resize.areaId === a.id
-                            ? resize.liveLocalRect
-                            : dragArea && dragArea.areaId === a.id
-                              ? dragArea.liveLocalRect
-                              : a.localRect
+                        const localRectForUi = getAreaLocalRect(a)
 
                         const wPx =
                           (localRectForUi.xMax - localRectForUi.xMin) * scale
@@ -2294,11 +2523,19 @@ const PdfViewerBody: React.FC<
                                   className="pdfv-drag-handle"
                                   onPointerDown={(e) => {
                                     e.stopPropagation()
+                                    const baseArea = props.areas.find(
+                                      (item) => item.id === a.id
+                                    )
+                                    const startDocRect =
+                                      baseArea?.rectangle ??
+                                      localToDocRect(pageIndex, localRectForUi)
                                     setDragArea({
                                       areaId: a.id,
                                       pageIndex,
                                       startClientX: e.clientX,
                                       startClientY: e.clientY,
+                                      startDocRect,
+                                      liveDocRect: startDocRect,
                                       startLocalRect: localRectForUi,
                                       liveLocalRect: localRectForUi
                                     })

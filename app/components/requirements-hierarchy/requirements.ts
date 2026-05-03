@@ -8,6 +8,15 @@ export type RequirementVertexData = {
   level: number
   hasParents: boolean
   hasChildren: boolean
+  atomicityFlag: boolean
+  atomicityCoef: number
+  modifier: string
+  fullCoverageFraction: string
+  onlyMustCoverageFraction: string
+  mustAndShouldCoverageFraction: string
+  onlyShouldCoverageFraction: string
+  onlyMayCoverageFraction: string
+  testId: number | null
 }
 
 type RequirementsHierarchyGraphData = {
@@ -108,11 +117,30 @@ export function buildRequirementsHierarchyGraphData(
   for (const vertex of requirementsHierarchy.vertexes) {
     const parentsIds = parentIdsSetForId.get(vertex.id)
     const childIds = childIdsSetForId.get(vertex.id)
+    const coveredFull = vertex.coveredRate.full
+    const aggregateFull = vertex.aggregateRate.full
+    const coveredOnlyMust = vertex.coveredRate.onlyMust
+    const aggregateOnlyMust = vertex.aggregateRate.onlyMust
+    const coveredMustAndShould = vertex.coveredRate.mustAndShould
+    const aggregateMustAndShould = vertex.aggregateRate.mustAndShould
+    const coveredOnlyShould = vertex.coveredRate.onlyShould
+    const aggregateOnlyShould = vertex.aggregateRate.onlyShould
+    const coveredOnlyMay = vertex.coveredRate.onlyMay
+    const aggregateOnlyMay = vertex.aggregateRate.onlyMay
     dataForVertexId.set(vertex.id, {
       code: vertex.code,
       level: levelForId.get(vertex.id) ?? 0,
       hasParents: (parentsIds?.size ?? 0) > 0,
-      hasChildren: (childIds?.size ?? 0) > 0
+      hasChildren: (childIds?.size ?? 0) > 0,
+      atomicityFlag: vertex.atomic,
+      atomicityCoef: vertex.rate,
+      modifier: vertex.modifier,
+      fullCoverageFraction: `${coveredFull} / ${aggregateFull}`,
+      onlyMustCoverageFraction: `${coveredOnlyMust} / ${aggregateOnlyMust}`,
+      mustAndShouldCoverageFraction: `${coveredMustAndShould} / ${aggregateMustAndShould}`,
+      onlyShouldCoverageFraction: `${coveredOnlyShould} / ${aggregateOnlyShould}`,
+      onlyMayCoverageFraction: `${coveredOnlyMay} / ${aggregateOnlyMay}`,
+      testId: vertex.testId
     })
   }
 
