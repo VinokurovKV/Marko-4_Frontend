@@ -46,6 +46,9 @@ export function SidebarPageItem({
   disabled = false,
   nestedNavigation
 }: SidebarPageItemProps) {
+  const miniNavigationPopupShiftY =
+    id === 'access' ? 'calc(-50px - 45px)' : '-50px'
+
   const sidebarMeta = useSidebarMeta()
 
   const {
@@ -233,7 +236,7 @@ export function SidebarPageItem({
                 sx={{
                   pt: 0.2,
                   pb: 0.2,
-                  transform: 'translateY(-50px)'
+                  transform: `translateY(${miniNavigationPopupShiftY})`
                 }}
               >
                 <SidebarMetaContext.Provider
