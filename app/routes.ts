@@ -22,6 +22,7 @@ export default [
               route(':userId', 'routes/user.tsx')
             ]),
             route('events', 'routes/events.tsx'),
+            route('data-transfer', 'routes/data-transfer.tsx'),
             // route('data-transfer', 'routes/data-transfer.tsx', [
             //   route('import', 'routes/data-import.tsx'),
             //   route('export', 'routes/data-export.tsx')
