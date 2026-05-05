@@ -811,7 +811,7 @@ import { io } from 'socket.io-client'
 import Queue from 'yocto-queue'
 
 //const HOST = 'http://localhost:3000' // ''
-const HOST = 'http://localhost:3000' // ''
+const HOST = '' // 'http://localhost:3000' // ''
 const PATH_PREFIX = '/api'
 const SECS = 1000
 const MINS = 60 * SECS
