@@ -151,6 +151,11 @@ export function DocumentViewer({
               href={document.url !== null ? document.url : undefined}
               external={true}
             />
+            <ColumnViewerRef
+              field="история"
+              text="ПЕРЕЙТИ"
+              href={`/history/documents/${document.id}`}
+            />
           </ColumnViewerBlock>
           <ColumnViewerBlock title="описание">
             <ColumnViewerText

@@ -13,7 +13,7 @@ import {
   useDbcSubscription,
   useTestsFilteredSubscription
 } from '~/hooks/resources'
-import { DbcViewer } from '~/components/single-resource-viewers/resources/dbc'
+import { DbcViewer } from '~/components/single-viewers/resources/dbc'
 import { ForbiddenScreen } from '~/components/screens/problem/forbidden'
 // React router
 import type { Route } from './+types/dbc'

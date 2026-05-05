@@ -33,6 +33,11 @@ export function UserViewer({ role, user }: UserViewerProps) {
             text={role?.name ?? '???'}
             href={role !== null ? `/roles/${role.id}` : undefined}
           />
+          <ColumnViewerRef
+            field="история"
+            text="ПЕРЕЙТИ"
+            href={`/history/users/${user.id}`}
+          />
         </ColumnViewerBlock>
       </ColumnViewer>
       <ColumnViewer>

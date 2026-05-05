@@ -23,6 +23,7 @@ import {
   ColumnViewerBlock,
   ColumnViewerChipsBlock,
   ColumnViewerItem,
+  ColumnViewerRef,
   ColumnViewerText
 } from '../common'
 // React
@@ -80,6 +81,11 @@ export function TagViewer({
         <ColumnViewer>
           <ColumnViewerBlock title="основная информация">
             <ColumnViewerItem field="код" val={tag.code} />
+            <ColumnViewerRef
+              field="история"
+              text="ПЕРЕЙТИ"
+              href={`/history/tags/${tag.id}`}
+            />
           </ColumnViewerBlock>
         </ColumnViewer>
         <ColumnViewer>

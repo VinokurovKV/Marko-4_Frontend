@@ -91,6 +91,14 @@ export default [
                 route(':testId', 'routes/test-report.tsx')
               ])
             ]),
+            route('actions', 'routes/actions.tsx', [
+              route(':actionId', 'routes/action.tsx', { id: 'action' })
+            ]),
+            route('history', 'routes/history.tsx', [
+              route(':resource/:resourceId?', 'routes/history-version.tsx', [
+                route(':transitionNum', 'routes/history-transition.tsx')
+              ])
+            ]),
             index('routes/home.tsx'),
             route('*', 'routes/not-found.tsx')
           ])

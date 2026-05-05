@@ -47,7 +47,7 @@ import {
   useDevicesFilteredSubscription,
   useTasksFilteredSubscription
 } from '~/hooks/resources'
-import { TagViewer } from '~/components/single-resource-viewers/resources/tag'
+import { TagViewer } from '~/components/single-viewers/resources/tag'
 import { ForbiddenScreen } from '~/components/screens/problem/forbidden'
 // React router
 import type { Route } from './+types/tag'

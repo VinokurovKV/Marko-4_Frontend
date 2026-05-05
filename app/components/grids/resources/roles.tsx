@@ -196,6 +196,7 @@ export function RolesGrid(props: RolesGridProps) {
         navigationModeOnRowClick={handleNavigationModeRowClick}
         create={createProps}
         deleteMany={deleteManyProps}
+        compactFooter={navigationMode}
       />
       <CreateRoleFormDialog
         createModeIsActive={createModeIsActive}

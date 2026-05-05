@@ -5,7 +5,7 @@ import { readRolePrimary, readUserTertiary } from '~/readers'
 import { useNotifier } from '~/providers/notifier'
 import { useMeta } from '~/providers/meta'
 import { useRoleSubscription, useUserSubscription } from '~/hooks/resources'
-import { UserViewer } from '~/components/single-resource-viewers/resources/user'
+import { UserViewer } from '~/components/single-viewers/resources/user'
 import { ForbiddenScreen } from '~/components/screens/problem/forbidden'
 // React router
 import type { Route } from './+types/user'

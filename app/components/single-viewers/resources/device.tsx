@@ -11,6 +11,7 @@ import {
   ColumnViewerChipsBlock,
   ColumnViewerFile,
   ColumnViewerItem,
+  ColumnViewerRef,
   ColumnViewerText
 } from '../common'
 // React
@@ -72,6 +73,11 @@ export function DeviceViewer({ tags, device }: DeviceViewerProps) {
           <ColumnViewerItem
             field="тип"
             val={localizationForDeviceType.get(device.type)}
+          />
+          <ColumnViewerRef
+            field="история"
+            text="ПЕРЕЙТИ"
+            href={`/history/devices/${device.id}`}
           />
         </ColumnViewerBlock>
         <ColumnViewerItem

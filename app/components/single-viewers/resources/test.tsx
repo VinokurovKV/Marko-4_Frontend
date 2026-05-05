@@ -324,6 +324,11 @@ export function TestViewer({
             ) : (
               <ColumnViewerItem field="конфигурация" />
             )}
+            <ColumnViewerRef
+              field="история"
+              text="ПЕРЕЙТИ"
+              href={`/history/tests/${test.id}`}
+            />
           </ColumnViewerBlock>
           {test.vertexes.map((vertex, vertexIndex) => (
             <ColumnViewerBlock

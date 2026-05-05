@@ -1,7 +1,7 @@
 // Project
 import { useRole } from '~/hooks/resources'
 import { localizationForRight } from '~/localization'
-import { ColumnViewerChipsBlock } from '~/components/single-resource-viewers/common'
+import { ColumnViewerChipsBlock } from '~/components/single-viewers/common'
 // React
 import * as React from 'react'
 // Material UI

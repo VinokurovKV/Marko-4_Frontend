@@ -169,6 +169,11 @@ export function TaskViewer(props: TaskViewerProps) {
                 field="приостановлено"
                 Icon={<FlagIcon flag={task.paused} />}
               /> */}
+            <ColumnViewerRef
+              field="история"
+              text="ПЕРЕЙТИ"
+              href={`/history/tasks/${task.id}`}
+            />
           </ColumnViewerBlock>
           <ColumnViewerBlock title="счетчики тестов">
             <ColumnViewerItem field="всего" val={taskReport.totalCount} />

@@ -16,6 +16,7 @@ import {
   ColumnViewerBlock,
   ColumnViewerChipsBlock,
   ColumnViewerItem,
+  ColumnViewerRef,
   ColumnViewerText
 } from '../common'
 
@@ -58,6 +59,11 @@ export function GroupViewer({
           <ColumnViewerItem field="код" val={group.code} />
           <ColumnViewerItem field="название" val={group.name} />
           <ColumnViewerItem field="номер" val={group.num ?? undefined} />
+          <ColumnViewerRef
+            field="история"
+            text="ПЕРЕЙТИ"
+            href={`/history/groups/${group.id}`}
+          />
         </ColumnViewerBlock>
         <ColumnViewerBlock
           title={`подгруппы${subgroups !== null && subgroups.length > 0 ? ` (${subgroups.length})` : ''}`}

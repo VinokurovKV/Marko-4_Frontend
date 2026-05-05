@@ -13,7 +13,7 @@ import {
   useTestTemplateSubscription,
   useTestsFilteredSubscription
 } from '~/hooks/resources'
-import { TestTemplateViewer } from '~/components/single-resource-viewers/resources/test-template'
+import { TestTemplateViewer } from '~/components/single-viewers/resources/test-template'
 import { ForbiddenScreen } from '~/components/screens/problem/forbidden'
 // React router
 import type { Route } from './+types/test-template'

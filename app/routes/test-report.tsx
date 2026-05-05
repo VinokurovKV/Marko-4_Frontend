@@ -11,7 +11,7 @@ import {
   useTestSubscription,
   useTestReportSubscription
 } from '~/hooks/resources'
-import { TestReportViewer } from '~/components/single-resource-viewers/resources/test-report'
+import { TestReportViewer } from '~/components/single-viewers/resources/test-report'
 import { ForbiddenScreen } from '~/components/screens/problem/forbidden'
 // React router
 import type { Route } from './+types/test-report'

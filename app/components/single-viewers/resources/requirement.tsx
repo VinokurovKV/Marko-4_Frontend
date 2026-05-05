@@ -213,6 +213,11 @@ export function RequirementViewer({
             }
             semiTransparent={vertex.atomic === false}
           />
+          <ColumnViewerRef
+            field="история"
+            text="ПЕРЕЙТИ"
+            href={`/history/requirements/${requirement.id}`}
+          />
         </ColumnViewerBlock>
         <ColumnViewerBlock
           title={`фрагменты документов${requirement.fragmentsCount > 0 ? ` (${requirement.fragmentsCount})` : ''}`}

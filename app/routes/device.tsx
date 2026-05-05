@@ -8,7 +8,7 @@ import {
   useTagsFilteredSubscription,
   useDeviceSubscription
 } from '~/hooks/resources'
-import { DeviceViewer } from '~/components/single-resource-viewers/resources/device'
+import { DeviceViewer } from '~/components/single-viewers/resources/device'
 import { ForbiddenScreen } from '~/components/screens/problem/forbidden'
 // React router
 import type { Route } from './+types/device'

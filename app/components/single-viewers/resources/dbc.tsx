@@ -10,6 +10,7 @@ import {
   ColumnViewerChipsBlock,
   ColumnViewerFile,
   ColumnViewerItem,
+  ColumnViewerRef,
   ColumnViewerText
 } from '../common'
 // React
@@ -67,6 +68,11 @@ export function DbcViewer({ tags, dbc, tests }: DbcViewerProps) {
           ) : (
             <ColumnViewerItem field="конфигурация" />
           )}
+          <ColumnViewerRef
+            field="история"
+            text="ПЕРЕЙТИ"
+            href={`/history/dbcs/${dbc.id}`}
+          />
         </ColumnViewerBlock>
         <ColumnViewerBlock
           title={`тесты${tests !== null && tests.length > 0 ? ` (${tests.length})` : ''}`}

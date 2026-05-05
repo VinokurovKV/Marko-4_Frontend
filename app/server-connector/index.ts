@@ -811,7 +811,7 @@ import { io } from 'socket.io-client'
 import Queue from 'yocto-queue'
 
 //const HOST = 'http://localhost:3000' // ''
-const HOST = '' // 'http://localhost:3000' // ''
+const HOST = 'http://localhost:3000' // ''
 const PATH_PREFIX = '/api'
 const SECS = 1000
 const MINS = 60 * SECS
@@ -1430,7 +1430,7 @@ export class ServerConnector {
   readRoleTransitions(
     params: Params<ReadRoleTransitionsParamsDto>,
     extra: Extra<ReadRoleTransitionsQueryDto>
-  ): Result<ReadRoleTransitionsSuccessResultItemDto> {
+  ): Result<ReadRoleTransitionsSuccessResultItemDto[]> {
     return this.getObject(`/roles/${params.id}/transitions`, extra)
   }
   readRole<ScopeWrap extends ReadOneScopeWrap>(
@@ -1535,7 +1535,7 @@ export class ServerConnector {
   readUserTransitions(
     params: Params<ReadUserTransitionsParamsDto>,
     extra: Extra<ReadUserTransitionsQueryDto>
-  ): Result<ReadUserTransitionsSuccessResultItemDto> {
+  ): Result<ReadUserTransitionsSuccessResultItemDto[]> {
     return this.getObject(`/users/${params.id}/transitions`, extra)
   }
   readUser<ScopeWrap extends ReadOneScopeWrap>(
@@ -1616,7 +1616,7 @@ export class ServerConnector {
   readTagTransitions(
     params: Params<ReadTagTransitionsParamsDto>,
     extra: Extra<ReadTagTransitionsQueryDto>
-  ): Result<ReadTagTransitionsSuccessResultItemDto> {
+  ): Result<ReadTagTransitionsSuccessResultItemDto[]> {
     return this.getObject(`/tags/${params.id}/transitions`, extra)
   }
   readTag<ScopeWrap extends ReadOneScopeWrap>(
@@ -1703,7 +1703,7 @@ export class ServerConnector {
   readDocumentTransitions(
     params: Params<ReadDocumentTransitionsParamsDto>,
     extra: Extra<ReadDocumentTransitionsQueryDto>
-  ): Result<ReadDocumentTransitionsSuccessResultItemDto> {
+  ): Result<ReadDocumentTransitionsSuccessResultItemDto[]> {
     return this.getObject(`/documents/${params.id}/transitions`, extra)
   }
   readDocumentConfig(
@@ -1812,7 +1812,7 @@ export class ServerConnector {
   readFragmentTransitions(
     params: Params<ReadFragmentTransitionsParamsDto>,
     extra: Extra<ReadFragmentTransitionsQueryDto>
-  ): Result<ReadFragmentTransitionsSuccessResultItemDto> {
+  ): Result<ReadFragmentTransitionsSuccessResultItemDto[]> {
     return this.getObject(`/fragments/${params.id}/transitions`, extra)
   }
   readFragmentConfig(
@@ -1917,7 +1917,7 @@ export class ServerConnector {
   readRequirementTransitions(
     params: Params<ReadRequirementTransitionsParamsDto>,
     extra: Extra<ReadRequirementTransitionsQueryDto>
-  ): Result<ReadRequirementTransitionsSuccessResultItemDto> {
+  ): Result<ReadRequirementTransitionsSuccessResultItemDto[]> {
     return this.getObject(`/requirements/${params.id}/transitions`, extra)
   }
   readRequirement<ScopeWrap extends ReadOneScopeWrap>(
@@ -1997,7 +1997,7 @@ export class ServerConnector {
   readCoverageTransitions(
     params: Params<ReadCoverageTransitionsParamsDto>,
     extra: Extra<ReadCoverageTransitionsQueryDto>
-  ): Result<ReadCoverageTransitionsSuccessResultItemDto> {
+  ): Result<ReadCoverageTransitionsSuccessResultItemDto[]> {
     return this.getObject(`/coverages/${params.id}/transitions`, extra)
   }
   readCoverage<ScopeWrap extends ReadOneScopeWrap>(
@@ -2080,7 +2080,7 @@ export class ServerConnector {
   readCommonTopologyTransitions(
     params: Params<ReadCommonTopologyTransitionsParamsDto>,
     extra: Extra<ReadCommonTopologyTransitionsQueryDto>
-  ): Result<ReadCommonTopologyTransitionsSuccessResultItemDto> {
+  ): Result<ReadCommonTopologyTransitionsSuccessResultItemDto[]> {
     return this.getObject(`/common-topologies/${params.id}/transitions`, extra)
   }
   readCommonTopology<ScopeWrap extends ReadOneScopeWrap>(
@@ -2176,7 +2176,7 @@ export class ServerConnector {
   readTopologyTransitions(
     params: Params<ReadTopologyTransitionsParamsDto>,
     extra: Extra<ReadTopologyTransitionsQueryDto>
-  ): Result<ReadTopologyTransitionsSuccessResultItemDto> {
+  ): Result<ReadTopologyTransitionsSuccessResultItemDto[]> {
     return this.getObject(`/topologies/${params.id}/transitions`, extra)
   }
   readTopology<ScopeWrap extends ReadOneScopeWrap>(
@@ -2270,7 +2270,7 @@ export class ServerConnector {
   readDsefTransitions(
     params: Params<ReadDsefTransitionsParamsDto>,
     extra: Extra<ReadDsefTransitionsQueryDto>
-  ): Result<ReadDsefTransitionsSuccessResultItemDto> {
+  ): Result<ReadDsefTransitionsSuccessResultItemDto[]> {
     return this.getObject(`/dsefs/${params.id}/transitions`, extra)
   }
   readDsefAdapter(params: Params<ReadDsefAdapterParamsDto>): Promise<Blob> {
@@ -2386,7 +2386,7 @@ export class ServerConnector {
   readDbcTransitions(
     params: Params<ReadDbcTransitionsParamsDto>,
     extra: Extra<ReadDbcTransitionsQueryDto>
-  ): Result<ReadDbcTransitionsSuccessResultItemDto> {
+  ): Result<ReadDbcTransitionsSuccessResultItemDto[]> {
     return this.getObject(`/dbcs/${params.id}/transitions`, extra)
   }
   readDbcConfig(params: Params<ReadDbcConfigParamsDto>): Promise<Blob> {
@@ -2500,7 +2500,7 @@ export class ServerConnector {
   readTestTemplateTransitions(
     params: Params<ReadTestTemplateTransitionsParamsDto>,
     extra: Extra<ReadTestTemplateTransitionsQueryDto>
-  ): Result<ReadTestTemplateTransitionsSuccessResultItemDto> {
+  ): Result<ReadTestTemplateTransitionsSuccessResultItemDto[]> {
     return this.getObject(`/test-templates/${params.id}/transitions`, extra)
   }
   readTestTemplateConfig(
@@ -2622,7 +2622,7 @@ export class ServerConnector {
   readTestTransitions(
     params: Params<ReadTestTransitionsParamsDto>,
     extra: Extra<ReadTestTransitionsQueryDto>
-  ): Result<ReadTestTransitionsSuccessResultItemDto> {
+  ): Result<ReadTestTransitionsSuccessResultItemDto[]> {
     return this.getObject(`/tests/${params.id}/transitions`, extra)
   }
   readTestConfig(params: Params<ReadTestConfigParamsDto>): Promise<Blob> {
@@ -2743,7 +2743,7 @@ export class ServerConnector {
   readSubgroupTransitions(
     params: Params<ReadSubgroupTransitionsParamsDto>,
     extra: Extra<ReadSubgroupTransitionsQueryDto>
-  ): Result<ReadSubgroupTransitionsSuccessResultItemDto> {
+  ): Result<ReadSubgroupTransitionsSuccessResultItemDto[]> {
     return this.getObject(`/subgroups/${params.id}/transitions`, extra)
   }
   readSubgroup<ScopeWrap extends ReadOneScopeWrap>(
@@ -2823,7 +2823,7 @@ export class ServerConnector {
   readGroupTransitions(
     params: Params<ReadGroupTransitionsParamsDto>,
     extra: Extra<ReadGroupTransitionsQueryDto>
-  ): Result<ReadGroupTransitionsSuccessResultItemDto> {
+  ): Result<ReadGroupTransitionsSuccessResultItemDto[]> {
     return this.getObject(`/groups/${params.id}/transitions`, extra)
   }
   readGroup<ScopeWrap extends ReadOneScopeWrap>(
@@ -2938,7 +2938,7 @@ export class ServerConnector {
   readDeviceTransitions(
     params: Params<ReadDeviceTransitionsParamsDto>,
     extra: Extra<ReadDeviceTransitionsQueryDto>
-  ): Result<ReadDeviceTransitionsSuccessResultItemDto> {
+  ): Result<ReadDeviceTransitionsSuccessResultItemDto[]> {
     return this.getObject(`/devices/${params.id}/transitions`, extra)
   }
   readDeviceConfig(params: Params<ReadDeviceConfigParamsDto>): Promise<Blob> {
@@ -3080,7 +3080,7 @@ export class ServerConnector {
   readTaskTransitions(
     params: Params<ReadTaskTransitionsParamsDto>,
     extra: Extra<ReadTaskTransitionsQueryDto>
-  ): Result<ReadTaskTransitionsSuccessResultItemDto> {
+  ): Result<ReadTaskTransitionsSuccessResultItemDto[]> {
     return this.getObject(`/tasks/${params.id}/transitions`, extra)
   }
   readTask<ScopeWrap extends ReadOneChangeableScopeWrap>(
@@ -3187,7 +3187,7 @@ export class ServerConnector {
   readTaskTemplateTransitions(
     params: Params<ReadTaskTemplateTransitionsParamsDto>,
     extra: Extra<ReadTaskTemplateTransitionsQueryDto>
-  ): Result<ReadTaskTemplateTransitionsSuccessResultItemDto> {
+  ): Result<ReadTaskTemplateTransitionsSuccessResultItemDto[]> {
     return this.getObject(`/task-templates/${params.id}/transitions`, extra)
   }
   readTaskTemplate<ScopeWrap extends ReadOneScopeWrap>(
@@ -3527,7 +3527,7 @@ export class ServerConnector {
   readSliceTransitions(
     params: Params<ReadSliceTransitionsParamsDto>,
     extra: Extra<ReadSliceTransitionsQueryDto>
-  ): Result<ReadSliceTransitionsSuccessResultItemDto> {
+  ): Result<ReadSliceTransitionsSuccessResultItemDto[]> {
     return this.getObject(`/slices/${params.id}/transitions`, extra)
   }
   readSlice<ScopeWrap extends ReadOneScopeWrap>(

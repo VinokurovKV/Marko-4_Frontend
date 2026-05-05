@@ -35,7 +35,7 @@ import {
   useSubgroupSubscription,
   useGroupSubscription
 } from '~/hooks/resources'
-import { TestViewer } from '~/components/single-resource-viewers/resources/test'
+import { TestViewer } from '~/components/single-viewers/resources/test'
 import { ForbiddenScreen } from '~/components/screens/problem/forbidden'
 // React router
 import type { Route } from './+types/test'

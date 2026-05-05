@@ -26,6 +26,7 @@ import LanIcon from '@mui/icons-material/Lan'
 // import ParkIcon from '@mui/icons-material/Park';
 import PersonIcon from '@mui/icons-material/Person'
 // import PolylineIcon from '@mui/icons-material/Polyline'
+import PublishedWithChangesIcon from '@mui/icons-material/PublishedWithChanges'
 import RuleIcon from '@mui/icons-material/Rule'
 // import SchemaIcon from '@mui/icons-material/Schema'
 // import SettingsIcon from '@mui/icons-material/Settings'
@@ -35,6 +36,7 @@ import TagIcon from '@mui/icons-material/Tag'
 // import TocIcon from '@mui/icons-material/Toc'
 import TaskIcon from '@mui/icons-material/Task'
 import TheaterComedyIcon from '@mui/icons-material/TheaterComedy'
+import TimelineIcon from '@mui/icons-material/Timeline'
 // import VerifiedIcon from '@mui/icons-material/Verified'
 import ViewSidebarIcon from '@mui/icons-material/ViewSidebar'
 import ViewStreamIcon from '@mui/icons-material/ViewStream'
@@ -229,6 +231,40 @@ export const SIDE_NAVIGATION_CONFIG: SideNavigationConfig = [
             Icon: HistoryIcon,
             href: '/events',
             requiredRights: ['READ_EVENT']
+          },
+          {
+            id: 'actions',
+            title: 'действия',
+            Icon: PublishedWithChangesIcon,
+            href: '/actions',
+            requiredRights: ['READ_ACTION']
+          },
+          {
+            id: 'history',
+            title: 'история',
+            Icon: TimelineIcon,
+            href: '/history',
+            requiredRights: [
+              'READ_ACTION',
+              'READ_ROLE',
+              'READ_USER',
+              'READ_TAG',
+              'READ_DOCUMENT',
+              'READ_FRAGMENT',
+              'READ_REQUIREMENT',
+              'READ_COMMON_TOPOLOGY',
+              'READ_TOPOLOGY',
+              'READ_DSEF',
+              'READ_DBC',
+              'READ_TEST_TEMPLATE',
+              'READ_TEST',
+              'READ_SUBGROUP',
+              'READ_GROUP',
+              'READ_DEVICE',
+              'READ_TASK',
+              'READ_TASK_TEMPLATE',
+              'READ_SLICE'
+            ]
           }
         ]
       }

@@ -15,7 +15,7 @@ import {
   ColumnViewerBlock,
   ColumnViewerChipsBlock,
   ColumnViewerText
-} from '../single-resource-viewers/common'
+} from '../single-viewers/common'
 // React
 import * as React from 'react'
 // Material UI

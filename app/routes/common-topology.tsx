@@ -13,7 +13,7 @@ import {
   useCommonTopologySubscription,
   useTopologiesFilteredSubscription
 } from '~/hooks/resources'
-import { CommonTopologyViewer } from '~/components/single-resource-viewers/resources/common-topology'
+import { CommonTopologyViewer } from '~/components/single-viewers/resources/common-topology'
 import { ForbiddenScreen } from '~/components/screens/problem/forbidden'
 // React router
 import type { Route } from './+types/common-topology'

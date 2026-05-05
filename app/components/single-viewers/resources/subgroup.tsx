@@ -75,6 +75,11 @@ export function SubgroupViewer({
             field="номер в группе"
             val={subgroup.numInGroup ?? undefined}
           />
+          <ColumnViewerRef
+            field="история"
+            text="ПЕРЕЙТИ"
+            href={`/history/subgroups/${subgroup.id}`}
+          />
         </ColumnViewerBlock>
         <ColumnViewerBlock
           title={`тесты${tests !== null && tests.length > 0 ? ` (${tests.length})` : ''}`}

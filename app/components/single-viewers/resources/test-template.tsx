@@ -10,6 +10,7 @@ import {
   ColumnViewerChipsBlock,
   ColumnViewerFile,
   ColumnViewerItem,
+  ColumnViewerRef,
   ColumnViewerText
 } from '../common'
 // React
@@ -71,6 +72,11 @@ export function TestTemplateViewer({
           ) : (
             <ColumnViewerItem field="конфигурация" />
           )}
+          <ColumnViewerRef
+            field="история"
+            text="ПЕРЕЙТИ"
+            href={`/history/test-templates/${testTemplate.id}`}
+          />
         </ColumnViewerBlock>
         <ColumnViewerBlock
           title={`тесты${tests !== null && tests.length > 0 ? ` (${tests.length})` : ''}`}

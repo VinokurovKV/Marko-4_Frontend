@@ -76,6 +76,11 @@ export function TopologyViewer({
             field="номер в общей топологии"
             val={topology.numInCommonTopology ?? undefined}
           />
+          <ColumnViewerRef
+            field="история"
+            text="ПЕРЕЙТИ"
+            href={`/history/topologies/${topology.id}`}
+          />
         </ColumnViewerBlock>
         <ColumnViewerBlock
           title={`вершины${topology.vertexesCount > 0 ? ` (${topology.vertexesCount})` : ''}`}

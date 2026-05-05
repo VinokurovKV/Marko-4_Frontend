@@ -29,7 +29,7 @@ import {
   useRequirementsHierarchyVertexSubscription,
   useTestSubscription
 } from '~/hooks/resources'
-import { RequirementViewer } from '~/components/single-resource-viewers/resources/requirement'
+import { RequirementViewer } from '~/components/single-viewers/resources/requirement'
 import { ForbiddenScreen } from '~/components/screens/problem/forbidden'
 // React router
 import type { Route } from './+types/requirement'

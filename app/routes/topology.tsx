@@ -20,7 +20,7 @@ import {
   useTopologySubscription,
   useTestsFilteredSubscription
 } from '~/hooks/resources'
-import { TopologyViewer } from '~/components/single-resource-viewers/resources/topology'
+import { TopologyViewer } from '~/components/single-viewers/resources/topology'
 import { ForbiddenScreen } from '~/components/screens/problem/forbidden'
 // React router
 import type { Route } from './+types/topology'

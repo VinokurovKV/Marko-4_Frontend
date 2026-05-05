@@ -20,7 +20,7 @@ import {
   useCoverageSubscription,
   useTestsFilteredSubscription
 } from '~/hooks/resources'
-import { CoverageViewer } from '~/components/single-resource-viewers/resources/coverage'
+import { CoverageViewer } from '~/components/single-viewers/resources/coverage'
 import { ForbiddenScreen } from '~/components/screens/problem/forbidden'
 // React router
 import type { Route } from './+types/coverage'

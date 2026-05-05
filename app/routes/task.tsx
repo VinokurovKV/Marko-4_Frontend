@@ -27,7 +27,7 @@ import {
   useTestReportsSubscription,
   useTaskReportSubscription
 } from '~/hooks/resources'
-import { TaskViewer } from '~/components/single-resource-viewers/resources/task'
+import { TaskViewer } from '~/components/single-viewers/resources/task'
 import { ForbiddenScreen } from '~/components/screens/problem/forbidden'
 // React router
 import type { Route } from './+types/task'

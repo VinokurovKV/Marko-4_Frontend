@@ -13,7 +13,7 @@ import {
   useDocumentSubscription,
   useFragmentsFilteredSubscription
 } from '~/hooks/resources'
-import { DocumentViewer } from '~/components/single-resource-viewers/resources/document'
+import { DocumentViewer } from '~/components/single-viewers/resources/document'
 import { ForbiddenScreen } from '~/components/screens/problem/forbidden'
 // React router
 import type { Route } from './+types/document'

@@ -10,6 +10,7 @@ import {
   ColumnViewerBlock,
   ColumnViewerChipsBlock,
   ColumnViewerItem,
+  ColumnViewerRef,
   ColumnViewerText
 } from '../common'
 
@@ -27,6 +28,11 @@ export function RoleViewer({ role }: RoleViewerProps) {
         <ColumnViewer>
           <ColumnViewerBlock title="основная информация">
             <ColumnViewerItem field="название" val={role.name} />
+            <ColumnViewerRef
+              field="история"
+              text="ПЕРЕЙТИ"
+              href={`/history/roles/${role.id}`}
+            />
           </ColumnViewerBlock>
         </ColumnViewer>
         <ColumnViewer>

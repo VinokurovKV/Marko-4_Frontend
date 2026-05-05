@@ -5,7 +5,7 @@ import { readRoleTertiary } from '~/readers'
 import { useNotifier } from '~/providers/notifier'
 import { useMeta } from '~/providers/meta'
 import { useRoleSubscription } from '~/hooks/resources'
-import { RoleViewer } from '~/components/single-resource-viewers/resources/role'
+import { RoleViewer } from '~/components/single-viewers/resources/role'
 import { ForbiddenScreen } from '~/components/screens/problem/forbidden'
 // React router
 import type { Route } from './+types/role'

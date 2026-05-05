@@ -25,7 +25,7 @@ import {
   useSubgroupsFilteredSubscription,
   useGroupSubscription
 } from '~/hooks/resources'
-import { GroupViewer } from '~/components/single-resource-viewers/resources/group'
+import { GroupViewer } from '~/components/single-viewers/resources/group'
 import { ForbiddenScreen } from '~/components/screens/problem/forbidden'
 // React router
 import type { Route } from './+types/group'

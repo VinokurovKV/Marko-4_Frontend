@@ -14,6 +14,7 @@ import {
   ColumnViewerBlock,
   ColumnViewerChipsBlock,
   ColumnViewerItem,
+  ColumnViewerRef,
   ColumnViewerText
 } from '../common'
 
@@ -40,6 +41,11 @@ export function CommonTopologyViewer({
           <ColumnViewerItem
             field="номер"
             val={commonTopology.num ?? undefined}
+          />
+          <ColumnViewerRef
+            field="история"
+            text="ПЕРЕЙТИ"
+            href={`/history/common-topologies/${commonTopology.id}`}
           />
         </ColumnViewerBlock>
         <ColumnViewerBlock

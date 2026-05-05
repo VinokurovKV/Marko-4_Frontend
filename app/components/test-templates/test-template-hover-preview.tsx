@@ -2,7 +2,7 @@
 import { useTestTemplate } from '~/hooks/resources'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
-import { ColumnViewerFile } from '~/components/single-resource-viewers/common'
+import { ColumnViewerFile } from '~/components/single-viewers/common'
 // React
 import * as React from 'react'
 // Material UI

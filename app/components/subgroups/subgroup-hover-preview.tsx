@@ -1,6 +1,6 @@
 // Project
 import { useSubgroup, useTestsFiltered } from '~/hooks/resources'
-import { ColumnViewerChipsBlock } from '~/components/single-resource-viewers/common'
+import { ColumnViewerChipsBlock } from '~/components/single-viewers/common'
 // React
 import * as React from 'react'
 // Material UI
