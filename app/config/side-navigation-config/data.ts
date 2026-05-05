@@ -16,6 +16,7 @@ import FoundationIcon from '@mui/icons-material/Foundation'
 // import GroupIcon from '@mui/icons-material/Group'
 import GroupsIcon from '@mui/icons-material/Groups'
 import HistoryIcon from '@mui/icons-material/History'
+import ImportExportIcon from '@mui/icons-material/ImportExport'
 // import HiveIcon from '@mui/icons-material/Hive'
 import HubIcon from '@mui/icons-material/Hub'
 import LanIcon from '@mui/icons-material/Lan'
@@ -231,6 +232,12 @@ export const SIDE_NAVIGATION_CONFIG: SideNavigationConfig = [
             Icon: HistoryIcon,
             href: '/events',
             requiredRights: ['READ_EVENT']
+          },
+          {
+            id: 'data-transfer',
+            title: 'данные системы',
+            Icon: ImportExportIcon,
+            href: '/data-transfer'
           },
           {
             id: 'actions',
