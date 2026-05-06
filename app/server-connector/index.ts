@@ -1396,6 +1396,13 @@ export class ServerConnector {
       ? Promise.resolve([])
       : this.getObject(`/events`, params)
   }
+  // History
+  async archiveHistory(): Promise<void> {
+    await this.postForObject<object>('/history/archive')
+  }
+  async unarchiveHistory(): Promise<void> {
+    await this.postForObject<object>('/history/unarchive')
+  }
   // Roles
   async readRoleExistsFlag(
     params: ReadRoleExistsFlagQueryDto
