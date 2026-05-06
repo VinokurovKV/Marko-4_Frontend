@@ -6,9 +6,11 @@ import {
   HorizontalTwoPartsContainer,
   VerticalTwoPartsContainer
 } from '~/components/containers'
+import { prepareTargetForAction } from '../grids/cols'
 import {
   ColumnViewer,
   ColumnViewerBlock,
+  ColumnViewerChipsBlock,
   ColumnViewerItem,
   ColumnViewerRef
 } from './common'
@@ -22,6 +24,18 @@ export interface ActionViewerProps {
 }
 
 export function ActionViewer({ action, initiator }: ActionViewerProps) {
+  const targetForHistoryMode = prepareTargetForAction(
+    action.targetId,
+    action.type,
+    action.targetStrId,
+    'HISTORY'
+  )
+  const targetForActiveMode = prepareTargetForAction(
+    action.targetId,
+    action.type,
+    action.targetStrId,
+    'ACTIVE'
+  )
   return (
     <VerticalTwoPartsContainer
       proportions="needed_rest"
@@ -48,7 +62,60 @@ export function ActionViewer({ action, initiator }: ActionViewerProps) {
                 : undefined
             }
           />
+          {targetForActiveMode.href !== undefined ? (
+            <ColumnViewerRef
+              field="объект"
+              text={targetForActiveMode.text}
+              href={`/${targetForActiveMode.href}`}
+            />
+          ) : null}
+          {targetForHistoryMode.href !== undefined ? (
+            <ColumnViewerRef
+              field="история объекта"
+              text={targetForHistoryMode.text}
+              href={`/history/${targetForActiveMode.href}`}
+            />
+          ) : null}
         </ColumnViewerBlock>
+        {action.targetIds !== undefined ? (
+          <ColumnViewerBlock title="объекты">
+            <ColumnViewerChipsBlock
+              emptyText={'нет'}
+              items={(action.targetIds ?? []).map((targetId, index) => {
+                const targetForActiveMode = prepareTargetForAction(
+                  targetId,
+                  action.type,
+                  action.targetStrIds![index],
+                  'ACTIVE'
+                )
+                return {
+                  text: targetForActiveMode.text,
+                  href: `/${targetForActiveMode.href}`
+                }
+              })}
+            />
+          </ColumnViewerBlock>
+        ) : null}
+        {action.targetIds !== undefined ? (
+          <ColumnViewerBlock title="история объектов">
+            <ColumnViewerChipsBlock
+              emptyText={'нет'}
+              items={(action.targetIds ?? []).map((targetId, index) => {
+                const targetForActiveMode = prepareTargetForAction(
+                  targetId,
+                  action.type,
+                  action.targetStrIds![index],
+                  'HISTORY',
+                  true
+                )
+                return {
+                  text: targetForActiveMode.text,
+                  href: `/history/${targetForActiveMode.href}`
+                }
+              })}
+            />
+          </ColumnViewerBlock>
+        ) : null}
       </ColumnViewer>
       <HorizontalTwoPartsContainer proportions="EQUAL">
         <ColumnViewer>

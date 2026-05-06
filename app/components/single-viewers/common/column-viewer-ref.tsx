@@ -13,7 +13,7 @@ import Typography from '@mui/material/Typography'
 import capitalize from 'capitalize'
 
 export interface ColumnViewerRefProps {
-  field: string
+  field?: string
   text?: string
   href?: string
   disableCapitalize?: boolean
@@ -28,6 +28,7 @@ export interface ColumnViewerRefProps {
     leaveDelay?: number
     placement?: TooltipProps['placement']
   }
+  style?: React.CSSProperties
 }
 
 function prepareHref(href: string) {
@@ -61,14 +62,22 @@ export function ColumnViewerRef(props: ColumnViewerRefProps) {
   )
 
   return (
-    <Stack direction="row" alignItems="center" spacing={1} p={0}>
-      <Typography
-        sx={{
-          fontWeight: 'bold'
-        }}
-      >
-        {capitalize(props.field, true) + ':'}
-      </Typography>
+    <Stack
+      direction="row"
+      alignItems="center"
+      spacing={1}
+      p={0}
+      style={props.style}
+    >
+      {props.field !== undefined ? (
+        <Typography
+          sx={{
+            fontWeight: 'bold'
+          }}
+        >
+          {capitalize(props.field, true) + ':'}
+        </Typography>
+      ) : null}
       {props.text !== undefined
         ? (() => {
             const text = props.disableCapitalize

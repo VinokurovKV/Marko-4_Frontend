@@ -1,7 +1,13 @@
 // Project
 import type { ActionInfo, UserPrimary } from '~/types'
 import { Grid } from './grid'
-import { useIdCol, useTimeCol, useActionTypeCol, useInitiatorCol } from './cols'
+import {
+  useActionIdCol,
+  useTimeCol,
+  useActionTypeCol,
+  useInitiatorCol,
+  useTargetCol
+} from './cols'
 // React router
 import { useNavigate } from 'react-router'
 // React
@@ -22,14 +28,16 @@ export function ActionsGrid(props: ActionsGridProps) {
 
   const rows: GridValidRowModel[] = props.actions
   const readCols = [
-    useIdCol('id', true, navigationMode),
+    useActionIdCol('id', true, navigationMode),
     useTimeCol(),
     useActionTypeCol(),
-    useInitiatorCol(props.users)
+    useInitiatorCol(props.users),
+    useTargetCol('ACTIVE'),
+    useTargetCol('HISTORY')
   ]
 
   const navigationModeReadCols = React.useMemo(
-    () => [readCols[0], readCols[1], readCols[3]],
+    () => [readCols[0], readCols[1], readCols[2]],
     [readCols]
   )
 

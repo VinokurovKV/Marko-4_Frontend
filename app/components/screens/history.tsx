@@ -7,6 +7,7 @@ import type { FormSelectProps } from '../forms/common'
 import { FormNumField, FormSelect } from '../forms/common'
 import { localizationForVersionedResourceTypePlural } from '~/localization'
 import { ProjButton } from '../buttons/button'
+import { ColumnViewerRef } from '../single-viewers/common'
 // React router
 import { matchPath, useLocation, useNavigate } from 'react-router'
 // React
@@ -29,6 +30,7 @@ import ViewStreamIcon from '@mui/icons-material/ViewStream'
 import ViewWeekIcon from '@mui/icons-material/ViewWeek'
 import WidgetsIcon from '@mui/icons-material/Widgets'
 import type { SelectChangeEvent, SelectProps } from '@mui/material/Select'
+import { useTheme } from '@mui/material/styles'
 // Other
 import * as changeCase from 'change-case'
 
@@ -37,6 +39,7 @@ export interface HistoryScreenProps {
 }
 
 export function HistoryScreen({ children }: HistoryScreenProps) {
+  const theme = useTheme()
   const navigate = useNavigate()
   const { pathname } = useLocation()
   const match = matchPath(
@@ -210,9 +213,27 @@ export function HistoryScreen({ children }: HistoryScreenProps) {
   return (
     <LayoutScreenContainer title="история" breadcrumbsItems={breadcrumbsItems}>
       <VerticalTwoPartsContainer proportions="needed_rest">
-        <Box display="flex" alignItems="center">
+        <Box
+          display="flex"
+          alignItems="center"
+          border={`1px solid ${
+            theme.palette.mode === 'light'
+              ? theme.palette.grey[300]
+              : theme.palette.grey.A700
+          }`}
+          borderRadius="5px"
+          p={0}
+          sx={{
+            height: '100%',
+            overflow: 'auto',
+            backgroundColor:
+              theme.palette.mode === 'light'
+                ? 'white'
+                : theme.palette.background.default
+          }}
+        >
           <FormSelect
-            style={{ minWidth: '220px' }}
+            style={{ marginTop: 4, minWidth: '220px' }}
             name="resourceType"
             label="ресурс"
             items={resourceTypeSelectItems}
@@ -221,7 +242,12 @@ export function HistoryScreen({ children }: HistoryScreenProps) {
             helperText=""
           />
           <FormNumField
-            style={{ marginLeft: 5, maxWidth: '150px', height: '36px' }}
+            style={{
+              marginLeft: 5,
+              marginTop: 4,
+              maxWidth: '150px',
+              height: '36px'
+            }}
             name="resourceId"
             label="ID объекта"
             value={newResourceId ?? ''}
@@ -234,13 +260,20 @@ export function HistoryScreen({ children }: HistoryScreenProps) {
             helperText=""
           />
           <ProjButton
-            style={{ marginLeft: 10, height: '30px', marginTop: -4 }}
+            style={{ marginLeft: 10, marginTop: 0, height: '30px' }}
             variant="outlined"
             onClick={handleUpdateClick}
             disabled={newResourceType === null || newResourceId === null}
           >
             Обновить
           </ProjButton>
+          {resourceType !== undefined && newResourceId !== null ? (
+            <ColumnViewerRef
+              style={{ marginLeft: 10, marginTop: -2, height: '30px' }}
+              text="ПЕРЕЙТИ К ОБЪЕКТУ"
+              href={`/${changeCase.kebabCase(resourceType)}/${newResourceId}`}
+            />
+          ) : null}
         </Box>
         {children}
       </VerticalTwoPartsContainer>

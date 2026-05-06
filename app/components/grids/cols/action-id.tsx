@@ -5,7 +5,7 @@ import * as React from 'react'
 // Material UI
 import type { GridColDef, GridRenderCellParams } from '@mui/x-data-grid'
 
-export function useIdCol(
+export function useActionIdCol(
   actionIdField: string,
   header: boolean,
   disableRef?: boolean
@@ -26,7 +26,7 @@ export function useIdCol(
           disableRef={disableRef}
         />
       ),
-      minWidth: 140,
+      minWidth: 50,
       flex: 1
     }),
     [actionIdField, header, disableRef]

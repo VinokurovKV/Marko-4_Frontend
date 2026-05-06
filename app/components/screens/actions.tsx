@@ -54,7 +54,7 @@ export function ActionsScreen({ children, ...props }: ActionsScreenProps) {
   return (
     <LayoutScreenContainer title="действия" breadcrumbsItems={breadcrumbsItems}>
       <HorizontalTwoPartsContainer
-        proportions={withAction ? 'ONE_TWO' : 'ONE_ZERO'}
+        proportions={withAction ? 'FIVE_SEVEN' : 'ONE_ZERO'}
       >
         <ActionsGrid
           key={`${withAction}`}

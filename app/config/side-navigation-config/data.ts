@@ -227,19 +227,6 @@ export const SIDE_NAVIGATION_CONFIG: SideNavigationConfig = [
             requiredRights: ['READ_ROLE']
           },
           {
-            id: 'events',
-            title: 'события',
-            Icon: HistoryIcon,
-            href: '/events',
-            requiredRights: ['READ_EVENT']
-          },
-          {
-            id: 'data-transfer',
-            title: 'данные системы',
-            Icon: ImportExportIcon,
-            href: '/data-transfer'
-          },
-          {
             id: 'actions',
             title: 'действия',
             Icon: PublishedWithChangesIcon,
@@ -272,6 +259,19 @@ export const SIDE_NAVIGATION_CONFIG: SideNavigationConfig = [
               'READ_TASK_TEMPLATE',
               'READ_SLICE'
             ]
+          },
+          {
+            id: 'events',
+            title: 'события',
+            Icon: HistoryIcon,
+            href: '/events',
+            requiredRights: ['READ_EVENT']
+          },
+          {
+            id: 'data-transfer',
+            title: 'данные системы',
+            Icon: ImportExportIcon,
+            href: '/data-transfer'
           }
         ]
       }
