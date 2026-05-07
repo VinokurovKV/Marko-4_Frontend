@@ -64,6 +64,7 @@ export function DbcViewer({ tags, dbc, tests }: DbcViewerProps) {
               size={dbc.config.size}
               format={dbc.config.format}
               getFileBlob={getConfigBlob}
+              browseMode="ZIP_XML"
             />
           ) : (
             <ColumnViewerItem field="конфигурация" />
