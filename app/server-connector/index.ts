@@ -16,6 +16,7 @@ import type {
   RefreshTokensSuccessResultDto
 } from '@common/dtos/server-api/auth.dto'
 import type {
+  ClearAllBodyDto,
   ReadMetaSuccessResultDto,
   SetupBodyDto,
   SetupSuccessResultDto
@@ -1332,8 +1333,8 @@ export class ServerConnector {
     }
     return result
   }
-  async clearAll(): Promise<void> {
-    await this.postForObject<object>('/common/setup')
+  async clearAll(params: Params<ClearAllBodyDto>): Promise<void> {
+    await this.postForObject<object>('/common/clear-all', params)
     this.meta = {
       status: 'NOT_SETUP'
     }
