@@ -152,7 +152,7 @@ export function HistoryScreen({ children }: HistoryScreenProps) {
       ...(withTransitionNum
         ? [
             {
-              title: `[ID:${transitionNum}]`,
+              title: `[TR:${transitionNum}]`,
               href: `/history/${resourceTypeKebab!}/${resourceId}/${transitionNum}`
             }
           ]
