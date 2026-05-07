@@ -9,5 +9,6 @@ export const localizationForTaskStatus = new Map<TaskStatus, string>([
   ['LAUNCHED_PAUSED', 'запущено (приостановлено)'],
   ['ABORTED_BY_USER', 'прервано пользователем'],
   ['ABORTED_DUE_TO_NOT_PASSED', 'прервано из-за непрохождения либо ошибки'],
-  ['COMPLETED', 'завершено']
+  ['COMPLETED_WITH_PROBLEMS', 'завершено с непрохождениями/ошибками'],
+  ['COMPLETED', 'завершено успешно']
 ])

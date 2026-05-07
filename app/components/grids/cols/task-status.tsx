@@ -40,6 +40,8 @@ function Icon({ value }: IconProps) {
         <TaskStatusIcon status="ABORTED_BY_USER" />
       ) : value === getValue('ABORTED_DUE_TO_NOT_PASSED') ? (
         <TaskStatusIcon status="ABORTED_DUE_TO_NOT_PASSED" />
+      ) : value === getValue('COMPLETED_WITH_PROBLEMS') ? (
+        <TaskStatusIcon status="COMPLETED_WITH_PROBLEMS" />
       ) : value === getValue('COMPLETED') ? (
         <TaskStatusIcon status="COMPLETED" />
       ) : null}

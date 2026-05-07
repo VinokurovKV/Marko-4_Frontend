@@ -86,6 +86,13 @@ export function TaskStatusIcon({ status }: TaskStatusIconProps) {
         <CancelIcon sx={{ fontSize: '25px', color: 'tomato' }} />
       ) : status === 'ABORTED_DUE_TO_NOT_PASSED' ? (
         <ErrorIcon sx={{ fontSize: '25px', color: 'red' }} />
+      ) : status === 'COMPLETED_WITH_PROBLEMS' ? (
+        <Stack direction="row">
+          <ErrorIcon sx={{ fontSize: '25px', color: 'red' }} />
+          <CheckCircleIcon
+            sx={{ fontSize: '25px', color: 'mediumaquamarine' }}
+          />
+        </Stack>
       ) : status === 'COMPLETED' ? (
         <CheckCircleIcon sx={{ fontSize: '25px', color: 'mediumaquamarine' }} />
       ) : (

@@ -210,6 +210,7 @@ export function TasksGrid(props: TasksGridProps) {
                 status === 'CANCELED' ||
                 status === 'ABORTED_BY_USER' ||
                 status === 'ABORTED_DUE_TO_NOT_PASSED' ||
+                status === 'COMPLETED_WITH_PROBLEMS' ||
                 status === 'COMPLETED'
               )
             },
