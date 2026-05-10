@@ -4,6 +4,8 @@ import {
   HorizontalTwoPartsContainer,
   LayoutScreenContainer
 } from '../containers'
+import { serverConnector } from '~/server-connector'
+import { useNotifier } from '~/providers/notifier'
 import { ProjButton } from '../buttons/button'
 import { ImportDataFormDialog } from '../forms/resources/import-data'
 import { ExportDataFormDialog } from '../forms/resources/export-data'
@@ -17,6 +19,9 @@ import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
 import IconButton from '@mui/material/IconButton'
 import CloseIcon from '@mui/icons-material/Close'
+import Dialog from '@mui/material/Dialog'
+import DialogActions from '@mui/material/DialogActions'
+import DialogContent from '@mui/material/DialogContent'
 
 const RESOURCE_ITEMS = [
   { title: 'Роли', base: 'RoleNames' },
@@ -44,6 +49,7 @@ function getArrayLength(
 }
 
 export function DataTransferScreen() {
+  const notifier = useNotifier()
   const [importModeIsActive, setImportModeIsActive] = React.useState(false)
   const [exportModeIsActive, setExportModeIsActive] = React.useState(false)
   const [technicalReport, setTechnicalReport] = React.useState<{
@@ -52,6 +58,10 @@ export function DataTransferScreen() {
     summary: string
     importResult?: ImportSuccessResultDto
     exportResourceCounts?: Record<string, number>
+  } | null>(null)
+  const [historyActionDialog, setHistoryActionDialog] = React.useState<{
+    mode: 'ARCHIVE' | 'UNARCHIVE'
+    processing: boolean
   } | null>(null)
 
   const breadcrumbsItems: ProjBreadcrumbsProps['items'] = React.useMemo(
@@ -130,6 +140,45 @@ export function DataTransferScreen() {
     return { rows, allResources }
   }, [technicalReport])
 
+  const handleHistoryActionConfirm = React.useCallback(async () => {
+    if (historyActionDialog === null || historyActionDialog.processing) {
+      return
+    }
+    setHistoryActionDialog((old) =>
+      old !== null
+        ? {
+            ...old,
+            processing: true
+          }
+        : old
+    )
+    try {
+      if (historyActionDialog.mode === 'ARCHIVE') {
+        await serverConnector.archiveHistory()
+        notifier.showSuccess('архивирование истории выполнено')
+      } else {
+        await serverConnector.unarchiveHistory()
+        notifier.showSuccess('восстановление истории выполнено')
+      }
+      setHistoryActionDialog(null)
+    } catch (error) {
+      notifier.showError(
+        error,
+        historyActionDialog.mode === 'ARCHIVE'
+          ? 'не удалось архивировать историю'
+          : 'не удалось восстановить историю'
+      )
+      setHistoryActionDialog((old) =>
+        old !== null
+          ? {
+              ...old,
+              processing: false
+            }
+          : old
+      )
+    }
+  }, [historyActionDialog, notifier])
+
   return (
     <>
       <LayoutScreenContainer
@@ -159,6 +208,30 @@ export function DataTransferScreen() {
                 }}
               >
                 экспорт
+              </ProjButton>
+              <ProjButton
+                variant="contained"
+                sx={{ height: 42, fontSize: '0.98rem' }}
+                onClick={() => {
+                  setHistoryActionDialog({
+                    mode: 'ARCHIVE',
+                    processing: false
+                  })
+                }}
+              >
+                архивировать историю
+              </ProjButton>
+              <ProjButton
+                variant="contained"
+                sx={{ height: 42, fontSize: '0.98rem' }}
+                onClick={() => {
+                  setHistoryActionDialog({
+                    mode: 'UNARCHIVE',
+                    processing: false
+                  })
+                }}
+              >
+                восстановить историю
               </ProjButton>
             </Stack>
           </Paper>
@@ -262,6 +335,61 @@ export function DataTransferScreen() {
           setExportModeIsActive(false)
         }}
       />
+      <Dialog
+        maxWidth="xs"
+        fullWidth
+        open={historyActionDialog !== null}
+        disableEscapeKeyDown={historyActionDialog?.processing === true}
+        onClose={(_, reason) => {
+          if (
+            historyActionDialog?.processing === true ||
+            reason === 'backdropClick' ||
+            reason === 'escapeKeyDown'
+          ) {
+            return
+          }
+          setHistoryActionDialog(null)
+        }}
+      >
+        <DialogContent>
+          <Typography sx={{ textAlign: 'center' }}>
+            {historyActionDialog?.processing === true
+              ? historyActionDialog.mode === 'ARCHIVE'
+                ? 'Архивирование истории...'
+                : 'Восстановление истории...'
+              : historyActionDialog?.mode === 'ARCHIVE'
+                ? 'Архивировать историю'
+                : 'Восстановить историю'}
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ justifyContent: 'center' }}>
+          <ProjButton
+            variant="outlined"
+            loading={historyActionDialog?.processing === true}
+            disabled={historyActionDialog?.processing === true}
+            onClick={() => {
+              if (historyActionDialog?.processing === true) {
+                return
+              }
+              setHistoryActionDialog(null)
+            }}
+          >
+            закрыть
+          </ProjButton>
+          <ProjButton
+            variant="contained"
+            loading={historyActionDialog?.processing === true}
+            disabled={historyActionDialog?.processing === true}
+            onClick={() => {
+              void handleHistoryActionConfirm()
+            }}
+          >
+            {historyActionDialog?.mode === 'ARCHIVE'
+              ? 'архивировать'
+              : 'восстановить'}
+          </ProjButton>
+        </DialogActions>
+      </Dialog>
     </>
   )
 }
