@@ -438,6 +438,7 @@ export interface FormProps {
   }
   clearButton?: {
     title: string
+    onClick?: () => void
   }
 }
 
@@ -486,7 +487,7 @@ export function Form(props: FormProps) {
               <ProjButton
                 variant="contained"
                 loading={props.formInternal.isSubmitting}
-                onClick={props.formInternal.clear}
+                onClick={props.clearButton.onClick ?? props.formInternal.clear}
               >
                 {props.clearButton.title}
               </ProjButton>
@@ -566,7 +567,7 @@ function useFormSeparated(props: FormProps) {
           <ProjButton
             variant="contained"
             loading={props.formInternal.isSubmitting}
-            onClick={props.formInternal.clear}
+            onClick={props.clearButton.onClick ?? props.formInternal.clear}
           >
             {props.clearButton.title}
           </ProjButton>
