@@ -64,10 +64,12 @@ export function TestTemplateViewer({
             <ColumnViewerFile
               id={testTemplate.id}
               field="конфигурация"
+              fieldFull={`конфигурация шаблона «${testTemplate.code}»`}
               name={`${testTemplate.code}`}
               size={testTemplate.config.size}
               format={testTemplate.config.format}
               getFileBlob={getConfigBlob}
+              withBrowse
             />
           ) : (
             <ColumnViewerItem field="конфигурация" />

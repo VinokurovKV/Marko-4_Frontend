@@ -94,10 +94,12 @@ export function DeviceViewer({ tags, device }: DeviceViewerProps) {
           <ColumnViewerFile
             id={device.id}
             field="параметры"
+            fieldFull={`парамтеры устройства «${device.code}»`}
             name={`${device.code}-parameters`}
             size={device.config.size}
             format={device.config.format}
             getFileBlob={getConfigBlob}
+            withBrowse
           />
         ) : (
           <ColumnViewerItem field="параметры" />
@@ -106,10 +108,12 @@ export function DeviceViewer({ tags, device }: DeviceViewerProps) {
           <ColumnViewerFile
             id={device.id}
             field="конфигурация очищения"
+            fieldFull={`конфигурация очищения устройства «${device.code}»`}
             name={`${device.code}-clear-config`}
             size={device.clearConfig.size}
             format={device.clearConfig.format}
             getFileBlob={getClearConfigBlob}
+            withBrowse
           />
         ) : (
           <ColumnViewerItem field="конфигурация очищения" />
@@ -118,10 +122,12 @@ export function DeviceViewer({ tags, device }: DeviceViewerProps) {
           <ColumnViewerFile
             id={device.id}
             field="конфигурация доступа"
+            fieldFull={`конфигурация доступа устройства «${device.code}»`}
             name={`${device.code}-access-config`}
             size={device.accessConfig.size}
             format={device.accessConfig.format}
             getFileBlob={getAccessConfigBlob}
+            withBrowse
           />
         ) : (
           <ColumnViewerItem field="конфигурация доступа" />

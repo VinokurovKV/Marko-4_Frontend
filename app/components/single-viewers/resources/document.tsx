@@ -133,10 +133,12 @@ export function DocumentViewer({
             <ColumnViewerFile
               id={0}
               field="файл"
+              fieldFull={`файл документа «${document.code}»`}
               name={document.code}
               size={document.config.size}
               format={document.config.format}
               getFileBlob={getConfigBlob}
+              withBrowse
             />
             <ColumnViewerItem field="версия" val={document.publicVersion} />
             <ColumnViewerItem

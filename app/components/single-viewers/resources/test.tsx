@@ -316,10 +316,12 @@ export function TestViewer({
               <ColumnViewerFile
                 id={test.id}
                 field="конфигурация"
+                fieldFull={`конфигурация теста «${test.code}»`}
                 name={`${test.code}-config`}
                 size={test.config.size}
                 format={test.config.format}
                 getFileBlob={getConfigBlob}
+                withBrowse
               />
             ) : (
               <ColumnViewerItem field="конфигурация" />
@@ -345,10 +347,12 @@ export function TestViewer({
                     />
                     <ColumnViewerFile
                       id={vertexIndex}
+                      fieldFull={`базовая конфигурация «${dbcCodeForId.get(vertex.dbcId) ?? '???'}»`}
                       name={`${dbcCodeForId.get(vertex.dbcId) ?? '???'}`}
                       format="ZIP"
                       getFileBlob={getDbcConfigBlob}
                       hideTitle
+                      withBrowse
                     />
                   </>
                 ) : (
@@ -358,10 +362,12 @@ export function TestViewer({
                   <ColumnViewerFile
                     id={vertexIndex}
                     field="delta-конфигурация"
+                    fieldFull={`delta-конфигурация теста «${test.code}»`}
                     name={`${test.code}-${vertex.vertexName}-delta`}
                     size={vertex.delta.size}
                     format={vertex.delta.format}
                     getFileBlob={getDeltaBlob}
+                    withBrowse
                   />
                 ) : (
                   <ColumnViewerItem field="delta-конфигурация" val="нет" />

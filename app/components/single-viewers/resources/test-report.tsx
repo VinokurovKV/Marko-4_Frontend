@@ -77,7 +77,11 @@ export function TestReportViewer(props: TestReportViewerProps) {
         </ColumnViewerBlock>
         <ColumnViewerBlock title="результаты">
           {testReport.items.map((item) => (
-            <ColumnViewerFile {...item} getFileBlob={getItemFileBlob} />
+            <ColumnViewerFile
+              {...item}
+              getFileBlob={getItemFileBlob}
+              withBrowse
+            />
           ))}
         </ColumnViewerBlock>
       </ColumnViewer>

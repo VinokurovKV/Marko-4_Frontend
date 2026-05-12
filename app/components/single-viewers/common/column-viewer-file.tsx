@@ -4,6 +4,7 @@ import { type FileFormat, convertFileFormatToExtension } from '@common/formats'
 import type { TestReportTertiary } from '~/types'
 import { downloadFileFromBlob } from '~/utilities'
 import { useNotifier } from '~/providers/notifier'
+import { FileViewer } from '~/components/file-viewer'
 // React
 import * as React from 'react'
 // Material UI
@@ -16,7 +17,6 @@ import Tooltip from '@mui/material/Tooltip'
 import Typography from '@mui/material/Typography'
 // Other
 import capitalize from 'capitalize'
-import * as JSZip from 'jszip'
 import XMLViewer from 'react-xml-viewer'
 
 type Item = TestReportTertiary['items'][0]
@@ -24,10 +24,11 @@ type Item = TestReportTertiary['items'][0]
 export interface ColumnViewerFileProps extends Omit<Item, 'size' | 'time'> {
   getFileBlob: (id: number) => Promise<Blob | null>
   field?: string
+  fieldFull?: string
   size?: number
   time?: Date
   hideTitle?: boolean
-  browseMode?: 'ZIP_XML'
+  withBrowse?: boolean
 }
 
 export function ColumnViewerFile(props: ColumnViewerFileProps) {
@@ -38,64 +39,41 @@ export function ColumnViewerFile(props: ColumnViewerFileProps) {
   const [popoverRawText, setPopoverRawText] = React.useState<string | null>(
     null
   )
+  const [fileBlob, setFileBlob] = React.useState<Blob | null>(null)
+  const [fileViewerIsActive, setFileViewerIsActive] = React.useState(false)
+
+  const ext = React.useMemo(
+    () => convertFileFormatToExtension(props.format as FileFormat) ?? '',
+    [props.format]
+  )
+
+  const fileName = React.useMemo(
+    () => `${props.name}.${ext}`,
+    [props.name, ext]
+  )
 
   const handleDownloadClick = React.useCallback(() => {
     void (async () => {
       const blob = await props.getFileBlob(props.id)
-      const ext = convertFileFormatToExtension(props.format as FileFormat) ?? ''
-      const fileName = `${props.name}.${ext}`
       if (blob !== null) {
         downloadFileFromBlob(blob, fileName)
       }
     })()
-  }, [props])
+  }, [props, fileName])
 
-  const handlePopoverClick = React.useCallback(
-    (event: React.MouseEvent<HTMLButtonElement>) => {
-      setPopoverAnchorEl(event.currentTarget)
-      if (props.browseMode === 'ZIP_XML') {
-        void (async () => {
-          const blob = await props.getFileBlob(props.id)
-          const ext =
-            convertFileFormatToExtension(props.format as FileFormat) ?? ''
-          if (blob === null) {
-            notifier.showError('файл отсутствует')
-            return
-          }
-          if (ext !== 'zip') {
-            notifier.showError('файл не является ZIP-архивом')
-            return
-          }
-          const zip = await (async () => {
-            try {
-              return await JSZip.loadAsync(blob)
-            } catch (error) {
-              notifier.showError(error, 'ошибка при разархивировании ZIP-файла')
-              throw error
-            }
-          })()
-          const fileNames = Object.keys(zip.files)
-          if (fileNames.length !== 1) {
-            notifier.showError('Количество файлов в ZIP-архиве на равно одному')
-            return
-          }
-          const fileName = fileNames[0]
-          if (fileName.endsWith('xml') === false) {
-            notifier.showError(`Формат файл внутри ZIP-архива не равен 'XML'`)
-            return
-          }
-          try {
-            const text = await zip.file(fileNames[0])!.async('string')
-            setPopoverRawText(text)
-          } catch (error) {
-            notifier.showError(error, 'ошибка при чтении XML-файла')
-            throw error
-          }
-        })()
+  const handlePopoverClick = React.useCallback(() => {
+    void (async () => {
+      if (props.withBrowse === true) {
+        const blob = await props.getFileBlob(props.id)
+        if (blob === null) {
+          notifier.showError('файл отсутствует')
+          return
+        }
+        setFileBlob(blob)
+        setFileViewerIsActive(true)
       }
-    },
-    [props.browseMode, props.getFileBlob, notifier]
-  )
+    })()
+  }, [props.withBrowse, props.getFileBlob, notifier])
 
   const handlePopoverClose = React.useCallback(() => {
     setPopoverAnchorEl(null)
@@ -106,55 +84,64 @@ export function ColumnViewerFile(props: ColumnViewerFileProps) {
   const popoverId = popoverIsOpen ? 'popover' : undefined
 
   return (
-    <Stack spacing={-0.5} mt={props.hideTitle ? -1.5 : undefined} p={0}>
-      {props.hideTitle !== true ? (
-        <Typography
-          sx={{
-            fontWeight: 'bold'
-          }}
-        >
-          {capitalize(
-            props.field !== undefined ? `${props.field}:` : props.name,
-            true
-          )}
-        </Typography>
-      ) : (
-        false
-      )}
-      <Stack direction="row" alignItems="center" spacing={0} p={0}>
-        <Tooltip title="Скачать">
-          <IconButton onClick={handleDownloadClick} size="medium">
-            <FileDownloadIcon sx={{ width: 27, height: 27 }} />
-          </IconButton>
-        </Tooltip>
-        {props.browseMode !== undefined ? (
-          <>
-            <Tooltip title="Просмотреть" sx={{ ml: -1 }}>
-              <IconButton onClick={handlePopoverClick} size="medium">
-                <VisibilityIcon sx={{ width: 27, height: 27 }} />
-              </IconButton>
-            </Tooltip>
-            <Popover
-              id={popoverId}
-              open={popoverIsOpen}
-              anchorEl={popoverAnchorEl}
-              onClose={handlePopoverClose}
-              anchorOrigin={{ vertical: 'center', horizontal: 'right' }}
-            >
-              {popoverRawText !== null ? (
-                <XMLViewer
-                  xml={popoverRawText}
-                  collapsible={true}
-                  showLineNumbers={true}
-                />
-              ) : null}
-            </Popover>
-          </>
-        ) : null}
-        {props.size !== undefined ? (
-          <Typography>{convertNumberOfBytesToStr(props.size)}</Typography>
-        ) : null}
+    <>
+      <Stack spacing={-0.5} mt={props.hideTitle ? -1.5 : undefined} p={0}>
+        {props.hideTitle !== true ? (
+          <Typography
+            sx={{
+              fontWeight: 'bold'
+            }}
+          >
+            {capitalize(
+              props.field !== undefined ? `${props.field}:` : props.name,
+              true
+            )}
+          </Typography>
+        ) : (
+          false
+        )}
+        <Stack direction="row" alignItems="center" spacing={0} p={0}>
+          <Tooltip title="Скачать">
+            <IconButton onClick={handleDownloadClick} size="medium">
+              <FileDownloadIcon sx={{ width: 27, height: 27 }} />
+            </IconButton>
+          </Tooltip>
+          {props.withBrowse === true ? (
+            <>
+              <Tooltip title="Просмотреть" sx={{ ml: -1 }}>
+                <IconButton onClick={handlePopoverClick} size="medium">
+                  <VisibilityIcon sx={{ width: 27, height: 27 }} />
+                </IconButton>
+              </Tooltip>
+              <Popover
+                id={popoverId}
+                open={popoverIsOpen}
+                anchorEl={popoverAnchorEl}
+                onClose={handlePopoverClose}
+                anchorOrigin={{ vertical: 'center', horizontal: 'right' }}
+              >
+                {popoverRawText !== null ? (
+                  <XMLViewer
+                    xml={popoverRawText}
+                    collapsible={true}
+                    showLineNumbers={true}
+                  />
+                ) : null}
+              </Popover>
+            </>
+          ) : null}
+          {props.size !== undefined ? (
+            <Typography>{convertNumberOfBytesToStr(props.size)}</Typography>
+          ) : null}
+        </Stack>
       </Stack>
-    </Stack>
+      <FileViewer
+        isActive={fileViewerIsActive}
+        setIsActive={setFileViewerIsActive}
+        fileTitle={props.fieldFull ?? props.field ?? fileName}
+        fileName={fileName}
+        fileBlob={fileBlob}
+      />
+    </>
   )
 }

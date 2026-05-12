@@ -60,11 +60,12 @@ export function DbcViewer({ tags, dbc, tests }: DbcViewerProps) {
             <ColumnViewerFile
               id={dbc.id}
               field="конфигурация"
+              fieldFull={`базовая конфигурация «${dbc.code}»`}
               name={`${dbc.code}`}
               size={dbc.config.size}
               format={dbc.config.format}
               getFileBlob={getConfigBlob}
-              browseMode="ZIP_XML"
+              withBrowse
             />
           ) : (
             <ColumnViewerItem field="конфигурация" />

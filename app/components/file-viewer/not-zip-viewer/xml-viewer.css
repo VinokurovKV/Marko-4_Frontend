@@ -1,0 +1,39 @@
+/* Базовые стили для обертки */
+.xml-viewer-wrapper {
+  position: relative;
+}
+
+/* Темная тема — номера строк */
+.xml-viewer-wrapper.dark-mode > .rxv-container > div:first-child,
+.xml-viewer-wrapper.dark-mode > .rxv-container > div:first-child {
+  color: #858585 !important;
+  background-color: #1e1e1e !important;
+  border-right: 1px solid #404040 !important;
+}
+
+/* Светлая тема — номера строк */
+.xml-viewer-wrapper.light-mode .linenumber,
+.xml-viewer-wrapper.light-mode .line-number {
+  color: #999999 !important;
+  background-color: #f5f5f5 !important;
+  border-right: 1px solid #e0e0e0 !important;
+}
+
+/* Улучшение читаемости темной темы для остальных элементов */
+.xml-viewer-wrapper.dark-mode {
+  background-color: #1e1e1e;
+  border-radius: 4px;
+  padding: 8px;
+}
+
+.xml-viewer-wrapper.dark-mode pre {
+  background-color: #1e1e1e !important;
+}
+
+/* Улучшение светлой темы */
+.xml-viewer-wrapper.light-mode {
+  background-color: #ffffff;
+  border-radius: 4px;
+  padding: 8px;
+  border: 1px solid #e0e0e0;
+}

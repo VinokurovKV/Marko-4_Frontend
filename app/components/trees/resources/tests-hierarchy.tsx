@@ -7,7 +7,7 @@ import * as React from 'react'
 // Material UI
 import { alpha, styled } from '@mui/material/styles'
 import { useRichTreeViewApiRef } from '@mui/x-tree-view/hooks'
-import type { TreeViewBaseItem } from '@mui/x-tree-view/models'
+import type { TreeViewDefaultItemModelProperties } from '@mui/x-tree-view/models'
 import { RichTreeView } from '@mui/x-tree-view/RichTreeView'
 import { TreeItem, treeItemClasses } from '@mui/x-tree-view/TreeItem'
 import Stack from '@mui/material/Stack'
@@ -229,7 +229,7 @@ export function TestsHierarchyTree({
     }
   }, [selectedItem])
 
-  const items: TreeViewBaseItem[] = React.useMemo(
+  const items: TreeViewDefaultItemModelProperties[] = React.useMemo(
     () => [
       ...(orphanTests.length > 0 || orphanSubgroups.length > 0
         ? [

@@ -72,10 +72,12 @@ export function TestTemplateHoverPreview({
         <ColumnViewerFile
           id={testTemplate.id}
           field="конфигурация"
+          fieldFull={`конфигурация шаблона «${testTemplate.code}»`}
           name={testTemplate.code}
           size={testTemplate.config.size}
           format={testTemplate.config.format}
           getFileBlob={getConfigBlob}
+          withBrowse
         />
       ) : (
         <Typography variant="body2" sx={{ px: 0.5, pb: 0.5, opacity: 0.72 }}>

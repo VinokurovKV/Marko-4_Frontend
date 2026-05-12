@@ -232,7 +232,7 @@ export function NotifierProvider(props: NotifierProviderProps) {
     (message) => {
       show(message, {
         severity: 'info',
-        autoHideDuration: 'MIDDLE'
+        autoHideDuration: 'SHORT'
       })
     },
     [show]
