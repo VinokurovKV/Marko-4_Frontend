@@ -141,6 +141,11 @@ export function FileNavigator({
   )
 
   React.useEffect(() => {
+    setSelectedItemId(null)
+    onFileSelect?.(null)
+  }, [zipBlob])
+
+  React.useEffect(() => {
     if (selectedItemId === null) {
       function findItemId(fileItem: FileItem): string | null {
         if (fileItem.type === 'FILE') {
@@ -165,11 +170,6 @@ export function FileNavigator({
       }
     }
   }, [fileItems, selectedItemId])
-
-  React.useEffect(() => {
-    setSelectedItemId(null)
-    onFileSelect?.(null)
-  }, [zipBlob])
 
   const handleSelectedItemsChange = React.useCallback(
     (event: React.SyntheticEvent | null, itemIds: string | string[] | null) => {
