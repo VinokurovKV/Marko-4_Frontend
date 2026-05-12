@@ -1,6 +1,7 @@
 // Project
 import type {
   TagPrimary,
+  FragmentPrimary,
   RequirementPrimary,
   CommonTopologyTertiary,
   TopologyTertiary,
@@ -14,7 +15,9 @@ import { serverConnector } from '~/server-connector'
 import {
   readTestTertiary,
   readTagsPrimaryFiltered,
+  readFragmentsPrimaryFiltered,
   readRequirementsPrimaryFiltered,
+  readRequirementTertiary,
   readCommonTopologyTertiary,
   readTopologyTertiary,
   readDbcsPrimaryFiltered,
@@ -60,6 +63,26 @@ export async function clientLoader({ params }: Route.ClientLoaderArgs) {
       readTestTemplatePrimary(test?.testTemplateId ?? null),
       readSubgroupSecondary(test?.subgroupId ?? null)
     ])
+  const fragments =
+    serverConnector.meta.status === 'AUTHENTICATED' &&
+    serverConnector.meta.selfMeta.rights.includes('READ_FRAGMENT') &&
+    (test?.requirementIds?.length ?? 0) > 0
+      ? await (async () => {
+          const requirementsWithFragments = await Promise.all(
+            (test?.requirementIds ?? []).map((requirementId) =>
+              readRequirementTertiary(requirementId)
+            )
+          )
+          const fragmentIds = Array.from(
+            new Set(
+              requirementsWithFragments.flatMap(
+                (requirement) => requirement?.fragmentIds ?? []
+              )
+            )
+          )
+          return readFragmentsPrimaryFiltered(fragmentIds)
+        })()
+      : null
   const [commonTopology, group] = await Promise.all([
     readCommonTopologyTertiary(topology?.commonTopologyId ?? null),
     readGroupPrimary(subgroup?.groupId ?? null)
@@ -71,6 +94,7 @@ export async function clientLoader({ params }: Route.ClientLoaderArgs) {
     commonTopology,
     topology,
     dbcs,
+    fragments,
     testTemplate,
     test,
     subgroup,
@@ -86,6 +110,7 @@ function TestRouteInner({
     commonTopology: initialCommonTopology,
     topology: initialTopology,
     dbcs: initialDbcs,
+    fragments: initialFragments,
     testTemplate: initialTestTemplate,
     test: initialTest,
     subgroup: initialSubgroup,
@@ -105,6 +130,7 @@ function TestRouteInner({
     initialTopology
   )
   const [dbcs, setDbcs] = React.useState<DbcPrimary[] | null>(initialDbcs)
+  const fragments: FragmentPrimary[] | null = initialFragments
   const [testTemplate, setTestTemplate] =
     React.useState<TestTemplatePrimary | null>(initialTestTemplate)
   const [test, setTest] = React.useState<TestTertiary | null>(initialTest)
@@ -176,6 +202,7 @@ function TestRouteInner({
       commonTopology={commonTopology}
       topology={topology}
       dbcs={dbcs}
+      fragments={fragments}
       testTemplate={testTemplate}
       test={test}
       subgroup={subgroup}

@@ -2,6 +2,7 @@
 import { calculateTopologyConfig } from '@common/utilities'
 import type {
   TagPrimary,
+  FragmentPrimary,
   RequirementPrimary,
   CommonTopologyTertiary,
   TopologyTertiary,
@@ -36,11 +37,17 @@ import {
 // React
 import * as React from 'react'
 // Material UI
+import Box from '@mui/material/Box'
+import CircularProgress from '@mui/material/CircularProgress'
 import type { SelectChangeEvent } from '@mui/material/Select'
 import Stack from '@mui/material/Stack'
+import Typography from '@mui/material/Typography'
+
+const FRAGMENT_SCREENSHOT_LOADER_DELAY_MS = 250
 
 export interface TestViewerProps {
   tags: TagPrimary[] | null
+  fragments: FragmentPrimary[] | null
   requirements: RequirementPrimary[] | null
   commonTopology: CommonTopologyTertiary | null
   topology: TopologyTertiary | null
@@ -53,6 +60,7 @@ export interface TestViewerProps {
 
 export function TestViewer({
   tags,
+  fragments,
   requirements,
   commonTopology,
   topology,
@@ -66,6 +74,23 @@ export function TestViewer({
   const notifier = useNotifier()
 
   const [requirementId, setRequirementId] = React.useState<number | null>(null)
+  const [selectedFragmentId, setSelectedFragmentId] = React.useState<
+    number | null
+  >(null)
+  const [selectedFragmentScreenshotUrl, setSelectedFragmentScreenshotUrl] =
+    React.useState<string | null>(null)
+  const [isFragmentScreenshotLoading, setIsFragmentScreenshotLoading] =
+    React.useState(false)
+  const [showFragmentScreenshotLoader, setShowFragmentScreenshotLoader] =
+    React.useState(false)
+  const [fragmentScreenshotLoadError, setFragmentScreenshotLoadError] =
+    React.useState(false)
+  const screenshotRequestSeqRef = React.useRef(0)
+
+  const fragmentForId = React.useMemo(
+    () => new Map((fragments ?? []).map((fragment) => [fragment.id, fragment])),
+    [fragments]
+  )
 
   const requirementCodeForId = React.useMemo(
     () =>
@@ -206,6 +231,99 @@ export function TestViewer({
       ? calculateTopologyConfig(commonTopology.config, topology.vertexNames)
       : null
   }, [commonTopology, topology])
+
+  React.useEffect(() => {
+    if (!isFragmentScreenshotLoading) {
+      setShowFragmentScreenshotLoader(false)
+      return
+    }
+    const timer = setTimeout(() => {
+      setShowFragmentScreenshotLoader(true)
+    }, FRAGMENT_SCREENSHOT_LOADER_DELAY_MS)
+    return () => {
+      clearTimeout(timer)
+    }
+  }, [isFragmentScreenshotLoading])
+
+  React.useEffect(() => {
+    return () => {
+      if (selectedFragmentScreenshotUrl !== null) {
+        URL.revokeObjectURL(selectedFragmentScreenshotUrl)
+      }
+    }
+  }, [selectedFragmentScreenshotUrl])
+
+  const handleFragmentClick = React.useCallback(
+    (fragmentId: number) => {
+      if (selectedFragmentId === fragmentId) {
+        screenshotRequestSeqRef.current += 1
+        setSelectedFragmentId(null)
+        setIsFragmentScreenshotLoading(false)
+        setSelectedFragmentScreenshotUrl((oldUrl) => {
+          if (oldUrl !== null) {
+            URL.revokeObjectURL(oldUrl)
+          }
+          return null
+        })
+        return
+      }
+
+      const fragment = fragmentForId.get(fragmentId)
+      if (fragment === undefined) {
+        return
+      }
+      screenshotRequestSeqRef.current += 1
+      const requestSeq = screenshotRequestSeqRef.current
+
+      setSelectedFragmentId(fragmentId)
+      setIsFragmentScreenshotLoading(true)
+      setFragmentScreenshotLoadError(false)
+
+      void (async () => {
+        try {
+          const blob = await serverConnector.readFragmentConfig({
+            id: fragmentId
+          })
+          const screenshotUrl = URL.createObjectURL(blob)
+          if (screenshotRequestSeqRef.current !== requestSeq) {
+            URL.revokeObjectURL(screenshotUrl)
+            return
+          }
+
+          setSelectedFragmentScreenshotUrl((oldUrl) => {
+            if (oldUrl !== null) {
+              URL.revokeObjectURL(oldUrl)
+            }
+            return screenshotUrl
+          })
+        } catch (error) {
+          if (screenshotRequestSeqRef.current !== requestSeq) {
+            return
+          }
+          notifier.showError(
+            error,
+            `не удалось загрузить скриншот фрагмента «${fragment.innerCode}»`
+          )
+          setSelectedFragmentScreenshotUrl((oldUrl) => {
+            if (oldUrl !== null) {
+              URL.revokeObjectURL(oldUrl)
+            }
+            return null
+          })
+        } finally {
+          if (screenshotRequestSeqRef.current === requestSeq) {
+            setIsFragmentScreenshotLoading(false)
+          }
+        }
+      })()
+    },
+    [fragmentForId, notifier, selectedFragmentId]
+  )
+
+  const selectedFragment =
+    selectedFragmentId !== null
+      ? (fragmentForId.get(selectedFragmentId) ?? null)
+      : null
 
   return (
     <HorizontalTwoPartsContainer
@@ -390,17 +508,9 @@ export function TestViewer({
           nullConfigTitle="схема топологии"
         />
       </VerticalTwoPartsContainer>
-      <VerticalTwoPartsContainer proportions="30_70">
+      <VerticalTwoPartsContainer proportions="50_50">
         <ColumnViewer>
           <Stack spacing={-2}>
-            {/* <FormAutocompleteSingleSelect
-                name="requirementId"
-                label="отображаемое в описании требование"
-                possibleValues={requirementIds}
-                titleForValue={requirementCodeForId}
-                value={requirementId}
-                onChange={handleRequirementChange}
-              /> */}
             <FormSelect
               name="requirementId"
               label="отображаемое в описании требование"
@@ -414,20 +524,89 @@ export function TestViewer({
               emptyText="нет"
               items={(requirements ?? []).map((requirement) => ({
                 text: requirement.code,
-                href: `/requirements/${requirement.id}`
+                href: `/requirements/${requirement.id}`,
+                disableCapitalize: true
+              }))}
+            />
+          </ColumnViewerBlock>
+          <ColumnViewerBlock title="фрагменты">
+            <ColumnViewerChipsBlock
+              emptyText="нет"
+              items={(fragments ?? []).map((fragment) => ({
+                text: fragment.innerCode,
+                onClick: () => handleFragmentClick(fragment.id),
+                isActive: selectedFragmentId === fragment.id,
+                disableCapitalize: true
               }))}
             />
           </ColumnViewerBlock>
         </ColumnViewer>
-
         <ColumnViewer>
-          <ColumnViewerBlock title="описание">
-            {filteredDescriptionText !== null ? (
-              <MarkdownView text={filteredDescriptionText} />
-            ) : (
-              <ColumnViewerText emptyText="нет" />
-            )}
-          </ColumnViewerBlock>
+          {selectedFragmentId !== null ? (
+            <ColumnViewerBlock title="скриншот фрагмента">
+              <Box
+                sx={{
+                  position: 'relative',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '100%',
+                  p: 1
+                }}
+              >
+                {selectedFragmentScreenshotUrl !== null &&
+                fragmentScreenshotLoadError === false ? (
+                  <Box
+                    component="img"
+                    src={selectedFragmentScreenshotUrl}
+                    alt={
+                      selectedFragment !== null
+                        ? `Скриншот фрагмента ${selectedFragment.innerCode}`
+                        : 'Скриншот фрагмента'
+                    }
+                    onError={() => {
+                      setFragmentScreenshotLoadError(true)
+                    }}
+                    sx={{
+                      width: '100%',
+                      height: 'auto',
+                      objectFit: 'contain',
+                      borderRadius: 1
+                    }}
+                  />
+                ) : fragmentScreenshotLoadError ? (
+                  <Typography textAlign="center" variant="body2">
+                    файл фрагмента не удалось отобразить как изображение
+                  </Typography>
+                ) : (
+                  <Typography textAlign="center" variant="body2">
+                    загрузка скриншота...
+                  </Typography>
+                )}
+                {isFragmentScreenshotLoading && showFragmentScreenshotLoader ? (
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      inset: 0,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                  >
+                    <CircularProgress size={24} />
+                  </Box>
+                ) : null}
+              </Box>
+            </ColumnViewerBlock>
+          ) : (
+            <ColumnViewerBlock title="описание">
+              {filteredDescriptionText !== null ? (
+                <MarkdownView text={filteredDescriptionText} />
+              ) : (
+                <ColumnViewerText emptyText="нет" />
+              )}
+            </ColumnViewerBlock>
+          )}
         </ColumnViewer>
       </VerticalTwoPartsContainer>
     </HorizontalTwoPartsContainer>
