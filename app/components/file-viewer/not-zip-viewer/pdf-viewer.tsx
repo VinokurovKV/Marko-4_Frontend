@@ -47,23 +47,17 @@ export const PdfFileViewer: React.FC<PdfFileViewerProps> = ({
 
   return (
     <div style={containerStyles}>
-      <object
-        data={pdfUrl}
-        type="application/pdf"
+      <iframe
+        src={pdfUrl}
+        title={fileName || 'PDF Viewer'}
         style={{
           width: '100%',
           height: 'calc(100% - 60px)',
           minHeight: '500px',
-          borderRadius: '4px'
+          borderRadius: '4px',
+          border: 'none'
         }}
-      >
-        <p style={{ textAlign: 'center' }}>
-          Ваш браузер не может отобразить PDF.
-          <a href={pdfUrl} download={fileName}>
-            Скачать файл
-          </a>
-        </p>
-      </object>
+      />
     </div>
   )
 }
