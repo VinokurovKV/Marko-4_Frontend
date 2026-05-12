@@ -24,7 +24,11 @@ const IMPORT_DATA_FORM_PROPS_JOINED = importDataFormValidator.getPromptsJoined()
 export interface ImportDataFormDialogProps {
   importModeIsActive: boolean
   setImportModeIsActive: React.Dispatch<React.SetStateAction<boolean>>
-  onSuccessImportData?: () => void
+  onSuccessImportData?: (result: {
+    severity: 'success' | 'warning'
+    summary: string
+    result: ImportSuccessResultDto
+  }) => void
   onCancelClick?: () => void
 }
 
@@ -33,7 +37,7 @@ function getImportExistingResourceModeTitle(value: string): string {
     case 'IGNORE':
       return 'игнорировать'
     case 'RECREATE':
-      return 'пересоздавать'
+      return 'заменить'
     default:
       return value.toLowerCase()
   }
@@ -62,6 +66,26 @@ function getArrayLen(
 
 export function ImportDataFormDialog(props: ImportDataFormDialogProps) {
   const notifier = useNotifier()
+  const resourceFields = React.useMemo(
+    () =>
+      [
+        'roles',
+        'users',
+        'tags',
+        'documents',
+        'fragments',
+        'requirements',
+        'commonTopologies',
+        'topologies',
+        'dbcs',
+        'testTemplates',
+        'tests',
+        'subgroups',
+        'groups',
+        'devices'
+      ] as const,
+    []
+  )
 
   const submitAction = React.useCallback(
     async (validatedData: ImportDataFormData) => {
@@ -96,12 +120,19 @@ export function ImportDataFormDialog(props: ImportDataFormDialogProps) {
         `требования (создано ${createdRequirements}, пересоздано ${recreatedRequirements}, ` +
         `игнорировано ${ignoredRequirements}, ошибки ${failedRequirements})`
 
-      if (failedTests > 0 || failedRequirements > 0) {
+      const severity =
+        failedTests > 0 || failedRequirements > 0 ? 'warning' : 'success'
+
+      if (severity === 'warning') {
         notifier.showWarning(summary)
       } else {
         notifier.showSuccess(summary)
       }
-      return importResult
+      return {
+        summary,
+        severity,
+        result: importResult
+      } as const
     },
     [notifier]
   )
@@ -110,15 +141,48 @@ export function ImportDataFormDialog(props: ImportDataFormDialogProps) {
     formInternal,
     data,
     errors,
+    handleFieldChange,
     handleCheckboxChange,
     handleFileUploadChange,
     handleStrSelectChange
-  } = useForm<ImportDataFormData, ImportSuccessResultDto>({
+  } = useForm<
+    ImportDataFormData,
+    {
+      severity: 'success' | 'warning'
+      summary: string
+      result: ImportSuccessResultDto
+    }
+  >({
     INITIAL_FORM_DATA: INITIAL_IMPORT_DATA_FORM_DATA,
     validator: importDataFormValidator,
     submitAction: submitAction,
-    onSuccessSubmit: props.onSuccessImportData
+    onSuccessSubmit: (_, submitActionResult) => {
+      props.onSuccessImportData?.(submitActionResult)
+    }
   })
+
+  const addAllIsChecked = React.useMemo(
+    () => resourceFields.every((field) => data[field] === true),
+    [data, resourceFields]
+  )
+
+  const handleAddAllChange = React.useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      if (event.target.checked) {
+        resourceFields.forEach((field) => {
+          handleFieldChange(field, true)
+        })
+      }
+    },
+    [handleFieldChange, resourceFields]
+  )
+
+  const handleClear = React.useCallback(() => {
+    formInternal.clear()
+    resourceFields.forEach((field) => {
+      handleFieldChange(field, false)
+    })
+  }, [formInternal, handleFieldChange, resourceFields])
 
   return (
     <FormDialog
@@ -130,7 +194,8 @@ export function ImportDataFormDialog(props: ImportDataFormDialogProps) {
         onClick: props.onCancelClick
       }}
       clearButton={{
-        title: 'очистить'
+        title: 'очистить',
+        onClick: handleClear
       }}
       isActive={props.importModeIsActive}
       setIsActive={props.setImportModeIsActive}
@@ -169,6 +234,12 @@ export function ImportDataFormDialog(props: ImportDataFormDialogProps) {
         />
       </FormBlock>
       <FormBlock title="импортируемые ресурсы">
+        <FormCheckbox
+          name="addAll"
+          label="добавить все"
+          checked={addAllIsChecked}
+          onChange={handleAddAllChange}
+        />
         <FormCheckbox
           name="roles"
           label="роли"
