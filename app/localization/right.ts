@@ -2,6 +2,7 @@
 import type { Right } from '@common/enums'
 
 export const localizationForRight = new Map<Right, string>([
+  ['REPLICATOR', 'работа с бэкапами (создание, удаление, просмотр и тд.)'],
   ['CLEAR_ALL', 'удаление всех данных системы'],
   ['READ_LOGS', 'просмотр логов'],
   ['READ_ACTION', 'просмотр действий'],

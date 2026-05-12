@@ -29,6 +29,7 @@ const BASE_ROLE_RIGHT_GROUPS: RoleRightGroup[] = [
     title: 'Администрирование',
     description: 'система, роли и пользователи',
     rights: [
+      RightEnum.REPLICATOR,
       RightEnum.CLEAR_ALL,
       RightEnum.READ_LOGS,
       RightEnum.READ_ACTION,
