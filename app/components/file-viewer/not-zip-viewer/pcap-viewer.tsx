@@ -1,4 +1,3 @@
-// React
 import * as React from 'react'
 
 // Типы для PCAP
@@ -104,6 +103,16 @@ interface PcapFile {
   packets: PcapPacket[]
 }
 
+// Интерфейс для узлов дерева структуры пакета
+interface PacketTreeNode {
+  name: string
+  value?: string | number
+  children?: PacketTreeNode[]
+  offset: number
+  length: number
+  bytes: Uint8Array
+}
+
 // Константы для magic numbers
 const MAGIC_NUMBERS = {
   MICRO_LE: 0xa1b2c3d4,
@@ -156,6 +165,158 @@ const ARP_OPERATIONS: Record<number, string> = {
   4: 'RARP Reply'
 }
 
+// Функции для парсинга заголовков
+const formatMac = (mac: Uint8Array): string => {
+  return Array.from(mac.slice(0, 6))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join(':')
+    .toUpperCase()
+}
+
+const formatIpv4 = (ip: Uint8Array): string => {
+  return Array.from(ip.slice(0, 4)).join('.')
+}
+
+const formatIpv6 = (ip: Uint8Array): string => {
+  const parts: string[] = []
+  for (let i = 0; i < 16; i += 2) {
+    parts.push(((ip[i] << 8) | ip[i + 1]).toString(16))
+  }
+  return parts
+    .join(':')
+    .replace(/\b:?0+\b/g, '')
+    .replace(/::+/g, '::')
+}
+
+const parseEthernetHeader = (
+  data: Uint8Array,
+  offset: number = 0
+): EthernetHeader | null => {
+  if (data.length < offset + 14) return null
+  return {
+    destMac: formatMac(data.subarray(offset, offset + 6)),
+    srcMac: formatMac(data.subarray(offset + 6, offset + 12)),
+    type: (data[offset + 12] << 8) | data[offset + 13]
+  }
+}
+
+const parseIPv4Header = (
+  data: Uint8Array,
+  offset: number = 0
+): IPv4Header | null => {
+  if (data.length < offset + 20) return null
+  const versionIhl = data[offset]
+  const version = (versionIhl >> 4) & 0x0f
+  const ihl = versionIhl & 0x0f
+  if (version !== 4 || data.length < offset + ihl * 4) return null
+  return {
+    version,
+    ihl,
+    tos: data[offset + 1],
+    totalLength: (data[offset + 2] << 8) | data[offset + 3],
+    identification: (data[offset + 4] << 8) | data[offset + 5],
+    flags: (data[offset + 6] >> 5) & 0x07,
+    fragmentOffset: ((data[offset + 6] & 0x1f) << 8) | data[offset + 7],
+    ttl: data[offset + 8],
+    protocol: data[offset + 9],
+    checksum: (data[offset + 10] << 8) | data[offset + 11],
+    srcAddr: formatIpv4(data.subarray(offset + 12, offset + 16)),
+    destAddr: formatIpv4(data.subarray(offset + 16, offset + 20))
+  }
+}
+
+const parseIPv6Header = (
+  data: Uint8Array,
+  offset: number = 0
+): IPv6Header | null => {
+  if (data.length < offset + 40) return null
+  const versionClassFlow =
+    (data[offset] << 4) | ((data[offset + 1] >> 4) & 0x0f)
+  return {
+    version: (versionClassFlow >> 4) & 0x0f,
+    trafficClass:
+      ((data[offset] & 0x0f) << 4) | ((data[offset + 1] >> 4) & 0x0f),
+    flowLabel:
+      ((data[offset + 1] & 0x0f) << 16) |
+      (data[offset + 2] << 8) |
+      data[offset + 3],
+    payloadLength: (data[offset + 4] << 8) | data[offset + 5],
+    nextHeader: data[offset + 6],
+    hopLimit: data[offset + 7],
+    srcAddr: formatIpv6(data.subarray(offset + 8, offset + 24)),
+    destAddr: formatIpv6(data.subarray(offset + 24, offset + 40))
+  }
+}
+
+const parseTCPHeader = (
+  data: Uint8Array,
+  offset: number = 0
+): TCPHeader | null => {
+  if (data.length < offset + 20) return null
+  const dataOffset = (data[offset + 12] >> 4) & 0x0f
+  return {
+    srcPort: (data[offset] << 8) | data[offset + 1],
+    destPort: (data[offset + 2] << 8) | data[offset + 3],
+    sequenceNumber:
+      (data[offset + 4] << 24) |
+      (data[offset + 5] << 16) |
+      (data[offset + 6] << 8) |
+      data[offset + 7],
+    acknowledgmentNumber:
+      (data[offset + 8] << 24) |
+      (data[offset + 9] << 16) |
+      (data[offset + 10] << 8) |
+      data[offset + 11],
+    dataOffset,
+    flags: data[offset + 13],
+    window: (data[offset + 14] << 8) | data[offset + 15],
+    checksum: (data[offset + 16] << 8) | data[offset + 17],
+    urgentPointer: (data[offset + 18] << 8) | data[offset + 19]
+  }
+}
+
+const parseUDPHeader = (
+  data: Uint8Array,
+  offset: number = 0
+): UDPHeader | null => {
+  if (data.length < offset + 8) return null
+  return {
+    srcPort: (data[offset] << 8) | data[offset + 1],
+    destPort: (data[offset + 2] << 8) | data[offset + 3],
+    length: (data[offset + 4] << 8) | data[offset + 5],
+    checksum: (data[offset + 6] << 8) | data[offset + 7]
+  }
+}
+
+const parseARPHeader = (
+  data: Uint8Array,
+  offset: number = 0
+): ARPHeader | null => {
+  if (data.length < offset + 28) return null
+  return {
+    hardwareType: (data[offset] << 8) | data[offset + 1],
+    protocolType: (data[offset + 2] << 8) | data[offset + 3],
+    hardwareSize: data[offset + 4],
+    protocolSize: data[offset + 5],
+    opcode: (data[offset + 6] << 8) | data[offset + 7],
+    senderMac: formatMac(data.subarray(offset + 8, offset + 14)),
+    senderIp: formatIpv4(data.subarray(offset + 14, offset + 18)),
+    targetMac: formatMac(data.subarray(offset + 18, offset + 24)),
+    targetIp: formatIpv4(data.subarray(offset + 24, offset + 28))
+  }
+}
+
+const getTCPFlagsString = (flags: number): string => {
+  const flagStrings: string[] = []
+  if (flags & TCP_FLAGS.FIN) flagStrings.push('FIN')
+  if (flags & TCP_FLAGS.SYN) flagStrings.push('SYN')
+  if (flags & TCP_FLAGS.RST) flagStrings.push('RST')
+  if (flags & TCP_FLAGS.PSH) flagStrings.push('PSH')
+  if (flags & TCP_FLAGS.ACK) flagStrings.push('ACK')
+  if (flags & TCP_FLAGS.URG) flagStrings.push('URG')
+  return flagStrings.join(',')
+}
+
 class PcapParser {
   static detectFormat(magicNumber: number): 'microsecond' | 'nanosecond' {
     if (
@@ -199,7 +360,6 @@ class PcapParser {
     const magicNumber = view.getUint32(0, true)
     const swapped = this.isSwapped(magicNumber)
     const isNanosecond = this.detectFormat(magicNumber) === 'nanosecond'
-
     return {
       magicNumber,
       versionMajor: this.readUint16(view, 4, swapped),
@@ -264,14 +424,12 @@ class PcapParser {
         }
 
         packet.parsed = PacketParser.parsePacket(packetData, timestamp)
-
         packets.push(packet)
       } catch (err) {
         console.error('Error parsing packet', index, err)
         break
       }
     }
-
     return packets
   }
 
@@ -282,171 +440,11 @@ class PcapParser {
   }
 }
 
-// Класс для парсинга содержимого пакетов
 class PacketParser {
-  private static formatMac(mac: Uint8Array): string {
-    return Array.from(mac.slice(0, 6))
-      .map((b) => b.toString(16).padStart(2, '0'))
-      .join(':')
-      .toUpperCase()
-  }
-
-  private static formatIpv4(ip: Uint8Array): string {
-    return Array.from(ip.slice(0, 4)).join('.')
-  }
-
-  private static formatIpv6(ip: Uint8Array): string {
-    const parts: string[] = []
-    for (let i = 0; i < 16; i += 2) {
-      parts.push(((ip[i] << 8) | ip[i + 1]).toString(16))
-    }
-    return parts
-      .join(':')
-      .replace(/\b:?0+\b/g, '')
-      .replace(/::+/g, '::')
-  }
-
-  private static parseEthernetHeader(data: Uint8Array): EthernetHeader | null {
-    if (data.length < 14) return null
-
-    return {
-      destMac: this.formatMac(data.subarray(0, 6)),
-      srcMac: this.formatMac(data.subarray(6, 12)),
-      type: (data[12] << 8) | data[13]
-    }
-  }
-
-  private static parseIPv4Header(
-    data: Uint8Array,
-    offset: number = 0
-  ): IPv4Header | null {
-    if (data.length < offset + 20) return null
-
-    const versionIhl = data[offset]
-    const version = (versionIhl >> 4) & 0x0f
-    const ihl = versionIhl & 0x0f
-
-    if (version !== 4 || data.length < offset + ihl * 4) return null
-
-    return {
-      version,
-      ihl,
-      tos: data[offset + 1],
-      totalLength: (data[offset + 2] << 8) | data[offset + 3],
-      identification: (data[offset + 4] << 8) | data[offset + 5],
-      flags: (data[offset + 6] >> 5) & 0x07,
-      fragmentOffset: ((data[offset + 6] & 0x1f) << 8) | data[offset + 7],
-      ttl: data[offset + 8],
-      protocol: data[offset + 9],
-      checksum: (data[offset + 10] << 8) | data[offset + 11],
-      srcAddr: this.formatIpv4(data.subarray(offset + 12, offset + 16)),
-      destAddr: this.formatIpv4(data.subarray(offset + 16, offset + 20))
-    }
-  }
-
-  private static parseIPv6Header(
-    data: Uint8Array,
-    offset: number = 0
-  ): IPv6Header | null {
-    if (data.length < offset + 40) return null
-
-    const versionClassFlow =
-      (data[offset] << 4) | ((data[offset + 1] >> 4) & 0x0f)
-
-    return {
-      version: (versionClassFlow >> 4) & 0x0f,
-      trafficClass:
-        ((data[offset] & 0x0f) << 4) | ((data[offset + 1] >> 4) & 0x0f),
-      flowLabel:
-        ((data[offset + 1] & 0x0f) << 16) |
-        (data[offset + 2] << 8) |
-        data[offset + 3],
-      payloadLength: (data[offset + 4] << 8) | data[offset + 5],
-      nextHeader: data[offset + 6],
-      hopLimit: data[offset + 7],
-      srcAddr: this.formatIpv6(data.subarray(offset + 8, offset + 24)),
-      destAddr: this.formatIpv6(data.subarray(offset + 24, offset + 40))
-    }
-  }
-
-  private static parseTCPHeader(
-    data: Uint8Array,
-    offset: number = 0
-  ): TCPHeader | null {
-    if (data.length < offset + 20) return null
-
-    const dataOffset = (data[offset + 12] >> 4) & 0x0f
-
-    return {
-      srcPort: (data[offset] << 8) | data[offset + 1],
-      destPort: (data[offset + 2] << 8) | data[offset + 3],
-      sequenceNumber:
-        (data[offset + 4] << 24) |
-        (data[offset + 5] << 16) |
-        (data[offset + 6] << 8) |
-        data[offset + 7],
-      acknowledgmentNumber:
-        (data[offset + 8] << 24) |
-        (data[offset + 9] << 16) |
-        (data[offset + 10] << 8) |
-        data[offset + 11],
-      dataOffset,
-      flags: data[offset + 13],
-      window: (data[offset + 14] << 8) | data[offset + 15],
-      checksum: (data[offset + 16] << 8) | data[offset + 17],
-      urgentPointer: (data[offset + 18] << 8) | data[offset + 19]
-    }
-  }
-
-  private static parseUDPHeader(
-    data: Uint8Array,
-    offset: number = 0
-  ): UDPHeader | null {
-    if (data.length < offset + 8) return null
-
-    return {
-      srcPort: (data[offset] << 8) | data[offset + 1],
-      destPort: (data[offset + 2] << 8) | data[offset + 3],
-      length: (data[offset + 4] << 8) | data[offset + 5],
-      checksum: (data[offset + 6] << 8) | data[offset + 7]
-    }
-  }
-
-  private static parseARPHeader(
-    data: Uint8Array,
-    offset: number = 0
-  ): ARPHeader | null {
-    if (data.length < offset + 28) return null
-
-    return {
-      hardwareType: (data[offset] << 8) | data[offset + 1],
-      protocolType: (data[offset + 2] << 8) | data[offset + 3],
-      hardwareSize: data[offset + 4],
-      protocolSize: data[offset + 5],
-      opcode: (data[offset + 6] << 8) | data[offset + 7],
-      senderMac: this.formatMac(data.subarray(offset + 8, offset + 14)),
-      senderIp: this.formatIpv4(data.subarray(offset + 14, offset + 18)),
-      targetMac: this.formatMac(data.subarray(offset + 18, offset + 24)),
-      targetIp: this.formatIpv4(data.subarray(offset + 24, offset + 28))
-    }
-  }
-
-  private static getTCPFlagsString(flags: number): string {
-    const flagStrings: string[] = []
-    if (flags & TCP_FLAGS.FIN) flagStrings.push('FIN')
-    if (flags & TCP_FLAGS.SYN) flagStrings.push('SYN')
-    if (flags & TCP_FLAGS.RST) flagStrings.push('RST')
-    if (flags & TCP_FLAGS.PSH) flagStrings.push('PSH')
-    if (flags & TCP_FLAGS.ACK) flagStrings.push('ACK')
-    if (flags & TCP_FLAGS.URG) flagStrings.push('URG')
-    return flagStrings.join(',')
-  }
-
   static parsePacket(data: Uint8Array, timestamp: number): PacketInfo {
     const date = new Date(timestamp * 1000)
     const timestampStr = date.toISOString().replace('T', ' ').slice(0, 23)
-
-    const eth = this.parseEthernetHeader(data)
+    const eth = parseEthernetHeader(data)
     if (!eth) {
       return {
         timestamp: timestampStr,
@@ -461,7 +459,6 @@ class PacketParser {
 
     const etherType = eth.type
     const protocolName = ETHER_TYPES[etherType] || `0x${etherType.toString(16)}`
-
     let source = eth.srcMac
     let destination = eth.destMac
     let protocol = protocolName
@@ -469,24 +466,23 @@ class PacketParser {
     let info = ''
 
     if (etherType === 0x0800) {
-      const ipv4 = this.parseIPv4Header(data, 14)
+      const ipv4 = parseIPv4Header(data, 14)
       if (ipv4) {
         source = ipv4.srcAddr
         destination = ipv4.destAddr
         protocol = IP_PROTOCOLS[ipv4.protocol] || `Protocol ${ipv4.protocol}`
         protocolNumber = ipv4.protocol
-
         const ipOffset = 14 + ipv4.ihl * 4
 
         if (ipv4.protocol === 6) {
-          const tcp = this.parseTCPHeader(data, ipOffset)
+          const tcp = parseTCPHeader(data, ipOffset)
           if (tcp) {
-            info = `${tcp.srcPort} → ${tcp.destPort} [${this.getTCPFlagsString(tcp.flags)}] Seq=${tcp.sequenceNumber}`
+            info = `${tcp.srcPort} → ${tcp.destPort} [${getTCPFlagsString(tcp.flags)}] Seq=${tcp.sequenceNumber}`
             source = `${source}:${tcp.srcPort}`
             destination = `${destination}:${tcp.destPort}`
           }
         } else if (ipv4.protocol === 17) {
-          const udp = this.parseUDPHeader(data, ipOffset)
+          const udp = parseUDPHeader(data, ipOffset)
           if (udp) {
             info = `${udp.srcPort} → ${udp.destPort} Len=${udp.length}`
             source = `${source}:${udp.srcPort}`
@@ -508,7 +504,7 @@ class PacketParser {
         }
       }
     } else if (etherType === 0x86dd) {
-      const ipv6 = this.parseIPv6Header(data, 14)
+      const ipv6 = parseIPv6Header(data, 14)
       if (ipv6) {
         source = ipv6.srcAddr
         destination = ipv6.destAddr
@@ -518,7 +514,7 @@ class PacketParser {
         info = `IPv6, Hop Limit=${ipv6.hopLimit}`
       }
     } else if (etherType === 0x0806) {
-      const arp = this.parseARPHeader(data, 14)
+      const arp = parseARPHeader(data, 14)
       if (arp) {
         const operation = ARP_OPERATIONS[arp.opcode] || `Op ${arp.opcode}`
         source = arp.senderIp
@@ -546,12 +542,722 @@ class PacketParser {
   }
 }
 
-// Компонент HexDump с поддержкой темной темы (исправленные цвета для светлого режима)
+// Функция для сбора всех путей узлов дерева
+const collectAllPaths = (
+  node: PacketTreeNode,
+  currentPath: string = node.name
+): string[] => {
+  const paths: string[] = [currentPath]
+  if (node.children) {
+    for (let i = 0; i < node.children.length; i++) {
+      const child = node.children[i]
+      paths.push(...collectAllPaths(child, `${currentPath}.${child.name}.${i}`))
+    }
+  }
+  return paths
+}
+
+// Компонент для построения дерева структуры пакета
+const buildPacketTree = (packet: PcapPacket): PacketTreeNode | null => {
+  const data = packet.data
+  if (data.length < 14) return null
+
+  let offset = 0
+  const root: PacketTreeNode = {
+    name: 'Frame',
+    children: [],
+    offset: 0,
+    length: data.length,
+    bytes: data
+  }
+
+  const eth = parseEthernetHeader(data, offset)
+  if (!eth) return null
+
+  const ethernetNode: PacketTreeNode = {
+    name: 'Ethernet II',
+    offset,
+    length: 14,
+    bytes: data.slice(offset, offset + 14),
+    children: [
+      {
+        name: 'Destination',
+        value: eth.destMac,
+        offset,
+        length: 6,
+        bytes: data.slice(offset, offset + 6)
+      },
+      {
+        name: 'Source',
+        value: eth.srcMac,
+        offset: offset + 6,
+        length: 6,
+        bytes: data.slice(offset + 6, offset + 12)
+      },
+      {
+        name: 'Type',
+        value: `0x${eth.type.toString(16).padStart(4, '0')} (${ETHER_TYPES[eth.type] || 'Unknown'})`,
+        offset: offset + 12,
+        length: 2,
+        bytes: data.slice(offset + 12, offset + 14)
+      }
+    ]
+  }
+  root.children!.push(ethernetNode)
+  offset += 14
+
+  if (eth.type === 0x0800) {
+    const ipv4 = parseIPv4Header(data, offset)
+    if (ipv4) {
+      const ipv4Node: PacketTreeNode = {
+        name: 'Internet Protocol Version 4',
+        offset,
+        length: ipv4.ihl * 4,
+        bytes: data.slice(offset, offset + ipv4.ihl * 4),
+        children: [
+          {
+            name: 'Version',
+            value: ipv4.version,
+            offset,
+            length: 1,
+            bytes: data.slice(offset, offset + 1)
+          },
+          {
+            name: 'Header Length',
+            value: `${ipv4.ihl * 4} bytes (${ipv4.ihl})`,
+            offset,
+            length: 1,
+            bytes: data.slice(offset, offset + 1)
+          },
+          {
+            name: 'Differentiated Services Field',
+            value: `0x${ipv4.tos.toString(16).padStart(2, '0')}`,
+            offset: offset + 1,
+            length: 1,
+            bytes: data.slice(offset + 1, offset + 2)
+          },
+          {
+            name: 'Total Length',
+            value: ipv4.totalLength,
+            offset: offset + 2,
+            length: 2,
+            bytes: data.slice(offset + 2, offset + 4)
+          },
+          {
+            name: 'Identification',
+            value: `0x${ipv4.identification.toString(16).padStart(4, '0')} (${ipv4.identification})`,
+            offset: offset + 4,
+            length: 2,
+            bytes: data.slice(offset + 4, offset + 6)
+          },
+          {
+            name: 'Flags',
+            value: `0x${ipv4.flags.toString(16)}`,
+            offset: offset + 6,
+            length: 1,
+            bytes: data.slice(offset + 6, offset + 7),
+            children: [
+              {
+                name: 'Reserved bit',
+                value: (ipv4.flags >> 2) & 1 ? 'Set' : 'Not set',
+                offset: offset + 6,
+                length: 1,
+                bytes: data.slice(offset + 6, offset + 7)
+              },
+              {
+                name: "Don't fragment",
+                value: (ipv4.flags >> 1) & 1 ? 'Set' : 'Not set',
+                offset: offset + 6,
+                length: 1,
+                bytes: data.slice(offset + 6, offset + 7)
+              },
+              {
+                name: 'More fragments',
+                value: ipv4.flags & 1 ? 'Set' : 'Not set',
+                offset: offset + 6,
+                length: 1,
+                bytes: data.slice(offset + 6, offset + 7)
+              }
+            ]
+          },
+          {
+            name: 'Fragment Offset',
+            value: ipv4.fragmentOffset,
+            offset: offset + 6,
+            length: 2,
+            bytes: data.slice(offset + 6, offset + 8)
+          },
+          {
+            name: 'Time to Live',
+            value: ipv4.ttl,
+            offset: offset + 8,
+            length: 1,
+            bytes: data.slice(offset + 8, offset + 9)
+          },
+          {
+            name: 'Protocol',
+            value: `${IP_PROTOCOLS[ipv4.protocol] || 'Unknown'} (${ipv4.protocol})`,
+            offset: offset + 9,
+            length: 1,
+            bytes: data.slice(offset + 9, offset + 10)
+          },
+          {
+            name: 'Header Checksum',
+            value: `0x${ipv4.checksum.toString(16).padStart(4, '0')}`,
+            offset: offset + 10,
+            length: 2,
+            bytes: data.slice(offset + 10, offset + 12)
+          },
+          {
+            name: 'Source Address',
+            value: ipv4.srcAddr,
+            offset: offset + 12,
+            length: 4,
+            bytes: data.slice(offset + 12, offset + 16)
+          },
+          {
+            name: 'Destination Address',
+            value: ipv4.destAddr,
+            offset: offset + 16,
+            length: 4,
+            bytes: data.slice(offset + 16, offset + 20)
+          }
+        ]
+      }
+
+      const ipHeaderLength = ipv4.ihl * 4
+      if (ipHeaderLength > 20) {
+        ipv4Node.children!.push({
+          name: 'Options',
+          offset: offset + 20,
+          length: ipHeaderLength - 20,
+          bytes: data.slice(offset + 20, offset + ipHeaderLength),
+          children: []
+        })
+      }
+
+      root.children!.push(ipv4Node)
+      offset += ipHeaderLength
+
+      if (ipv4.protocol === 6) {
+        const tcp = parseTCPHeader(data, offset)
+        if (tcp) {
+          const tcpNode: PacketTreeNode = {
+            name: 'Transmission Control Protocol',
+            offset,
+            length: tcp.dataOffset * 4,
+            bytes: data.slice(offset, offset + tcp.dataOffset * 4),
+            children: [
+              {
+                name: 'Source Port',
+                value: tcp.srcPort,
+                offset,
+                length: 2,
+                bytes: data.slice(offset, offset + 2)
+              },
+              {
+                name: 'Destination Port',
+                value: tcp.destPort,
+                offset: offset + 2,
+                length: 2,
+                bytes: data.slice(offset + 2, offset + 4)
+              },
+              {
+                name: 'Sequence Number',
+                value: tcp.sequenceNumber,
+                offset: offset + 4,
+                length: 4,
+                bytes: data.slice(offset + 4, offset + 8)
+              },
+              {
+                name: 'Acknowledgment Number',
+                value: tcp.acknowledgmentNumber,
+                offset: offset + 8,
+                length: 4,
+                bytes: data.slice(offset + 8, offset + 12)
+              },
+              {
+                name: 'Header Length',
+                value: `${tcp.dataOffset * 4} bytes (${tcp.dataOffset})`,
+                offset: offset + 12,
+                length: 1,
+                bytes: data.slice(offset + 12, offset + 13)
+              },
+              {
+                name: 'Flags',
+                value: `0x${tcp.flags.toString(16).padStart(2, '0')}`,
+                offset: offset + 13,
+                length: 1,
+                bytes: data.slice(offset + 13, offset + 14),
+                children: [
+                  {
+                    name: 'CWR',
+                    value: tcp.flags & TCP_FLAGS.CWR ? 'Set' : 'Not set',
+                    offset: offset + 13,
+                    length: 1,
+                    bytes: data.slice(offset + 13, offset + 14)
+                  },
+                  {
+                    name: 'ECE',
+                    value: tcp.flags & TCP_FLAGS.ECE ? 'Set' : 'Not set',
+                    offset: offset + 13,
+                    length: 1,
+                    bytes: data.slice(offset + 13, offset + 14)
+                  },
+                  {
+                    name: 'URG',
+                    value: tcp.flags & TCP_FLAGS.URG ? 'Set' : 'Not set',
+                    offset: offset + 13,
+                    length: 1,
+                    bytes: data.slice(offset + 13, offset + 14)
+                  },
+                  {
+                    name: 'ACK',
+                    value: tcp.flags & TCP_FLAGS.ACK ? 'Set' : 'Not set',
+                    offset: offset + 13,
+                    length: 1,
+                    bytes: data.slice(offset + 13, offset + 14)
+                  },
+                  {
+                    name: 'PSH',
+                    value: tcp.flags & TCP_FLAGS.PSH ? 'Set' : 'Not set',
+                    offset: offset + 13,
+                    length: 1,
+                    bytes: data.slice(offset + 13, offset + 14)
+                  },
+                  {
+                    name: 'RST',
+                    value: tcp.flags & TCP_FLAGS.RST ? 'Set' : 'Not set',
+                    offset: offset + 13,
+                    length: 1,
+                    bytes: data.slice(offset + 13, offset + 14)
+                  },
+                  {
+                    name: 'SYN',
+                    value: tcp.flags & TCP_FLAGS.SYN ? 'Set' : 'Not set',
+                    offset: offset + 13,
+                    length: 1,
+                    bytes: data.slice(offset + 13, offset + 14)
+                  },
+                  {
+                    name: 'FIN',
+                    value: tcp.flags & TCP_FLAGS.FIN ? 'Set' : 'Not set',
+                    offset: offset + 13,
+                    length: 1,
+                    bytes: data.slice(offset + 13, offset + 14)
+                  }
+                ]
+              },
+              {
+                name: 'Window',
+                value: tcp.window,
+                offset: offset + 14,
+                length: 2,
+                bytes: data.slice(offset + 14, offset + 16)
+              },
+              {
+                name: 'Checksum',
+                value: `0x${tcp.checksum.toString(16).padStart(4, '0')}`,
+                offset: offset + 16,
+                length: 2,
+                bytes: data.slice(offset + 16, offset + 18)
+              },
+              {
+                name: 'Urgent Pointer',
+                value: tcp.urgentPointer,
+                offset: offset + 18,
+                length: 2,
+                bytes: data.slice(offset + 18, offset + 20)
+              }
+            ]
+          }
+
+          const tcpHeaderLength = tcp.dataOffset * 4
+          if (tcpHeaderLength > 20) {
+            tcpNode.children!.push({
+              name: 'TCP Options',
+              offset: offset + 20,
+              length: tcpHeaderLength - 20,
+              bytes: data.slice(offset + 20, offset + tcpHeaderLength),
+              children: []
+            })
+          }
+
+          root.children!.push(tcpNode)
+          offset += tcpHeaderLength
+
+          if (offset < ipv4.totalLength) {
+            root.children!.push({
+              name: 'TCP Payload',
+              value: `${data.length - offset} bytes`,
+              offset,
+              length: data.length - offset,
+              bytes: data.slice(offset)
+            })
+          }
+        }
+      } else if (ipv4.protocol === 17) {
+        const udp = parseUDPHeader(data, offset)
+        if (udp) {
+          const udpNode: PacketTreeNode = {
+            name: 'User Datagram Protocol',
+            offset,
+            length: 8,
+            bytes: data.slice(offset, offset + 8),
+            children: [
+              {
+                name: 'Source Port',
+                value: udp.srcPort,
+                offset,
+                length: 2,
+                bytes: data.slice(offset, offset + 2)
+              },
+              {
+                name: 'Destination Port',
+                value: udp.destPort,
+                offset: offset + 2,
+                length: 2,
+                bytes: data.slice(offset + 2, offset + 4)
+              },
+              {
+                name: 'Length',
+                value: udp.length,
+                offset: offset + 4,
+                length: 2,
+                bytes: data.slice(offset + 4, offset + 6)
+              },
+              {
+                name: 'Checksum',
+                value: `0x${udp.checksum.toString(16).padStart(4, '0')}`,
+                offset: offset + 6,
+                length: 2,
+                bytes: data.slice(offset + 6, offset + 8)
+              }
+            ]
+          }
+          root.children!.push(udpNode)
+          offset += 8
+
+          if (offset < ipv4.totalLength) {
+            root.children!.push({
+              name: 'UDP Payload',
+              value: `${data.length - offset} bytes`,
+              offset,
+              length: data.length - offset,
+              bytes: data.slice(offset)
+            })
+          }
+        }
+      } else if (ipv4.protocol === 1) {
+        root.children!.push({
+          name: 'Internet Control Message Protocol',
+          offset,
+          length: data.length - offset,
+          bytes: data.slice(offset)
+        })
+      }
+    }
+  } else if (eth.type === 0x86dd) {
+    const ipv6 = parseIPv6Header(data, offset)
+    if (ipv6) {
+      const ipv6Node: PacketTreeNode = {
+        name: 'Internet Protocol Version 6',
+        offset,
+        length: 40,
+        bytes: data.slice(offset, offset + 40),
+        children: [
+          {
+            name: 'Version',
+            value: ipv6.version,
+            offset,
+            length: 1,
+            bytes: data.slice(offset, offset + 1)
+          },
+          {
+            name: 'Traffic Class',
+            value: `0x${ipv6.trafficClass.toString(16).padStart(2, '0')}`,
+            offset,
+            length: 1,
+            bytes: data.slice(offset, offset + 1)
+          },
+          {
+            name: 'Flow Label',
+            value: `0x${ipv6.flowLabel.toString(16)}`,
+            offset,
+            length: 4,
+            bytes: data.slice(offset, offset + 4)
+          },
+          {
+            name: 'Payload Length',
+            value: ipv6.payloadLength,
+            offset: offset + 4,
+            length: 2,
+            bytes: data.slice(offset + 4, offset + 6)
+          },
+          {
+            name: 'Next Header',
+            value: `${IP_PROTOCOLS[ipv6.nextHeader] || 'Unknown'} (${ipv6.nextHeader})`,
+            offset: offset + 6,
+            length: 1,
+            bytes: data.slice(offset + 6, offset + 7)
+          },
+          {
+            name: 'Hop Limit',
+            value: ipv6.hopLimit,
+            offset: offset + 7,
+            length: 1,
+            bytes: data.slice(offset + 7, offset + 8)
+          },
+          {
+            name: 'Source Address',
+            value: ipv6.srcAddr,
+            offset: offset + 8,
+            length: 16,
+            bytes: data.slice(offset + 8, offset + 24)
+          },
+          {
+            name: 'Destination Address',
+            value: ipv6.destAddr,
+            offset: offset + 24,
+            length: 16,
+            bytes: data.slice(offset + 24, offset + 40)
+          }
+        ]
+      }
+      root.children!.push(ipv6Node)
+    }
+  } else if (eth.type === 0x0806) {
+    const arp = parseARPHeader(data, offset)
+    if (arp) {
+      const arpNode: PacketTreeNode = {
+        name: 'Address Resolution Protocol',
+        offset,
+        length: 28,
+        bytes: data.slice(offset, offset + 28),
+        children: [
+          {
+            name: 'Hardware Type',
+            value: arp.hardwareType === 1 ? 'Ethernet (1)' : arp.hardwareType,
+            offset,
+            length: 2,
+            bytes: data.slice(offset, offset + 2)
+          },
+          {
+            name: 'Protocol Type',
+            value: `0x${arp.protocolType.toString(16).padStart(4, '0')} (IPv4)`,
+            offset: offset + 2,
+            length: 2,
+            bytes: data.slice(offset + 2, offset + 4)
+          },
+          {
+            name: 'Hardware Size',
+            value: arp.hardwareSize,
+            offset: offset + 4,
+            length: 1,
+            bytes: data.slice(offset + 4, offset + 5)
+          },
+          {
+            name: 'Protocol Size',
+            value: arp.protocolSize,
+            offset: offset + 5,
+            length: 1,
+            bytes: data.slice(offset + 5, offset + 6)
+          },
+          {
+            name: 'Opcode',
+            value: `${ARP_OPERATIONS[arp.opcode] || 'Unknown'} (${arp.opcode})`,
+            offset: offset + 6,
+            length: 2,
+            bytes: data.slice(offset + 6, offset + 8)
+          },
+          {
+            name: 'Sender MAC Address',
+            value: arp.senderMac,
+            offset: offset + 8,
+            length: 6,
+            bytes: data.slice(offset + 8, offset + 14)
+          },
+          {
+            name: 'Sender IP Address',
+            value: arp.senderIp,
+            offset: offset + 14,
+            length: 4,
+            bytes: data.slice(offset + 14, offset + 18)
+          },
+          {
+            name: 'Target MAC Address',
+            value: arp.targetMac,
+            offset: offset + 18,
+            length: 6,
+            bytes: data.slice(offset + 18, offset + 24)
+          },
+          {
+            name: 'Target IP Address',
+            value: arp.targetIp,
+            offset: offset + 24,
+            length: 4,
+            bytes: data.slice(offset + 24, offset + 28)
+          }
+        ]
+      }
+      root.children!.push(arpNode)
+    }
+  }
+
+  return root
+}
+
+// Компонент древовидной структуры пакета
+const PacketDetailsTree: React.FC<{
+  packet: PcapPacket
+  isDarkMode?: boolean
+  onNodeSelect?: (offset: number, length: number) => void
+  selectedOffset?: number | null
+}> = ({ packet, isDarkMode = false, onNodeSelect, selectedOffset }) => {
+  const tree = React.useMemo(() => buildPacketTree(packet), [packet])
+
+  // Собираем все пути для начального развернутого состояния
+  const initialExpandedPaths = React.useMemo(() => {
+    if (!tree) return new Set<string>()
+    const allPaths = collectAllPaths(tree)
+    return new Set(allPaths)
+  }, [tree])
+
+  const [expandedNodes, setExpandedNodes] =
+    React.useState<Set<string>>(initialExpandedPaths)
+
+  // Обновляем expandedNodes при изменении дерева
+  React.useEffect(() => {
+    if (tree) {
+      const allPaths = collectAllPaths(tree)
+      setExpandedNodes(new Set(allPaths))
+    }
+  }, [tree])
+
+  const toggleNode = (path: string) => {
+    setExpandedNodes((prev) => {
+      const newSet = new Set(prev)
+      if (newSet.has(path)) {
+        newSet.delete(path)
+      } else {
+        newSet.add(path)
+      }
+      return newSet
+    })
+  }
+
+  const renderTreeNode = (
+    node: PacketTreeNode,
+    depth: number = 0,
+    path: string = node.name
+  ) => {
+    const isExpanded = expandedNodes.has(path)
+    const hasChildren = node.children && node.children.length > 0
+    const isSelected =
+      selectedOffset !== null &&
+      selectedOffset !== undefined &&
+      selectedOffset >= node.offset &&
+      selectedOffset < node.offset + node.length
+
+    return (
+      <div key={path}>
+        <div
+          style={{
+            paddingLeft: depth * 20,
+            paddingTop: 2,
+            paddingBottom: 2,
+            display: 'flex',
+            alignItems: 'center',
+            cursor: 'pointer',
+            backgroundColor: isSelected
+              ? isDarkMode
+                ? '#264f78'
+                : '#e3f2fd'
+              : 'transparent',
+            borderLeft: isSelected
+              ? `3px solid ${isDarkMode ? '#0078d4' : '#0078d4'}`
+              : '3px solid transparent',
+            fontSize: 11,
+            fontFamily: 'monospace'
+          }}
+          onClick={() => {
+            if (hasChildren) {
+              toggleNode(path)
+            }
+            onNodeSelect?.(node.offset, node.length)
+          }}
+        >
+          <span style={{ marginRight: 4, fontSize: 10, minWidth: 16 }}>
+            {hasChildren ? (isExpanded ? '▼' : '▶') : '  '}
+          </span>
+          <span style={{ fontWeight: 600, minWidth: 200 }}>{node.name}</span>
+          {node.value !== undefined && (
+            <span
+              style={{
+                marginLeft: 12,
+                color: isDarkMode ? '#98c379' : '#22863a'
+              }}
+            >
+              {node.value}
+            </span>
+          )}
+          <span
+            style={{
+              marginLeft: 'auto',
+              fontSize: 9,
+              color: isDarkMode ? '#858585' : '#57606a'
+            }}
+          >
+            [{node.offset}:{node.offset + node.length}]
+          </span>
+        </div>
+        {isExpanded && hasChildren && (
+          <div>
+            {node.children!.map((child, idx) =>
+              renderTreeNode(child, depth + 1, `${path}.${child.name}.${idx}`)
+            )}
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  if (!tree)
+    return (
+      <div style={{ padding: 10, color: isDarkMode ? '#abb2bf' : '#6c757d' }}>
+        Не удалось разобрать структуру пакета
+      </div>
+    )
+
+  return (
+    <div
+      style={{
+        maxHeight: 400,
+        overflowY: 'auto',
+        border: isDarkMode ? '1px solid #333' : '1px solid #dee2e6',
+        borderRadius: 4,
+        backgroundColor: isDarkMode ? '#1e1e1e' : '#ffffff'
+      }}
+    >
+      {renderTreeNode(tree)}
+    </div>
+  )
+}
+
+// Компонент HexDump с поддержкой темной темы и подсветкой выбранного поля
 const HexDump: React.FC<{
   data: Uint8Array
   maxBytes?: number
   isDarkMode?: boolean
-}> = ({ data, maxBytes = 512, isDarkMode = false }) => {
+  highlightOffset?: number | null
+  highlightLength?: number
+}> = ({
+  data,
+  maxBytes = 512,
+  isDarkMode = false,
+  highlightOffset = null,
+  highlightLength = 1
+}) => {
   const [copyStatus, setCopyStatus] = React.useState<
     'idle' | 'success' | 'error'
   >('idle')
@@ -561,12 +1267,19 @@ const HexDump: React.FC<{
     const bytes = data.slice(0, maxBytes)
     const isTruncated = data.length > maxBytes
 
-    // Анализ структуры пакета для умной подсветки
     const getByteColor = (
       offset: number,
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       value: number
     ): { color: string; type: string } => {
+      if (
+        highlightOffset !== null &&
+        offset >= highlightOffset &&
+        offset < highlightOffset + highlightLength
+      ) {
+        return { color: '#f0ad4e', type: 'Selected Field' }
+      }
+
       if (offset < 14) {
         if (offset < 6) return { color: '#0088cc', type: 'MAC Destination' }
         if (offset < 12) return { color: '#0088cc', type: 'MAC Source' }
@@ -634,17 +1347,16 @@ const HexDump: React.FC<{
         byteItems.push({
           value: chunk[j].toString(16).padStart(2, '0'),
           offset: globalOffset,
-          color: color,
-          type: type
+          color,
+          type
         })
       }
 
-      const offset = i.toString(16).padStart(6, '0')
-      lines.push({ offset, bytes: byteItems })
+      lines.push({ offset: i.toString(16).padStart(6, '0'), bytes: byteItems })
     }
 
     return { lines, isTruncated, totalBytes: data.length }
-  }, [data, maxBytes])
+  }, [data, maxBytes, highlightOffset, highlightLength])
 
   const copyAllHex = async () => {
     try {
@@ -685,21 +1397,6 @@ const HexDump: React.FC<{
     }
   }
 
-  const copyByte = async (value: string) => {
-    try {
-      await navigator.clipboard.writeText(value)
-      setCopyStatus('success')
-      setTimeout(() => setCopyStatus('idle'), 1000)
-    } catch {
-      setCopyStatus('error')
-      setTimeout(() => setCopyStatus('idle'), 1000)
-    }
-  }
-
-  const isHovered = (byteOffset: number): boolean => {
-    return hoveredByte !== null && hoveredByte === byteOffset
-  }
-
   const hexStyles = {
     container: {
       fontFamily: 'Monaco, Menlo, monospace',
@@ -708,11 +1405,11 @@ const HexDump: React.FC<{
       color: isDarkMode ? '#d4d4d4' : '#212529',
       padding: '6px 8px',
       borderRadius: 4,
-      overflow: 'hidden' as const,
+      overflow: 'hidden',
       border: isDarkMode ? '1px solid #333' : '1px solid #d0d7de'
     },
     toolbar: {
-      display: 'flex' as const,
+      display: 'flex',
       gap: 8,
       marginBottom: 8,
       paddingBottom: 6,
@@ -730,16 +1427,10 @@ const HexDump: React.FC<{
       cursor: 'pointer',
       fontFamily: 'inherit'
     },
-    success: {
-      color: isDarkMode ? '#98c379' : '#22863a',
-      fontSize: 10
-    },
-    error: {
-      color: isDarkMode ? '#e06c75' : '#dc2626',
-      fontSize: 10
-    },
+    success: { color: isDarkMode ? '#98c379' : '#22863a', fontSize: 10 },
+    error: { color: isDarkMode ? '#e06c75' : '#dc2626', fontSize: 10 },
     legend: {
-      display: 'flex' as const,
+      display: 'flex',
       gap: 12,
       marginBottom: 8,
       padding: '4px 8px',
@@ -750,7 +1441,7 @@ const HexDump: React.FC<{
       border: isDarkMode ? 'none' : '1px solid #e1e4e8'
     },
     hexContent: {
-      maxHeight: 180,
+      maxHeight: 400,
       overflowY: 'auto' as const,
       overflowX: 'auto' as const
     },
@@ -768,11 +1459,7 @@ const HexDump: React.FC<{
       userSelect: 'none' as const,
       fontSize: 10
     },
-    bytes: {
-      display: 'inline-flex',
-      flexWrap: 'nowrap' as const,
-      gap: 1
-    },
+    bytes: { display: 'inline-flex', flexWrap: 'nowrap' as const, gap: 1 },
     byte: {
       display: 'inline-flex',
       justifyContent: 'center',
@@ -798,20 +1485,10 @@ const HexDump: React.FC<{
   return (
     <div style={hexStyles.container}>
       <div style={hexStyles.toolbar}>
-        <button
-          onClick={() => {
-            void copyAllHex()
-          }}
-          style={hexStyles.button}
-        >
+        <button onClick={() => void copyAllHex()} style={hexStyles.button}>
           📋 Копировать все HEX
         </button>
-        <button
-          onClick={() => {
-            void copyAsCArray()
-          }}
-          style={hexStyles.button}
-        >
+        <button onClick={() => void copyAsCArray()} style={hexStyles.button}>
           📝 Копировать как C-массив
         </button>
         {copyStatus === 'success' && (
@@ -821,16 +1498,15 @@ const HexDump: React.FC<{
           <span style={hexStyles.error}>✗ Ошибка</span>
         )}
       </div>
-
       <div style={hexStyles.legend}>
         <span style={{ color: '#0088cc' }}>● MAC/EtherType</span>
         <span style={{ color: '#22863a' }}>● IPv4</span>
         <span style={{ color: '#9333ea' }}>● IP адреса</span>
         <span style={{ color: '#dc2626' }}>● Порты/Протоколы</span>
         <span style={{ color: '#b8860b' }}>● Флаги/Length</span>
+        <span style={{ color: '#f0ad4e' }}>● Выбранное поле</span>
         <span style={{ color: '#6c757d' }}>● Payload</span>
       </div>
-
       <div style={hexStyles.hexContent}>
         {displayData.lines.map((line, i) => (
           <div key={i} style={hexStyles.line}>
@@ -842,17 +1518,17 @@ const HexDump: React.FC<{
                   style={{
                     ...hexStyles.byte,
                     color: byte.color,
-                    backgroundColor: isHovered(byte.offset)
-                      ? isDarkMode
-                        ? '#3a3a3a'
-                        : '#d0d7de'
-                      : 'transparent',
-                    fontWeight: isHovered(byte.offset) ? 'bold' : 'normal'
+                    backgroundColor:
+                      hoveredByte === byte.offset
+                        ? isDarkMode
+                          ? '#3a3a3a'
+                          : '#d0d7de'
+                        : 'transparent',
+                    fontWeight: hoveredByte === byte.offset ? 'bold' : 'normal'
                   }}
                   onMouseEnter={() => setHoveredByte(byte.offset)}
                   onMouseLeave={() => setHoveredByte(null)}
-                  // eslint-disable-next-line @typescript-eslint/no-misused-promises
-                  onClick={() => copyByte(byte.value)}
+                  onClick={() => void navigator.clipboard.writeText(byte.value)}
                   title={`${byte.type} | 0x${byte.value} = ${parseInt(byte.value, 16)} | Кликните, чтобы скопировать`}
                 >
                   {byte.value}
@@ -862,7 +1538,6 @@ const HexDump: React.FC<{
           </div>
         ))}
       </div>
-
       {displayData.isTruncated && (
         <div style={hexStyles.truncated}>
           ... +{displayData.totalBytes - maxBytes} байт (показано {maxBytes})
@@ -904,6 +1579,13 @@ export const PcapFileViewer: React.FC<PcapFileViewerProps> = ({
     direction: 'asc' | 'desc'
   }>({ key: 'index', direction: 'asc' })
   const [showFilterHelp, setShowFilterHelp] = React.useState(false)
+  const [selectedOffset, setSelectedOffset] = React.useState<number | null>(
+    null
+  )
+  const [selectedLength, setSelectedLength] = React.useState<number>(1)
+  const [activeTab, setActiveTab] = React.useState<'structure' | 'hex'>(
+    'structure'
+  )
 
   const [isMainSectionOpen, setIsMainSectionOpen] = React.useState(true)
   const [isPacketDetailsOpen, setIsPacketDetailsOpen] = React.useState(true)
@@ -1049,14 +1731,11 @@ export const PcapFileViewer: React.FC<PcapFileViewerProps> = ({
     return types[network] || `Тип ${network}`
   }
 
-  React.useEffect(() => {
-    if (selectedPacket && tableContainerRef.current) {
-      const row = document.querySelector(`.packet-row-${selectedPacket.index}`)
-      row?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
-    }
-  }, [selectedPacket])
+  const handleNodeSelect = (offset: number, length: number) => {
+    setSelectedOffset(offset)
+    setSelectedLength(length)
+  }
 
-  // Динамические стили в зависимости от темы
   const getStyles = React.useCallback(
     () => ({
       container: {
@@ -1078,9 +1757,7 @@ export const PcapFileViewer: React.FC<PcapFileViewerProps> = ({
         flexShrink: 0,
         color: isDarkMode ? '#d4d4d4' : '#495057'
       },
-      infoBarItem: {
-        color: isDarkMode ? '#abb2bf' : '#495057'
-      },
+      infoBarItem: { color: isDarkMode ? '#abb2bf' : '#495057' },
       loading: {
         textAlign: 'center' as const,
         padding: 40,
@@ -1106,12 +1783,8 @@ export const PcapFileViewer: React.FC<PcapFileViewerProps> = ({
         color: isDarkMode ? '#abb2bf' : '#6c757d',
         gap: 8
       },
-      emptyStateIcon: {
-        fontSize: 48
-      },
-      emptyStateText: {
-        fontSize: 13
-      },
+      emptyStateIcon: { fontSize: 48 },
+      emptyStateText: { fontSize: 13 },
       scrollableContent: {
         flex: 1,
         overflowY: 'auto' as const,
@@ -1134,7 +1807,8 @@ export const PcapFileViewer: React.FC<PcapFileViewerProps> = ({
         borderBottom: isDarkMode ? '1px solid #333' : '1px solid #dee2e6',
         fontWeight: 600,
         fontSize: 13,
-        color: isDarkMode ? '#d4d4d4' : '#212529'
+        color: isDarkMode ? '#d4d4d4' : '#212529',
+        cursor: 'pointer'
       },
       sectionTitle: { fontSize: 13 },
       sectionBadge: {
@@ -1202,9 +1876,7 @@ export const PcapFileViewer: React.FC<PcapFileViewerProps> = ({
         tableLayout: 'fixed' as const,
         color: isDarkMode ? '#d4d4d4' : '#212529'
       },
-      tableHeader: {
-        backgroundColor: isDarkMode ? '#2d2d2d' : '#f8f9fa'
-      },
+      tableHeader: { backgroundColor: isDarkMode ? '#2d2d2d' : '#f8f9fa' },
       th: {
         position: 'sticky' as const,
         top: 0,
@@ -1216,7 +1888,8 @@ export const PcapFileViewer: React.FC<PcapFileViewerProps> = ({
         fontWeight: 600,
         textAlign: 'left' as const,
         whiteSpace: 'nowrap' as const,
-        color: isDarkMode ? '#abb2bf' : '#495057'
+        color: isDarkMode ? '#abb2bf' : '#495057',
+        cursor: 'pointer'
       },
       td: {
         padding: '5px 8px',
@@ -1227,12 +1900,8 @@ export const PcapFileViewer: React.FC<PcapFileViewerProps> = ({
         overflow: 'hidden' as const,
         textOverflow: 'ellipsis' as const
       },
-      tableRow: {
-        cursor: 'pointer'
-      },
-      tableRowSelected: {
-        backgroundColor: isDarkMode ? '#264f78' : '#e3f2fd'
-      },
+      tableRow: { cursor: 'pointer' },
+      tableRowSelected: { backgroundColor: isDarkMode ? '#264f78' : '#e3f2fd' },
       compactPagination: {
         display: 'flex',
         justifyContent: 'center',
@@ -1287,6 +1956,26 @@ export const PcapFileViewer: React.FC<PcapFileViewerProps> = ({
         color: isDarkMode ? '#d4d4d4' : '#856404',
         zIndex: 100,
         boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+      },
+      tabs: {
+        display: 'flex',
+        gap: 0,
+        marginBottom: 12,
+        borderBottom: isDarkMode ? '1px solid #333' : '1px solid #dee2e6'
+      },
+      tab: {
+        padding: '8px 16px',
+        fontSize: 12,
+        cursor: 'pointer',
+        border: 'none',
+        background: 'transparent',
+        color: isDarkMode ? '#abb2bf' : '#495057',
+        borderBottom: '2px solid transparent',
+        transition: 'all 0.2s'
+      },
+      tabActive: {
+        color: isDarkMode ? '#0078d4' : '#0078d4',
+        borderBottomColor: isDarkMode ? '#0078d4' : '#0078d4'
       }
     }),
     [isDarkMode]
@@ -1296,56 +1985,6 @@ export const PcapFileViewer: React.FC<PcapFileViewerProps> = ({
 
   return (
     <div style={styles.container}>
-      <style>{`
-        .collapsible-header { cursor: pointer; user-select: none; }
-        .collapsible-header:hover { background-color: ${isDarkMode ? '#3a3a3a' : '#e9ecef'}; }
-        .collapsible-content { overflow: hidden; transition: max-height 0.2s ease; }
-        .collapsible-content.open { max-height: none; }
-        .collapsible-content.closed { display: none; }
-        .packets-table { 
-          width: 100%; 
-          border-collapse: collapse; 
-          font-size: 12px;
-          table-layout: fixed;
-        }
-        .packets-table th { 
-          position: sticky; 
-          top: 0; 
-          background: ${isDarkMode ? '#2d2d2d' : '#f8f9fa'}; 
-          z-index: 10;
-          padding: 6px 8px; 
-          font-size: 11px; 
-          border-bottom: ${isDarkMode ? '1px solid #333' : '1px solid #dee2e6'};
-          font-weight: 600;
-          text-align: left;
-          white-space: nowrap;
-          color: ${isDarkMode ? '#abb2bf' : '#495057'};
-        }
-        .packets-table td { 
-          padding: 5px 8px; 
-          font-family: monospace; 
-          font-size: 11px; 
-          border-bottom: ${isDarkMode ? '1px solid #333' : '1px solid #f0f0f0'};
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          color: ${isDarkMode ? '#d4d4d4' : '#212529'};
-        }
-        .packets-table tr:hover { background: ${isDarkMode ? '#2d2d2d' : '#f8f9fa'}; cursor: pointer; }
-        .packets-table tr.selected { background: ${isDarkMode ? '#264f78' : '#e3f2fd'}; }
-        .filter-help {
-          position: absolute; top: 100%; left: 0; right: 0; 
-          background: ${isDarkMode ? '#2c2c2c' : '#fff3cd'};
-          border: ${isDarkMode ? '1px solid #3e3e3e' : '1px solid #ffeaa7'}; 
-          border-radius: 3px; padding: 6px 10px;
-          margin-top: 3px; font-size: 11px; color: ${isDarkMode ? '#d4d4d4' : '#856404'}; 
-          z-index: 100;
-          box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        }
-        .filter-help:before { content: '▲'; position: absolute; top: -7px; left: 15px; color: ${isDarkMode ? '#3e3e3e' : '#ffeaa7'}; font-size: 7px; }
-      `}</style>
-
-      {/* Информационная панель */}
       {pcapData && (
         <div style={styles.infoBar}>
           <span style={styles.infoBarItem}>📁 {fileName}</span>
@@ -1373,7 +2012,6 @@ export const PcapFileViewer: React.FC<PcapFileViewerProps> = ({
           {/* Раздел 1: Общая информация и таблица */}
           <div style={styles.section}>
             <div
-              className="collapsible-header"
               style={styles.sectionHeader}
               onClick={() => setIsMainSectionOpen(!isMainSectionOpen)}
             >
@@ -1383,13 +2021,10 @@ export const PcapFileViewer: React.FC<PcapFileViewerProps> = ({
               <span style={styles.sectionBadge}>{pcapData.packets.length}</span>
             </div>
 
-            <div
-              className={`collapsible-content ${isMainSectionOpen ? 'open' : 'closed'}`}
-            >
+            {isMainSectionOpen && (
               <div style={styles.sectionContent}>
-                {/* Компактная информация о файле */}
                 <div style={styles.compactInfo}>
-                  <span>📄 {formatFileSize(0)}</span>
+                  <span>📄 {formatFileSize(pcapBlob?.size || 0)}</span>
                   <span>
                     🔢 v{pcapData.header.versionMajor}.
                     {pcapData.header.versionMinor}
@@ -1402,7 +2037,6 @@ export const PcapFileViewer: React.FC<PcapFileViewerProps> = ({
                   </span>
                 </div>
 
-                {/* Фильтры */}
                 <div style={styles.compactControls}>
                   <div style={{ flex: 2, position: 'relative' }}>
                     <input
@@ -1448,9 +2082,8 @@ export const PcapFileViewer: React.FC<PcapFileViewerProps> = ({
                   </div>
                 </div>
 
-                {/* Таблица пакетов */}
                 <div ref={tableContainerRef} style={styles.tableWrapper}>
-                  <table className="packets-table">
+                  <table style={styles.table}>
                     <colgroup>
                       <col style={{ width: '40px' }} />
                       <col style={{ width: '60px' }} />
@@ -1462,15 +2095,43 @@ export const PcapFileViewer: React.FC<PcapFileViewerProps> = ({
                     </colgroup>
                     <thead>
                       <tr style={styles.tableHeader}>
-                        <th onClick={() => handleSort('index')}>#</th>
-                        <th onClick={() => handleSort('timestamp')}>Время</th>
-                        <th onClick={() => handleSort('source')}>Источник</th>
-                        <th onClick={() => handleSort('destination')}>
+                        <th
+                          style={styles.th}
+                          onClick={() => handleSort('index')}
+                        >
+                          #
+                        </th>
+                        <th
+                          style={styles.th}
+                          onClick={() => handleSort('timestamp')}
+                        >
+                          Время
+                        </th>
+                        <th
+                          style={styles.th}
+                          onClick={() => handleSort('source')}
+                        >
+                          Источник
+                        </th>
+                        <th
+                          style={styles.th}
+                          onClick={() => handleSort('destination')}
+                        >
                           Назначение
                         </th>
-                        <th onClick={() => handleSort('protocol')}>Протокол</th>
-                        <th onClick={() => handleSort('length')}>Размер</th>
-                        <th>Информация</th>
+                        <th
+                          style={styles.th}
+                          onClick={() => handleSort('protocol')}
+                        >
+                          Протокол
+                        </th>
+                        <th
+                          style={styles.th}
+                          onClick={() => handleSort('length')}
+                        >
+                          Размер
+                        </th>
+                        <th style={styles.th}>Информация</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1528,7 +2189,6 @@ export const PcapFileViewer: React.FC<PcapFileViewerProps> = ({
                   </table>
                 </div>
 
-                {/* Пагинация */}
                 {totalPages > 1 && (
                   <div style={styles.compactPagination}>
                     <button
@@ -1567,13 +2227,12 @@ export const PcapFileViewer: React.FC<PcapFileViewerProps> = ({
                   </div>
                 )}
               </div>
-            </div>
+            )}
           </div>
 
-          {/* Раздел 2: Детали пакета */}
+          {/* Раздел 2: Детали пакета с вкладками */}
           <div style={styles.section}>
             <div
-              className="collapsible-header"
               style={styles.sectionHeader}
               onClick={() => setIsPacketDetailsOpen(!isPacketDetailsOpen)}
             >
@@ -1585,9 +2244,7 @@ export const PcapFileViewer: React.FC<PcapFileViewerProps> = ({
               )}
             </div>
 
-            <div
-              className={`collapsible-content ${isPacketDetailsOpen ? 'open' : 'closed'}`}
-            >
+            {isPacketDetailsOpen && (
               <div style={styles.sectionContent}>
                 {selectedPacket && selectedPacket.parsed ? (
                   <>
@@ -1618,11 +2275,48 @@ export const PcapFileViewer: React.FC<PcapFileViewerProps> = ({
                         {selectedPacket.parsed.info}
                       </div>
                     </div>
-                    <HexDump
-                      data={selectedPacket.data}
-                      maxBytes={512}
-                      isDarkMode={isDarkMode}
-                    />
+
+                    {/* Вкладки */}
+                    <div style={styles.tabs}>
+                      <button
+                        style={{
+                          ...styles.tab,
+                          ...(activeTab === 'structure' ? styles.tabActive : {})
+                        }}
+                        onClick={() => setActiveTab('structure')}
+                      >
+                        📋 Структура кадра
+                      </button>
+                      <button
+                        style={{
+                          ...styles.tab,
+                          ...(activeTab === 'hex' ? styles.tabActive : {})
+                        }}
+                        onClick={() => setActiveTab('hex')}
+                      >
+                        🔢 HEX представление
+                      </button>
+                    </div>
+
+                    {/* Содержимое вкладок */}
+                    {activeTab === 'structure' && (
+                      <PacketDetailsTree
+                        packet={selectedPacket}
+                        isDarkMode={isDarkMode}
+                        onNodeSelect={handleNodeSelect}
+                        selectedOffset={selectedOffset}
+                      />
+                    )}
+
+                    {activeTab === 'hex' && (
+                      <HexDump
+                        data={selectedPacket.data}
+                        maxBytes={512}
+                        isDarkMode={isDarkMode}
+                        highlightOffset={selectedOffset}
+                        highlightLength={selectedLength}
+                      />
+                    )}
                   </>
                 ) : (
                   <div style={styles.noSelection}>
@@ -1630,7 +2324,7 @@ export const PcapFileViewer: React.FC<PcapFileViewerProps> = ({
                   </div>
                 )}
               </div>
-            </div>
+            )}
           </div>
         </div>
       )}

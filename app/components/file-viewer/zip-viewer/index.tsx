@@ -32,11 +32,35 @@ export function ZipFileViewer({
       try {
         const zip = (await JSZip.loadAsync(fileBlob)) as JSZip
         setZip(zip)
-        setFileNames(
-          Object.keys(zip.files).filter(
-            (fileName) => fileName.startsWith('__MACOSX') === false
+        const fileNames = Object.keys(zip.files).filter(
+          (fileName) => fileName.startsWith('__MACOSX') === false
+        )
+        const fileNamesFull = Array.from(
+          new Set(
+            fileNames.flatMap((fileName) => {
+              const isFolder = fileName.endsWith('/')
+              const names: string[] = []
+              const parts = fileName.split('/').filter((part) => part !== '')
+              for (let i = 0; i < parts.length; i++) {
+                const part = parts[i]
+                if (i === 0) {
+                  names.push(
+                    i < parts.length - 1 || isFolder ? `${part}/` : part
+                  )
+                } else {
+                  const last = names.at(-1)!
+                  names.push(
+                    i < parts.length - 1 || isFolder
+                      ? `${last}${part}/`
+                      : `${last}${part}`
+                  )
+                }
+              }
+              return names
+            })
           )
         )
+        setFileNames(fileNamesFull)
       } catch (error) {
         notifier.showError(
           error,

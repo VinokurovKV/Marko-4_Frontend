@@ -4,7 +4,7 @@ import { useNotifier } from '~/providers/notifier'
 import { SUPPORTED_IMAGE_EXTENSIONS, ImageFileViewer } from './image-viewer'
 import { JsonFileViewer } from './json-viewer'
 import { MarkdownFileViewer } from './markdown-viewer'
-// import { XcfgFileViewer } from './xcfg-viewer'
+import { XcfgFileViewer } from './xcfg-viewer'
 import { XmlFileViewer } from './xml-viewer'
 import { PcapFileViewer } from './pcap-viewer'
 import { PdfFileViewer } from './pdf-viewer'
@@ -57,9 +57,7 @@ export function NotZipFileViewer({
         ['json', 'log', 'md', 'py', 'ts', 'txt', 'xml'].includes(ext)
       const isBlobFile =
         ext !== null &&
-        ['pcap', 'pdf' /*, 'xcfg'*/, ...SUPPORTED_IMAGE_EXTENSIONS].includes(
-          ext
-        )
+        ['pcap', 'pdf', 'xcfg', ...SUPPORTED_IMAGE_EXTENSIONS].includes(ext)
       if (isTextFile === false) {
         setLocalFileName(localFileName)
         setLocalFileBlob(localFileBlob)
@@ -168,15 +166,13 @@ export function NotZipFileViewer({
           isDarkMode={isDarkMode}
         />
       ) : null}
-      {/* {ext === 'xcfg' ? (
+      {ext === 'xcfg' ? (
         <XcfgFileViewer
-          xcfgBlob={localFileBlob}
+          blob={localFileBlob}
           fileName={localFileName}
           isDarkMode={isDarkMode}
-          debugMode={true}
-          onError={(error) => console.error(error)}
         />
-      ) : null} */}
+      ) : null}
       {ext === 'xml' && text !== null ? (
         <XmlFileViewer
           fileName={localFileName}
