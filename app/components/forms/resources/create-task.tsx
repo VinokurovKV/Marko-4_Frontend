@@ -37,7 +37,7 @@ import {
   FormAutocompleteSingleSelect,
   FormBlock,
   FormCheckbox,
-  // FormDateTime,
+  FormDateTime,
   FormDialog,
   FormMultilineTextField,
   FormNumField,
@@ -290,8 +290,8 @@ export function CreateTaskFormDialog(props: CreateTaskFormDialogProps) {
     handleStrSelectChange,
     handleAutocompleteSingleSelectChange,
     handleAutocompleteMultipleSelectChange,
-    handleAutocompleteMultipleSelectFreeItemsChange
-    // handleDateTimeChange
+    handleAutocompleteMultipleSelectFreeItemsChange,
+    handleDateTimeChange
   } = useForm<CreateTaskFormData, DtoWithoutEnums<CreateTaskSuccessResultDto>>({
     INITIAL_FORM_DATA: INITIAL_CREATE_TASK_FORM_DATA,
     validator: createTaskFormValidator,
@@ -538,7 +538,7 @@ export function CreateTaskFormDialog(props: CreateTaskFormDialogProps) {
           checked={data.paused}
           onChange={handleCheckboxChange}
         />
-        {/* <FormDateTime
+        <FormDateTime
           disablePast
           name="minLaunchTime"
           label="время отложенного запуска"
@@ -550,7 +550,7 @@ export function CreateTaskFormDialog(props: CreateTaskFormDialogProps) {
           }
           error={!!errors?.minLaunchTime}
           onChange={handleDateTimeChange}
-        /> */}
+        />
       </FormBlock>
       <FormBlock title="дополнительная информация">
         <FormMultilineTextField
