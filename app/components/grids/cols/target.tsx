@@ -105,6 +105,7 @@ export function getTargetHrefForAction(
     case 'UNPAUSE_TASK':
     case 'DELETE_TASK':
     case 'DELETE_TASKS':
+    case 'REACH_TASKS_MIN_LAUNCH_TIME':
       return `tasks/${targetId}`
     case 'CREATE_TASK_TEMPLATE':
     case 'UPDATE_TASK_TEMPLATE':
