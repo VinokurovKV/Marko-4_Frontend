@@ -20,7 +20,7 @@ import {
   useForm,
   FormAutocompleteFreeItemsMultipleSelect,
   FormBlock,
-  // FormDateTime,
+  FormDateTime,
   FormDialog,
   FormMultilineTextField,
   FormNumField,
@@ -187,8 +187,8 @@ export function UpdateTaskFormDialog(props: UpdateTaskFormDialogProps) {
     errors,
     handleTextFieldChange,
     handleAutocompleteMultipleSelectChange,
-    handleAutocompleteMultipleSelectFreeItemsChange
-    // handleDateTimeChange
+    handleAutocompleteMultipleSelectFreeItemsChange,
+    handleDateTimeChange
   } = useForm<UpdateTaskFormData, DtoWithoutEnums<UpdateTaskSuccessResultDto>>({
     INITIAL_FORM_DATA: initialFormData,
     validator: updateTaskFormValidator,
@@ -245,7 +245,7 @@ export function UpdateTaskFormDialog(props: UpdateTaskFormDialogProps) {
           error={!!errors?.priority}
           onChange={handleTextFieldChange}
         />
-        {/* <FormDateTime
+        <FormDateTime
           disablePast
           name="minLaunchTime"
           label="время отложенного запуска"
@@ -257,7 +257,7 @@ export function UpdateTaskFormDialog(props: UpdateTaskFormDialogProps) {
           }
           error={!!errors?.minLaunchTime}
           onChange={handleDateTimeChange}
-        /> */}
+        />
       </FormBlock>
       <FormBlock title="дополнительная информация">
         <FormMultilineTextField
