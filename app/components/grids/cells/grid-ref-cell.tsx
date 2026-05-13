@@ -116,6 +116,7 @@ export function GridRefCell(props: GridRefCellProps) {
 
   return (
     <Tooltip
+      sx={{ backgroundColor: 'green' }}
       title={props.hoverPreview.renderContent(
         hoverPreviewIsActive,
         handlePreviewReadyChange

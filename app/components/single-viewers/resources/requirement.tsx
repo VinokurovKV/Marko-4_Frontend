@@ -300,7 +300,7 @@ export function RequirementViewer({
       </ColumnViewer>
       {oneColumn ? null : (
         <VerticalTwoPartsContainer
-          proportions={hasReadyFragmentScreenshot ? '50_50' : '100_0'}
+          proportions={hasReadyFragmentScreenshot ? '45_55' : '100_0'}
         >
           <ColumnViewer>
             <ColumnViewerBlock title="описание">
@@ -311,8 +311,9 @@ export function RequirementViewer({
             </ColumnViewerBlock>
           </ColumnViewer>
           <ColumnViewer>
-            <ColumnViewerBlock title="скриншот фрагмента">
+            <ColumnViewerBlock title="фрагмент">
               <Box
+                flexDirection="column"
                 sx={{
                   position: 'relative',
                   display: 'flex',
@@ -322,6 +323,20 @@ export function RequirementViewer({
                   p: 1
                 }}
               >
+                {selectedFragment !== null ? (
+                  <ColumnViewerRef
+                    field="документ"
+                    text={
+                      documentCodeForId.get(selectedFragment.documentId) ??
+                      '???'
+                    }
+                    href={
+                      selectedFragment.documentId !== null
+                        ? `/documents/${selectedFragment.documentId}`
+                        : undefined
+                    }
+                  />
+                ) : null}
                 {selectedFragmentScreenshotUrl !== null ? (
                   <Box
                     component="img"

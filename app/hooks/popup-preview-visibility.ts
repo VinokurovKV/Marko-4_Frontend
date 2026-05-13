@@ -2,6 +2,7 @@
 import * as React from 'react'
 
 export interface PopupPreviewVisibilitySettings {
+  requirement: boolean
   commonTopology: boolean
   topology: boolean
   roleRights: boolean
@@ -13,6 +14,7 @@ const STORAGE_KEY = 'marko-4.popup-preview-visibility.v1'
 const SETTINGS_UPDATED_EVENT = 'marko-4:popup-preview-visibility-updated'
 
 const DEFAULT_SETTINGS: PopupPreviewVisibilitySettings = {
+  requirement: true,
   commonTopology: true,
   topology: true,
   roleRights: true,
@@ -28,6 +30,10 @@ function mergeWithDefaults(value: unknown): PopupPreviewVisibilitySettings {
   const record = value as Record<string, unknown>
 
   return {
+    requirement:
+      typeof record.requirement === 'boolean'
+        ? record.requirement
+        : DEFAULT_SETTINGS.requirement,
     commonTopology:
       typeof record.commonTopology === 'boolean'
         ? record.commonTopology

@@ -1,6 +1,8 @@
 // Project
 import type { RequirementPrimary } from '~/types'
+import { usePopupPreviewVisibilitySettings } from '~/hooks/popup-preview-visibility'
 import { GridRefCell } from '../cells/grid-ref-cell'
+import { RequirementHoverPreview } from '~/components/requirements/requirement-hover-preview'
 // React
 import * as React from 'react'
 // Material UI
@@ -11,6 +13,8 @@ import capitalize from 'capitalize'
 export function useRequirementCol(
   requirements: RequirementPrimary[] | null | undefined
 ) {
+  const { settings } = usePopupPreviewVisibilitySettings()
+
   const requirementNameForId = React.useMemo(
     () =>
       new Map(
@@ -35,6 +39,25 @@ export function useRequirementCol(
           hrefPrefix="/requirements"
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
           hrefPath={params.row.requirementId}
+          hoverPreview={
+            settings.requirement &&
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+            typeof params.row.requirementId === 'number'
+              ? {
+                  renderContent: (active, onReadyChange) => (
+                    <RequirementHoverPreview
+                      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+                      key={params.row.requirementId as number}
+                      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+                      requirementId={params.row.requirementId as number}
+                      active={active}
+                      text={params.value}
+                      onReadyChange={onReadyChange}
+                    />
+                  )
+                }
+              : undefined
+          }
         />
       ),
       minWidth: 140,
