@@ -95,7 +95,10 @@ export function RequirementHoverPreview({
   )
 
   const documentIds = React.useMemo(
-    () => fragments?.map((fragment) => fragment.documentId) ?? null,
+    () =>
+      fragments !== null
+        ? Array.from(new Set(fragments.map((fragment) => fragment.documentId)))
+        : null,
     [fragments]
   )
 
