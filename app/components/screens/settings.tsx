@@ -42,6 +42,17 @@ export function SettingsScreen() {
             <FormControlLabel
               control={
                 <Checkbox
+                  checked={settings.requirement}
+                  onChange={(_, checked) => {
+                    setSetting('requirement', checked)
+                  }}
+                />
+              }
+              label="Требования"
+            />
+            <FormControlLabel
+              control={
+                <Checkbox
                   checked={settings.commonTopology}
                   onChange={(_, checked) => {
                     setSetting('commonTopology', checked)
