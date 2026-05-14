@@ -2,6 +2,7 @@
 import { calculateTopologyConfig } from '@common/utilities'
 import type {
   TagPrimary,
+  DocumentPrimary,
   FragmentPrimary,
   RequirementPrimary,
   CommonTopologyTertiary,
@@ -47,6 +48,7 @@ const FRAGMENT_SCREENSHOT_LOADER_DELAY_MS = 250
 
 export interface TestViewerProps {
   tags: TagPrimary[] | null
+  documents: DocumentPrimary[] | null
   fragments: FragmentPrimary[] | null
   requirements: RequirementPrimary[] | null
   commonTopology: CommonTopologyTertiary | null
@@ -60,6 +62,7 @@ export interface TestViewerProps {
 
 export function TestViewer({
   tags,
+  documents,
   fragments,
   requirements,
   commonTopology,
@@ -86,6 +89,14 @@ export function TestViewer({
   const [fragmentScreenshotLoadError, setFragmentScreenshotLoadError] =
     React.useState(false)
   const screenshotRequestSeqRef = React.useRef(0)
+
+  const documentCodeForId = React.useMemo(
+    () =>
+      new Map(
+        (documents ?? []).map((document) => [document.id, document.code])
+      ),
+    [documents]
+  )
 
   const fragmentForId = React.useMemo(
     () => new Map((fragments ?? []).map((fragment) => [fragment.id, fragment])),
@@ -508,7 +519,7 @@ export function TestViewer({
           nullConfigTitle="схема топологии"
         />
       </VerticalTwoPartsContainer>
-      <VerticalTwoPartsContainer proportions="50_50">
+      <VerticalTwoPartsContainer proportions="45_55">
         <ColumnViewer>
           <Stack spacing={-2}>
             <FormSelect
@@ -529,22 +540,29 @@ export function TestViewer({
               }))}
             />
           </ColumnViewerBlock>
-          <ColumnViewerBlock title="фрагменты">
+          <ColumnViewerBlock
+            title={`фрагменты документов${(fragments ?? []).length > 0 ? ` (${(fragments ?? []).length})` : ''}`}
+          >
             <ColumnViewerChipsBlock
               emptyText="нет"
-              items={(fragments ?? []).map((fragment) => ({
-                text: fragment.innerCode,
-                onClick: () => handleFragmentClick(fragment.id),
-                isActive: selectedFragmentId === fragment.id,
-                disableCapitalize: true
-              }))}
+              items={(fragments ?? []).map((fragment) => {
+                const documentCode =
+                  documentCodeForId.get(fragment.documentId) ?? null
+                return {
+                  text: `${documentCode ?? '???'} - ${fragment.innerCode}`,
+                  onClick: () => handleFragmentClick(fragment.id),
+                  isActive: selectedFragmentId === fragment.id,
+                  disableCapitalize: true
+                }
+              })}
             />
           </ColumnViewerBlock>
         </ColumnViewer>
         <ColumnViewer>
           {selectedFragmentId !== null ? (
-            <ColumnViewerBlock title="скриншот фрагмента">
+            <ColumnViewerBlock title="фрагмент">
               <Box
+                flexDirection="column"
                 sx={{
                   position: 'relative',
                   display: 'flex',
@@ -554,6 +572,20 @@ export function TestViewer({
                   p: 1
                 }}
               >
+                {selectedFragment !== null ? (
+                  <ColumnViewerRef
+                    field="документ"
+                    text={
+                      documentCodeForId.get(selectedFragment.documentId) ??
+                      '???'
+                    }
+                    href={
+                      selectedFragment.documentId !== null
+                        ? `/documents/${selectedFragment.documentId}`
+                        : undefined
+                    }
+                  />
+                ) : null}
                 {selectedFragmentScreenshotUrl !== null &&
                 fragmentScreenshotLoadError === false ? (
                   <Box
@@ -564,9 +596,6 @@ export function TestViewer({
                         ? `Скриншот фрагмента ${selectedFragment.innerCode}`
                         : 'Скриншот фрагмента'
                     }
-                    onError={() => {
-                      setFragmentScreenshotLoadError(true)
-                    }}
                     sx={{
                       width: '100%',
                       height: 'auto',

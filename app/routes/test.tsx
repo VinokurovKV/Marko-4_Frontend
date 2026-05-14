@@ -1,6 +1,7 @@
 // Project
 import type {
   TagPrimary,
+  DocumentPrimary,
   FragmentPrimary,
   RequirementPrimary,
   CommonTopologyTertiary,
@@ -15,6 +16,7 @@ import { serverConnector } from '~/server-connector'
 import {
   readTestTertiary,
   readTagsPrimaryFiltered,
+  readDocumentsPrimaryFiltered,
   readFragmentsPrimaryFiltered,
   readRequirementsPrimaryFiltered,
   readRequirementTertiary,
@@ -29,6 +31,7 @@ import { useNotifier } from '~/providers/notifier'
 import { useMeta } from '~/providers/meta'
 import {
   useTagsFilteredSubscription,
+  useDocumentsFilteredSubscription,
   useRequirementsFilteredSubscription,
   useCommonTopologySubscription,
   useTopologySubscription,
@@ -83,13 +86,18 @@ export async function clientLoader({ params }: Route.ClientLoaderArgs) {
           return readFragmentsPrimaryFiltered(fragmentIds)
         })()
       : null
-  const [commonTopology, group] = await Promise.all([
+  const documentIds = Array.from(
+    new Set((fragments ?? []).map((fragment) => fragment.documentId))
+  )
+  const [documents, commonTopology, group] = await Promise.all([
+    readDocumentsPrimaryFiltered(documentIds),
     readCommonTopologyTertiary(topology?.commonTopologyId ?? null),
     readGroupPrimary(subgroup?.groupId ?? null)
   ])
   return {
     testId,
     tags,
+    documents,
     requirements,
     commonTopology,
     topology,
@@ -106,6 +114,7 @@ function TestRouteInner({
   loaderData: {
     testId,
     tags: initialTags,
+    documents: initialDocuments,
     requirements: initialRequirements,
     commonTopology: initialCommonTopology,
     topology: initialTopology,
@@ -121,6 +130,9 @@ function TestRouteInner({
   const meta = useMeta()
 
   const [tags, setTags] = React.useState<TagPrimary[] | null>(initialTags)
+  const [documents, setDocuments] = React.useState<DocumentPrimary[] | null>(
+    initialDocuments
+  )
   const [requirements, setRequirements] = React.useState<
     RequirementPrimary[] | null
   >(initialRequirements)
@@ -140,6 +152,13 @@ function TestRouteInner({
   const [group, setGroup] = React.useState<GroupPrimary | null>(initialGroup)
 
   const tagIds = React.useMemo(() => test?.tagIds ?? null, [test])
+  const documentIds = React.useMemo(
+    () =>
+      Array.from(
+        new Set((fragments ?? []).map((fragment) => fragment.documentId))
+      ),
+    [fragments]
+  )
   const requirementIds = React.useMemo(
     () => test?.requirementIds ?? null,
     [test]
@@ -147,6 +166,7 @@ function TestRouteInner({
   const dbcIds = React.useMemo(() => test?.dbcIds ?? null, [test])
 
   useTagsFilteredSubscription('PRIMARY_PROPS', tagIds, setTags)
+  useDocumentsFilteredSubscription('PRIMARY_PROPS', documentIds, setDocuments)
   useRequirementsFilteredSubscription(
     'PRIMARY_PROPS',
     requirementIds,
@@ -198,6 +218,7 @@ function TestRouteInner({
     <TestViewer
       key={testId}
       tags={tags}
+      documents={documents}
       requirements={requirements}
       commonTopology={commonTopology}
       topology={topology}
