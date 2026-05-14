@@ -551,7 +551,7 @@ function useFormSeparated(props: FormProps) {
     </Box>
   )
   const ActionsElem = (
-    <Stack p={0.5} spacing={1} sx={{ width: '100%', maxWidth: '700px' }}>
+    <Stack p={0.5} spacing={1} sx={{ width: '100%', maxWidth: '80vw' }}>
       <Typography
         color="error"
         align="center"
@@ -629,7 +629,7 @@ export function FormDialog({
   })
 
   return (
-    <Dialog scroll="paper" onClose={cancelForm} open={isActive} maxWidth={'md'}>
+    <Dialog scroll="paper" onClose={cancelForm} open={isActive} maxWidth={'xl'}>
       {TitleElem !== null ? <DialogTitle>{TitleElem}</DialogTitle> : null}
       <DialogContent dividers={true}>
         <FormContainer>{ContentElem}</FormContainer>

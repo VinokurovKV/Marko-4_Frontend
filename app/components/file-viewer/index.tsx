@@ -44,7 +44,7 @@ export function FileViewer({
   }, [setIsActive])
 
   return (
-    <Dialog scroll="paper" onClose={cancel} open={isActive} maxWidth={'md'}>
+    <Dialog scroll="paper" onClose={cancel} open={isActive} maxWidth={'xl'}>
       {fileTitle !== null ? (
         <DialogTitle>
           <Typography

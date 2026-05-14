@@ -16,7 +16,12 @@ export const PdfFileViewer: React.FC<PdfFileViewerProps> = ({
 
   React.useEffect(() => {
     if (blob) {
-      const url = URL.createObjectURL(blob)
+      let pdfBlob = blob
+      if (blob.type !== 'application/pdf') {
+        pdfBlob = new Blob([blob], { type: 'application/pdf' })
+      }
+
+      const url = URL.createObjectURL(pdfBlob)
       setPdfUrl(url)
       return () => {
         URL.revokeObjectURL(url)
