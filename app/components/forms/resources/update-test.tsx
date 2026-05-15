@@ -49,6 +49,8 @@ import {
 } from '../common'
 // React
 import * as React from 'react'
+// Other
+import JSZip from 'jszip'
 
 const EMPTY_TAG_IDS_ARR: number[] = []
 const EMPTY_TAG_CODES_ARR: string[] = []
@@ -418,6 +420,7 @@ export function UpdateTestFormDialog(props: UpdateTestFormDialogProps) {
     data,
     errors,
     clearFields,
+    handleFieldChange,
     handleTextFieldChange,
     handleAutocompleteSingleSelectChange,
     handleAutocompleteMultipleSelectChange,
@@ -429,6 +432,56 @@ export function UpdateTestFormDialog(props: UpdateTestFormDialogProps) {
     clearTrigger: test?.id,
     submitAction: submitAction,
     onSuccessSubmit: onSuccessSubmit
+  })
+
+  useChangeDetector({
+    detectedObjects: [data.config],
+    otherDependencies: [notifier, data.descriptionText, handleFieldChange],
+    onChange: () => {
+      const README_FILE_NAME = 'readme.md'
+      if (data.descriptionText === undefined || data.descriptionText === '') {
+        void (async () => {
+          const zip = await (async () => {
+            try {
+              return data.config !== undefined
+                ? await JSZip.loadAsync(data.config)
+                : Promise.resolve(null)
+            } catch (error) {
+              notifier.showError(
+                error,
+                'не удалось прочитать ZIP-архив с конфигурацией теста'
+              )
+              throw error
+            }
+          })()
+          if (zip !== null) {
+            const fileNames = Object.keys(zip.files)
+            if (fileNames.includes(README_FILE_NAME) === false) {
+              const error = new Error(
+                `в ZIP-архиве с конфигурацией теста отсутствует файл '${README_FILE_NAME}'`
+              )
+              notifier.showError(error)
+              throw error
+            }
+            const description = await (async () => {
+              try {
+                return await zip.file(README_FILE_NAME)!.async('string')
+              } catch (error) {
+                notifier.showError(
+                  error,
+                  `не удалось прочитать файл '${README_FILE_NAME}' из ZIP-архива с конфигурацией теста`
+                )
+                throw error
+              }
+            })()
+            handleFieldChange('descriptionText', description)
+            notifier.showInfo(
+              `описание теста подгружено из файла '${README_FILE_NAME}' конфигурации`
+            )
+          }
+        })()
+      }
+    }
   })
 
   const requirementIds = React.useMemo(
