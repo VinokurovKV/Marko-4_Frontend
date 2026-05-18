@@ -387,15 +387,16 @@ export function CreateTaskFormDialog(props: CreateTaskFormDialogProps) {
       const deviceIdFromLS = localStorage.getItem(
         `TASK_FORM_DEVICE_ID_FOR_VERTEX_${vertexName}`
       )
-      if (deviceIdFromLS !== '') {
+      if (deviceIdFromLS !== null && deviceIdFromLS !== '') {
+        const deviceId = Number(deviceIdFromLS)
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const currentDeviceId = data[deviceIdField]
-        if (currentDeviceId === undefined) {
-          handleFieldChange(deviceIdField, Number(deviceIdFromLS))
+        if (currentDeviceId === undefined && deviceCodeForId.has(deviceId)) {
+          handleFieldChange(deviceIdField, deviceId)
         }
       }
     }
-  }, [vertexNamesTruncated, data, handleFieldChange])
+  }, [deviceCodeForId, vertexNamesTruncated, data, handleFieldChange])
 
   const modeSelectItems: FormSelectProps<string>['items'] = React.useMemo(
     () =>
