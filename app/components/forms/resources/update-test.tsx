@@ -19,7 +19,8 @@ import {
   useTags,
   useRequirements,
   useCommonTopology,
-  useTopology
+  useTopology,
+  useTopologies
 } from '~/hooks/resources'
 import {
   type UpdateTestFormData,
@@ -47,6 +48,14 @@ import {
   FormNumField,
   FormTextField
 } from '../common'
+import {
+  getFirstNonEmptyLineAfterMarker,
+  removeDuplicates,
+  replaceFirstFromIndex,
+  setsAreEqual,
+  normalizeEmptyLines,
+  extractMarkdownHeadings
+} from './create-test'
 // React
 import * as React from 'react'
 // Other
@@ -95,6 +104,11 @@ export function UpdateTestFormDialog(props: UpdateTestFormDialogProps) {
     false,
     props.testId !== null
   )
+  const topologies = useTopologies(
+    'PRIMARY_PROPS',
+    false,
+    props.testId !== null
+  )
 
   const tagCodeForId = React.useMemo(
     () => new Map((tags ?? []).map((tag) => [tag.id, tag.code])),
@@ -104,6 +118,25 @@ export function UpdateTestFormDialog(props: UpdateTestFormDialogProps) {
   const tagIdForCode = React.useMemo(
     () => new Map((tags ?? []).map((tag) => [tag.code, tag.id])),
     [tags]
+  )
+
+  const requirementIdForCode = React.useMemo(
+    () =>
+      new Map(
+        (requirements ?? []).map((requirement) => [
+          requirement.code,
+          requirement.id
+        ])
+      ),
+    [requirements]
+  )
+
+  const topologyIdForCode = React.useMemo(
+    () =>
+      new Map(
+        (topologies ?? []).map((topology) => [topology.code, topology.id])
+      ),
+    [topologies]
   )
 
   const readTopologyNonGeneratorVertexNamesSorted = React.useCallback(
@@ -439,7 +472,10 @@ export function UpdateTestFormDialog(props: UpdateTestFormDialogProps) {
     otherDependencies: [notifier, data.descriptionText, handleFieldChange],
     onChange: () => {
       const README_FILE_NAME = 'readme.md'
-      if (data.descriptionText === undefined || data.descriptionText === '') {
+      if (
+        data.descriptionText === undefined ||
+        data.descriptionText.trim() === ''
+      ) {
         void (async () => {
           const zip = await (async () => {
             try {
@@ -474,12 +510,135 @@ export function UpdateTestFormDialog(props: UpdateTestFormDialogProps) {
                 throw error
               }
             })()
-            handleFieldChange('descriptionText', description)
+            handleFieldChange(
+              'descriptionText',
+              normalizeEmptyLines(description)
+            )
             notifier.showInfo(
               `описание теста подгружено из файла '${README_FILE_NAME}' конфигурации`
             )
           }
         })()
+      }
+    }
+  })
+
+  useChangeDetector({
+    detectedObjects: [data.descriptionText],
+    otherDependencies: [tagIdForCode, requirementIdForCode, handleFieldChange],
+    onChange: () => {
+      const tagsLine =
+        getFirstNonEmptyLineAfterMarker(data.descriptionText ?? '', '# Теги')
+          ?.text ?? null
+      const tagCodes =
+        tagsLine !== null
+          ? removeDuplicates(
+              tagsLine
+                .split(',')
+                .map((fragment) => fragment.trim())
+                .filter((fragment) => fragment !== '')
+            )
+          : null
+      if (tagCodes !== null) {
+        const tagIds: number[] | undefined = []
+        const tagCodesToCreate: string[] | undefined = []
+        for (const tagCode of tagCodes) {
+          const tagId = tagIdForCode.get(tagCode)
+          if (tagId !== undefined) {
+            tagIds.push(tagId)
+          } else {
+            tagCodesToCreate.push(tagCode)
+          }
+        }
+        handleFieldChange('tagIds', tagIds)
+        handleFieldChange('tagCodesToCreate', tagCodesToCreate)
+      }
+      const requirementCodes = extractMarkdownHeadings(
+        data.descriptionText ?? '',
+        'Требования',
+        3
+      )
+      const requirementIds = removeDuplicates(requirementCodes)
+        .map((code) => requirementIdForCode.get(code))
+        .filter((id) => id !== undefined)
+      if (requirementIds.length > 0) {
+        handleFieldChange('requirementIds', requirementIds)
+      }
+      const topologyCodes = extractMarkdownHeadings(
+        data.descriptionText ?? '',
+        'Топология',
+        2
+      )
+      const topologyCode = topologyCodes.length > 0 ? topologyCodes[0] : null
+      if (topologyCode !== null) {
+        const topologyId = topologyIdForCode.get(topologyCode) ?? null
+        if (topologyId !== null) {
+          handleFieldChange('topologyId', topologyId)
+        }
+      }
+    }
+  })
+
+  useChangeDetector({
+    detectedObjects: [data.tagIds, data.tagCodesToCreate],
+    otherDependencies: [tagCodeForId, handleFieldChange, data.descriptionText],
+    onChange: () => {
+      const tagCodes = [
+        ...(data.tagIds ?? [])
+          .map((tagId) => tagCodeForId.get(tagId))
+          .filter((tagId) => tagId !== undefined),
+        ...(data.tagCodesToCreate ?? [])
+      ]
+      const tagCodesSet = new Set(tagCodes)
+      if (
+        data.descriptionText !== undefined &&
+        data.descriptionText.trim() !== ''
+      ) {
+        const tagsLine = getFirstNonEmptyLineAfterMarker(
+          data.descriptionText ?? '',
+          '# Теги'
+        )
+        if (tagCodes.length === 0) {
+          if (tagsLine !== null) {
+            const newDescriptionText = replaceFirstFromIndex(
+              data.descriptionText,
+              tagsLine.text,
+              '',
+              tagsLine.startIndex
+            ).replace('# Теги', '')
+            handleFieldChange(
+              'descriptionText',
+              normalizeEmptyLines(newDescriptionText)
+            )
+          }
+        } else {
+          if (tagsLine !== null) {
+            const tagsLineCodesSet = new Set(
+              tagsLine.text
+                .split(',')
+                .map((fragment) => fragment.trim())
+                .filter((fragment) => fragment !== '')
+            )
+            if (setsAreEqual(tagCodesSet, tagsLineCodesSet) === false) {
+              const newDescriptionText = replaceFirstFromIndex(
+                data.descriptionText,
+                tagsLine.text,
+                tagCodes.join(', '),
+                tagsLine.startIndex
+              )
+              handleFieldChange(
+                'descriptionText',
+                normalizeEmptyLines(newDescriptionText)
+              )
+            }
+          } else {
+            const newDescriptionText = `${data.descriptionText}\n\n# Теги\n\n${tagCodes.join(', ')}`
+            handleFieldChange(
+              'descriptionText',
+              normalizeEmptyLines(newDescriptionText)
+            )
+          }
+        }
       }
     }
   })

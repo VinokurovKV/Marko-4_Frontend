@@ -91,7 +91,7 @@ const formValidatorConfig: FormValidatorConfig<UpdateTestFormData> = {
     },
     descriptionText: {
       transforms: ['TRIM', 'EMPTY_STR_TO_UNDEFINED'],
-      rules: ['ALLOW_UNDEFINED', 'TEXT']
+      rules: ['ALLOW_UNDEFINED', 'TEXT', 'TEST_DESCRIPTION']
     },
     tagIds: {
       transforms: ['EMPTY_ARR_TO_UNDEFINED']

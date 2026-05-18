@@ -35,6 +35,7 @@ type FormValidatorOneFieldRule =
   | 'PRIORITY'
   | 'PUBLIC_VERSION'
   | 'SURNAME'
+  | 'TEST_DESCRIPTION'
   | 'TEXT'
   | 'TXT_EXT'
   | 'URL'
@@ -232,6 +233,11 @@ export class FormValidator<Data extends FormData> {
           ;(() => {
             const { minLength, maxLength } = restrictionConfig.common.surname
             props.push(`${minLength}-${maxLength} символов`)
+          })()
+          break
+        case 'TEST_DESCRIPTION':
+          ;(() => {
+            props.push('в соответствии с форматом описания теста')
           })()
           break
         case 'TEXT':
@@ -725,6 +731,55 @@ export class FormValidator<Data extends FormData> {
             )
             if (surnameErrors !== null) {
               errors.push(...surnameErrors)
+            }
+          })()
+          break
+        case 'TEST_DESCRIPTION':
+          ;(() => {
+            if (typeof val === 'string') {
+              const sectionTitles = [
+                '# Код',
+                '# Краткое описание',
+                '# Теги',
+                '# Требования',
+                '# Топология',
+                '# Конфигурация устройства',
+                '# Тестовое воздействие',
+                '# Критерий прохождения теста',
+                '# Дополнительная информация'
+              ]
+              const optionalSectionTitles = [
+                '# Теги',
+                '# Дополнительная информация'
+              ]
+              const optionalSectionTitlesSet = new Set(optionalSectionTitles)
+              function countOccurrences(str: string, substr: string): number {
+                if (!substr) return 0
+                const regex = new RegExp(substr, 'g')
+                const matches = str.match(regex)
+                return matches ? matches.length : 0
+              }
+              const sectionCounts = sectionTitles.map((section) =>
+                countOccurrences(val, section)
+              )
+              const missingSections = sectionTitles.filter(
+                (section, index) =>
+                  optionalSectionTitlesSet.has(section) === false &&
+                  sectionCounts[index] === 0
+              )
+              const duplicateSections = sectionTitles.filter(
+                (section, index) => sectionCounts[index] > 1
+              )
+              if (missingSections.length > 0) {
+                errors.push(
+                  `отсутствуют обязательные разделы ${missingSections.map((section) => `'${section}'`).join(', ')}`
+                )
+              }
+              if (duplicateSections.length > 0) {
+                errors.push(
+                  `многократное присутствие разделов ${duplicateSections.map((section) => `'${section}'`).join(', ')}`
+                )
+              }
             }
           })()
           break
