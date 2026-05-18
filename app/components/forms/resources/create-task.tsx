@@ -80,6 +80,8 @@ export interface CreateTaskFormDialogProps {
   commonTopologies: CommonTopologyPrimary[] | null
   createModeIsActive: boolean
   setCreateModeIsActive: React.Dispatch<React.SetStateAction<boolean>>
+  initialFormData?: CreateTaskFormData
+  clearTrigger?: number
   onSuccessCreateTask?: (
     createTaskResult: DtoWithoutEnums<CreateTaskSuccessResultDto>
   ) => void
@@ -285,6 +287,7 @@ export function CreateTaskFormDialog(props: CreateTaskFormDialogProps) {
     data,
     errors,
     clearFields,
+    handleFieldChange,
     handleCheckboxChange,
     handleTextFieldChange,
     handleStrSelectChange,
@@ -293,8 +296,9 @@ export function CreateTaskFormDialog(props: CreateTaskFormDialogProps) {
     handleAutocompleteMultipleSelectFreeItemsChange,
     handleDateTimeChange
   } = useForm<CreateTaskFormData, DtoWithoutEnums<CreateTaskSuccessResultDto>>({
-    INITIAL_FORM_DATA: INITIAL_CREATE_TASK_FORM_DATA,
+    INITIAL_FORM_DATA: props.initialFormData ?? INITIAL_CREATE_TASK_FORM_DATA,
     validator: createTaskFormValidator,
+    clearTrigger: props.clearTrigger,
     fieldsWithNotIgnoredErrorsBeforeSubmit,
     submitAction: submitAction,
     onSuccessSubmit: onSuccessSubmit
@@ -351,6 +355,26 @@ export function CreateTaskFormDialog(props: CreateTaskFormDialogProps) {
       updateFieldsWithNotIgnoredErrorsBeforeSubmit()
     }
   })
+
+  React.useEffect(() => {
+    if (props.initialFormData === undefined) {
+      return
+    }
+    for (
+      let vertexIndex = 0;
+      vertexIndex < vertexNamesTruncated.length;
+      vertexIndex++
+    ) {
+      const deviceIdField = getDeviceIdField(vertexIndex)
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const initialDeviceId = props.initialFormData[deviceIdField]
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const currentDeviceId = data[deviceIdField]
+      if (currentDeviceId === undefined && initialDeviceId !== undefined) {
+        handleFieldChange(deviceIdField, initialDeviceId)
+      }
+    }
+  }, [props.initialFormData, vertexNamesTruncated, data, handleFieldChange])
 
   const modeSelectItems: FormSelectProps<string>['items'] = React.useMemo(
     () =>
