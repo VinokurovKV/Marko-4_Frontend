@@ -12,7 +12,7 @@ export type ImportRequirementsFormData = DtoWithoutEnums<
   {
     config?: File
   } & {
-    ignoreExistingRequirements: boolean
+    existingRequirementMode: 'IGNORE' | 'UPDATE' | 'ERROR'
   } & {
     ignoreTestIfNotExists: boolean
   } & {
@@ -26,7 +26,7 @@ export type ImportRequirementsFormVal = FormVal<ImportRequirementsFormData>
 
 export const INITIAL_IMPORT_REQUIREMENTS_FORM_DATA: ImportRequirementsFormData =
   {
-    ignoreExistingRequirements: false,
+    existingRequirementMode: 'ERROR',
     ignoreTestIfNotExists: false,
     interruptIfError: true
   }

@@ -16,6 +16,7 @@ import {
   FormCheckbox,
   FormDialog,
   FormFileUpload,
+  FormSelect,
   useForm
 } from '../common'
 // React
@@ -33,7 +34,24 @@ const IMPORT_REQUIREMENTS_FORM_PROPS_JOINED =
 interface ImportResult {
   createdRequirementCodes: string[]
   ignoredRequirementCodes: string[]
+  updatedRequirementCodes: string[]
   errorRequirementCodes: string[]
+}
+
+const allExistingRequirementModes: ImportRequirementsFormData['existingRequirementMode'][] =
+  ['IGNORE', 'UPDATE', 'ERROR']
+
+function getExistingRequirementModeTitle(value: string): string {
+  switch (value) {
+    case 'IGNORE':
+      return 'игнорировать'
+    case 'UPDATE':
+      return 'обновить'
+    case 'ERROR':
+      return 'ошибка'
+    default:
+      return value.toLowerCase()
+  }
 }
 
 const CreateRequirementsConfigValidationSchema = zod.array(
@@ -92,9 +110,11 @@ export function ImportRequirementsFormDialog(
     (result: ImportResult) => {
       const successCodes = result.createdRequirementCodes
       const ignoredCodes = result.ignoredRequirementCodes
+      const updatedCodes = result.updatedRequirementCodes
       const errorCodes = result.errorRequirementCodes
       const successCount = successCodes.length
       const ignoredCount = ignoredCodes.length
+      const updatedCount = updatedCodes.length
       const errorCount = errorCodes.length
       const displayedSuccessCodes = successCodes.slice(
         0,
@@ -104,12 +124,17 @@ export function ImportRequirementsFormDialog(
         0,
         MAX_REQUIREMENTS_IN_MESSAGES
       )
+      const displayedUpdatedCodes = updatedCodes.slice(
+        0,
+        MAX_REQUIREMENTS_IN_MESSAGES
+      )
       const displayedErrorCodes = errorCodes.slice(
         0,
         MAX_REQUIREMENTS_IN_MESSAGES
       )
       const hiddenSuccessCount = successCount - displayedSuccessCodes.length
       const hiddenIgnoredCount = ignoredCount - displayedIgnoredCodes.length
+      const hiddenUpdatedCount = updatedCount - displayedUpdatedCodes.length
       const hiddenErrorCount = errorCount - displayedErrorCodes.length
       const successMessage =
         successCount === 0
@@ -119,22 +144,35 @@ export function ImportRequirementsFormDialog(
         ignoredCount === 0
           ? null
           : `требовани${ignoredCount === 1 ? 'е' : 'я'}${displayedIgnoredCodes.map((code) => ` '${code}'`).join()}${hiddenIgnoredCount > 0 ? ` и еще ${hiddenIgnoredCount}` : ''} проигнорирован${ignoredCount === 1 ? 'о' : 'ы'}`
+      const updatedMessage =
+        updatedCount === 0
+          ? null
+          : `требовани${updatedCount === 1 ? 'е' : 'я'}${displayedUpdatedCodes.map((code) => ` '${code}'`).join()}${hiddenUpdatedCount > 0 ? ` и еще ${hiddenUpdatedCount}` : ''} обновлен${updatedCount === 1 ? 'о' : 'ы'}`
       const errorMessage =
         errorCount === 0
           ? null
           : `требовани${errorCount === 1 ? 'е' : 'я'}${displayedErrorCodes.map((code) => ` '${code}'`).join()}${hiddenErrorCount > 0 ? ` и еще ${hiddenErrorCount}` : ''} не создан${errorCount === 1 ? 'о' : 'ы'}`
-      if (ignoredMessage === null && errorMessage === null) {
-        if (successCount > 0) {
-          notifier.showSuccess(successMessage)
-        } else {
-          notifier.showWarning(successMessage)
-        }
-      } else if (successCount > 0) {
+      if (errorCount > 0) {
         notifier.showWarning(
-          `${successMessage}${ignoredMessage ? `; ${ignoredMessage}` : ''}${errorMessage ? `; ${errorMessage}` : ''}`
+          [
+            successMessage,
+            ...(updatedMessage !== null ? [updatedMessage] : []),
+            ...(ignoredMessage !== null ? [ignoredMessage] : []),
+            ...(errorMessage !== null ? [errorMessage] : [])
+          ].join('; ')
+        )
+      } else if (successCount > 0 || updatedCount > 0) {
+        notifier.showSuccess(
+          [
+            successMessage,
+            ...(updatedMessage !== null ? [updatedMessage] : []),
+            ...(ignoredMessage !== null ? [ignoredMessage] : [])
+          ].join('; ')
         )
       } else {
-        notifier.showError(errorMessage)
+        notifier.showWarning(
+          [...(ignoredMessage !== null ? [ignoredMessage] : [])].join('; ')
+        )
       }
     },
     [notifier]
@@ -162,112 +200,270 @@ export function ImportRequirementsFormDialog(
       const result: ImportResult = {
         createdRequirementCodes: [],
         ignoredRequirementCodes: [],
+        updatedRequirementCodes: [],
         errorRequirementCodes: []
       }
 
       const processRequirement = async (params: CreateRequirementConfig) => {
-        try {
-          if (requirementIdForCode.has(params.code)) {
-            if (validatedData.ignoreExistingRequirements) {
-              // notifier.showWarning(
-              //   `проигнорировано существующее требование «${params.code}»`
-              // )
-              result.ignoredRequirementCodes.push(params.code)
-              return
-            } else {
-              throw new Error(`существующее требование '${params.code}'`)
-            }
+        if (
+          requirementIdForCode.has(params.code) &&
+          validatedData.existingRequirementMode === 'IGNORE'
+        ) {
+          result.ignoredRequirementCodes.push(params.code)
+          return
+        } else if (
+          requirementIdForCode.has(params.code) &&
+          validatedData.existingRequirementMode === 'ERROR'
+        ) {
+          result.errorRequirementCodes.push(params.code)
+          const errorText = `существующее требование '${params.code}'`
+          if (validatedData.interruptIfError) {
+            notifier.showError(errorText)
+            throw new Error(errorText)
           }
-          //
-          for (const tagCode of params.tagCodes ?? []) {
-            if (tagIdForCode.has(tagCode) === false) {
-              try {
-                const createdTagId = await serverConnector
-                  .createTag({
-                    code: tagCode
-                  })
-                  .then((result) => result.result.createdResourceId)
-                tagIdForCode.set(tagCode, createdTagId)
-              } catch (error) {
-                notifier.showError(error, `не удалось создать тег «${tagCode}»`)
-                throw error
+        } else if (
+          requirementIdForCode.has(params.code) &&
+          validatedData.existingRequirementMode === 'UPDATE'
+        ) {
+          try {
+            const requirementId = requirementIdForCode.get(params.code)!
+            for (const tagCode of params.tagCodes ?? []) {
+              if (tagIdForCode.has(tagCode) === false) {
+                try {
+                  const createdTagId = await serverConnector
+                    .createTag({
+                      code: tagCode
+                    })
+                    .then((result) => result.result.createdResourceId)
+                  tagIdForCode.set(tagCode, createdTagId)
+                } catch (error) {
+                  notifier.showError(
+                    error,
+                    `не удалось создать тег «${tagCode}»`
+                  )
+                  throw error
+                }
               }
             }
-          }
-          const tagIds = params.tagCodes?.map(
-            (tagCode) => tagIdForCode.get(tagCode)!
-          )
-          //
-          const nonexistentParentRequirementCodes = (
-            params.parentRequirementCodes ?? []
-          ).filter((code) => requirementIdForCode.has(code) === false)
-          if (nonexistentParentRequirementCodes.length > 0) {
-            throw new Error(
-              `несуществующие родительские требования ${nonexistentParentRequirementCodes.map((code) => ` '${code}'`).join()}`
+            const tagIds = params.tagCodes?.map(
+              (tagCode) => tagIdForCode.get(tagCode)!
             )
-          }
-          const parentRequirementIds = params.parentRequirementCodes?.map(
-            (requirementCode) => requirementIdForCode.get(requirementCode)!
-          )
-          //
-          const nonexistentChildRequirementCodes = (
-            params.childRequirementCodes ?? []
-          ).filter((code) => requirementIdForCode.has(code) === false)
-          if (nonexistentChildRequirementCodes.length > 0) {
-            throw new Error(
-              `несуществующие дочерние требования ${nonexistentChildRequirementCodes.map((code) => ` '${code}'`).join()}`
+            //
+            const nonexistentParentRequirementCodes = (
+              params.parentRequirementCodes ?? []
+            ).filter((code) => requirementIdForCode.has(code) === false)
+            if (nonexistentParentRequirementCodes.length > 0) {
+              throw new Error(
+                `несуществующие родительские требования ${nonexistentParentRequirementCodes.map((code) => ` '${code}'`).join()}`
+              )
+            }
+            const parentRequirementIds = params.parentRequirementCodes?.map(
+              (requirementCode) => requirementIdForCode.get(requirementCode)!
             )
-          }
-          const childRequirementIds = params.childRequirementCodes?.map(
-            (requirementCode) => requirementIdForCode.get(requirementCode)!
-          )
-          //
-          const testId = (() => {
-            const testCode = params.testCode
-            if (testCode !== null && testCode !== undefined) {
-              const testId = testIdForCode.get(testCode)
-              if (testId === undefined) {
-                if (ignoreTestIfNotExists) {
-                  notifier.showWarning(
-                    `проигнорирован несуществующий тест «${testCode}» для требования «${params.code}»`
-                  )
-                  return null
+            //
+            const nonexistentChildRequirementCodes = (
+              params.childRequirementCodes ?? []
+            ).filter((code) => requirementIdForCode.has(code) === false)
+            if (nonexistentChildRequirementCodes.length > 0) {
+              throw new Error(
+                `несуществующие дочерние требования ${nonexistentChildRequirementCodes.map((code) => ` '${code}'`).join()}`
+              )
+            }
+            const childRequirementIds = params.childRequirementCodes?.map(
+              (requirementCode) => requirementIdForCode.get(requirementCode)!
+            )
+            //
+            const testId = (() => {
+              const testCode = params.testCode
+              if (testCode !== null && testCode !== undefined) {
+                const testId = testIdForCode.get(testCode)
+                if (testId === undefined) {
+                  if (ignoreTestIfNotExists) {
+                    notifier.showWarning(
+                      `проигнорирован несуществующий тест «${testCode}» для требования «${params.code}»`
+                    )
+                    return null
+                  } else {
+                    throw new Error(`несуществующий тест «${testCode}»`)
+                  }
                 } else {
-                  throw new Error(`несуществующий тест «${testCode}»`)
+                  return testId
                 }
               } else {
-                return testId
+                return null
               }
+            })()
+            //
+            const requirement = await serverConnector.readRequirement(
+              {
+                id: requirementId
+              },
+              {
+                scope: 'UP_TO_TERTIARY_PROPS'
+              }
+            )
+            const oldTagIdsSet = new Set(requirement.tagIds)
+            const oldParentRequirementIdsSet = new Set(
+              requirement.parentRequirementIds
+            )
+            const oldChildRequirementIdsSet = new Set(
+              requirement.childRequirementIds
+            )
+            //
+            if (
+              requirement.code !== params.code ||
+              (params.name !== undefined && requirement.name !== params.name) ||
+              requirement.modifier !== params.modifier ||
+              requirement.origin !== params.origin ||
+              requirement.rate !== params.rate ||
+              (testId !== null && requirement.testId !== testId) ||
+              (params.description !== undefined &&
+                (requirement.description?.text ?? null) !==
+                  (params.description?.text ?? null)) ||
+              (params.remark !== undefined &&
+                (requirement.remark?.text ?? null) !==
+                  (params.remark?.text ?? null)) ||
+              (tagIds ?? []).some((id) => oldTagIdsSet.has(id) === false) ||
+              (parentRequirementIds ?? []).some(
+                (id) => oldParentRequirementIdsSet.has(id) === false
+              ) ||
+              (childRequirementIds ?? []).some(
+                (id) => oldChildRequirementIdsSet.has(id) === false
+              )
+            ) {
+              await serverConnector.updateRequirement({
+                id: requirementId,
+                code: params.code,
+                name: params.name,
+                modifier: params.modifier,
+                origin: params.origin,
+                rate: params.rate,
+                testId: testId ?? undefined,
+                description: params.description,
+                remark: params.remark,
+                tagIds: {
+                  added: tagIds?.filter((id) => oldTagIdsSet.has(id) === false)
+                },
+                parentRequirementIds: {
+                  added: parentRequirementIds?.filter(
+                    (id) => oldParentRequirementIdsSet.has(id) === false
+                  )
+                },
+                childRequirementIds: {
+                  added: childRequirementIds?.filter(
+                    (id) => oldChildRequirementIdsSet.has(id) === false
+                  )
+                }
+              })
+              result.updatedRequirementCodes.push(params.code)
             } else {
-              return null
+              result.ignoredRequirementCodes.push(params.code)
             }
-          })()
-          //
-          const createdRequirementId = await serverConnector
-            .createRequirement({
-              code: params.code,
-              name: params.name,
-              modifier: params.modifier,
-              origin: params.origin,
-              rate: params.rate,
-              testId: testId,
-              description: params.description,
-              remark: params.remark,
-              tagIds: tagIds,
-              parentRequirementIds: parentRequirementIds,
-              childRequirementIds: childRequirementIds
-            })
-            .then((result) => result.result.createdResourceId)
-          requirementIdForCode.set(params.code, createdRequirementId)
-          result.createdRequirementCodes.push(params.code)
-        } catch (error) {
-          result.errorRequirementCodes.push(params.code)
-          notifier.showError(
-            error,
-            `не удалось создать требование «${params.code}»`
-          )
-          if (validatedData.interruptIfError) {
-            throw error
+          } catch (error) {
+            result.errorRequirementCodes.push(params.code)
+            if (validatedData.interruptIfError) {
+              notifier.showError(
+                error,
+                `не удалось обновить требование «${params.code}»`
+              )
+              throw error
+            }
+          }
+        } else {
+          try {
+            for (const tagCode of params.tagCodes ?? []) {
+              if (tagIdForCode.has(tagCode) === false) {
+                try {
+                  const createdTagId = await serverConnector
+                    .createTag({
+                      code: tagCode
+                    })
+                    .then((result) => result.result.createdResourceId)
+                  tagIdForCode.set(tagCode, createdTagId)
+                } catch (error) {
+                  notifier.showError(
+                    error,
+                    `не удалось создать тег «${tagCode}»`
+                  )
+                  throw error
+                }
+              }
+            }
+            const tagIds = params.tagCodes?.map(
+              (tagCode) => tagIdForCode.get(tagCode)!
+            )
+            //
+            const nonexistentParentRequirementCodes = (
+              params.parentRequirementCodes ?? []
+            ).filter((code) => requirementIdForCode.has(code) === false)
+            if (nonexistentParentRequirementCodes.length > 0) {
+              throw new Error(
+                `несуществующие родительские требования ${nonexistentParentRequirementCodes.map((code) => ` '${code}'`).join()}`
+              )
+            }
+            const parentRequirementIds = params.parentRequirementCodes?.map(
+              (requirementCode) => requirementIdForCode.get(requirementCode)!
+            )
+            //
+            const nonexistentChildRequirementCodes = (
+              params.childRequirementCodes ?? []
+            ).filter((code) => requirementIdForCode.has(code) === false)
+            if (nonexistentChildRequirementCodes.length > 0) {
+              throw new Error(
+                `несуществующие дочерние требования ${nonexistentChildRequirementCodes.map((code) => ` '${code}'`).join()}`
+              )
+            }
+            const childRequirementIds = params.childRequirementCodes?.map(
+              (requirementCode) => requirementIdForCode.get(requirementCode)!
+            )
+            //
+            const testId = (() => {
+              const testCode = params.testCode
+              if (testCode !== null && testCode !== undefined) {
+                const testId = testIdForCode.get(testCode)
+                if (testId === undefined) {
+                  if (ignoreTestIfNotExists) {
+                    notifier.showWarning(
+                      `проигнорирован несуществующий тест «${testCode}» для требования «${params.code}»`
+                    )
+                    return null
+                  } else {
+                    throw new Error(`несуществующий тест «${testCode}»`)
+                  }
+                } else {
+                  return testId
+                }
+              } else {
+                return null
+              }
+            })()
+            //
+            const createdRequirementId = await serverConnector
+              .createRequirement({
+                code: params.code,
+                name: params.name,
+                modifier: params.modifier,
+                origin: params.origin,
+                rate: params.rate,
+                testId: testId,
+                description: params.description,
+                remark: params.remark,
+                tagIds: tagIds,
+                parentRequirementIds: parentRequirementIds,
+                childRequirementIds: childRequirementIds
+              })
+              .then((result) => result.result.createdResourceId)
+            requirementIdForCode.set(params.code, createdRequirementId)
+            result.createdRequirementCodes.push(params.code)
+          } catch (error) {
+            result.errorRequirementCodes.push(params.code)
+            if (validatedData.interruptIfError) {
+              notifier.showError(
+                error,
+                `не удалось создать требование «${params.code}»`
+              )
+              throw error
+            }
           }
         }
       }
@@ -434,7 +630,8 @@ export function ImportRequirementsFormDialog(
     data,
     errors,
     handleCheckboxChange,
-    handleFileUploadChange
+    handleFileUploadChange,
+    handleStrSelectChange
   } = useForm<ImportRequirementsFormData, ImportResult>({
     INITIAL_FORM_DATA: INITIAL_IMPORT_REQUIREMENTS_FORM_DATA,
     validator: importRequirementsFormValidator,
@@ -474,11 +671,16 @@ export function ImportRequirementsFormDialog(
         />
       </FormBlock>
       <FormBlock title="параметры импорта">
-        <FormCheckbox
-          name="ignoreExistingRequirements"
-          label="игнорировать требование при его наличии в системе"
-          checked={data.ignoreExistingRequirements}
-          onChange={handleCheckboxChange}
+        <FormSelect
+          required
+          name="existingRequirementMode"
+          label="существующее требование"
+          value={data.existingRequirementMode}
+          items={allExistingRequirementModes.map((item) => ({
+            value: item,
+            title: getExistingRequirementModeTitle(item)
+          }))}
+          onChange={handleStrSelectChange}
         />
         <FormCheckbox
           name="ignoreTestIfNotExists"
