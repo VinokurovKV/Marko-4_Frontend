@@ -2,6 +2,7 @@
 import type {
   TagPrimary,
   RequirementSecondary,
+  TopologySecondary,
   TestSecondary,
   SubgroupPrimary,
   GroupTertiary
@@ -23,6 +24,7 @@ import {
 export interface GroupViewerProps {
   tags: TagPrimary[] | null
   requirements: RequirementSecondary[] | null
+  topologies: TopologySecondary[] | null
   tests: TestSecondary[] | null
   subgroups: SubgroupPrimary[] | null
   group: GroupTertiary
@@ -31,6 +33,7 @@ export interface GroupViewerProps {
 export function GroupViewer({
   tags,
   requirements,
+  topologies,
   tests,
   subgroups,
   group
@@ -93,6 +96,7 @@ export function GroupViewer({
         <ContainerWithTitle title="тесты">
           <GroupRequirementsGrid
             requirements={requirements}
+            topologies={topologies}
             tests={tests}
             subgroups={subgroups}
           />

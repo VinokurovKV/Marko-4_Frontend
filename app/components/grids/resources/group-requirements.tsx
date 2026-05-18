@@ -1,6 +1,7 @@
 // Project
 import type {
   RequirementSecondary,
+  TopologySecondary,
   TestSecondary,
   SubgroupPrimary
 } from '~/types'
@@ -9,6 +10,7 @@ import {
   useRequirementCol,
   useRequirementModifierCol,
   useRequirementOriginCol,
+  useTopologyCol,
   useTestCol,
   useSubgroupCol
 } from '../cols'
@@ -19,15 +21,22 @@ import { type GridColDef, type GridValidRowModel } from '@mui/x-data-grid'
 
 export interface GroupRequirementsGridProps {
   requirements: RequirementSecondary[]
+  topologies: TopologySecondary[] | null
   tests: TestSecondary[] | null
   subgroups: SubgroupPrimary[] | null
 }
 
 export function GroupRequirementsGrid({
   requirements,
+  topologies,
   tests,
   subgroups
 }: GroupRequirementsGridProps) {
+  const topologyForId = React.useMemo(
+    () => new Map(topologies?.map((topology) => [topology.id, topology])),
+    [topologies]
+  )
+
   const testForId = React.useMemo(
     () => new Map(tests?.map((test) => [test.id, test])),
     [tests]
@@ -66,6 +75,10 @@ export function GroupRequirementsGrid({
             requirement.testId !== null
               ? testForId.get(requirement.testId)
               : null
+          const topology =
+            (test?.topologyId ?? null) !== null
+              ? (topologyForId.get(test!.topologyId) ?? null)
+              : null
           const subgroup =
             (test?.subgroupId ?? null) !== null
               ? (subgroupForId.get(test!.subgroupId!) ?? null)
@@ -78,6 +91,8 @@ export function GroupRequirementsGrid({
             origin: requirement.origin,
             testId: requirement.testId ?? undefined,
             testCode: test?.code ?? '',
+            topologyId: test?.topologyId ?? undefined,
+            topologyCode: topology?.code ?? '',
             subgroupId: test?.subgroupId ?? undefined,
             subgroupCode: subgroup?.code ?? ''
           }
@@ -116,6 +131,7 @@ export function GroupRequirementsGrid({
       }),
     [
       requirements,
+      topologyForId,
       testForId,
       subgroupForId,
       testIdsWithoutRequirements,
@@ -128,12 +144,13 @@ export function GroupRequirementsGrid({
     useTestCol(tests),
     useRequirementCol(requirements),
     useRequirementModifierCol(),
-    useRequirementOriginCol()
+    useRequirementOriginCol(),
+    useTopologyCol(topologies)
   ]
 
   const cols: GridColDef[] = React.useMemo(() => readCols, [readCols])
 
-  const defaultHiddenFields = React.useMemo(() => ['origin'], [])
+  const defaultHiddenFields = React.useMemo(() => ['origin', 'topologyId'], [])
 
   return (
     <>

@@ -3,7 +3,8 @@ import type {
   TagPrimary,
   RequirementsFilter,
   RequirementSecondary,
-  TestPrimary,
+  TopologySecondary,
+  TestSecondary,
   SubgroupTertiary,
   GroupPrimary
 } from '~/types'
@@ -11,7 +12,8 @@ import { serverConnector } from '~/server-connector'
 import {
   readTagsPrimaryFiltered,
   readRequirementsSecondaryFiltered,
-  readTestsPrimaryFiltered,
+  readTopologiesSecondaryFiltered,
+  readTestsSecondaryFiltered,
   readSubgroupTertiary,
   readGroupPrimary
 } from '~/readers'
@@ -20,6 +22,7 @@ import { useMeta } from '~/providers/meta'
 import {
   useTagsFilteredSubscription,
   useRequirementsFilteredSubscription,
+  useTopologiesFilteredSubscription,
   useTestsFilteredSubscription,
   useSubgroupSubscription,
   useGroupSubscription
@@ -40,19 +43,22 @@ export async function clientLoader({ params }: Route.ClientLoaderArgs) {
   const [subgroup] = await Promise.all([readSubgroupTertiary(subgroupId)])
   const [tags, tests, group] = await Promise.all([
     readTagsPrimaryFiltered(subgroup?.tagIds ?? null),
-    readTestsPrimaryFiltered(subgroup?.testIds ?? null),
+    readTestsSecondaryFiltered(subgroup?.testIds ?? null),
     readGroupPrimary(subgroup?.groupId ?? null)
   ])
   const testIds = tests?.map((test) => test.id) ?? null
-  const [requirements] = await Promise.all([
+  const topologyIds = Array.from(new Set(tests?.map((test) => test.topologyId)))
+  const [requirements, topologies] = await Promise.all([
     readRequirementsSecondaryFiltered(undefined, {
       testIds: testIds ?? []
-    })
+    }),
+    readTopologiesSecondaryFiltered(topologyIds)
   ])
   return {
     subgroupId,
     tags,
     requirements,
+    topologies,
     tests,
     subgroup,
     group
@@ -64,6 +70,7 @@ function SubgroupRouteInner({
     subgroupId,
     tags: initialTags,
     requirements: initialRequirements,
+    topologies: initialTopologies,
     tests: initialTests,
     subgroup: initialSubgroup,
     group: initialGroup
@@ -76,13 +83,20 @@ function SubgroupRouteInner({
   const [requirements, setRequirements] = React.useState<
     RequirementSecondary[] | null
   >(initialRequirements)
-  const [tests, setTests] = React.useState<TestPrimary[] | null>(initialTests)
+  const [topologies, setTopologies] = React.useState<
+    TopologySecondary[] | null
+  >(initialTopologies)
+  const [tests, setTests] = React.useState<TestSecondary[] | null>(initialTests)
   const [subgroup, setSubgroup] = React.useState<SubgroupTertiary | null>(
     initialSubgroup
   )
   const [group, setGroup] = React.useState<GroupPrimary | null>(initialGroup)
 
   const tagIds = React.useMemo(() => subgroup?.tagIds ?? null, [subgroup])
+  const topologyIds = React.useMemo(
+    () => Array.from(new Set(tests?.map((test) => test.topologyId))),
+    [tests]
+  )
   const testIds = React.useMemo(() => subgroup?.testIds ?? null, [subgroup])
 
   const requirementsFilter: RequirementsFilter = React.useMemo(
@@ -99,7 +113,12 @@ function SubgroupRouteInner({
     requirementsFilter,
     setRequirements
   )
-  useTestsFilteredSubscription('PRIMARY_PROPS', testIds, null, setTests)
+  useTopologiesFilteredSubscription(
+    'UP_TO_SECONDARY_PROPS',
+    topologyIds,
+    setTopologies
+  )
+  useTestsFilteredSubscription('UP_TO_SECONDARY_PROPS', testIds, null, setTests)
   useSubgroupSubscription('UP_TO_TERTIARY_PROPS', subgroupId, setSubgroup)
   useGroupSubscription('PRIMARY_PROPS', subgroup?.groupId ?? null, setGroup)
 
@@ -127,6 +146,7 @@ function SubgroupRouteInner({
       key={subgroupId}
       tags={tags}
       requirements={requirements}
+      topologies={topologies}
       tests={tests}
       subgroup={subgroup}
       group={group}

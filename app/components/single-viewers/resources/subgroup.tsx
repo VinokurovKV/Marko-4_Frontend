@@ -2,7 +2,8 @@
 import type {
   TagPrimary,
   RequirementSecondary,
-  TestPrimary,
+  TopologySecondary,
+  TestSecondary,
   SubgroupTertiary,
   GroupPrimary
 } from '~/types'
@@ -23,7 +24,8 @@ import {
 export interface SubgroupViewerProps {
   tags: TagPrimary[] | null
   requirements: RequirementSecondary[] | null
-  tests: TestPrimary[] | null
+  topologies: TopologySecondary[] | null
+  tests: TestSecondary[] | null
   subgroup: SubgroupTertiary
   group: GroupPrimary | null
 }
@@ -31,6 +33,7 @@ export interface SubgroupViewerProps {
 export function SubgroupViewer({
   tags,
   requirements,
+  topologies,
   tests,
   subgroup,
   group
@@ -107,7 +110,11 @@ export function SubgroupViewer({
       </ColumnViewer>
       {requirements !== null ? (
         <ContainerWithTitle title="тесты">
-          <SubgroupRequirementsGrid requirements={requirements} tests={tests} />
+          <SubgroupRequirementsGrid
+            requirements={requirements}
+            topologies={topologies}
+            tests={tests}
+          />
         </ContainerWithTitle>
       ) : null}
     </HorizontalTwoPartsContainer>
