@@ -54,7 +54,10 @@ export function SubgroupHoverPreview({
 
   return (
     <Box sx={{ width: PREVIEW_WIDTH, p: 1.5 }}>
-      <Typography variant="subtitle2" sx={{ px: 0.5, pb: 1, fontWeight: 700 }}>
+      <Typography
+        variant="subtitle2"
+        sx={{ px: 0.5, pb: 1, fontWeight: 700, textAlign: 'center' }}
+      >
         {title}
       </Typography>
       {subgroup === null || tests === null ? (

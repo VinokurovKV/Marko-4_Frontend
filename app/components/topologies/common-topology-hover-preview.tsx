@@ -11,7 +11,7 @@ import Typography from '@mui/material/Typography'
 // Other
 import capitalize from 'capitalize'
 
-const PREVIEW_WIDTH = 360
+const PREVIEW_WIDTH = 460
 const PREVIEW_HEIGHT = 220
 
 interface CommonTopologyHoverPreviewProps {
@@ -44,7 +44,10 @@ export function CommonTopologyHoverPreview({
 
   return (
     <Box sx={{ width: PREVIEW_WIDTH, p: 1.5 }}>
-      <Typography variant="subtitle2" sx={{ px: 0.5, pb: 1, fontWeight: 700 }}>
+      <Typography
+        variant="subtitle2"
+        sx={{ px: 0.5, pb: 1, fontWeight: 700, textAlign: 'center' }}
+      >
         {title}
       </Typography>
       {commonTopology === null ? (

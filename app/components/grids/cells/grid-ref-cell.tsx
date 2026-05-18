@@ -34,9 +34,11 @@ export function GridRefCell(props: GridRefCellProps) {
   const theme = useTheme()
   const [hoverTargetIsHovered, setHoverTargetIsHovered] = React.useState(false)
   const [tooltipIsOpen, setTooltipIsOpen] = React.useState(false)
+  const [tooltipIsHovered, setTooltipIsHovered] = React.useState(false)
   const [previewIsReady, setPreviewIsReady] = React.useState(false)
 
-  const hoverPreviewIsActive = hoverTargetIsHovered || tooltipIsOpen
+  const hoverPreviewIsActive =
+    hoverTargetIsHovered || tooltipIsOpen || tooltipIsHovered
   const previewIsVisible = hoverPreviewIsActive && previewIsReady
 
   const handlePreviewReadyChange = React.useCallback((ready: boolean) => {
@@ -45,6 +47,8 @@ export function GridRefCell(props: GridRefCellProps) {
 
   React.useEffect(() => {
     setPreviewIsReady(false)
+    setTooltipIsOpen(false)
+    setTooltipIsHovered(false)
   }, [props.hrefPrefix, props.hrefPath, props.text])
 
   const handleClick = React.useCallback(
@@ -117,10 +121,12 @@ export function GridRefCell(props: GridRefCellProps) {
   return (
     <Tooltip
       sx={{ backgroundColor: 'green' }}
+      disableInteractive={false}
       title={props.hoverPreview.renderContent(
         hoverPreviewIsActive,
         handlePreviewReadyChange
       )}
+      open={hoverTargetIsHovered || tooltipIsHovered || tooltipIsOpen}
       placement={props.hoverPreview.placement ?? 'right-start'}
       enterDelay={props.hoverPreview.enterDelay ?? 800}
       enterNextDelay={props.hoverPreview.enterDelay ?? 800}
@@ -129,12 +135,22 @@ export function GridRefCell(props: GridRefCellProps) {
         setTooltipIsOpen(true)
       }}
       onClose={() => {
-        setTooltipIsOpen(false)
+        if (tooltipIsHovered === false) {
+          setTooltipIsOpen(false)
+        }
       }}
       slotProps={{
         popper: {
           popperOptions: {
             strategy: 'fixed'
+          },
+          onMouseEnter: () => {
+            setTooltipIsHovered(true)
+            setTooltipIsOpen(true)
+          },
+          onMouseLeave: () => {
+            setTooltipIsHovered(false)
+            setTooltipIsOpen(false)
           },
           sx: {
             visibility: previewIsVisible ? 'visible' : 'hidden',
