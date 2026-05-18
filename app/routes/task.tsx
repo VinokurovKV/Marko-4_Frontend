@@ -218,12 +218,12 @@ function TaskRouteInner({
       meta.selfMeta.rightsSet.has('CREATE_TASK') &&
       createTaskInitialFormData !== null ? (
         <ProjButton
-          variant="contained"
+          variant="outlined"
           onClick={() => {
             setCreateModeIsActive(true)
           }}
         >
-          создать шаблон
+          использовать как шаблон
         </ProjButton>
       ) : null,
     [meta, createTaskInitialFormData]

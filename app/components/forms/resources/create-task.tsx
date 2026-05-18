@@ -376,6 +376,27 @@ export function CreateTaskFormDialog(props: CreateTaskFormDialogProps) {
     }
   }, [props.initialFormData, vertexNamesTruncated, data, handleFieldChange])
 
+  React.useEffect(() => {
+    for (
+      let vertexIndex = 0;
+      vertexIndex < vertexNamesTruncated.length;
+      vertexIndex++
+    ) {
+      const vertexName = vertexNamesTruncated[vertexIndex]
+      const deviceIdField = getDeviceIdField(vertexIndex)
+      const deviceIdFromLS = localStorage.getItem(
+        `TASK_FORM_DEVICE_ID_FOR_VERTEX_${vertexName}`
+      )
+      if (deviceIdFromLS !== '') {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        const currentDeviceId = data[deviceIdField]
+        if (currentDeviceId === undefined) {
+          handleFieldChange(deviceIdField, Number(deviceIdFromLS))
+        }
+      }
+    }
+  }, [vertexNamesTruncated, data, handleFieldChange])
+
   const modeSelectItems: FormSelectProps<string>['items'] = React.useMemo(
     () =>
       allTaskModes.map((mode) => ({
@@ -397,6 +418,20 @@ export function CreateTaskFormDialog(props: CreateTaskFormDialogProps) {
         )
         .map((device) => device.id) ?? [],
     [devices, data.mode]
+  )
+
+  const handleDeviceSelect = React.useCallback(
+    (
+      vertexName: string,
+      event: Parameters<typeof handleAutocompleteSingleSelectChange>[0]
+    ) => {
+      localStorage.setItem(
+        `TASK_FORM_DEVICE_ID_FOR_VERTEX_${vertexName}`,
+        (event.value as string | null) ?? ''
+      )
+      handleAutocompleteSingleSelectChange(event)
+    },
+    [handleAutocompleteSingleSelectChange]
   )
 
   return (
@@ -473,7 +508,9 @@ export function CreateTaskFormDialog(props: CreateTaskFormDialogProps) {
                 ' '
               }
               error={!!errors?.[deviceIdField]}
-              onChange={handleAutocompleteSingleSelectChange}
+              onChange={(event) => {
+                handleDeviceSelect(vertexName, event)
+              }}
             />
           </FormBlock>
         )
