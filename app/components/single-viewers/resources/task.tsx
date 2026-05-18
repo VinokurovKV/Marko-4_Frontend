@@ -52,6 +52,7 @@ export interface TaskViewerProps {
   task: TaskTertiary
   testReports: TestReportSecondary[] | null
   taskReport: TaskReportTertiary
+  titleRight?: React.ReactNode
   children: React.ReactNode
 }
 
@@ -129,6 +130,7 @@ export function TaskViewer(props: TaskViewerProps) {
           'Задание',
           `${task.code}${task.name !== null ? ` (${task.name})` : ''}`
         ]}
+        titleRight={props.titleRight}
       >
         <ColumnViewer>
           <ColumnViewerBlock title="основная информация">

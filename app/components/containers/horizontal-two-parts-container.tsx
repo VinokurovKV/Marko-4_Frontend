@@ -28,7 +28,7 @@ export function HorizontalTwoPartsContainer(
   props: HorizontalTwoPartsContainerProps
 ) {
   return (
-    <ContainerWithTitle title={props.title}>
+    <ContainerWithTitle title={props.title} titleRight={props.titleRight}>
       <Grid container spacing={2} sx={{ height: '100%', overflow: 'hidden' }}>
         <Grid
           size={
