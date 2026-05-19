@@ -207,11 +207,16 @@ export function RequirementHoverPreview({
     [requirement]
   )
 
+  const withLongHeight = React.useMemo(
+    () => selectedFragment !== null || withLongDescription,
+    [selectedFragment, withLongDescription]
+  )
+
   return (
     <Box
       sx={{
-        maxHeight: withLongDescription ? undefined : PREVIEW_MAX_HEIGHT,
-        height: withLongDescription ? PREVIEW_MAX_HEIGHT : undefined,
+        maxHeight: withLongHeight ? undefined : PREVIEW_MAX_HEIGHT,
+        height: withLongHeight ? PREVIEW_MAX_HEIGHT : undefined,
         width: PREVIEW_WIDTH,
         p: 1.5,
         fontSize: '12px'
