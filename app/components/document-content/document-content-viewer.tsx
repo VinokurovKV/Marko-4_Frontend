@@ -632,7 +632,7 @@ export function DocumentContentViewer({
             flex: '0 0 auto',
             minWidth: 0,
             position: 'relative',
-            zIndex: theme.zIndex.modal + 10
+            zIndex: 35
           }}
         >
           <Stack
@@ -788,6 +788,7 @@ export function DocumentContentViewer({
         <Dialog
           open={isBrowseDialogOpen}
           onClose={closeBrowseDialog}
+          container={fullscreenContainerRef.current}
           maxWidth="xs"
           fullWidth
           sx={(theme) => ({
@@ -847,6 +848,7 @@ export function DocumentContentViewer({
         <Dialog
           open={isCreateAreaDialogOpen}
           onClose={closeCreateAreaDialog}
+          container={fullscreenContainerRef.current}
           maxWidth="xs"
           fullWidth
           sx={(theme) => ({

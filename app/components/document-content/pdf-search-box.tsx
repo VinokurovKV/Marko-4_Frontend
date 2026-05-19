@@ -103,11 +103,11 @@ export const PdfSearchBox = React.memo(function PdfSearchBox({
   return (
     <ClickAwayListener onClickAway={closeSearch}>
       <Box
-        sx={(theme) => ({
+        sx={{
           position: 'relative',
           display: 'inline-flex',
-          zIndex: open ? theme.zIndex.modal + 1 : 'auto'
-        })}
+          zIndex: open ? 36 : 'auto'
+        }}
       >
         <ProjButton
           variant={open ? 'contained' : 'outlined'}
@@ -126,7 +126,7 @@ export const PdfSearchBox = React.memo(function PdfSearchBox({
               position: 'absolute',
               top: 'calc(100% + 8px)',
               right: 0,
-              zIndex: theme.zIndex.modal + 2,
+              zIndex: 37,
               p: 1,
               width: 'min(350px, calc(100vw - 32px))',
               borderRadius: 2,

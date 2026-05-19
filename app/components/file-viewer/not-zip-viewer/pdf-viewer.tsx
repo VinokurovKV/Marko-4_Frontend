@@ -1,5 +1,10 @@
+// Project
+import { PdfViewer } from '~/components/document-content/pdf-viewer'
 // React
 import * as React from 'react'
+// Material UI
+import Box from '@mui/material/Box'
+import Typography from '@mui/material/Typography'
 
 interface PdfFileViewerProps {
   blob?: Blob | null
@@ -7,62 +12,46 @@ interface PdfFileViewerProps {
   isDarkMode?: boolean
 }
 
-export const PdfFileViewer: React.FC<PdfFileViewerProps> = ({
-  blob,
-  fileName,
-  isDarkMode = false
-}) => {
-  const [pdfUrl, setPdfUrl] = React.useState<string | null>(null)
+export const PdfFileViewer: React.FC<PdfFileViewerProps> = ({ blob }) => {
+  const [pdfData, setPdfData] = React.useState<ArrayBuffer | null>(null)
 
   React.useEffect(() => {
-    if (blob) {
-      let pdfBlob = blob
-      if (blob.type !== 'application/pdf') {
-        pdfBlob = new Blob([blob], { type: 'application/pdf' })
+    let cancelled = false
+    void (async () => {
+      if (blob === null || blob === undefined) {
+        setPdfData(null)
+        return
       }
-
-      const url = URL.createObjectURL(pdfBlob)
-      setPdfUrl(url)
-      return () => {
-        URL.revokeObjectURL(url)
+      const buffer = await blob.arrayBuffer()
+      if (cancelled === false) {
+        setPdfData(buffer)
       }
-    } else {
-      setPdfUrl(null)
+    })()
+    return () => {
+      cancelled = true
     }
   }, [blob])
 
-  const containerStyles: React.CSSProperties = {
-    backgroundColor: isDarkMode ? '#1a1a1a' : '#ffffff',
-    borderRadius: '8px',
-    padding: '16px',
-    width: '100%',
-    height: '100%',
-    minHeight: '500px'
-  }
-
-  if (!pdfUrl) {
-    return (
-      <div style={containerStyles}>
-        <div style={{ textAlign: 'center', padding: '40px', color: '#999' }}>
-          Нет PDF файла для просмотра
-        </div>
-      </div>
-    )
-  }
-
   return (
-    <div style={containerStyles}>
-      <iframe
-        src={pdfUrl}
-        title={fileName || 'PDF Viewer'}
-        style={{
-          width: '100%',
-          height: 'calc(100% - 60px)',
-          minHeight: '500px',
-          borderRadius: '4px',
-          border: 'none'
-        }}
-      />
-    </div>
+    <Box sx={{ width: '100%', minHeight: 520, height: '70vh' }}>
+      {pdfData === null ? (
+        <Typography sx={{ opacity: 0.72, textAlign: 'center', py: 5 }}>
+          Нет PDF файла для просмотра
+        </Typography>
+      ) : (
+        <PdfViewer
+          data={pdfData}
+          areas={[]}
+          clickableAreas={false}
+          withUpdateAreaButtons={false}
+          withDeleteAreaButtons={false}
+          withCaptureAreaButtons={false}
+          withRenameAreaButtons={false}
+          mode={{ type: 'DEFAULT' }}
+          interactionMode="TEXT"
+          showThumbnails
+        />
+      )}
+    </Box>
   )
 }
