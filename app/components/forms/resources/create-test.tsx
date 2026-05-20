@@ -373,18 +373,19 @@ export function CreateTestFormDialog(props: CreateTestFormDialogProps) {
       if (requirementIds.length > 0) {
         handleFieldChange('requirementIds', requirementIds)
       }
-      const topologyCodes = extractMarkdownHeadings(
-        data.descriptionText ?? '',
-        'Топология',
-        2
-      )
-      const topologyCode = topologyCodes.length > 0 ? topologyCodes[0] : null
-      if (topologyCode !== null) {
-        const topologyId = topologyIdForCode.get(topologyCode) ?? null
-        if (topologyId !== null) {
-          handleFieldChange('topologyId', topologyId)
-        }
-      }
+      // TODO: Вова попросил убрать подгрузку топологий
+      // const topologyCodes = extractMarkdownHeadings(
+      //   data.descriptionText ?? '',
+      //   'Топология',
+      //   2
+      // )
+      // const topologyCode = topologyCodes.length > 0 ? topologyCodes[0] : null
+      // if (topologyCode !== null) {
+      //   const topologyId = topologyIdForCode.get(topologyCode) ?? null
+      //   if (topologyId !== null) {
+      //     handleFieldChange('topologyId', topologyId)
+      //   }
+      // }
     }
   })
 
