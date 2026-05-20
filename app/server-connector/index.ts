@@ -1358,6 +1358,24 @@ export class ServerConnector {
   readRequestsLogs(): Promise<Blob> {
     return this.getBlob('/logs/requests')
   }
+  async deleteStorageErrorsLogs(): Promise<void> {
+    await this.postForObject('/logs/storage-errors/delete')
+  }
+  async deleteStorageIseErrorsLogs(): Promise<void> {
+    await this.postForObject('/logs/storage-ise-errors/delete')
+  }
+  async deleteIseErrorRequestsLogs(): Promise<void> {
+    await this.postForObject('/logs/ise-error-requests/delete')
+  }
+  async deleteErrorRequestsLogs(): Promise<void> {
+    await this.postForObject('/logs/error-requests/delete')
+  }
+  async deleteRequestsLogs(): Promise<void> {
+    await this.postForObject('/logs/requests/delete')
+  }
+  async deleteLogs(): Promise<void> {
+    await this.postForObject('/logs/delete')
+  }
   // Actions
   readActionInfosCount(
     params: Params<ReadActionInfosCountQueryDto>
