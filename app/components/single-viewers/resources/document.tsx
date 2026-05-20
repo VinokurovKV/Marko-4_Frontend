@@ -8,7 +8,10 @@ import {
   HorizontalTwoPartsContainer,
   VerticalTwoPartsContainer
 } from '~/components/containers'
+import type { TabViewerProps } from '~/components/tab-viewer'
+import { TabViewer } from '~/components/tab-viewer'
 import { FormatIcon } from '~/components/grids/cols'
+import { DocumentRequirementsGrid } from '~/components/grids/resources/document-requirements'
 import { DocumentContentViewer } from '~/components/document-content/document-content-viewer'
 import {
   ColumnViewer,
@@ -22,6 +25,8 @@ import {
 } from '../common'
 // React
 import * as React from 'react'
+// Material UI
+import Tab from '@mui/material/Tab'
 
 function getFragmentDisplayName(fragment: FragmentPrimary) {
   return fragment.innerCode
@@ -53,6 +58,9 @@ function formatPageNumbers(pageNumbers: number[]) {
   return ranges.join(', ')
 }
 
+type TabVal = 'DOCUMENT' | 'COVERAGE'
+type Tab = TabViewerProps<TabVal>['tabs'][0]
+
 export interface DocumentViewerProps {
   tags: TagPrimary[] | null
   document: DocumentTertiary
@@ -65,6 +73,7 @@ export function DocumentViewer({
   fragments
 }: DocumentViewerProps) {
   const notifier = useNotifier()
+  const [tabValue, setTabValue] = React.useState<TabVal>('DOCUMENT')
   const [fragmentPagesForId, setFragmentPagesForId] = React.useState<
     Record<number, number[]>
   >({})
@@ -106,18 +115,48 @@ export function DocumentViewer({
     })
   }, [])
 
+  const handleTabChange = React.useCallback(
+    (event: React.SyntheticEvent, value: TabVal) => {
+      setTabValue(value)
+    },
+    []
+  )
+
+  const tabs: Tab[] = React.useMemo(
+    () => [
+      {
+        label: 'Текст',
+        value: 'DOCUMENT'
+      },
+      {
+        label: 'Покрытие',
+        value: 'COVERAGE'
+      }
+    ],
+    []
+  )
+
   return (
     <HorizontalTwoPartsContainer
       proportions="THREE_ONE"
       title={['Документ', `${document.code}`]}
     >
-      <DocumentContentViewer
-        document={document}
-        onFragmentPagesChange={setFragmentPagesForId}
-        previewAreaRequest={previewAreaRequest}
-        browseAreaRequest={browseAreaRequest}
-      />
-      <VerticalTwoPartsContainer proportions="50_50">
+      <>
+        <TabViewer tabs={tabs} onChange={handleTabChange} value={tabValue} />
+        {tabValue === 'DOCUMENT' ? (
+          <DocumentContentViewer
+            document={document}
+            onFragmentPagesChange={setFragmentPagesForId}
+            previewAreaRequest={previewAreaRequest}
+            browseAreaRequest={browseAreaRequest}
+          />
+        ) : (
+          <DocumentRequirementsGrid document={document} />
+        )}
+      </>
+      <VerticalTwoPartsContainer
+        proportions={tabValue === 'DOCUMENT' ? '50_50' : '100_0'}
+      >
         <ColumnViewer>
           <ColumnViewerBlock title="основная информация">
             <ColumnViewerItem field="код" val={document.code} />
@@ -187,27 +226,29 @@ export function DocumentViewer({
             />
           </ColumnViewerBlock>
         </ColumnViewer>
-        <ColumnViewer>
-          <ColumnViewerBlock title="фрагменты">
-            <ColumnViewerLinksBlock
-              emptyText={fragments !== null ? 'нет' : '???'}
-              items={(fragments ?? []).map((fragment) => ({
-                text: getFragmentDisplayName(fragment),
-                secondaryText: (() => {
-                  const pagesText = formatPageNumbers(
-                    fragmentPagesForId[fragment.id] ?? []
-                  )
+        {tabValue === 'DOCUMENT' ? (
+          <ColumnViewer>
+            <ColumnViewerBlock title="фрагменты">
+              <ColumnViewerLinksBlock
+                emptyText={fragments !== null ? 'нет' : '???'}
+                items={(fragments ?? []).map((fragment) => ({
+                  text: getFragmentDisplayName(fragment),
+                  secondaryText: (() => {
+                    const pagesText = formatPageNumbers(
+                      fragmentPagesForId[fragment.id] ?? []
+                    )
 
-                  return pagesText !== null
-                    ? `Страницы: ${pagesText}`
-                    : undefined
-                })(),
-                onClick: () => requestBrowseArea(fragment.id),
-                disableCapitalize: true
-              }))}
-            />
-          </ColumnViewerBlock>
-        </ColumnViewer>
+                    return pagesText !== null
+                      ? `Страницы: ${pagesText}`
+                      : undefined
+                  })(),
+                  onClick: () => requestBrowseArea(fragment.id),
+                  disableCapitalize: true
+                }))}
+              />
+            </ColumnViewerBlock>
+          </ColumnViewer>
+        ) : null}
       </VerticalTwoPartsContainer>
     </HorizontalTwoPartsContainer>
   )

@@ -127,7 +127,7 @@ export function GridRefCell(props: GridRefCellProps) {
         handlePreviewReadyChange
       )}
       open={hoverTargetIsHovered || tooltipIsHovered || tooltipIsOpen}
-      placement={props.hoverPreview.placement ?? 'right-start'}
+      placement={props.hoverPreview.placement ?? 'auto'}
       enterDelay={props.hoverPreview.enterDelay ?? 800}
       enterNextDelay={props.hoverPreview.enterDelay ?? 800}
       leaveDelay={props.hoverPreview.leaveDelay ?? 100}

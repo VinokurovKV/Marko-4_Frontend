@@ -26,15 +26,16 @@ export function useGroupCol(groups: Group[] | null | undefined) {
       headerName: 'Группа',
       type: 'singleSelect',
       valueOptions: Array.from(groupCodeForId.values()).toSorted(),
-      valueGetter: (groupId) => groupCodeForId.get(groupId),
-      renderCell: (params: GridRenderCellParams<any, string>) => (
-        <GridRefCell
-          text={params.value}
-          hrefPrefix="/hierarchy/groups"
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
-          hrefPath={params.row.groupId}
-        />
-      ),
+      valueGetter: (groupId) => groupCodeForId.get(groupId) ?? '',
+      renderCell: (params: GridRenderCellParams<any, string>) =>
+        params.value !== '' ? (
+          <GridRefCell
+            text={params.value}
+            hrefPrefix="/hierarchy/groups"
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+            hrefPath={params.row.groupId}
+          />
+        ) : null,
       minWidth: 140,
       flex: 1
     }),
