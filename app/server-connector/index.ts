@@ -766,6 +766,7 @@ import type {
   ImportBodyMainDto,
   ImportSuccessResultDto
 } from '@common/dtos/server-api/import.dto'
+import type { ArchiveBodyDto } from '@common/dtos/server-api/history.dto'
 import type {
   SubscribeToActionInfosDataItemDto,
   SubscribeToActionInfosNotificationDto,
@@ -1398,11 +1399,14 @@ export class ServerConnector {
       : this.getObject(`/events`, params)
   }
   // History
-  async archiveHistory(): Promise<void> {
-    await this.postForObject<object>('/history/archive')
+  async archiveHistory(params: Params<ArchiveBodyDto>): Promise<void> {
+    await this.postForObject<object>('/history/archive', params)
   }
   async unarchiveHistory(): Promise<void> {
     await this.postForObject<object>('/history/unarchive')
+  }
+  async deleteArchivedHistory(): Promise<void> {
+    await this.postForObject<object>('/history/delete-archived')
   }
   // Roles
   async readRoleExistsFlag(

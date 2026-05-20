@@ -19,8 +19,8 @@ import {
   useTags,
   useRequirements,
   useCommonTopology,
-  useTopology,
-  useTopologies
+  useTopology
+  // useTopologies
 } from '~/hooks/resources'
 import {
   type UpdateTestFormData,
@@ -104,11 +104,11 @@ export function UpdateTestFormDialog(props: UpdateTestFormDialogProps) {
     false,
     props.testId !== null
   )
-  const topologies = useTopologies(
-    'PRIMARY_PROPS',
-    false,
-    props.testId !== null
-  )
+  // const topologies = useTopologies(
+  //   'PRIMARY_PROPS',
+  //   false,
+  //   props.testId !== null
+  // )
 
   const tagCodeForId = React.useMemo(
     () => new Map((tags ?? []).map((tag) => [tag.id, tag.code])),
@@ -131,13 +131,13 @@ export function UpdateTestFormDialog(props: UpdateTestFormDialogProps) {
     [requirements]
   )
 
-  const topologyIdForCode = React.useMemo(
-    () =>
-      new Map(
-        (topologies ?? []).map((topology) => [topology.code, topology.id])
-      ),
-    [topologies]
-  )
+  // const topologyIdForCode = React.useMemo(
+  //   () =>
+  //     new Map(
+  //       (topologies ?? []).map((topology) => [topology.code, topology.id])
+  //     ),
+  //   [topologies]
+  // )
 
   const readTopologyNonGeneratorVertexNamesSorted = React.useCallback(
     async (topologyId: number, errorMessage: string) => {

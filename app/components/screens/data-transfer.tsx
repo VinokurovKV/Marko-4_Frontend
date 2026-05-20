@@ -10,6 +10,7 @@ import { ProjButton } from '../buttons/button'
 import { ImportDataFormDialog } from '../forms/resources/import-data'
 import { ExportDataFormDialog } from '../forms/resources/export-data'
 import type { ImportSuccessResultDto } from '@common/dtos/server-api/import.dto'
+import { ArchiveHistoryFormDialog } from '../forms/resources/archive-history'
 // React
 import * as React from 'react'
 // Material UI
@@ -60,9 +61,11 @@ export function DataTransferScreen() {
     exportResourceCounts?: Record<string, number>
   } | null>(null)
   const [historyActionDialog, setHistoryActionDialog] = React.useState<{
-    mode: 'ARCHIVE' | 'UNARCHIVE'
+    mode: 'ARCHIVE' | 'UNARCHIVE' | 'DELETE_ARCHIVED'
     processing: boolean
   } | null>(null)
+  const [archiveHistoryModeIsActive, setArchiveHistoryModeIsActive] =
+    React.useState(false)
 
   const breadcrumbsItems: ProjBreadcrumbsProps['items'] = React.useMemo(
     () => [
@@ -154,11 +157,14 @@ export function DataTransferScreen() {
     )
     try {
       if (historyActionDialog.mode === 'ARCHIVE') {
-        await serverConnector.archiveHistory()
-        notifier.showSuccess('архивирование истории выполнено')
-      } else {
+        // await serverConnector.archiveHistory({})
+        // notifier.showSuccess('архивирование истории выполнено')
+      } else if (historyActionDialog.mode === 'UNARCHIVE') {
         await serverConnector.unarchiveHistory()
         notifier.showSuccess('восстановление истории выполнено')
+      } else if (historyActionDialog.mode === 'DELETE_ARCHIVED') {
+        await serverConnector.deleteArchivedHistory()
+        notifier.showSuccess('удаление архивированной истории выполнено')
       }
       setHistoryActionDialog(null)
     } catch (error) {
@@ -166,7 +172,9 @@ export function DataTransferScreen() {
         error,
         historyActionDialog.mode === 'ARCHIVE'
           ? 'не удалось архивировать историю'
-          : 'не удалось восстановить историю'
+          : historyActionDialog.mode === 'UNARCHIVE'
+            ? 'не удалось восстановить историю'
+            : 'не удалось удалить архивированную историю'
       )
       setHistoryActionDialog((old) =>
         old !== null
@@ -178,6 +186,10 @@ export function DataTransferScreen() {
       )
     }
   }, [historyActionDialog, notifier])
+
+  const cancelArchiveHistoryForm = React.useCallback(() => {
+    setArchiveHistoryModeIsActive(false)
+  }, [setArchiveHistoryModeIsActive])
 
   return (
     <>
@@ -213,10 +225,11 @@ export function DataTransferScreen() {
                 variant="contained"
                 sx={{ height: 42, fontSize: '0.98rem' }}
                 onClick={() => {
-                  setHistoryActionDialog({
-                    mode: 'ARCHIVE',
-                    processing: false
-                  })
+                  setArchiveHistoryModeIsActive(true)
+                  // setHistoryActionDialog({
+                  //   mode: 'ARCHIVE',
+                  //   processing: false
+                  // })
                 }}
               >
                 архивировать историю
@@ -232,6 +245,18 @@ export function DataTransferScreen() {
                 }}
               >
                 восстановить историю
+              </ProjButton>
+              <ProjButton
+                variant="contained"
+                sx={{ height: 42, fontSize: '0.98rem' }}
+                onClick={() => {
+                  setHistoryActionDialog({
+                    mode: 'DELETE_ARCHIVED',
+                    processing: false
+                  })
+                }}
+              >
+                удалить архивированную историю
               </ProjButton>
             </Stack>
           </Paper>
@@ -356,10 +381,14 @@ export function DataTransferScreen() {
             {historyActionDialog?.processing === true
               ? historyActionDialog.mode === 'ARCHIVE'
                 ? 'Архивирование истории...'
-                : 'Восстановление истории...'
+                : historyActionDialog.mode === 'UNARCHIVE'
+                  ? 'Восстановление истории...'
+                  : 'Удаление архивированной истории...'
               : historyActionDialog?.mode === 'ARCHIVE'
                 ? 'Архивировать историю'
-                : 'Восстановить историю'}
+                : historyActionDialog?.mode === 'UNARCHIVE'
+                  ? 'Восстановить историю'
+                  : 'Удалить архивированную историю'}
           </Typography>
         </DialogContent>
         <DialogActions sx={{ justifyContent: 'center' }}>
@@ -386,10 +415,18 @@ export function DataTransferScreen() {
           >
             {historyActionDialog?.mode === 'ARCHIVE'
               ? 'архивировать'
-              : 'восстановить'}
+              : historyActionDialog?.mode === 'UNARCHIVE'
+                ? 'восстановить'
+                : 'удалить'}
           </ProjButton>
         </DialogActions>
       </Dialog>
+      <ArchiveHistoryFormDialog
+        archiveModeIsActive={archiveHistoryModeIsActive}
+        setArchiveModeIsActive={setArchiveHistoryModeIsActive}
+        onSuccessArchiveHistory={cancelArchiveHistoryForm}
+        onCancelClick={cancelArchiveHistoryForm}
+      />
     </>
   )
 }
