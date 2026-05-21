@@ -331,7 +331,8 @@ export function ImportRequirementsFormDialog(
                 (id) => oldChildRequirementIdsSet.has(id) === false
               )
             ) {
-              await serverConnector.updateRequirement({
+              // TODO: для предотвращения ошибок
+              const updateRequirementConfig = {
                 id: requirementId,
                 code: params.code,
                 name: params.name,
@@ -354,8 +355,14 @@ export function ImportRequirementsFormDialog(
                     (id) => oldChildRequirementIdsSet.has(id) === false
                   )
                 }
-              })
-              result.updatedRequirementCodes.push(params.code)
+              }
+              try {
+                await serverConnector.updateRequirement(updateRequirementConfig)
+                result.updatedRequirementCodes.push(params.code)
+              } catch {
+                await serverConnector.updateRequirement(updateRequirementConfig)
+                result.updatedRequirementCodes.push(params.code)
+              }
             } else {
               result.ignoredRequirementCodes.push(params.code)
             }
@@ -438,21 +445,30 @@ export function ImportRequirementsFormDialog(
               }
             })()
             //
-            const createdRequirementId = await serverConnector
-              .createRequirement({
-                code: params.code,
-                name: params.name,
-                modifier: params.modifier,
-                origin: params.origin,
-                rate: params.rate,
-                testId: testId,
-                description: params.description,
-                remark: params.remark,
-                tagIds: tagIds,
-                parentRequirementIds: parentRequirementIds,
-                childRequirementIds: childRequirementIds
-              })
-              .then((result) => result.result.createdResourceId)
+            // TODO: для предотвращения ошибок
+            let createdRequirementId: number = -1
+            const createRequirementConfig = {
+              code: params.code,
+              name: params.name,
+              modifier: params.modifier,
+              origin: params.origin,
+              rate: params.rate,
+              testId: testId,
+              description: params.description,
+              remark: params.remark,
+              tagIds: tagIds,
+              parentRequirementIds: parentRequirementIds,
+              childRequirementIds: childRequirementIds
+            }
+            try {
+              createdRequirementId = await serverConnector
+                .createRequirement(createRequirementConfig)
+                .then((result) => result.result.createdResourceId)
+            } catch {
+              createdRequirementId = await serverConnector
+                .createRequirement(createRequirementConfig)
+                .then((result) => result.result.createdResourceId)
+            }
             requirementIdForCode.set(params.code, createdRequirementId)
             result.createdRequirementCodes.push(params.code)
           } catch (error) {
