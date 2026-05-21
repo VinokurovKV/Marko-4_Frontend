@@ -1,6 +1,7 @@
 // Project
 import type { TagPrimary, DocumentTertiary, FragmentPrimary } from '~/types'
 import { serverConnector } from '~/server-connector'
+import { useLocationHash } from '~/hooks/use-location-hash'
 import { useNotifier } from '~/providers/notifier'
 import { localizationForDocumentType } from '~/localization'
 import { formatDate } from '~/utilities'
@@ -58,7 +59,7 @@ function formatPageNumbers(pageNumbers: number[]) {
   return ranges.join(', ')
 }
 
-type TabVal = 'DOCUMENT' | 'COVERAGE'
+type TabVal = 'document' | 'coverage'
 type Tab = TabViewerProps<TabVal>['tabs'][0]
 
 export interface DocumentViewerProps {
@@ -72,8 +73,8 @@ export function DocumentViewer({
   document,
   fragments
 }: DocumentViewerProps) {
+  const [tabValue, setTabValue] = useLocationHash<TabVal>('document')
   const notifier = useNotifier()
-  const [tabValue, setTabValue] = React.useState<TabVal>('DOCUMENT')
   const [fragmentPagesForId, setFragmentPagesForId] = React.useState<
     Record<number, number[]>
   >({})
@@ -119,18 +120,18 @@ export function DocumentViewer({
     (event: React.SyntheticEvent, value: TabVal) => {
       setTabValue(value)
     },
-    []
+    [setTabValue]
   )
 
   const tabs: Tab[] = React.useMemo(
     () => [
       {
         label: 'Текст',
-        value: 'DOCUMENT'
+        value: 'document'
       },
       {
         label: 'Покрытие',
-        value: 'COVERAGE'
+        value: 'coverage'
       }
     ],
     []
@@ -143,7 +144,7 @@ export function DocumentViewer({
     >
       <>
         <TabViewer tabs={tabs} onChange={handleTabChange} value={tabValue} />
-        {tabValue === 'DOCUMENT' ? (
+        {tabValue === 'document' ? (
           <DocumentContentViewer
             document={document}
             onFragmentPagesChange={setFragmentPagesForId}
@@ -155,7 +156,7 @@ export function DocumentViewer({
         )}
       </>
       <VerticalTwoPartsContainer
-        proportions={tabValue === 'DOCUMENT' ? '50_50' : '100_0'}
+        proportions={tabValue === 'document' ? '50_50' : '100_0'}
       >
         <ColumnViewer>
           <ColumnViewerBlock title="основная информация">
@@ -226,7 +227,7 @@ export function DocumentViewer({
             />
           </ColumnViewerBlock>
         </ColumnViewer>
-        {tabValue === 'DOCUMENT' ? (
+        {tabValue === 'document' ? (
           <ColumnViewer>
             <ColumnViewerBlock title="фрагменты">
               <ColumnViewerLinksBlock

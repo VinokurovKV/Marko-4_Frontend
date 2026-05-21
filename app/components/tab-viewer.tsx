@@ -21,7 +21,6 @@ export function TabViewer<TabVal>({
   value
 }: TabViewerProps<TabVal>) {
   const theme = useTheme()
-
   return (
     <Box
       marginBottom={1}
