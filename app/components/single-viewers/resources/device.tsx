@@ -1,12 +1,16 @@
 // Project
 import type { TagPrimary, DeviceTertiary } from '~/types'
 import { serverConnector } from '~/server-connector'
+import { useDialogs } from '~/providers/dialogs'
 import { useNotifier } from '~/providers/notifier'
+import { useMeta } from '~/providers/meta'
 import { localizationForDeviceType } from '~/localization'
 import { FlagIcon } from '~/components/icons'
 import { HorizontalTwoPartsContainer } from '~/components/containers'
+import { UpdateDeviceFormDialog } from '~/components/forms/resources/update-device'
 import {
   ColumnViewer,
+  ColumnViewerActions,
   ColumnViewerBlock,
   ColumnViewerChipsBlock,
   ColumnViewerFile,
@@ -14,8 +18,12 @@ import {
   ColumnViewerRef,
   ColumnViewerText
 } from '../common'
+// React router
+import { useNavigate } from 'react-router'
 // React
 import * as React from 'react'
+// Other
+import capitalize from 'capitalize'
 
 export interface DeviceViewerProps {
   tags: TagPrimary[] | null
@@ -23,7 +31,49 @@ export interface DeviceViewerProps {
 }
 
 export function DeviceViewer({ tags, device }: DeviceViewerProps) {
+  const navigate = useNavigate()
   const notifier = useNotifier()
+  const meta = useMeta()
+  const rightsSet = React.useMemo(
+    () =>
+      meta.status !== 'AUTHENTICATED' ? new Set([]) : meta.selfMeta.rightsSet,
+    [meta]
+  )
+  const dialogs = useDialogs()
+
+  // Edit form states
+  const [updatedDeviceId, setUpdatedDeviceId] = React.useState<number | null>(
+    null
+  )
+
+  const handleUpdateClick = React.useCallback(() => {
+    setUpdatedDeviceId(device.id)
+    return Promise.resolve()
+  }, [device])
+
+  const cancelUpdateForm = React.useCallback(() => {
+    setUpdatedDeviceId(null)
+  }, [setUpdatedDeviceId])
+
+  const handleDeleteClick = React.useCallback(async () => {
+    const confirmText = `удалить устройство '${device.code}'?`
+    const confirmed = await dialogs.confirm(capitalize(confirmText, true), {
+      severity: 'error',
+      okText: 'Удалить',
+      cancelText: 'Отменить'
+    })
+    if (confirmed) {
+      try {
+        await serverConnector.deleteDevice({
+          id: device.id
+        })
+        notifier.showSuccess(`устройство «${device.code}» удалено`)
+        void navigate('/devices')
+      } catch (error) {
+        notifier.showError(error)
+      }
+    }
+  }, [navigate, dialogs, device])
 
   const getConfigBlob = React.useCallback(async () => {
     try {
@@ -62,91 +112,111 @@ export function DeviceViewer({ tags, device }: DeviceViewerProps) {
   }, [device])
 
   return (
-    <HorizontalTwoPartsContainer
-      proportions="EQUAL"
-      title={['Устройство', `${device.code}`]}
-    >
-      <ColumnViewer>
-        <ColumnViewerBlock title="основная информация">
-          <ColumnViewerItem field="код" val={device.code} />
-          <ColumnViewerItem field="название" val={device.name} />
-          <ColumnViewerItem
-            field="тип"
-            val={localizationForDeviceType.get(device.type)}
-          />
-          <ColumnViewerRef
-            field="история"
-            text="ПЕРЕЙТИ"
-            href={`/history/devices/${device.id}`}
-          />
-        </ColumnViewerBlock>
-        <ColumnViewerItem
-          field="готовность"
-          Icon={
-            <FlagIcon
-              flag={device.prepared}
-              truePrompt="все необходимые конфигурации загружены"
-              falsePrompt="не все необходимые конфигурации загружены"
+    <>
+      <HorizontalTwoPartsContainer
+        proportions="EQUAL"
+        title={['Устройство', `${device.code}`]}
+      >
+        <ColumnViewer>
+          <ColumnViewerBlock title="действия">
+            <ColumnViewerActions
+              onUpdateClick={
+                rightsSet.has('UPDATE_DEVICE') ? handleUpdateClick : undefined
+              }
+              onDeleteClick={
+                rightsSet.has('DELETE_DEVICE') ? handleDeleteClick : undefined
+              }
             />
-          }
-        />
-        {device.config !== null ? (
-          <ColumnViewerFile
-            id={device.id}
-            field="параметры"
-            fieldFull={`парамтеры устройства «${device.code}»`}
-            name={`${device.code}-parameters`}
-            size={device.config.size}
-            format={device.config.format}
-            getFileBlob={getConfigBlob}
-            withBrowse
+          </ColumnViewerBlock>
+          <ColumnViewerBlock title="основная информация">
+            <ColumnViewerItem field="код" val={device.code} />
+            <ColumnViewerItem field="название" val={device.name} />
+            <ColumnViewerItem
+              field="тип"
+              val={localizationForDeviceType.get(device.type)}
+            />
+            <ColumnViewerRef
+              field="история"
+              text="ПЕРЕЙТИ"
+              href={`/history/devices/${device.id}`}
+            />
+          </ColumnViewerBlock>
+          <ColumnViewerItem
+            field="готовность"
+            Icon={
+              <FlagIcon
+                flag={device.prepared}
+                truePrompt="все необходимые конфигурации загружены"
+                falsePrompt="не все необходимые конфигурации загружены"
+              />
+            }
           />
-        ) : (
-          <ColumnViewerItem field="параметры" />
-        )}
-        {device.clearConfig !== null ? (
-          <ColumnViewerFile
-            id={device.id}
-            field="конфигурация очищения"
-            fieldFull={`конфигурация очищения устройства «${device.code}»`}
-            name={`${device.code}-clear-config`}
-            size={device.clearConfig.size}
-            format={device.clearConfig.format}
-            getFileBlob={getClearConfigBlob}
-            withBrowse
-          />
-        ) : (
-          <ColumnViewerItem field="конфигурация очищения" />
-        )}
-        {device.accessConfig !== null ? (
-          <ColumnViewerFile
-            id={device.id}
-            field="конфигурация доступа"
-            fieldFull={`конфигурация доступа устройства «${device.code}»`}
-            name={`${device.code}-access-config`}
-            size={device.accessConfig.size}
-            format={device.accessConfig.format}
-            getFileBlob={getAccessConfigBlob}
-            withBrowse
-          />
-        ) : (
-          <ColumnViewerItem field="конфигурация доступа" />
-        )}
-        <ColumnViewerBlock title="теги">
-          <ColumnViewerChipsBlock
-            emptyText={tags !== null ? 'нет' : '???'}
-            items={(tags ?? []).map((tag) => ({
-              text: tag.code,
-              href: `/tags/${tag.id}`
-            }))}
-          />
-        </ColumnViewerBlock>
-      </ColumnViewer>
-      <ColumnViewer>
-        <ColumnViewerBlock title="описание">
-          <ColumnViewerText text={device.description?.text} emptyText="нет" />
-        </ColumnViewerBlock>
-      </ColumnViewer>
-    </HorizontalTwoPartsContainer>
+          {device.config !== null ? (
+            <ColumnViewerFile
+              id={device.id}
+              field="параметры"
+              fieldFull={`парамтеры устройства «${device.code}»`}
+              name={`${device.code}-parameters`}
+              size={device.config.size}
+              format={device.config.format}
+              getFileBlob={getConfigBlob}
+              withBrowse
+            />
+          ) : (
+            <ColumnViewerItem field="параметры" />
+          )}
+          {device.clearConfig !== null ? (
+            <ColumnViewerFile
+              id={device.id}
+              field="конфигурация очищения"
+              fieldFull={`конфигурация очищения устройства «${device.code}»`}
+              name={`${device.code}-clear-config`}
+              size={device.clearConfig.size}
+              format={device.clearConfig.format}
+              getFileBlob={getClearConfigBlob}
+              withBrowse
+            />
+          ) : (
+            <ColumnViewerItem field="конфигурация очищения" />
+          )}
+          {device.accessConfig !== null ? (
+            <ColumnViewerFile
+              id={device.id}
+              field="конфигурация доступа"
+              fieldFull={`конфигурация доступа устройства «${device.code}»`}
+              name={`${device.code}-access-config`}
+              size={device.accessConfig.size}
+              format={device.accessConfig.format}
+              getFileBlob={getAccessConfigBlob}
+              withBrowse
+            />
+          ) : (
+            <ColumnViewerItem field="конфигурация доступа" />
+          )}
+          <ColumnViewerBlock title="теги">
+            <ColumnViewerChipsBlock
+              emptyText={tags !== null ? 'нет' : '???'}
+              items={(tags ?? []).map((tag) => ({
+                text: tag.code,
+                href: `/tags/${tag.id}`
+              }))}
+            />
+          </ColumnViewerBlock>
+        </ColumnViewer>
+        <ColumnViewer>
+          <ColumnViewerBlock title="описание">
+            <ColumnViewerText text={device.description?.text} emptyText="нет" />
+          </ColumnViewerBlock>
+        </ColumnViewer>
+      </HorizontalTwoPartsContainer>
+      <UpdateDeviceFormDialog
+        key={updatedDeviceId}
+        deviceId={updatedDeviceId}
+        setDeviceId={setUpdatedDeviceId}
+        initialDevice={device}
+        onSuccessUpdateDevice={cancelUpdateForm}
+        onCancelClick={cancelUpdateForm}
+      />
+    </>
   )
 }

@@ -239,12 +239,13 @@ export function TasksGrid(props: TasksGridProps) {
   const cols: GridColDef[] = React.useMemo(
     () => [
       ...(navigationMode ? navigationModeReadCols : readCols),
-      ...(rightsSet.has('UPDATE_TASK') ||
-      rightsSet.has('CANCEL_TASK') ||
-      rightsSet.has('ABORT_TASK') ||
-      rightsSet.has('PAUSE_TASK') ||
-      rightsSet.has('UNPAUSE_TASK') ||
-      rightsSet.has('DELETE_TASK')
+      ...(navigationMode === false &&
+      (rightsSet.has('UPDATE_TASK') ||
+        rightsSet.has('CANCEL_TASK') ||
+        rightsSet.has('ABORT_TASK') ||
+        rightsSet.has('PAUSE_TASK') ||
+        rightsSet.has('UNPAUSE_TASK') ||
+        rightsSet.has('DELETE_TASK'))
         ? [actionsCol]
         : [])
     ],

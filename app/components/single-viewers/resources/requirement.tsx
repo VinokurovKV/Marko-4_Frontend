@@ -9,7 +9,10 @@ import type {
   TestPrimary
 } from '~/types'
 import { serverConnector } from '~/server-connector'
+import { useDialogs } from '~/providers/dialogs'
+import { readRequirementsPrimary, readTestsPrimary } from '~/readers'
 import { useNotifier } from '~/providers/notifier'
+import { useMeta } from '~/providers/meta'
 import {
   localizationForRequirementModifier,
   localizationForRequirementOrigin
@@ -19,8 +22,10 @@ import {
   HorizontalTwoPartsContainer,
   VerticalTwoPartsContainer
 } from '~/components/containers'
+import { UpdateRequirementFormDialog } from '~/components/forms/resources/update-requirement'
 import {
   ColumnViewer,
+  ColumnViewerActions,
   ColumnViewerBlock,
   ColumnViewerChipsBlock,
   ColumnViewerItem,
@@ -28,12 +33,16 @@ import {
   ColumnViewerRef,
   ColumnViewerText
 } from '../common'
+// React router
+import { useNavigate } from 'react-router'
 // React
 import * as React from 'react'
 // Material UI
 import Box from '@mui/material/Box'
 import CircularProgress from '@mui/material/CircularProgress'
 import Typography from '@mui/material/Typography'
+// Other
+import capitalize from 'capitalize'
 
 const FRAGMENT_SCREENSHOT_LOADER_DELAY_MS = 250
 
@@ -60,7 +69,15 @@ export function RequirementViewer({
   test,
   oneColumn
 }: RequirementViewerProps) {
+  const navigate = useNavigate()
   const notifier = useNotifier()
+  const meta = useMeta()
+  const rightsSet = React.useMemo(
+    () =>
+      meta.status !== 'AUTHENTICATED' ? new Set([]) : meta.selfMeta.rightsSet,
+    [meta]
+  )
+  const dialogs = useDialogs()
   const documentCodeForId = React.useMemo(
     () =>
       new Map(
@@ -82,6 +99,15 @@ export function RequirementViewer({
   const [showFragmentScreenshotLoader, setShowFragmentScreenshotLoader] =
     React.useState(false)
   const screenshotRequestSeqRef = React.useRef(0)
+
+  // Edit form states
+  const [efRequirements, setEfRequirements] = React.useState<
+    RequirementPrimary[]
+  >([])
+  const [efTests, setEfTests] = React.useState<TestPrimary[]>([])
+  const [updatedRequirementId, setUpdatedRequirementId] = React.useState<
+    number | null
+  >(null)
 
   React.useEffect(() => {
     if (!isFragmentScreenshotLoading) {
@@ -176,206 +202,267 @@ export function RequirementViewer({
       : null
   const hasReadyFragmentScreenshot = selectedFragmentScreenshotUrl !== null
 
+  const handleUpdateClick = React.useCallback(async () => {
+    const [requirements, tests] = await Promise.all([
+      readRequirementsPrimary(),
+      readTestsPrimary()
+    ])
+    setEfRequirements(requirements ?? [])
+    setEfTests(tests ?? [])
+    setUpdatedRequirementId(requirement.id)
+  }, [requirement])
+
+  const cancelUpdateForm = React.useCallback(() => {
+    setUpdatedRequirementId(null)
+  }, [setUpdatedRequirementId])
+
+  const handleDeleteClick = React.useCallback(async () => {
+    const confirmText = `удалить требование '${requirement.code}'?`
+    const confirmed = await dialogs.confirm(capitalize(confirmText, true), {
+      severity: 'error',
+      okText: 'Удалить',
+      cancelText: 'Отменить'
+    })
+    if (confirmed) {
+      try {
+        await serverConnector.deleteRequirement({
+          id: requirement.id
+        })
+        notifier.showSuccess(`требование «${requirement.code}» удалено`)
+        void navigate('/requirements')
+      } catch (error) {
+        notifier.showError(error)
+      }
+    }
+  }, [navigate, dialogs, requirement])
+
   return (
-    <HorizontalTwoPartsContainer
-      proportions={oneColumn ? 'ONE_ZERO' : 'EQUAL'}
-      title={['Требование', `${requirement.code}`]}
-    >
-      <ColumnViewer>
-        <ColumnViewerBlock title="основная информация">
-          <ColumnViewerItem field="код" val={requirement.code} />
-          <ColumnViewerItem field="название" val={requirement.name} />
-          <ColumnViewerItem
-            field="модификатор"
-            val={localizationForRequirementModifier.get(requirement.modifier)}
-            Icon={<RequirementModifierIcon modifier={requirement.modifier} />}
-          />
-          <ColumnViewerItem
-            field="происхождение"
-            val={localizationForRequirementOrigin.get(requirement.origin)}
-          />
-          <ColumnViewerItem
-            field="атомарное"
-            Icon={<FlagIcon flag={vertex.atomic} />}
-          />
-          <ColumnViewerItem
-            field="атомарный коэффициент"
-            val={requirement.rate}
-            semiTransparent={vertex.atomic === false}
-          />
-          <ColumnViewerRef
-            field="покрывающий тест"
-            text={test?.code}
-            href={
-              requirement.testId !== null
-                ? `/hierarchy/tests/${requirement.testId}`
-                : undefined
-            }
-            semiTransparent={vertex.atomic === false}
-          />
-          <ColumnViewerRef
-            field="история"
-            text="ПЕРЕЙТИ"
-            href={`/history/requirements/${requirement.id}`}
-          />
-        </ColumnViewerBlock>
-        <ColumnViewerBlock
-          title={`фрагменты документов${requirement.fragmentsCount > 0 ? ` (${requirement.fragmentsCount})` : ''}`}
-        >
-          <ColumnViewerChipsBlock
-            emptyText={fragments !== null ? 'нет' : '???'}
-            items={(fragments ?? []).map((fragment) => {
-              const documentCode =
-                documentCodeForId.get(fragment.documentId) ?? null
-              return {
-                text: `${documentCode ?? '???'} - ${fragment.innerCode}`,
-                onClick: () => handleFragmentClick(fragment.id),
-                isActive: selectedFragmentId === fragment.id,
-                disableCapitalize: true
+    <>
+      <HorizontalTwoPartsContainer
+        proportions={oneColumn ? 'ONE_ZERO' : 'EQUAL'}
+        title={['Требование', `${requirement.code}`]}
+      >
+        <ColumnViewer>
+          <ColumnViewerBlock title="действия">
+            <ColumnViewerActions
+              onUpdateClick={
+                rightsSet.has('UPDATE_REQUIREMENT')
+                  ? handleUpdateClick
+                  : undefined
               }
-            })}
-          />
-        </ColumnViewerBlock>
-        <ColumnViewerBlock
-          title={`родительские требования${requirement.parentRequirementsCount > 0 ? ` (${requirement.parentRequirementsCount})` : ''}`}
-        >
-          <ColumnViewerChipsBlock
-            emptyText={parentRequirements !== null ? 'нет' : '???'}
-            items={(parentRequirements ?? []).map((requirement) => ({
-              text: requirement.code,
-              href: `/requirements/${requirement.id}`
-            }))}
-          />
-        </ColumnViewerBlock>
-        <ColumnViewerBlock
-          title={`дочерние требования${requirement.childRequirementsCount > 0 ? ` (${requirement.childRequirementsCount})` : ''}`}
-        >
-          <ColumnViewerChipsBlock
-            emptyText={childRequirements !== null ? 'нет' : '???'}
-            items={(childRequirements ?? []).map((requirement) => ({
-              text: requirement.code,
-              href: `/requirements/${requirement.id}`
-            }))}
-          />
-        </ColumnViewerBlock>
-        <ColumnViewerBlock title="покрытие атомарных требований">
-          <ColumnViewerPercent
-            field="все"
-            fraction={`${vertex.coveredRate.full} / ${vertex.aggregateRate.full}`}
-          />
-          <ColumnViewerPercent
-            field="обязательные"
-            fraction={`${vertex.coveredRate.onlyMust} / ${vertex.aggregateRate.onlyMust}`}
-          />
-          <ColumnViewerPercent
-            field="обязательные и рекомендуемые"
-            fraction={`${vertex.coveredRate.mustAndShould} / ${vertex.aggregateRate.mustAndShould}`}
-          />
-          <ColumnViewerPercent
-            field="рекомендуемые"
-            fraction={`${vertex.coveredRate.onlyShould} / ${vertex.aggregateRate.onlyShould}`}
-          />
-          <ColumnViewerPercent
-            field="необязательные"
-            fraction={`${vertex.coveredRate.onlyMay} / ${vertex.aggregateRate.onlyMay}`}
-          />
-        </ColumnViewerBlock>
-        <ColumnViewerBlock title="теги">
-          <ColumnViewerChipsBlock
-            emptyText={tags !== null ? 'нет' : '???'}
-            items={(tags ?? []).map((tag) => ({
-              text: tag.code,
-              href: `/tags/${tag.id}`
-            }))}
-          />
-        </ColumnViewerBlock>
-        {oneColumn ? (
-          <ColumnViewerBlock title="описание">
-            <ColumnViewerText
-              text={requirement.description?.text}
-              emptyText="нет"
+              onDeleteClick={
+                rightsSet.has('DELETE_REQUIREMENT')
+                  ? handleDeleteClick
+                  : undefined
+              }
             />
           </ColumnViewerBlock>
-        ) : null}
-      </ColumnViewer>
-      {oneColumn ? null : (
-        <VerticalTwoPartsContainer
-          proportions={hasReadyFragmentScreenshot ? '45_55' : '100_0'}
-        >
-          <ColumnViewer>
+          <ColumnViewerBlock title="основная информация">
+            <ColumnViewerItem field="код" val={requirement.code} />
+            <ColumnViewerItem field="название" val={requirement.name} />
+            <ColumnViewerItem
+              field="модификатор"
+              val={localizationForRequirementModifier.get(requirement.modifier)}
+              Icon={<RequirementModifierIcon modifier={requirement.modifier} />}
+            />
+            <ColumnViewerItem
+              field="происхождение"
+              val={localizationForRequirementOrigin.get(requirement.origin)}
+            />
+            <ColumnViewerItem
+              field="атомарное"
+              Icon={<FlagIcon flag={vertex.atomic} />}
+            />
+            <ColumnViewerItem
+              field="атомарный коэффициент"
+              val={requirement.rate}
+              semiTransparent={vertex.atomic === false}
+            />
+            <ColumnViewerRef
+              field="покрывающий тест"
+              text={test?.code}
+              href={
+                requirement.testId !== null
+                  ? `/hierarchy/tests/${requirement.testId}`
+                  : undefined
+              }
+              semiTransparent={vertex.atomic === false}
+            />
+            <ColumnViewerRef
+              field="история"
+              text="ПЕРЕЙТИ"
+              href={`/history/requirements/${requirement.id}`}
+            />
+          </ColumnViewerBlock>
+          <ColumnViewerBlock
+            title={`фрагменты документов${requirement.fragmentsCount > 0 ? ` (${requirement.fragmentsCount})` : ''}`}
+          >
+            <ColumnViewerChipsBlock
+              emptyText={fragments !== null ? 'нет' : '???'}
+              items={(fragments ?? []).map((fragment) => {
+                const documentCode =
+                  documentCodeForId.get(fragment.documentId) ?? null
+                return {
+                  text: `${documentCode ?? '???'} - ${fragment.innerCode}`,
+                  onClick: () => handleFragmentClick(fragment.id),
+                  isActive: selectedFragmentId === fragment.id,
+                  disableCapitalize: true
+                }
+              })}
+            />
+          </ColumnViewerBlock>
+          <ColumnViewerBlock
+            title={`родительские требования${requirement.parentRequirementsCount > 0 ? ` (${requirement.parentRequirementsCount})` : ''}`}
+          >
+            <ColumnViewerChipsBlock
+              emptyText={parentRequirements !== null ? 'нет' : '???'}
+              items={(parentRequirements ?? []).map((requirement) => ({
+                text: requirement.code,
+                href: `/requirements/${requirement.id}`
+              }))}
+            />
+          </ColumnViewerBlock>
+          <ColumnViewerBlock
+            title={`дочерние требования${requirement.childRequirementsCount > 0 ? ` (${requirement.childRequirementsCount})` : ''}`}
+          >
+            <ColumnViewerChipsBlock
+              emptyText={childRequirements !== null ? 'нет' : '???'}
+              items={(childRequirements ?? []).map((requirement) => ({
+                text: requirement.code,
+                href: `/requirements/${requirement.id}`
+              }))}
+            />
+          </ColumnViewerBlock>
+          <ColumnViewerBlock title="покрытие атомарных требований">
+            <ColumnViewerPercent
+              field="все"
+              fraction={`${vertex.coveredRate.full} / ${vertex.aggregateRate.full}`}
+            />
+            <ColumnViewerPercent
+              field="обязательные"
+              fraction={`${vertex.coveredRate.onlyMust} / ${vertex.aggregateRate.onlyMust}`}
+            />
+            <ColumnViewerPercent
+              field="обязательные и рекомендуемые"
+              fraction={`${vertex.coveredRate.mustAndShould} / ${vertex.aggregateRate.mustAndShould}`}
+            />
+            <ColumnViewerPercent
+              field="рекомендуемые"
+              fraction={`${vertex.coveredRate.onlyShould} / ${vertex.aggregateRate.onlyShould}`}
+            />
+            <ColumnViewerPercent
+              field="необязательные"
+              fraction={`${vertex.coveredRate.onlyMay} / ${vertex.aggregateRate.onlyMay}`}
+            />
+          </ColumnViewerBlock>
+          <ColumnViewerBlock title="теги">
+            <ColumnViewerChipsBlock
+              emptyText={tags !== null ? 'нет' : '???'}
+              items={(tags ?? []).map((tag) => ({
+                text: tag.code,
+                href: `/tags/${tag.id}`
+              }))}
+            />
+          </ColumnViewerBlock>
+          {oneColumn ? (
             <ColumnViewerBlock title="описание">
               <ColumnViewerText
                 text={requirement.description?.text}
                 emptyText="нет"
               />
             </ColumnViewerBlock>
-          </ColumnViewer>
-          <ColumnViewer>
-            <ColumnViewerBlock title="фрагмент">
-              <Box
-                flexDirection="column"
-                sx={{
-                  position: 'relative',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: '100%',
-                  p: 1
-                }}
-              >
-                {selectedFragment !== null ? (
-                  <ColumnViewerRef
-                    field="документ"
-                    text={
-                      documentCodeForId.get(selectedFragment.documentId) ??
-                      '???'
-                    }
-                    href={
-                      selectedFragment.documentId !== null
-                        ? `/documents/${selectedFragment.documentId}`
-                        : undefined
-                    }
-                  />
-                ) : null}
-                {selectedFragmentScreenshotUrl !== null ? (
-                  <Box
-                    component="img"
-                    src={selectedFragmentScreenshotUrl}
-                    alt={
-                      selectedFragment !== null
-                        ? `Скриншот фрагмента ${selectedFragment.innerCode}`
-                        : 'Скриншот фрагмента'
-                    }
-                    sx={{
-                      width: '100%',
-                      height: 'auto',
-                      objectFit: 'contain',
-                      borderRadius: 1
-                    }}
-                  />
-                ) : (
-                  <Typography textAlign="center" variant="body2">
-                    выберите фрагмент слева
-                  </Typography>
-                )}
-                {isFragmentScreenshotLoading && showFragmentScreenshotLoader ? (
-                  <Box
-                    sx={{
-                      position: 'absolute',
-                      inset: 0,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}
-                  >
-                    <CircularProgress size={24} />
-                  </Box>
-                ) : null}
-              </Box>
-            </ColumnViewerBlock>
-          </ColumnViewer>
-        </VerticalTwoPartsContainer>
-      )}
-    </HorizontalTwoPartsContainer>
+          ) : null}
+        </ColumnViewer>
+        {oneColumn ? null : (
+          <VerticalTwoPartsContainer
+            proportions={hasReadyFragmentScreenshot ? '45_55' : '100_0'}
+          >
+            <ColumnViewer>
+              <ColumnViewerBlock title="описание">
+                <ColumnViewerText
+                  text={requirement.description?.text}
+                  emptyText="нет"
+                />
+              </ColumnViewerBlock>
+            </ColumnViewer>
+            <ColumnViewer>
+              <ColumnViewerBlock title="фрагмент">
+                <Box
+                  flexDirection="column"
+                  sx={{
+                    position: 'relative',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '100%',
+                    p: 1
+                  }}
+                >
+                  {selectedFragment !== null ? (
+                    <ColumnViewerRef
+                      field="документ"
+                      text={
+                        documentCodeForId.get(selectedFragment.documentId) ??
+                        '???'
+                      }
+                      href={
+                        selectedFragment.documentId !== null
+                          ? `/documents/${selectedFragment.documentId}`
+                          : undefined
+                      }
+                    />
+                  ) : null}
+                  {selectedFragmentScreenshotUrl !== null ? (
+                    <Box
+                      component="img"
+                      src={selectedFragmentScreenshotUrl}
+                      alt={
+                        selectedFragment !== null
+                          ? `Скриншот фрагмента ${selectedFragment.innerCode}`
+                          : 'Скриншот фрагмента'
+                      }
+                      sx={{
+                        width: '100%',
+                        height: 'auto',
+                        objectFit: 'contain',
+                        borderRadius: 1
+                      }}
+                    />
+                  ) : (
+                    <Typography textAlign="center" variant="body2">
+                      выберите фрагмент слева
+                    </Typography>
+                  )}
+                  {isFragmentScreenshotLoading &&
+                  showFragmentScreenshotLoader ? (
+                    <Box
+                      sx={{
+                        position: 'absolute',
+                        inset: 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                    >
+                      <CircularProgress size={24} />
+                    </Box>
+                  ) : null}
+                </Box>
+              </ColumnViewerBlock>
+            </ColumnViewer>
+          </VerticalTwoPartsContainer>
+        )}
+      </HorizontalTwoPartsContainer>
+      <UpdateRequirementFormDialog
+        key={updatedRequirementId}
+        requirements={efRequirements}
+        tests={efTests}
+        requirementId={updatedRequirementId}
+        setRequirementId={setUpdatedRequirementId}
+        initialRequirement={requirement}
+        onSuccessUpdateRequirement={cancelUpdateForm}
+        onCancelClick={cancelUpdateForm}
+      />
+    </>
   )
 }

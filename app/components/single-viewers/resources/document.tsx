@@ -2,7 +2,9 @@
 import type { TagPrimary, DocumentTertiary, FragmentPrimary } from '~/types'
 import { serverConnector } from '~/server-connector'
 import { useLocationHash } from '~/hooks/use-location-hash'
+import { useDialogs } from '~/providers/dialogs'
 import { useNotifier } from '~/providers/notifier'
+import { useMeta } from '~/providers/meta'
 import { localizationForDocumentType } from '~/localization'
 import { formatDate } from '~/utilities'
 import {
@@ -14,8 +16,10 @@ import { TabViewer } from '~/components/tab-viewer'
 import { FormatIcon } from '~/components/grids/cols'
 import { DocumentRequirementsGrid } from '~/components/grids/resources/document-requirements'
 import { DocumentContentViewer } from '~/components/document-content/document-content-viewer'
+import { UpdateDocumentFormDialog } from '~/components/forms/resources/update-document'
 import {
   ColumnViewer,
+  ColumnViewerActions,
   ColumnViewerBlock,
   ColumnViewerChipsBlock,
   ColumnViewerFile,
@@ -24,10 +28,14 @@ import {
   ColumnViewerRef,
   ColumnViewerText
 } from '../common'
+// React router
+import { useNavigate } from 'react-router'
 // React
 import * as React from 'react'
 // Material UI
 import Tab from '@mui/material/Tab'
+// Other
+import capitalize from 'capitalize'
 
 function getFragmentDisplayName(fragment: FragmentPrimary) {
   return fragment.innerCode
@@ -73,6 +81,49 @@ export function DocumentViewer({
   document,
   fragments
 }: DocumentViewerProps) {
+  const navigate = useNavigate()
+  const meta = useMeta()
+  const rightsSet = React.useMemo(
+    () =>
+      meta.status !== 'AUTHENTICATED' ? new Set([]) : meta.selfMeta.rightsSet,
+    [meta]
+  )
+  const dialogs = useDialogs()
+
+  // Edit form states
+  const [updatedDocumentId, setUpdatedDocumentId] = React.useState<
+    number | null
+  >(null)
+
+  const handleUpdateClick = React.useCallback(() => {
+    setUpdatedDocumentId(document.id)
+    return Promise.resolve()
+  }, [document])
+
+  const cancelUpdateForm = React.useCallback(() => {
+    setUpdatedDocumentId(null)
+  }, [setUpdatedDocumentId])
+
+  const handleDeleteClick = React.useCallback(async () => {
+    const confirmText = `удалить документ '${document.code}'?`
+    const confirmed = await dialogs.confirm(capitalize(confirmText, true), {
+      severity: 'error',
+      okText: 'Удалить',
+      cancelText: 'Отменить'
+    })
+    if (confirmed) {
+      try {
+        await serverConnector.deleteDocument({
+          id: document.id
+        })
+        notifier.showSuccess(`документ «${document.code}» удален`)
+        void navigate('/documents')
+      } catch (error) {
+        notifier.showError(error)
+      }
+    }
+  }, [navigate, dialogs, document])
+
   const [tabValue, setTabValue] = useLocationHash<TabVal>('document')
   const notifier = useNotifier()
   const [fragmentPagesForId, setFragmentPagesForId] = React.useState<
@@ -138,119 +189,143 @@ export function DocumentViewer({
   )
 
   return (
-    <HorizontalTwoPartsContainer
-      proportions="THREE_ONE"
-      title={['Документ', `${document.code}`]}
-    >
-      <>
-        <TabViewer tabs={tabs} onChange={handleTabChange} value={tabValue} />
-        {tabValue === 'document' ? (
-          <DocumentContentViewer
-            document={document}
-            onFragmentPagesChange={setFragmentPagesForId}
-            previewAreaRequest={previewAreaRequest}
-            browseAreaRequest={browseAreaRequest}
-          />
-        ) : (
-          <DocumentRequirementsGrid document={document} />
-        )}
-      </>
-      <VerticalTwoPartsContainer
-        proportions={tabValue === 'document' ? '50_50' : '100_0'}
+    <>
+      <HorizontalTwoPartsContainer
+        proportions="THREE_ONE"
+        title={['Документ', `${document.code}`]}
       >
-        <ColumnViewer>
-          <ColumnViewerBlock title="основная информация">
-            <ColumnViewerItem field="код" val={document.code} />
-            <ColumnViewerItem field="название" val={document.name} />
-            <ColumnViewerItem
-              field="тип"
-              val={localizationForDocumentType.get(document.type)}
+        <>
+          <TabViewer tabs={tabs} onChange={handleTabChange} value={tabValue} />
+          {tabValue === 'document' ? (
+            <DocumentContentViewer
+              document={document}
+              onFragmentPagesChange={setFragmentPagesForId}
+              previewAreaRequest={previewAreaRequest}
+              browseAreaRequest={browseAreaRequest}
             />
-            <ColumnViewerItem
-              field="формат"
-              Icon={<FormatIcon format={document.format} />}
-            />
-            <ColumnViewerFile
-              id={0}
-              field="файл"
-              fieldFull={`файл документа «${document.code}»`}
-              name={document.code}
-              size={document.config.size}
-              format={document.config.format}
-              getFileBlob={getConfigBlob}
-              withBrowse
-            />
-            <ColumnViewerItem field="версия" val={document.publicVersion} />
-            <ColumnViewerItem
-              field="дата публикации"
-              val={
-                document.date !== null ? formatDate(document.date) : undefined
-              }
-            />
-            <ColumnViewerRef
-              field="источник"
-              text={document.url ?? undefined}
-              href={document.url !== null ? document.url : undefined}
-              external={true}
-            />
-            <ColumnViewerRef
-              field="история"
-              text="ПЕРЕЙТИ"
-              href={`/history/documents/${document.id}`}
-            />
-          </ColumnViewerBlock>
-          <ColumnViewerBlock title="описание">
-            <ColumnViewerText
-              text={document.description?.text}
-              emptyText="нет"
-            />
-          </ColumnViewerBlock>
-          <ColumnViewerBlock
-            title={`фрагменты${document.fragmentsCount > 0 ? ` (${document.fragmentsCount})` : ''}`}
-          >
-            <ColumnViewerChipsBlock
-              emptyText={fragments !== null ? 'нет' : '???'}
-              items={(fragments ?? []).map((fragment) => ({
-                text: fragment.innerCode,
-                onClick: () => requestPreviewArea(fragment.id),
-                disableCapitalize: true
-              }))}
-            />
-          </ColumnViewerBlock>
-          <ColumnViewerBlock title="теги">
-            <ColumnViewerChipsBlock
-              emptyText={tags !== null ? 'нет' : '???'}
-              items={(tags ?? []).map((tag) => ({
-                text: tag.code,
-                href: `/tags/${tag.id}`
-              }))}
-            />
-          </ColumnViewerBlock>
-        </ColumnViewer>
-        {tabValue === 'document' ? (
+          ) : (
+            <DocumentRequirementsGrid document={document} />
+          )}
+        </>
+        <VerticalTwoPartsContainer
+          proportions={tabValue === 'document' ? '50_50' : '100_0'}
+        >
           <ColumnViewer>
-            <ColumnViewerBlock title="фрагменты">
-              <ColumnViewerLinksBlock
+            <ColumnViewerBlock title="действия">
+              <ColumnViewerActions
+                onUpdateClick={
+                  rightsSet.has('UPDATE_DOCUMENT')
+                    ? handleUpdateClick
+                    : undefined
+                }
+                onDeleteClick={
+                  rightsSet.has('DELETE_DOCUMENT')
+                    ? handleDeleteClick
+                    : undefined
+                }
+              />
+            </ColumnViewerBlock>
+            <ColumnViewerBlock title="основная информация">
+              <ColumnViewerItem field="код" val={document.code} />
+              <ColumnViewerItem field="название" val={document.name} />
+              <ColumnViewerItem
+                field="тип"
+                val={localizationForDocumentType.get(document.type)}
+              />
+              <ColumnViewerItem
+                field="формат"
+                Icon={<FormatIcon format={document.format} />}
+              />
+              <ColumnViewerFile
+                id={0}
+                field="файл"
+                fieldFull={`файл документа «${document.code}»`}
+                name={document.code}
+                size={document.config.size}
+                format={document.config.format}
+                getFileBlob={getConfigBlob}
+                withBrowse
+              />
+              <ColumnViewerItem field="версия" val={document.publicVersion} />
+              <ColumnViewerItem
+                field="дата публикации"
+                val={
+                  document.date !== null ? formatDate(document.date) : undefined
+                }
+              />
+              <ColumnViewerRef
+                field="источник"
+                text={document.url ?? undefined}
+                href={document.url !== null ? document.url : undefined}
+                external={true}
+              />
+              <ColumnViewerRef
+                field="история"
+                text="ПЕРЕЙТИ"
+                href={`/history/documents/${document.id}`}
+              />
+            </ColumnViewerBlock>
+            <ColumnViewerBlock title="описание">
+              <ColumnViewerText
+                text={document.description?.text}
+                emptyText="нет"
+              />
+            </ColumnViewerBlock>
+            <ColumnViewerBlock
+              title={`фрагменты${document.fragmentsCount > 0 ? ` (${document.fragmentsCount})` : ''}`}
+            >
+              <ColumnViewerChipsBlock
                 emptyText={fragments !== null ? 'нет' : '???'}
                 items={(fragments ?? []).map((fragment) => ({
-                  text: getFragmentDisplayName(fragment),
-                  secondaryText: (() => {
-                    const pagesText = formatPageNumbers(
-                      fragmentPagesForId[fragment.id] ?? []
-                    )
-
-                    return pagesText !== null
-                      ? `Страницы: ${pagesText}`
-                      : undefined
-                  })(),
-                  onClick: () => requestBrowseArea(fragment.id),
+                  text: fragment.innerCode,
+                  onClick: () => requestPreviewArea(fragment.id),
                   disableCapitalize: true
                 }))}
               />
             </ColumnViewerBlock>
+            <ColumnViewerBlock title="теги">
+              <ColumnViewerChipsBlock
+                emptyText={tags !== null ? 'нет' : '???'}
+                items={(tags ?? []).map((tag) => ({
+                  text: tag.code,
+                  href: `/tags/${tag.id}`
+                }))}
+              />
+            </ColumnViewerBlock>
           </ColumnViewer>
-        ) : null}
-      </VerticalTwoPartsContainer>
-    </HorizontalTwoPartsContainer>
+          {tabValue === 'document' ? (
+            <ColumnViewer>
+              <ColumnViewerBlock title="фрагменты">
+                <ColumnViewerLinksBlock
+                  emptyText={fragments !== null ? 'нет' : '???'}
+                  items={(fragments ?? []).map((fragment) => ({
+                    text: getFragmentDisplayName(fragment),
+                    secondaryText: (() => {
+                      const pagesText = formatPageNumbers(
+                        fragmentPagesForId[fragment.id] ?? []
+                      )
+
+                      return pagesText !== null
+                        ? `Страницы: ${pagesText}`
+                        : undefined
+                    })(),
+                    onClick: () => requestBrowseArea(fragment.id),
+                    disableCapitalize: true
+                  }))}
+                />
+              </ColumnViewerBlock>
+            </ColumnViewer>
+          ) : null}
+        </VerticalTwoPartsContainer>
+      </HorizontalTwoPartsContainer>
+      <UpdateDocumentFormDialog
+        key={updatedDocumentId}
+        documentId={updatedDocumentId}
+        setDocumentId={setUpdatedDocumentId}
+        initialDocument={document}
+        onSuccessUpdateDocument={cancelUpdateForm}
+        onCancelClick={cancelUpdateForm}
+      />
+    </>
   )
 }

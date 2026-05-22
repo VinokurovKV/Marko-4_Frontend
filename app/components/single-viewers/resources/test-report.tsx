@@ -52,15 +52,11 @@ export function TestReportViewer(props: TestReportViewerProps) {
     >
       <ColumnViewer>
         <ColumnViewerBlock title="основная информация">
-          {test !== null ? (
-            <ColumnViewerRef
-              field="тест"
-              text={test?.code ?? 'УДАЛЕН'}
-              href={`/hierarchy/tests/${test.id}`}
-            />
-          ) : (
-            <ColumnViewerItem field="тест" val="УДАЛЕН" />
-          )}
+          <ColumnViewerRef
+            field="тест"
+            text={test?.code ?? 'УДАЛЕН'}
+            href={`${test === null ? '/history' : ''}/tests/${testReport.testId}`}
+          />
           <ColumnViewerItem
             field="статус"
             val={localizationForTestStatus.get(testReport.status)}
