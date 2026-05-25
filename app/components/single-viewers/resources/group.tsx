@@ -8,6 +8,7 @@ import type {
   GroupTertiary
 } from '~/types'
 import { serverConnector } from '~/server-connector'
+import { useLocationHash } from '~/hooks/use-location-hash'
 import { useDialogs } from '~/providers/dialogs'
 import { useNotifier } from '~/providers/notifier'
 import { useMeta } from '~/providers/meta'
@@ -15,6 +16,8 @@ import {
   ContainerWithTitle,
   HorizontalTwoPartsContainer
 } from '~/components/containers'
+import type { TabViewerProps } from '~/components/tab-viewer'
+import { TabViewer } from '~/components/tab-viewer'
 import { GroupRequirementsGrid } from '~/components/grids/resources/group-requirements'
 import { UpdateGroupFormDialog } from '~/components/forms/resources/update-group'
 import {
@@ -30,8 +33,13 @@ import {
 import { useNavigate } from 'react-router'
 // React
 import * as React from 'react'
+// Material UI
+import Tab from '@mui/material/Tab'
 // Other
 import capitalize from 'capitalize'
+
+type TabVal = 'main' | 'coverage'
+type Tab = TabViewerProps<TabVal>['tabs'][0]
 
 export interface GroupViewerProps {
   tags: TagPrimary[] | null
@@ -51,6 +59,7 @@ export function GroupViewer({
   group
 }: GroupViewerProps) {
   const navigate = useNavigate()
+  const [tabValue, setTabValue] = useLocationHash<TabVal>('main')
   const notifier = useNotifier()
   const meta = useMeta()
   const rightsSet = React.useMemo(
@@ -94,82 +103,111 @@ export function GroupViewer({
     }
   }, [navigate, dialogs, group])
 
+  const handleTabChange = React.useCallback(
+    (event: React.SyntheticEvent, value: TabVal) => {
+      setTabValue(value)
+    },
+    [setTabValue]
+  )
+
+  const tabs: Tab[] = React.useMemo(
+    () => [
+      {
+        label: 'Основное',
+        value: 'main'
+      },
+      {
+        label: 'Покрытие',
+        value: 'coverage'
+      }
+    ],
+    []
+  )
+
   return (
     <>
-      <HorizontalTwoPartsContainer
-        proportions={requirements !== null ? 'ONE_TWO' : 'ONE_ZERO'}
-        title={['Группа', `${group.code}`]}
-      >
-        <ColumnViewer>
-          <ColumnViewerBlock title="вид навигации">
-            <ColumnViewerChipsBlock
-              items={[
-                {
-                  text: 'таблица',
-                  href: `/groups/${group.id}`
-                },
-                {
-                  text: 'иерархия',
-                  href: `/hierarchy/groups/${group.id}`
-                }
-              ]}
-            />
-          </ColumnViewerBlock>
-          <ColumnViewerBlock title="действия">
-            <ColumnViewerActions
-              onUpdateClick={
-                rightsSet.has('UPDATE_GROUP') ? handleUpdateClick : undefined
-              }
-              onDeleteClick={
-                rightsSet.has('DELETE_GROUP') ? handleDeleteClick : undefined
-              }
-            />
-          </ColumnViewerBlock>
-          <ColumnViewerBlock title="основная информация">
-            <ColumnViewerItem field="код" val={group.code} />
-            <ColumnViewerItem field="название" val={group.name} />
-            <ColumnViewerItem field="номер" val={group.num ?? undefined} />
-            <ColumnViewerRef
-              field="история"
-              text="ПЕРЕЙТИ"
-              href={`/history/groups/${group.id}`}
-            />
-          </ColumnViewerBlock>
-          <ColumnViewerBlock
-            title={`подгруппы${subgroups !== null && subgroups.length > 0 ? ` (${subgroups.length})` : ''}`}
-          >
-            <ColumnViewerChipsBlock
-              emptyText={subgroups !== null ? 'нет' : '???'}
-              items={(subgroups ?? []).map((subgroup) => ({
-                text: subgroup.code,
-                href: `/hierarchy/subgroups/${subgroup.id}`
-              }))}
-            />
-          </ColumnViewerBlock>
-          <ColumnViewerBlock title="теги">
-            <ColumnViewerChipsBlock
-              emptyText={tags !== null ? 'нет' : '???'}
-              items={(tags ?? []).map((tag) => ({
-                text: tag.code,
-                href: `/tags/${tag.id}`
-              }))}
-            />
-          </ColumnViewerBlock>
-          <ColumnViewerBlock title="описание">
-            <ColumnViewerText text={group.description?.text} emptyText="нет" />
-          </ColumnViewerBlock>
-        </ColumnViewer>
-        {requirements !== null ? (
-          <ContainerWithTitle title="тесты">
-            <GroupRequirementsGrid
-              requirements={requirements}
-              topologies={topologies}
-              tests={tests}
-              subgroups={subgroups}
-            />
-          </ContainerWithTitle>
+      <ContainerWithTitle title={['Группа', `${group.code}`]}>
+        <TabViewer tabs={tabs} onChange={handleTabChange} value={tabValue} />
+        {tabValue === 'main' ? (
+          <HorizontalTwoPartsContainer proportions="EQUAL">
+            <ColumnViewer>
+              <ColumnViewerBlock title="вид навигации">
+                <ColumnViewerChipsBlock
+                  items={[
+                    {
+                      text: 'таблица',
+                      href: `/groups/${group.id}`
+                    },
+                    {
+                      text: 'иерархия',
+                      href: `/hierarchy/groups/${group.id}`
+                    }
+                  ]}
+                />
+              </ColumnViewerBlock>
+              <ColumnViewerBlock title="действия">
+                <ColumnViewerActions
+                  onUpdateClick={
+                    rightsSet.has('UPDATE_GROUP')
+                      ? handleUpdateClick
+                      : undefined
+                  }
+                  onDeleteClick={
+                    rightsSet.has('DELETE_GROUP')
+                      ? handleDeleteClick
+                      : undefined
+                  }
+                />
+              </ColumnViewerBlock>
+              <ColumnViewerBlock title="основная информация">
+                <ColumnViewerItem field="код" val={group.code} />
+                <ColumnViewerItem field="название" val={group.name} />
+                <ColumnViewerItem field="номер" val={group.num ?? undefined} />
+                <ColumnViewerRef
+                  field="история"
+                  text="ПЕРЕЙТИ"
+                  href={`/history/groups/${group.id}`}
+                />
+              </ColumnViewerBlock>
+              <ColumnViewerBlock
+                title={`подгруппы${subgroups !== null && subgroups.length > 0 ? ` (${subgroups.length})` : ''}`}
+              >
+                <ColumnViewerChipsBlock
+                  emptyText={subgroups !== null ? 'нет' : '???'}
+                  items={(subgroups ?? []).map((subgroup) => ({
+                    text: subgroup.code,
+                    href: `/hierarchy/subgroups/${subgroup.id}`
+                  }))}
+                />
+              </ColumnViewerBlock>
+              <ColumnViewerBlock title="теги">
+                <ColumnViewerChipsBlock
+                  emptyText={tags !== null ? 'нет' : '???'}
+                  items={(tags ?? []).map((tag) => ({
+                    text: tag.code,
+                    href: `/tags/${tag.id}`
+                  }))}
+                />
+              </ColumnViewerBlock>
+            </ColumnViewer>
+            <ColumnViewer>
+              <ColumnViewerBlock title="описание">
+                <ColumnViewerText
+                  text={group.description?.text}
+                  emptyText="нет"
+                />
+              </ColumnViewerBlock>
+            </ColumnViewer>
+          </HorizontalTwoPartsContainer>
+        ) : requirements !== null ? (
+          <GroupRequirementsGrid
+            requirements={requirements}
+            topologies={topologies}
+            tests={tests}
+            subgroups={subgroups}
+          />
         ) : null}
-      </HorizontalTwoPartsContainer>
+      </ContainerWithTitle>
       <UpdateGroupFormDialog
         key={updatedGroupId}
         groupId={updatedGroupId}

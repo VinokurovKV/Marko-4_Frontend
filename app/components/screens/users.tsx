@@ -65,7 +65,7 @@ export function UsersScreen({ children, ...props }: UsersScreenProps) {
       breadcrumbsItems={breadcrumbsItems}
     >
       <HorizontalTwoPartsContainer
-        proportions={withUser ? 'ONE_TWO' : 'ONE_ZERO'}
+        proportions={withUser ? 'ONE_THREE' : 'ONE_ZERO'}
       >
         <UsersGrid
           key={`${withUser}`}

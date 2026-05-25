@@ -150,7 +150,7 @@ export function GroupRequirementsGrid({
 
   const cols: GridColDef[] = React.useMemo(() => readCols, [readCols])
 
-  const defaultHiddenFields = React.useMemo(() => ['origin', 'topologyId'], [])
+  const defaultHiddenFields = React.useMemo(() => ['origin'], [])
 
   return (
     <>
