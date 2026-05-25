@@ -116,7 +116,7 @@ export function GroupsGrid(props: GroupsGridProps) {
     () => [
       ...(navigationMode ? navigationModeReadCols : readCols),
       ...(rightsSet.has('UPDATE_GROUP') || rightsSet.has('DELETE_GROUP')
-        ? [actionsCol]
+        ? [...(navigationMode === false ? [actionsCol] : [])]
         : [])
     ],
     [navigationMode, rightsSet, readCols, navigationModeReadCols, actionsCol]

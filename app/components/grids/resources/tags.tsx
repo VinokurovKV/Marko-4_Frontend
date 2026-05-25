@@ -101,7 +101,7 @@ export function TagsGrid(props: TagsGridProps) {
     () => [
       ...(navigationMode ? navigationModeReadCols : readCols),
       ...(rightsSet.has('UPDATE_TAG') || rightsSet.has('DELETE_TAG')
-        ? [actionsCol]
+        ? [...(navigationMode === false ? [actionsCol] : [])]
         : [])
     ],
     [navigationMode, rightsSet, readCols, navigationModeReadCols, actionsCol]

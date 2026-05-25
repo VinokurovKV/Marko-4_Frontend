@@ -101,7 +101,7 @@ export function RolesGrid(props: RolesGridProps) {
     () => [
       ...(navigationMode ? navigationModeReadCols : readCols),
       ...(rightsSet.has('UPDATE_ROLE') || rightsSet.has('DELETE_ROLE')
-        ? [actionsCol]
+        ? [...(navigationMode === false ? [actionsCol] : [])]
         : [])
     ],
     [navigationMode, rightsSet, readCols, navigationModeReadCols, actionsCol]

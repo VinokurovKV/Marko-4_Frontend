@@ -124,7 +124,7 @@ export function TopologiesGrid(props: TopologiesGridProps) {
     () => [
       ...(navigationMode ? navigationModeReadCols : readCols),
       ...(rightsSet.has('UPDATE_TOPOLOGY') || rightsSet.has('DELETE_TOPOLOGY')
-        ? [actionsCol]
+        ? [...(navigationMode === false ? [actionsCol] : [])]
         : [])
     ],
     [navigationMode, rightsSet, readCols, navigationModeReadCols, actionsCol]

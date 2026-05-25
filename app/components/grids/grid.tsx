@@ -341,7 +341,7 @@ export function Grid(props: GridProps) {
     return () => {
       saveSnapshot()
     }
-  }, [props.defaultHiddenFields, saveSnapshot])
+  }, [props.navigationMode, props.defaultHiddenFields, saveSnapshot])
 
   const handleRowClick = React.useCallback(
     (event: GridRowParams<any>) => {

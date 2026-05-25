@@ -195,7 +195,7 @@ export function RequirementsGrid(props: RequirementsGridProps) {
       ...(navigationMode ? navigationModeReadCols : readCols),
       ...(rightsSet.has('UPDATE_REQUIREMENT') ||
       rightsSet.has('DELETE_REQUIREMENT')
-        ? [actionsCol]
+        ? [...(navigationMode === false ? [actionsCol] : [])]
         : [])
     ],
     [navigationMode, rightsSet, readCols, navigationModeReadCols, actionsCol]

@@ -123,8 +123,9 @@ export function CommonTopologiesGrid(props: CommonTopologiesGridProps) {
   const cols: GridColDef[] = React.useMemo(
     () => [
       ...(navigationMode ? navigationModeReadCols : readCols),
-      ...(rightsSet.has('UPDATE_COMMON_TOPOLOGY') ||
-      rightsSet.has('DELETE_COMMON_TOPOLOGY')
+      ...(navigationMode === false &&
+      (rightsSet.has('UPDATE_COMMON_TOPOLOGY') ||
+        rightsSet.has('DELETE_COMMON_TOPOLOGY'))
         ? [actionsCol]
         : [])
     ],

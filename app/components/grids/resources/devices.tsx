@@ -170,7 +170,10 @@ export function DevicesGrid(props: DevicesGridProps) {
   const actionsCol = useActionsCol(actionsColProps)
 
   const cols: GridColDef[] = React.useMemo(
-    () => [...(navigationMode ? navigationModeReadCols : readCols), actionsCol],
+    () => [
+      ...(navigationMode ? navigationModeReadCols : readCols),
+      ...(navigationMode === false ? [actionsCol] : [])
+    ],
     [navigationMode, readCols, navigationModeReadCols, actionsCol]
   )
 

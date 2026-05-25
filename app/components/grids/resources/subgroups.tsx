@@ -120,7 +120,7 @@ export function SubgroupsGrid(props: SubgroupsGridProps) {
     () => [
       ...(navigationMode ? navigationModeReadCols : readCols),
       ...(rightsSet.has('UPDATE_SUBGROUP') || rightsSet.has('DELETE_SUBGROUP')
-        ? [actionsCol]
+        ? [...(navigationMode === false ? [actionsCol] : [])]
         : [])
     ],
     [navigationMode, rightsSet, readCols, navigationModeReadCols, actionsCol]
