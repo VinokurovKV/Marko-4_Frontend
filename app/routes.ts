@@ -23,6 +23,7 @@ export default [
             ]),
             route('events', 'routes/events.tsx'),
             route('data-transfer', 'routes/data-transfer.tsx'),
+            route('backups', 'routes/backups.tsx'),
             // route('data-transfer', 'routes/data-transfer.tsx', [
             //   route('import', 'routes/data-import.tsx'),
             //   route('export', 'routes/data-export.tsx')

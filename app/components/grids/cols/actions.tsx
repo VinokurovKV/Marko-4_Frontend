@@ -6,6 +6,7 @@ import * as React from 'react'
 import DeleteIcon from '@mui/icons-material/Delete'
 import DownloadIcon from '@mui/icons-material/Download'
 import EditIcon from '@mui/icons-material/Edit'
+import RestoreIcon from '@mui/icons-material/Restore'
 import PauseIcon from '@mui/icons-material/Pause'
 import PlayArrowIcon from '@mui/icons-material/PlayArrow'
 import StopIcon from '@mui/icons-material/Stop'
@@ -74,6 +75,10 @@ export interface ActionsColProps {
     displayCondition?: (rowId: number) => boolean
     action: (rowId: number) => Promise<void>
   }
+  restore?: {
+    displayCondition?: (rowId: number) => boolean
+    action: (rowId: number) => Promise<void>
+  }
   cancel?: {
     displayCondition?: (rowId: number) => boolean
     action: (rowId: number) => Promise<void>
@@ -125,6 +130,15 @@ export function useActionsCol(props: ActionsColProps) {
       }
     },
     [props.cancel]
+  )
+
+  const handleRestoreClick = React.useCallback(
+    async (rowId: number) => {
+      if (props.restore?.action !== undefined) {
+        await props.restore.action(rowId)
+      }
+    },
+    [props.restore]
   )
 
   const handleAbortClick = React.useCallback(
@@ -210,6 +224,23 @@ export function useActionsCol(props: ActionsColProps) {
                   onClick={() => {
                     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access
                     void handleUpdateClick(row.id)
+                  }}
+                />
+              </Tooltip>
+            ]
+          : []),
+        ...(props.restore !== undefined &&
+        (props.restore.displayCondition === undefined ||
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access
+          props.restore.displayCondition(row.id))
+          ? [
+              <Tooltip title="Восстановить">
+                <GridActionsCellItem
+                  icon={<RestoreIcon sx={{ fontSize: 20 }} />}
+                  label="Восстановить"
+                  onClick={() => {
+                    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access
+                    void handleRestoreClick(row.id)
                   }}
                 />
               </Tooltip>
@@ -308,12 +339,14 @@ export function useActionsCol(props: ActionsColProps) {
       props.export,
       props.exportMenuItems,
       props.update,
+      props.restore,
       props.cancel,
       props.abort,
       props.pause,
       props.unpause,
       props.delete,
       handleExportClick,
+      handleRestoreClick,
       handleCancelClick,
       handleAbortClick,
       handlePauseClick,

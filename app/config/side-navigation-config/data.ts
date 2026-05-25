@@ -17,6 +17,7 @@ import FoundationIcon from '@mui/icons-material/Foundation'
 import GroupsIcon from '@mui/icons-material/Groups'
 import HistoryIcon from '@mui/icons-material/History'
 import ImportExportIcon from '@mui/icons-material/ImportExport'
+import BackupIcon from '@mui/icons-material/Backup'
 // import HiveIcon from '@mui/icons-material/Hive'
 import HubIcon from '@mui/icons-material/Hub'
 import LanIcon from '@mui/icons-material/Lan'
@@ -272,6 +273,12 @@ export const SIDE_NAVIGATION_CONFIG: SideNavigationConfig = [
             title: 'данные системы',
             Icon: ImportExportIcon,
             href: '/data-transfer'
+          },
+          {
+            id: 'backups',
+            title: 'бэкапы',
+            Icon: BackupIcon,
+            href: '/backups'
           }
         ]
       }

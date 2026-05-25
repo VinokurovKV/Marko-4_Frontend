@@ -22,6 +22,14 @@ import type {
   SetupSuccessResultDto
 } from '@common/dtos/server-api/common.dto'
 import type {
+  BackupNamesWrapDto,
+  BackupSuccessResultDto,
+  BackupSuccessWrapDto,
+  CreateBackupQueryDto,
+  DeleteBackupQueryDto,
+  DownloadBackupQueryDto
+} from '@common/dtos/server-api/backup'
+import type {
   ReadActionParamsDto,
   ReadActionSuccessResultDto,
   ReadActionInfoParamsDto,
@@ -1000,6 +1008,7 @@ export class ServerConnector {
   private inactiveSubscriptionIds = new Queue<number>()
   private activateSubscriptionsPlanId: NodeJS.Timeout | null = null
   private notificationDatasForSubscriptionId = new Map<number, any[]>()
+  private backupSubscriptionHandlerForId = new Map<number, () => void>()
   meta: ServerConnectorMeta = {
     status: 'NOT_CONNECTED'
   }
@@ -1026,9 +1035,11 @@ export class ServerConnector {
           }
         } catch (error) {
           if (error instanceof ServerConnectorUnauthorizedError === false) {
-            this.connectPr = null
-            throw error
+            this.meta = {
+              status: 'NOT_CONNECTED'
+            }
           }
+          this.connectPr = null
         }
       })()
       await this.connectPr
@@ -1425,6 +1436,61 @@ export class ServerConnector {
   }
   async deleteArchivedHistory(): Promise<void> {
     await this.postForObject<object>('/history/delete-archived')
+  }
+  // Backup
+  async readBackups(): Promise<string[]> {
+    return (await this.getObject<BackupNamesWrapDto>('/backup/list'))
+      .backupNames
+  }
+  downloadBackup(params: Params<DownloadBackupQueryDto>): Promise<Blob> {
+    return this.getBlob('/backup/download', params)
+  }
+  createBackup(
+    params: Params<CreateBackupQueryDto>
+  ): Result<BackupSuccessResultDto> {
+    return this.postForObjectWithParams<BackupSuccessResultDto>(
+      '/backup/create',
+      params
+    ).then((result) => {
+      this.emitBackupsUpdated()
+      return result
+    })
+  }
+  uploadBackup(config: File): Result<BackupSuccessResultDto> {
+    return this.postMultipartFormForObject<BackupSuccessResultDto>(
+      '/backup/upload',
+      new Map([['config', config]])
+    ).then((result) => {
+      this.emitBackupsUpdated()
+      return result
+    })
+  }
+  restoreBackup(
+    params: Params<DeleteBackupQueryDto>
+  ): Result<BackupSuccessWrapDto> {
+    return this.postForObjectWithParams<BackupSuccessWrapDto>(
+      '/backup/restore',
+      params
+    ).then((result) => {
+      this.emitBackupsUpdated()
+      return result
+    })
+  }
+  deleteBackup(
+    params: Params<DeleteBackupQueryDto>
+  ): Result<BackupSuccessWrapDto> {
+    return this.postForObjectWithParams<BackupSuccessWrapDto>(
+      '/backup/delete',
+      params
+    ).then((result) => {
+      this.emitBackupsUpdated()
+      return result
+    })
+  }
+  subscribeToBackups(handler: () => void): SubscriptionIdWrapDto {
+    const subscriptionId = this.getUniqueSubscriptionId()
+    this.backupSubscriptionHandlerForId.set(subscriptionId, handler)
+    return { subscriptionId }
   }
   // Roles
   async readRoleExistsFlag(
@@ -3687,6 +3753,7 @@ export class ServerConnector {
     return { subscriptionId: subscriptionId }
   }
   unsubscribe(subscriptionId: number) {
+    this.backupSubscriptionHandlerForId.delete(subscriptionId)
     // console.log(`UNSUBSCRIBE: ${subscriptionId}`)
     this.subscriptionBlockForSubscriptionId.delete(subscriptionId)
     const serverSubscriptionId =
@@ -3710,6 +3777,9 @@ export class ServerConnector {
     }
   }
   unsubscribeMany(subscriptionIds: number[]) {
+    for (const subscriptionId of subscriptionIds) {
+      this.backupSubscriptionHandlerForId.delete(subscriptionId)
+    }
     // console.log(`UNSUBSCRIBE MANY: ${subscriptionIds.toString()}`)
     const serverSubscriptionIds: number[] = []
     for (const subscriptionId of subscriptionIds) {
@@ -3737,6 +3807,7 @@ export class ServerConnector {
     }
   }
   unsubscribeAll() {
+    this.backupSubscriptionHandlerForId.clear()
     // console.log('UNSUBSCRIBE ALL')
     this.subscriptionBlockForSubscriptionId.clear()
     this.serverSubscriptionIdForSubscriptionId.clear()
@@ -3835,6 +3906,15 @@ export class ServerConnector {
     this.lastUsedSubscriptionId += 1
     return this.lastUsedSubscriptionId
   }
+  private emitBackupsUpdated() {
+    for (const handler of this.backupSubscriptionHandlerForId.values()) {
+      try {
+        handler()
+      } catch {
+        //
+      }
+    }
+  }
   // Auxiliary
   private withEmptyArray(params: object): boolean {
     return Object.values(params).some(
@@ -3867,6 +3947,21 @@ export class ServerConnector {
       path,
       undefined,
       body,
+      withAuthentication,
+      withReauthenticateAttempt
+    )
+  }
+  private postForObjectWithParams<Response extends object>(
+    path: string,
+    params?: object,
+    withAuthentication: boolean = true,
+    withReauthenticateAttempt: boolean = true
+  ): Promise<Response> {
+    return this.makeRequestWithObjectResponse<Response>(
+      'POST',
+      path,
+      params,
+      undefined,
       withAuthentication,
       withReauthenticateAttempt
     )

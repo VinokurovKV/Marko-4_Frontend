@@ -1,3 +1,4 @@
+export * from './backups'
 export * from './common-topologies'
 export * from './coverages'
 export * from './dbcs'
