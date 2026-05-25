@@ -14,8 +14,8 @@ const calculateNodePositions = (
   containerHeight: number,
   maxLevels: number = 5
 ): AcyclicGraphNode[] => {
-  const ROOT_RADIUS = 160
-  const LEVEL_RADIUS_STEP = 220
+  const ROOT_RADIUS = 240
+  const LEVEL_RADIUS_STEP = 480
   const START_ANGLE = -Math.PI / 2
 
   const nodePositions = new Map<string, { x: number; y: number }>()

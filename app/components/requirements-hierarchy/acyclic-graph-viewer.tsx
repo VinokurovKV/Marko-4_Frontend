@@ -28,7 +28,7 @@ import AcyclicGraphVertexViewer, {
   type VertexData
 } from './acyclic-graph-vertex-viewer'
 import { edgeStyle } from './requirements'
-import calculateNodePositions from './graph-layouts/layout-tree'
+import calculateNodePositions from './graph-layouts/layout-final'
 import { gray, green, orange, red } from '~/theme/themePrimitives'
 import './styles.css'
 // Material UI
