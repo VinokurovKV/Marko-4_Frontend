@@ -25,7 +25,6 @@ import {
 import { ruRU as ruRuDataGrid } from '@mui/x-data-grid/locales'
 // Other
 import capitalize from 'capitalize'
-import { debounce } from 'lodash'
 
 const ROW_HEIGHT = 32 // 36
 const TOOLBAR_INPUT_HEIGHT = 28 // 32
@@ -104,19 +103,14 @@ const defaultRowSelectionModel: GridRowSelectionModel = {
   ids: new Set()
 }
 
-// Расширенный тип для хранения состояния с вертикальной прокруткой
-interface ExtendedGridState extends GridInitialState {
-  scrollTop?: number
-}
-
 export function Grid(props: GridProps) {
-  const LS_GRID_STATE_KEY = `${props.localSaveKey}_${LS_GRID_STATE_KEY_SUFFIX}`
+  const LS_GRID_STATE_KEY = `${props.localSaveKey}_${props.navigationMode}_${LS_GRID_STATE_KEY_SUFFIX}`
 
   const dialogs = useDialogs()
 
   const apiRef = useGridApiRef()
 
-  const [initialState, setInitialState] = React.useState<ExtendedGridState>()
+  const [initialState, setInitialState] = React.useState<GridInitialState>()
 
   const [deleteModeIsActive, setDeleteModeIsActive] = React.useState(false)
 
@@ -129,10 +123,6 @@ export function Grid(props: GridProps) {
           }
         : defaultRowSelectionModel
     )
-
-  // Храним последнюю сохраненную позицию прокрутки
-  const lastSavedScrollTop = React.useRef<number | undefined>(undefined)
-  const observerRef = React.useRef<MutationObserver | null>(null)
 
   React.useEffect(() => {
     setRowSelectionModel(
@@ -161,137 +151,12 @@ export function Grid(props: GridProps) {
     }))
   }, [props.rows, setRowSelectionModel])
 
-  // Сохранение снапшота с вертикальной прокруткой
   const saveSnapshot = React.useCallback(() => {
     if (apiRef?.current?.exportState && localStorage) {
       const currentState = apiRef.current.exportState()
-
-      // Получаем текущую позицию вертикальной прокрутки
-      const scrollPosition = apiRef.current.getScrollPosition()
-
-      const extendedState: ExtendedGridState = {
-        ...currentState,
-        scrollTop: scrollPosition.top
-      }
-
-      localStorage.setItem(LS_GRID_STATE_KEY, JSON.stringify(extendedState))
-      lastSavedScrollTop.current = scrollPosition.top
+      localStorage.setItem(LS_GRID_STATE_KEY, JSON.stringify(currentState))
     }
-  }, [apiRef, LS_GRID_STATE_KEY])
-
-  // Сохранение прокрутки при её изменении с debounce
-  React.useEffect(() => {
-    if (!apiRef.current) return
-
-    // Создаем debounced функцию для сохранения
-    const debouncedSaveScroll = debounce(() => {
-      if (apiRef.current) {
-        const scrollPosition = apiRef.current.getScrollPosition()
-        const currentState = apiRef.current.exportState()
-        const extendedState: ExtendedGridState = {
-          ...currentState,
-          scrollTop: scrollPosition.top
-        }
-        localStorage.setItem(LS_GRID_STATE_KEY, JSON.stringify(extendedState))
-        lastSavedScrollTop.current = scrollPosition.top
-      }
-    }, 300)
-
-    const handleScroll = () => {
-      debouncedSaveScroll()
-    }
-
-    // Находим контейнер с прокруткой
-    const virtualScroller =
-      apiRef.current.rootElementRef?.current?.querySelector(
-        '.MuiDataGrid-virtualScroller'
-      )
-    if (virtualScroller) {
-      virtualScroller.addEventListener('scroll', handleScroll)
-      return () => {
-        virtualScroller.removeEventListener('scroll', handleScroll)
-        debouncedSaveScroll.cancel()
-      }
-    }
-  }, [apiRef, LS_GRID_STATE_KEY])
-
-  // Восстановление вертикальной прокрутки
-  const restoreScrollPosition = React.useCallback(() => {
-    // Используем сохраненную позицию из initialState или из lastSavedScrollTop
-    const targetScrollTop =
-      initialState?.scrollTop !== undefined
-        ? initialState.scrollTop
-        : lastSavedScrollTop.current
-
-    // Проверяем, что значение определено (включая 0)
-    if (apiRef.current && targetScrollTop !== undefined) {
-      // Используем requestAnimationFrame для синхронизации с рендером
-      requestAnimationFrame(() => {
-        if (apiRef.current) {
-          apiRef.current.scroll({
-            top: targetScrollTop
-          })
-        }
-      })
-    }
-  }, [apiRef, initialState])
-
-  // Восстанавливаем прокрутку при изменении rows (ререндеринге)
-  React.useEffect(() => {
-    if (!apiRef.current || !props.rows.length) return
-
-    // Небольшая задержка для гарантии, что виртуальный скроллер обновился
-    const timeoutId = setTimeout(() => {
-      restoreScrollPosition()
-    }, 50)
-
-    return () => clearTimeout(timeoutId)
-  }, [props.rows, apiRef, restoreScrollPosition])
-
-  // Восстанавливаем прокрутку после монтирования виртуального скроллера
-  React.useEffect(() => {
-    if (!apiRef.current) return
-
-    const virtualScroller =
-      apiRef.current.rootElementRef?.current?.querySelector(
-        '.MuiDataGrid-virtualScroller'
-      )
-
-    if (virtualScroller) {
-      restoreScrollPosition()
-    } else {
-      // Очищаем предыдущий observer если есть
-      if (observerRef.current) {
-        observerRef.current.disconnect()
-      }
-
-      // Ждем появления виртуального скроллера
-      observerRef.current = new MutationObserver(() => {
-        const scroller = apiRef.current?.rootElementRef?.current?.querySelector(
-          '.MuiDataGrid-virtualScroller'
-        )
-        if (scroller) {
-          restoreScrollPosition()
-          if (observerRef.current) {
-            observerRef.current.disconnect()
-          }
-        }
-      })
-
-      if (apiRef.current.rootElementRef?.current) {
-        observerRef.current.observe(apiRef.current.rootElementRef.current, {
-          childList: true,
-          subtree: true
-        })
-      }
-    }
-
-    return () => {
-      if (observerRef.current) {
-        observerRef.current.disconnect()
-      }
-    }
-  }, [apiRef, restoreScrollPosition])
+  }, [apiRef])
 
   React.useLayoutEffect(() => {
     const stateFromLocalStorageUnparsed =
@@ -299,30 +164,18 @@ export function Grid(props: GridProps) {
     if (stateFromLocalStorageUnparsed !== null) {
       const stateFromLocalStorage = JSON.parse(
         stateFromLocalStorageUnparsed
-      ) as ExtendedGridState
+      ) as GridInitialState
       const pageSize =
         stateFromLocalStorage.pagination?.paginationModel?.pageSize
       if (
         pageSize !== undefined &&
         PAGE_SIZE_OPTIONS.includes(pageSize) === false
       ) {
-        if (!stateFromLocalStorage.pagination) {
-          stateFromLocalStorage.pagination = {}
-        }
-        if (!stateFromLocalStorage.pagination.paginationModel) {
-          stateFromLocalStorage.pagination.paginationModel = {
-            pageSize: PAGE_SIZE_OPTIONS[PAGE_SIZE_OPTIONS.length - 1],
-            page: 0
-          }
-        } else {
-          stateFromLocalStorage.pagination.paginationModel.pageSize =
-            PAGE_SIZE_OPTIONS[PAGE_SIZE_OPTIONS.length - 1]
-        }
+        // material ui data-grid bag fix
+        stateFromLocalStorage.pagination!.paginationModel!.pageSize =
+          PAGE_SIZE_OPTIONS[PAGE_SIZE_OPTIONS.length - 1]
       }
       setInitialState(stateFromLocalStorage)
-      if (stateFromLocalStorage.scrollTop !== undefined) {
-        lastSavedScrollTop.current = stateFromLocalStorage.scrollTop
-      }
     } else {
       const columnVisibilityModel: GridColumnVisibilityModel = {}
       for (const field of props.defaultHiddenFields ?? []) {
@@ -331,6 +184,7 @@ export function Grid(props: GridProps) {
       setInitialState({
         ...gridInitialState,
         columns: {
+          // material ui data-grid bag fix
           columnVisibilityModel: columnVisibilityModel
         }
       })
@@ -414,9 +268,7 @@ export function Grid(props: GridProps) {
       deleteModeIsActive,
       setDeleteModeIsActive,
       rowSelectionModel,
-      setRowSelectionModel,
-      dialogs,
-      props.deleteMany
+      setRowSelectionModel
     ]
   )
 
@@ -437,11 +289,12 @@ export function Grid(props: GridProps) {
         </Typography>
       ) : null}
       <DataGridStyled
+        // autoPageSize
         localeText={
           props.compactFooter === true
             ? {
                 ...ruRuDataGrid.components.MuiDataGrid.defaultProps.localeText,
-                paginationRowsPerPage: ''
+                paginationRowsPerPage: '' // 'Строк:'
               }
             : undefined
         }
@@ -504,7 +357,6 @@ export function Grid(props: GridProps) {
         className={props.navigationMode ? 'navigation-mode' : undefined}
         rowSpanning={props.rowSpanning}
         showCellVerticalBorder
-        rowBufferPx={1000}
       />
     </Stack>
   )

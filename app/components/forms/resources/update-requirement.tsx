@@ -272,10 +272,12 @@ export function UpdateRequirementFormDialog(
 
   const originSelectItems: FormSelectProps<string>['items'] = React.useMemo(
     () =>
-      allRequirementOrigins.map((origin) => ({
-        value: origin,
-        title: localizationForRequirementOrigin.get(origin) ?? origin
-      })),
+      allRequirementOrigins
+        .filter((origin) => origin !== 'SECTION')
+        .map((origin) => ({
+          value: origin,
+          title: localizationForRequirementOrigin.get(origin) ?? origin
+        })),
     []
   )
 
