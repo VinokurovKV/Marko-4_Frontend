@@ -7,6 +7,7 @@ import {
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
 import { ProjButton } from '../buttons/button'
+import { downloadFileFromBlob } from '~/utilities'
 import { ImportDataFormDialog } from '../forms/resources/import-data'
 import { ExportDataFormDialog } from '../forms/resources/export-data'
 import type { ImportSuccessResultDto } from '@common/dtos/server-api/import.dto'
@@ -23,6 +24,8 @@ import CloseIcon from '@mui/icons-material/Close'
 import Dialog from '@mui/material/Dialog'
 import DialogActions from '@mui/material/DialogActions'
 import DialogContent from '@mui/material/DialogContent'
+import Menu from '@mui/material/Menu'
+import MenuItem from '@mui/material/MenuItem'
 
 const RESOURCE_ITEMS = [
   { title: 'Роли', base: 'RoleNames' },
@@ -40,6 +43,38 @@ const RESOURCE_ITEMS = [
   { title: 'Группы', base: 'GroupCodes' },
   { title: 'Устройства', base: 'DeviceCodes' }
 ] as const
+
+const LOG_DOWNLOAD_ITEMS: Array<{
+  id: string
+  title: string
+  readLogs: () => Promise<Blob>
+}> = [
+  {
+    id: 'storage-errors',
+    title: 'Ошибки хранилища',
+    readLogs: () => serverConnector.readStorageErrorsLogs()
+  },
+  {
+    id: 'storage-ise-errors',
+    title: 'ISE-ошибки хранилища',
+    readLogs: () => serverConnector.readStorageIseErrorsLogs()
+  },
+  {
+    id: 'ise-error-requests',
+    title: 'Запросы, завершившиеся ISE',
+    readLogs: () => serverConnector.readIseErrorRequestsLogs()
+  },
+  {
+    id: 'error-requests',
+    title: 'Запросы с ошибками',
+    readLogs: () => serverConnector.readErrorRequestsLogs()
+  },
+  {
+    id: 'requests',
+    title: 'Все запросы',
+    readLogs: () => serverConnector.readRequestsLogs()
+  }
+]
 
 function getArrayLength(
   result: ImportSuccessResultDto,
@@ -66,6 +101,8 @@ export function DataTransferScreen() {
   } | null>(null)
   const [archiveHistoryModeIsActive, setArchiveHistoryModeIsActive] =
     React.useState(false)
+  const [logsMenuAnchorEl, setLogsMenuAnchorEl] =
+    React.useState<null | HTMLElement>(null)
 
   const breadcrumbsItems: ProjBreadcrumbsProps['items'] = React.useMemo(
     () => [
@@ -191,6 +228,33 @@ export function DataTransferScreen() {
     setArchiveHistoryModeIsActive(false)
   }, [setArchiveHistoryModeIsActive])
 
+  const logsMenuIsOpen = logsMenuAnchorEl !== null
+
+  const handleLogsMenuOpen = React.useCallback(
+    (event: React.MouseEvent<HTMLElement>) => {
+      setLogsMenuAnchorEl(event.currentTarget)
+    },
+    []
+  )
+
+  const handleLogsMenuClose = React.useCallback(() => {
+    setLogsMenuAnchorEl(null)
+  }, [])
+
+  const handleLogDownload = React.useCallback(
+    async (item: (typeof LOG_DOWNLOAD_ITEMS)[number]) => {
+      handleLogsMenuClose()
+      try {
+        const blob = await item.readLogs()
+        const stamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-')
+        downloadFileFromBlob(blob, `system-logs-${item.id}-${stamp}.txt`)
+      } catch (error) {
+        notifier.showError(error, `не удалось скачать лог «${item.title}»`)
+      }
+    },
+    [handleLogsMenuClose, notifier]
+  )
+
   return (
     <>
       <LayoutScreenContainer
@@ -202,28 +266,25 @@ export function DataTransferScreen() {
             variant="outlined"
             sx={{ p: 2.5, width: '100%', maxWidth: '420px', height: '100%' }}
           >
-            <Stack spacing={1.8}>
+            <Stack spacing={1.2}>
               <ProjButton
                 variant="contained"
-                sx={{ height: 42, fontSize: '0.98rem' }}
                 onClick={() => {
                   setImportModeIsActive(true)
                 }}
               >
-                импорт
+                импортировать данные
               </ProjButton>
               <ProjButton
                 variant="contained"
-                sx={{ height: 42, fontSize: '0.98rem' }}
                 onClick={() => {
                   setExportModeIsActive(true)
                 }}
               >
-                экспорт
+                экспортировать данные
               </ProjButton>
               <ProjButton
                 variant="contained"
-                sx={{ height: 42, fontSize: '0.98rem' }}
                 onClick={() => {
                   setArchiveHistoryModeIsActive(true)
                   // setHistoryActionDialog({
@@ -236,7 +297,6 @@ export function DataTransferScreen() {
               </ProjButton>
               <ProjButton
                 variant="contained"
-                sx={{ height: 42, fontSize: '0.98rem' }}
                 onClick={() => {
                   setHistoryActionDialog({
                     mode: 'UNARCHIVE',
@@ -248,7 +308,6 @@ export function DataTransferScreen() {
               </ProjButton>
               <ProjButton
                 variant="contained"
-                sx={{ height: 42, fontSize: '0.98rem' }}
                 onClick={() => {
                   setHistoryActionDialog({
                     mode: 'DELETE_ARCHIVED',
@@ -257,6 +316,9 @@ export function DataTransferScreen() {
                 }}
               >
                 удалить архивированную историю
+              </ProjButton>
+              <ProjButton variant="contained" onClick={handleLogsMenuOpen}>
+                скачивание логов системы
               </ProjButton>
             </Stack>
           </Paper>
@@ -427,6 +489,22 @@ export function DataTransferScreen() {
         onSuccessArchiveHistory={cancelArchiveHistoryForm}
         onCancelClick={cancelArchiveHistoryForm}
       />
+      <Menu
+        anchorEl={logsMenuAnchorEl}
+        open={logsMenuIsOpen}
+        onClose={handleLogsMenuClose}
+      >
+        {LOG_DOWNLOAD_ITEMS.map((item) => (
+          <MenuItem
+            key={item.id}
+            onClick={() => {
+              void handleLogDownload(item)
+            }}
+          >
+            {item.title}
+          </MenuItem>
+        ))}
+      </Menu>
     </>
   )
 }

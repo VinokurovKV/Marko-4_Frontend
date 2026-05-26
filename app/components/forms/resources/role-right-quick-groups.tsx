@@ -200,6 +200,7 @@ const ROLE_RIGHT_GROUPS: RoleRightGroup[] = [
 export interface RoleRightQuickGroupsProps {
   selectedRights: Right[]
   onAddRights: (rights: Right[]) => void
+  onRemoveRights: (rights: Right[]) => void
   onToggleRight: (right: Right) => void
 }
 
@@ -225,6 +226,7 @@ export function RoleRightQuickGroups(props: RoleRightQuickGroupsProps) {
             selectedRightsSet.has(right)
           ).length
           const groupIsFullySelected = selectedCount === group.rights.length
+          const groupHasSelectedRights = selectedCount > 0
 
           return (
             <Accordion
@@ -270,16 +272,32 @@ export function RoleRightQuickGroups(props: RoleRightQuickGroupsProps) {
                     <Typography color="textSecondary" fontSize="0.82rem">
                       {group.description}
                     </Typography>
-                    <ProjButton
-                      variant="outlined"
-                      disabled={groupIsFullySelected}
+                    <Stack
+                      direction="row"
+                      spacing={1}
                       sx={{ alignSelf: 'flex-start' }}
-                      onClick={() => {
-                        props.onAddRights(group.rights)
-                      }}
                     >
-                      {groupIsFullySelected ? 'уже добавлено' : 'добавить все'}
-                    </ProjButton>
+                      <ProjButton
+                        variant="outlined"
+                        disabled={groupIsFullySelected}
+                        onClick={() => {
+                          props.onAddRights(group.rights)
+                        }}
+                      >
+                        {groupIsFullySelected
+                          ? 'уже добавлено'
+                          : 'добавить все'}
+                      </ProjButton>
+                      <ProjButton
+                        variant="outlined"
+                        disabled={!groupHasSelectedRights}
+                        onClick={() => {
+                          props.onRemoveRights(group.rights)
+                        }}
+                      >
+                        убрать все
+                      </ProjButton>
+                    </Stack>
                   </Stack>
                   <Stack
                     spacing={0}

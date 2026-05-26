@@ -209,8 +209,8 @@ export const SIDE_NAVIGATION_CONFIG: SideNavigationConfig = [
     title: 'администрирование',
     nested: [
       {
-        id: 'access',
-        title: 'управление',
+        id: 'access-control',
+        title: 'доступ',
         Icon: GroupsIcon,
         nested: [
           {
@@ -226,7 +226,14 @@ export const SIDE_NAVIGATION_CONFIG: SideNavigationConfig = [
             Icon: TheaterComedyIcon,
             href: '/roles',
             requiredRights: ['READ_ROLE']
-          },
+          }
+        ]
+      },
+      {
+        id: 'system-management',
+        title: 'система',
+        Icon: HistoryIcon,
+        nested: [
           {
             id: 'actions',
             title: 'действия',
@@ -270,7 +277,7 @@ export const SIDE_NAVIGATION_CONFIG: SideNavigationConfig = [
           },
           {
             id: 'data-transfer',
-            title: 'данные системы',
+            title: 'данные',
             Icon: ImportExportIcon,
             href: '/data-transfer'
           },

@@ -132,16 +132,12 @@ export function ExportDataFormDialog(props: ExportDataFormDialogProps) {
     [data, resourceFields]
   )
 
-  const handleAddAllChange = React.useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      if (event.target.checked) {
-        resourceFields.forEach((field) => {
-          handleFieldChange(field, true)
-        })
-      }
-    },
-    [handleFieldChange, resourceFields]
-  )
+  const handleAddAllChange = React.useCallback(() => {
+    const nextVal = !addAllIsChecked
+    resourceFields.forEach((field) => {
+      handleFieldChange(field, nextVal)
+    })
+  }, [addAllIsChecked, handleFieldChange, resourceFields])
 
   const handleClear = React.useCallback(() => {
     formInternal.clear()
@@ -183,7 +179,7 @@ export function ExportDataFormDialog(props: ExportDataFormDialogProps) {
       <FormBlock title="экспортируемые ресурсы">
         <FormCheckbox
           name="addAll"
-          label="добавить все"
+          label={addAllIsChecked ? 'убрать все' : 'добавить все'}
           checked={addAllIsChecked}
           onChange={handleAddAllChange}
         />

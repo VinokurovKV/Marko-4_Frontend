@@ -183,6 +183,21 @@ export function UpdateRoleFormDialog(props: UpdateRoleFormDialogProps) {
     [data.rights, handleFieldChange]
   )
 
+  const handleRemoveGroupedRights = React.useCallback(
+    (rightsToRemove: Right[]) => {
+      const rightsToRemoveSet = new Set(rightsToRemove)
+      handleFieldChange(
+        'rights',
+        allRights.filter(
+          (right) =>
+            rightsToRemoveSet.has(right) === false &&
+            (data.rights ?? EMPTY_RIGHTS_ARR).includes(right)
+        )
+      )
+    },
+    [data.rights, handleFieldChange]
+  )
+
   const setIsActive = React.useCallback(
     (value: boolean | ((prevState: boolean) => boolean)) => {
       if (value === false) {
@@ -234,6 +249,7 @@ export function UpdateRoleFormDialog(props: UpdateRoleFormDialogProps) {
         <RoleRightQuickGroups
           selectedRights={data.rights ?? EMPTY_RIGHTS_ARR}
           onAddRights={handleAddGroupedRights}
+          onRemoveRights={handleRemoveGroupedRights}
           onToggleRight={handleToggleRight}
         />
       </FormBlock>

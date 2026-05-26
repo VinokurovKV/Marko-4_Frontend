@@ -113,7 +113,7 @@ export function UpdateSelfPassFormDialog(props: UpdateSelfPassFormDialogProps) {
       isActive={props.isActive}
       setIsActive={props.setIsActive}
     >
-      <FormBlock title="безопасность">
+      <FormBlock>
         <FormPassField
           required
           name="myCurrentPass"

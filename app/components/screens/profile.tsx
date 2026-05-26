@@ -147,7 +147,7 @@ export function ProfileScreen({ userId, role, user }: ProfileScreenProps) {
     <LayoutScreenContainer title="профиль" breadcrumbsItems={breadcrumbsItems}>
       <Stack sx={{ flex: 1, minHeight: 0 }}>
         <HorizontalTwoPartsContainer proportions="SEVEN_FIVE">
-          <ColumnViewer title="данные профиля">
+          <ColumnViewer>
             <Paper
               variant="outlined"
               sx={{
@@ -223,7 +223,7 @@ export function ProfileScreen({ userId, role, user }: ProfileScreenProps) {
               )}
             </ColumnViewerBlock>
           </ColumnViewer>
-          <ColumnViewer title="управление профилем">
+          <ColumnViewer>
             <ColumnViewerBlock title="быстрые действия">
               <Stack
                 spacing={1.25}
