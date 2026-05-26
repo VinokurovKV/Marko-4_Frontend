@@ -735,7 +735,6 @@ export default function AcyclicGraphViewer({
   const isFullscreenInitializedRef = useRef(false)
   const isMiniGraphToggleInitializedRef = useRef(false)
   const previousSelectedIdRef = useRef<number | null>(selectedId)
-  const previousMiniGraphVisibleRef = useRef<boolean>(false)
   const hoverPreviewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
     null
   )
@@ -982,16 +981,6 @@ export default function AcyclicGraphViewer({
       color: theme.palette.common.white
     }
   }, [hoveredVertexPreview, theme.palette.mode])
-
-  useEffect(() => {
-    const wasMiniGraphVisible = previousMiniGraphVisibleRef.current
-
-    if (wasMiniGraphVisible === false && isMiniGraphVisible) {
-      setMainGraphFitRequest((prev) => prev + 1)
-    }
-
-    previousMiniGraphVisibleRef.current = isMiniGraphVisible
-  }, [isMiniGraphVisible])
 
   if (loading) {
     return <div className="graph-loading">Загрузка графа...</div>
