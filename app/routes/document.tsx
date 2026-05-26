@@ -17,6 +17,7 @@ import { DocumentViewer } from '~/components/single-viewers/resources/document'
 import { ForbiddenScreen } from '~/components/screens/problem/forbidden'
 // React router
 import type { Route } from './+types/document'
+import { useSearchParams } from 'react-router'
 // React
 import * as React from 'react'
 
@@ -49,6 +50,7 @@ function DocumentRouteInner({
 }: Route.ComponentProps) {
   const notifier = useNotifier()
   const meta = useMeta()
+  const [searchParams] = useSearchParams()
 
   const [tags, setTags] = React.useState<TagPrimary[] | null>(initialTags)
   const [document, setDocument] = React.useState<DocumentTertiary | null>(
@@ -57,6 +59,14 @@ function DocumentRouteInner({
   const [fragments, setFragments] = React.useState<FragmentPrimary[] | null>(
     initialFragments
   )
+  const browseFragmentId = React.useMemo(() => {
+    const fragmentIdParam = searchParams.get('fragmentId')
+    if (fragmentIdParam === null) {
+      return null
+    }
+    const parsed = Number.parseInt(fragmentIdParam, 10)
+    return Number.isNaN(parsed) ? null : parsed
+  }, [searchParams])
 
   const tagIds = React.useMemo(() => document?.tagIds ?? null, [document])
   const fragmentIds = React.useMemo(
@@ -91,6 +101,7 @@ function DocumentRouteInner({
       tags={tags}
       document={document}
       fragments={fragments}
+      browseFragmentId={browseFragmentId}
     />
   ) : null
 }

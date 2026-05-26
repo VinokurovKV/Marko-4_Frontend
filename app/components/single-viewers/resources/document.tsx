@@ -29,7 +29,7 @@ import {
   ColumnViewerText
 } from '../common'
 // React router
-import { useNavigate } from 'react-router'
+import { useLocation, useNavigate } from 'react-router'
 // React
 import * as React from 'react'
 // Material UI
@@ -74,14 +74,17 @@ export interface DocumentViewerProps {
   tags: TagPrimary[] | null
   document: DocumentTertiary
   fragments: FragmentPrimary[] | null
+  browseFragmentId?: number | null
 }
 
 export function DocumentViewer({
   tags,
   document,
-  fragments
+  fragments,
+  browseFragmentId = null
 }: DocumentViewerProps) {
   const navigate = useNavigate()
+  const location = useLocation()
   const meta = useMeta()
   const rightsSet = React.useMemo(
     () =>
@@ -158,6 +161,7 @@ export function DocumentViewer({
       seq: browseAreaRequestSeqRef.current
     })
   }, [])
+  const handledInitialBrowseRequestKeyRef = React.useRef<string | null>(null)
 
   const requestPreviewArea = React.useCallback((areaId: number) => {
     previewAreaRequestSeqRef.current += 1
@@ -187,6 +191,35 @@ export function DocumentViewer({
     ],
     []
   )
+
+  React.useEffect(() => {
+    if (browseFragmentId === null) return
+    if (
+      !(fragments ?? []).some((fragment) => fragment.id === browseFragmentId)
+    ) {
+      return
+    }
+
+    setTabValue('document')
+    if (tabValue !== 'document') return
+
+    const pagesForFragment = fragmentPagesForId[browseFragmentId] ?? []
+    if (pagesForFragment.length === 0) return
+
+    const requestKey = `${location.key}:${browseFragmentId}`
+    if (handledInitialBrowseRequestKeyRef.current === requestKey) return
+
+    handledInitialBrowseRequestKeyRef.current = requestKey
+    requestBrowseArea(browseFragmentId)
+  }, [
+    browseFragmentId,
+    fragmentPagesForId,
+    fragments,
+    location.key,
+    requestBrowseArea,
+    setTabValue,
+    tabValue
+  ])
 
   return (
     <>

@@ -1415,9 +1415,13 @@ const PdfViewerBody: React.FC<
       return
     }
 
+    if (!derivedAreas.some((area) => area.id === browseReq.areaId)) {
+      return
+    }
+
     handledBrowseSeqRef.current = browseReq.seq
     scrollToArea(browseReq.areaId)
-  }, [browseReq, scrollToArea])
+  }, [browseReq, derivedAreas, scrollToArea])
 
   useEffect(() => {
     const host = viewportHostRef.current

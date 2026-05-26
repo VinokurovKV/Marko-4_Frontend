@@ -407,7 +407,7 @@ export function RequirementViewer({
                       }
                       href={
                         selectedFragment.documentId !== null
-                          ? `/documents/${selectedFragment.documentId}`
+                          ? `/documents/${selectedFragment.documentId}?fragmentId=${selectedFragment.id}`
                           : undefined
                       }
                     />
