@@ -4,6 +4,7 @@ import type {
   CommonTopologyPrimary,
   CommonTopologyVersion,
   TestPrimary,
+  DevicePrimary,
   TaskTertiary,
   TestReportSecondary,
   TaskReportTertiary
@@ -57,6 +58,7 @@ export interface TaskViewerProps {
   commonTopology: CommonTopologyPrimary | null
   commonTopologyVersion: CommonTopologyVersion | null
   tests: TestPrimary[] | null
+  devices: DevicePrimary[] | null
   task: TaskTertiary
   testReports: TestReportSecondary[] | null
   taskReport: TaskReportTertiary
@@ -90,6 +92,12 @@ export function TaskViewer(props: TaskViewerProps) {
       props.testReports?.find((testReport) => testReport.testId === testId)
         ?.id ?? null,
     [props.testReports, testId]
+  )
+
+  const deviceCodeForId = React.useMemo(
+    () =>
+      new Map((props.devices ?? []).map((device) => [device.id, device.code])),
+    [props.devices]
   )
 
   // Edit form states
@@ -357,6 +365,18 @@ export function TaskViewer(props: TaskViewerProps) {
                 }))}
               />
             </ColumnViewerBlock>
+            {task.vertexes.map((vertex, vertexIndex) => (
+              <ColumnViewerBlock
+                key={vertex.vertexName}
+                title={`вершина ${vertex.vertexName}`}
+              >
+                <ColumnViewerRef
+                  field="устройство"
+                  text={deviceCodeForId.get(vertex.device.id) ?? '???'}
+                  href={`/devices/${vertex.device.id}`}
+                />
+              </ColumnViewerBlock>
+            ))}
             <ColumnViewerBlock title="теги">
               <ColumnViewerChipsBlock
                 emptyText={props.tags !== null ? 'нет' : '???'}

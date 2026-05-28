@@ -4,6 +4,7 @@ import type {
   TagPrimary,
   CommonTopologyPrimary,
   TestPrimary,
+  DevicePrimary,
   TaskTertiary,
   TestReportSecondary,
   TaskReportTertiary
@@ -16,7 +17,8 @@ import {
   readCommonTopologyPrimary,
   readCommonTopologyVersion,
   readCommonTopologiesPrimary,
-  readTestsPrimaryFiltered
+  readTestsPrimaryFiltered,
+  readDevicesPrimaryFiltered
 } from '~/readers'
 import { useNotifier } from '~/providers/notifier'
 import { useMeta } from '~/providers/meta'
@@ -25,6 +27,7 @@ import {
   useCommonTopologiesSubscription,
   useCommonTopologySubscription,
   useTestsFilteredSubscription,
+  useDevicesFilteredSubscription,
   useTaskSubscription,
   useTestReportsSubscription,
   useTaskReportSubscription
@@ -57,12 +60,16 @@ export async function clientLoader({ params }: Route.ClientLoaderArgs) {
   ])
   const tagIds = task?.tagIds ?? null
   const testIds = testReports?.map((testReport) => testReport.testId) ?? null
-  const [tags, commonTopology, commonTopologyVersion, tests] =
+  const deviceIds = Array.from(
+    new Set(task?.vertexes.map((vertex) => vertex.device.id))
+  )
+  const [tags, commonTopology, commonTopologyVersion, tests, devices] =
     await Promise.all([
       readTagsPrimaryFiltered(tagIds),
       readCommonTopologyPrimary(task?.commonTopology.id ?? null),
       readCommonTopologyVersion(task?.commonTopology ?? null),
-      readTestsPrimaryFiltered(testIds)
+      readTestsPrimaryFiltered(testIds),
+      readDevicesPrimaryFiltered(deviceIds)
     ])
   return {
     taskId,
@@ -72,6 +79,7 @@ export async function clientLoader({ params }: Route.ClientLoaderArgs) {
     commonTopologyVersion,
     tests,
     commonTopologies,
+    devices,
     task,
     testReports,
     taskReport
@@ -86,6 +94,7 @@ function TaskRouteInner({
     commonTopology: initialCommonTopology,
     commonTopologyVersion,
     tests: initialTests,
+    devices: initialDevices,
     commonTopologies: initialCommonTopologies,
     task: initialTask,
     testReports: initialTestReports,
@@ -100,6 +109,9 @@ function TaskRouteInner({
   const [commonTopology, setCommonTopology] =
     React.useState<CommonTopologyPrimary | null>(initialCommonTopology)
   const [tests, setTests] = React.useState<TestPrimary[] | null>(initialTests)
+  const [devices, setDevices] = React.useState<DevicePrimary[] | null>(
+    initialDevices
+  )
   const [commonTopologies, setCommonTopologies] = React.useState<
     CommonTopologyPrimary[] | null
   >(initialCommonTopologies)
@@ -119,6 +131,11 @@ function TaskRouteInner({
     [testReports]
   )
 
+  const deviceIds = React.useMemo(
+    () => Array.from(new Set(task?.vertexes.map((vertex) => vertex.device.id))),
+    [task]
+  )
+
   useTagsFilteredSubscription('PRIMARY_PROPS', tagIds, setTags)
   useCommonTopologiesSubscription('PRIMARY_PROPS', setCommonTopologies)
   useCommonTopologySubscription(
@@ -127,6 +144,7 @@ function TaskRouteInner({
     setCommonTopology
   )
   useTestsFilteredSubscription('PRIMARY_PROPS', testIds, null, setTests)
+  useDevicesFilteredSubscription('PRIMARY_PROPS', deviceIds, setDevices)
   useTaskSubscription('UP_TO_TERTIARY_PROPS', taskId, setTask)
   useTestReportsSubscription('UP_TO_SECONDARY_PROPS', taskId, setTestReports)
   useTaskReportSubscription('UP_TO_TERTIARY_PROPS', taskReportId, setTaskReport)
@@ -244,6 +262,7 @@ function TaskRouteInner({
         commonTopology={commonTopology}
         commonTopologyVersion={commonTopologyVersion}
         tests={tests}
+        devices={devices}
         task={task}
         testReports={testReports}
         taskReport={taskReport}
