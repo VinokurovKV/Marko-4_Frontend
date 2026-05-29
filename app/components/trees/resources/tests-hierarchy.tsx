@@ -65,6 +65,28 @@ const RichTreeViewStyled = styled(RichTreeView)(({ theme }) => [
       backfaceVisibility: 'hidden'
     },
 
+    '& .MuiTreeItem-iconContainer:not(:empty)': {
+      width: 24,
+      height: 24,
+      display: 'inline-flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: theme.spacing(0.5),
+      borderRadius: '50%',
+      backgroundColor: alpha(theme.palette.action.hover, 0.25),
+      transition: theme.transitions.create(['background-color', 'color']),
+      '& svg': {
+        fontSize: '1.1rem',
+        color: theme.palette.text.secondary
+      },
+      '&:hover': {
+        backgroundColor: alpha(theme.palette.primary.main, 0.2),
+        '& svg': {
+          color: theme.palette.primary.main
+        }
+      }
+    },
+
     '& > .MuiTreeItem-root > .MuiTreeItem-content': {
       position: 'sticky',
       top: 3,
@@ -162,14 +184,12 @@ const getAllItemIds = (
   items: TreeViewDefaultItemModelProperties[]
 ): string[] => {
   const ids: string[] = []
-
   const traverse = (item: TreeViewDefaultItemModelProperties) => {
     ids.push(item.id)
     if (item.children && Array.isArray(item.children)) {
       item.children.forEach(traverse)
     }
   }
-
   items.forEach(traverse)
   return ids
 }
@@ -178,17 +198,12 @@ const filterTree = (
   items: TreeViewDefaultItemModelProperties[],
   searchText: string
 ): TreeViewDefaultItemModelProperties[] => {
-  if (!searchText.trim()) {
-    return items
-  }
-
+  if (!searchText.trim()) return items
   const searchLower = searchText.toLowerCase()
-
   const filterNode = (
     node: TreeViewDefaultItemModelProperties
   ): TreeViewDefaultItemModelProperties | null => {
     const labelMatches = String(node.label).toLowerCase().includes(searchLower)
-
     let filteredChildren: TreeViewDefaultItemModelProperties[] = []
     if (node.children && Array.isArray(node.children)) {
       filteredChildren = node.children
@@ -197,17 +212,14 @@ const filterTree = (
           (child): child is TreeViewDefaultItemModelProperties => child !== null
         )
     }
-
     if (labelMatches || filteredChildren.length > 0) {
       return {
         ...node,
         children: filteredChildren.length > 0 ? filteredChildren : node.children
       }
     }
-
     return null
   }
-
   return items
     .map(filterNode)
     .filter((item): item is TreeViewDefaultItemModelProperties => item !== null)
@@ -226,8 +238,7 @@ export function TestsHierarchyTree({
 
   const [searchText, setSearchText] = React.useState(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEYS.SEARCH_TEXT)
-      return saved || ''
+      return localStorage.getItem(STORAGE_KEYS.SEARCH_TEXT) || ''
     } catch {
       return ''
     }
@@ -243,7 +254,7 @@ export function TestsHierarchyTree({
         return Array.isArray(parsed) ? parsed : []
       }
     } catch {
-      return []
+      // ...
     }
     return []
   })
@@ -254,80 +265,66 @@ export function TestsHierarchyTree({
   const stickyTimeoutRef = React.useRef<number | null>(null)
 
   const testForId = React.useMemo(
-    () => new Map(tests.map((test) => [test.id, test])),
+    () => new Map(tests.map((t) => [t.id, t])),
     [tests]
   )
-
   const subgroupForId = React.useMemo(
-    () => new Map(subgroups.map((subgroup) => [subgroup.id, subgroup])),
+    () => new Map(subgroups.map((s) => [s.id, s])),
     [subgroups]
   )
 
   const subgroupsForGroupId = React.useMemo(() => {
-    const subgroupsForGroupId = new Map<number, SubgroupSecondary[]>()
+    const map = new Map<number, SubgroupSecondary[]>()
     for (const subgroup of subgroups) {
-      const groupId = subgroup.groupId
-      if (groupId !== null) {
-        if (subgroupsForGroupId.has(groupId) === false) {
-          subgroupsForGroupId.set(groupId, [])
-        }
-        subgroupsForGroupId.get(groupId)!.push(subgroup)
+      const gid = subgroup.groupId
+      if (gid !== null) {
+        if (!map.has(gid)) map.set(gid, [])
+        map.get(gid)!.push(subgroup)
       }
     }
-    for (const groupId of subgroupsForGroupId.keys()) {
-      const sorted = subgroupsForGroupId
-        .get(groupId)!
-        .toSorted((subgroup_1, subgroup_2) =>
-          subgroup_1.code.localeCompare(subgroup_2.code)
-        )
-      subgroupsForGroupId.set(groupId, sorted)
+    for (const gid of map.keys()) {
+      map.set(
+        gid,
+        map.get(gid)!.toSorted((a, b) => a.code.localeCompare(b.code))
+      )
     }
-    return subgroupsForGroupId
+    return map
   }, [subgroups])
 
   const testsForSubgroupId = React.useMemo(() => {
-    const testsForSubgroupId = new Map<number, TestSecondary[]>()
+    const map = new Map<number, TestSecondary[]>()
     for (const test of tests) {
-      const subgroupId = test.subgroupId
-      if (subgroupId !== null) {
-        if (testsForSubgroupId.has(subgroupId) === false) {
-          testsForSubgroupId.set(subgroupId, [])
-        }
-        testsForSubgroupId.get(subgroupId)!.push(test)
+      const sid = test.subgroupId
+      if (sid !== null) {
+        if (!map.has(sid)) map.set(sid, [])
+        map.get(sid)!.push(test)
       }
     }
-    for (const subgroupId of testsForSubgroupId.keys()) {
-      const sorted = testsForSubgroupId
-        .get(subgroupId)!
-        .toSorted((test_1, test_2) => test_1.code.localeCompare(test_2.code))
-      testsForSubgroupId.set(subgroupId, sorted)
+    for (const sid of map.keys()) {
+      map.set(
+        sid,
+        map.get(sid)!.toSorted((a, b) => a.code.localeCompare(b.code))
+      )
     }
-    return testsForSubgroupId
+    return map
   }, [tests])
 
   const orphanTests = React.useMemo(
     () =>
       tests
-        .filter((test) => test.subgroupId === null)
-        .toSorted((test_1, test_2) => test_1.code.localeCompare(test_2.code)),
+        .filter((t) => t.subgroupId === null)
+        .toSorted((a, b) => a.code.localeCompare(b.code)),
     [tests]
   )
-
   const orphanSubgroups = React.useMemo(
     () =>
       subgroups
-        .filter((subgroup) => subgroup.groupId === null)
-        .toSorted((subgroup_1, subgroup_2) =>
-          subgroup_1.code.localeCompare(subgroup_2.code)
-        ),
+        .filter((s) => s.groupId === null)
+        .toSorted((a, b) => a.code.localeCompare(b.code)),
     [subgroups]
   )
-
   const groups = React.useMemo(
-    () =>
-      groupsUnsorted.toSorted((group_1, group_2) =>
-        group_1.code.localeCompare(group_2.code)
-      ),
+    () => groupsUnsorted.toSorted((a, b) => a.code.localeCompare(b.code)),
     [groupsUnsorted]
   )
 
@@ -335,7 +332,6 @@ export function TestsHierarchyTree({
     () => selectedTestId ?? null,
     [selectedTestId]
   )
-
   const highlightedSubgroupId = React.useMemo(
     () =>
       selectedSubgroupId !== undefined
@@ -348,32 +344,25 @@ export function TestsHierarchyTree({
 
   const defaultExpandedItems = React.useMemo(
     () => [
-      ...(orphanTests.some((test) => test.id === highlightedTestId)
+      ...(orphanTests.some((t) => t.id === highlightedTestId)
         ? ['default-group', 'default-subgroup']
         : []),
-      ...(orphanSubgroups.some(
-        (subgroup) => subgroup.id === highlightedSubgroupId
-      )
+      ...(orphanSubgroups.some((s) => s.id === highlightedSubgroupId)
         ? ['default-group']
         : []),
-      ...(() => {
-        if (highlightedTestId !== null) {
-          const subgroupId =
-            testForId.get(highlightedTestId)?.subgroupId ?? null
-          return subgroupId !== null ? [`subgroup-${subgroupId}`] : []
-        } else {
-          return []
-        }
-      })(),
-      ...(() => {
-        if (highlightedSubgroupId !== null) {
-          const groupId =
-            subgroupForId.get(highlightedSubgroupId)?.groupId ?? null
-          return groupId !== null ? [`group-${groupId}`] : []
-        } else {
-          return []
-        }
-      })()
+      ...(highlightedTestId !== null
+        ? (() => {
+            const sid = testForId.get(highlightedTestId)?.subgroupId ?? null
+            return sid !== null ? [`subgroup-${sid}`] : []
+          })()
+        : []),
+      ...(highlightedSubgroupId !== null
+        ? (() => {
+            const gid =
+              subgroupForId.get(highlightedSubgroupId)?.groupId ?? null
+            return gid !== null ? [`group-${gid}`] : []
+          })()
+        : [])
     ],
     [
       testForId,
@@ -399,9 +388,7 @@ export function TestsHierarchyTree({
 
   React.useEffect(() => {
     if (selectedItem !== undefined) {
-      setTimeout(() => {
-        apiRef.current?.focusItem(null, selectedItem)
-      }, 0)
+      setTimeout(() => apiRef.current?.focusItem(null, selectedItem), 0)
     }
   }, [selectedItem, apiRef])
 
@@ -412,45 +399,58 @@ export function TestsHierarchyTree({
             {
               id: 'default-group',
               label: 'Группа по умолчанию',
-              children: [
-                ...(orphanTests.length > 0
-                  ? [
-                      {
-                        id: 'default-subgroup',
-                        label: 'Подгруппа по умолчанию',
-                        children: orphanTests.map((test) => ({
+              ...((orphanTests.length > 0 || orphanSubgroups.length > 0) && {
+                children: [
+                  ...(orphanTests.length > 0
+                    ? [
+                        {
+                          id: 'default-subgroup',
+                          label: 'Подгруппа по умолчанию',
+                          children: orphanTests.map((test) => ({
+                            id: `test-${test.id}`,
+                            label: capitalize(test.code, true)
+                          }))
+                        }
+                      ]
+                    : []),
+                  ...orphanSubgroups.map((subgroup) => ({
+                    id: `subgroup-${subgroup.id}`,
+                    label: capitalize(subgroup.code, true),
+                    ...((testsForSubgroupId.get(subgroup.id) ?? []).length && {
+                      children: (testsForSubgroupId.get(subgroup.id) ?? []).map(
+                        (test) => ({
                           id: `test-${test.id}`,
                           label: capitalize(test.code, true)
-                        }))
-                      }
-                    ]
-                  : []),
-                ...orphanSubgroups.map((subgroup) => ({
-                  id: `subgroup-${subgroup.id}`,
-                  label: capitalize(subgroup.code, true),
-                  children: (testsForSubgroupId.get(subgroup.id) ?? []).map(
-                    (test) => ({
-                      id: `test-${test.id}`,
-                      label: capitalize(test.code, true)
+                        })
+                      )
                     })
-                  )
-                }))
-              ]
+                  }))
+                ].filter(Boolean)
+              })
             }
           ]
         : []),
-      ...groups.map((group) => ({
-        id: `group-${group.id}`,
-        label: capitalize(group.code, true),
-        children: (subgroupsForGroupId.get(group.id) ?? []).map((subgroup) => ({
-          id: `subgroup-${subgroup.id}`,
-          label: capitalize(subgroup.code, true),
-          children: (testsForSubgroupId.get(subgroup.id) ?? []).map((test) => ({
-            id: `test-${test.id}`,
-            label: capitalize(test.code, true)
-          }))
-        }))
-      }))
+      ...groups.map((group) => {
+        const groupChildren = (subgroupsForGroupId.get(group.id) ?? []).map(
+          (subgroup) => ({
+            id: `subgroup-${subgroup.id}`,
+            label: capitalize(subgroup.code, true),
+            ...((testsForSubgroupId.get(subgroup.id) ?? []).length && {
+              children: (testsForSubgroupId.get(subgroup.id) ?? []).map(
+                (test) => ({
+                  id: `test-${test.id}`,
+                  label: capitalize(test.code, true)
+                })
+              )
+            })
+          })
+        )
+        return {
+          id: `group-${group.id}`,
+          label: capitalize(group.code, true),
+          ...(groupChildren.length && { children: groupChildren })
+        }
+      })
     ],
     [
       subgroupsForGroupId,
@@ -465,7 +465,6 @@ export function TestsHierarchyTree({
     () => filterTree(rawItems, searchText),
     [rawItems, searchText]
   )
-
   const items = React.useMemo(
     () => (searchText.trim() ? filteredItems : rawItems),
     [searchText, filteredItems, rawItems]
@@ -476,8 +475,7 @@ export function TestsHierarchyTree({
       if (expandedItems.length === 0 && !searchText.trim()) {
         setExpandedItems(defaultExpandedItems)
       } else if (searchText.trim()) {
-        const allIds = getAllItemIds(items)
-        setExpandedItems(allIds)
+        setExpandedItems(getAllItemIds(items))
       }
       setIsInitialized(true)
     }
@@ -512,17 +510,15 @@ export function TestsHierarchyTree({
 
   React.useEffect(() => {
     if (isInitialized && searchText.trim()) {
-      const allIds = getAllItemIds(items)
-      setExpandedItems(allIds)
+      setExpandedItems(getAllItemIds(items))
     }
   }, [searchText, items, isInitialized])
 
   const allItemIds = React.useMemo(() => getAllItemIds(items), [items])
 
   const disableStickyTemporarily = () => {
-    if (stickyTimeoutRef.current !== null) {
+    if (stickyTimeoutRef.current !== null)
       clearTimeout(stickyTimeoutRef.current)
-    }
     setDisableStickyForSubgroups(true)
     stickyTimeoutRef.current = window.setTimeout(() => {
       setDisableStickyForSubgroups(false)
@@ -540,49 +536,37 @@ export function TestsHierarchyTree({
     setExpandedItems([])
   }
 
-  const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchText(event.target.value)
-  }
-
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) =>
+    setSearchText(e.target.value)
   const handleClearSearch = () => {
     setSearchText('')
-    if (!searchText.trim()) {
-      setExpandedItems(defaultExpandedItems)
-    }
+    if (!searchText.trim()) setExpandedItems(defaultExpandedItems)
   }
 
   const handleSelectedItemsChange = React.useCallback(
     (event: React.SyntheticEvent | null, itemIds: string | string[] | null) => {
-      const itemId =
+      const id =
         itemIds === null
           ? null
           : typeof itemIds === 'string'
             ? itemIds
-            : itemIds.length === 1
-              ? itemIds[0]
-              : null
-
-      if (itemId === 'default-group' || itemId === 'default-subgroup') {
-        return
-      }
-
-      if (itemId === null) {
+            : (itemIds[0] ?? null)
+      if (id === 'default-group' || id === 'default-subgroup') return
+      if (id === null) {
         void navigate(`/hierarchy`)
-      } else if (itemId.startsWith('test')) {
-        const testId = Number(itemId.split('-')[1])
+      } else if (id.startsWith('test')) {
+        const testId = Number(id.split('-')[1])
         if (testId !== selectedTestId) {
           void navigate(`/hierarchy/tests/${testId}`)
         }
-      } else if (itemId.startsWith('subgroup')) {
-        const subgroupId = Number(itemId.split('-')[1])
-        if (subgroupId !== selectedSubgroupId) {
+      } else if (id.startsWith('subgroup')) {
+        const subgroupId = Number(id.split('-')[1])
+        if (subgroupId !== selectedSubgroupId)
           void navigate(`/hierarchy/subgroups/${subgroupId}`)
-        }
-      } else if (itemId.startsWith('group')) {
-        const groupId = Number(itemId.split('-')[1])
-        if (groupId !== selectedGroupId) {
+      } else if (id.startsWith('group')) {
+        const groupId = Number(id.split('-')[1])
+        if (groupId !== selectedGroupId)
           void navigate(`/hierarchy/groups/${groupId}`)
-        }
       }
     },
     [selectedTestId, selectedSubgroupId, selectedGroupId, navigate]
