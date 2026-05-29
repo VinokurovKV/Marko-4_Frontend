@@ -365,7 +365,7 @@ export function TaskViewer(props: TaskViewerProps) {
                 }))}
               />
             </ColumnViewerBlock>
-            {task.vertexes.map((vertex, vertexIndex) => (
+            {task.vertexes.map((vertex) => (
               <ColumnViewerBlock
                 key={vertex.vertexName}
                 title={`вершина ${vertex.vertexName}`}

@@ -11,35 +11,25 @@ import type { TreeViewDefaultItemModelProperties } from '@mui/x-tree-view/models
 import { RichTreeView } from '@mui/x-tree-view/RichTreeView'
 import { TreeItem, treeItemClasses } from '@mui/x-tree-view/TreeItem'
 import Stack from '@mui/material/Stack'
-import Box from '@mui/material/Box'
-import IconButton from '@mui/material/IconButton'
-import Tooltip from '@mui/material/Tooltip'
-import UnfoldMoreIcon from '@mui/icons-material/UnfoldMore'
-import UnfoldLessIcon from '@mui/icons-material/UnfoldLess'
+// import Typography from '@mui/material/Typography'
 // Other
 import capitalize from 'capitalize'
 
-const TreeViewContainer = styled(Box)(({ theme }) => ({
-  position: 'relative',
-  height: '100%',
-  width: '100%',
-  border: `1px solid ${
-    theme.palette.mode === 'light'
-      ? theme.palette.grey[300]
-      : theme.palette.grey.A700
-  }`,
-  borderRadius: '5px',
-  backgroundColor:
-    theme.palette.mode === 'light' ? 'white' : theme.palette.background.default,
-  overflow: 'hidden'
-}))
-
 const RichTreeViewStyled = styled(RichTreeView)(({ theme }) => [
   {
-    height: '100%',
-    overflow: 'auto',
-    padding: '10px',
-    paddingBottom: '48px', // Отступ для панели инструментов
+    '&': {
+      padding: '10px',
+      border: `1px solid ${
+        theme.palette.mode === 'light'
+          ? theme.palette.grey[300]
+          : theme.palette.grey.A700
+      }`,
+      borderRadius: '5px',
+      backgroundColor:
+        theme.palette.mode === 'light'
+          ? 'white'
+          : theme.palette.background.default
+    },
     '& .MuiTreeItem-content[data-focused]': {
       backgroundColor:
         theme.palette.mode === 'light'
@@ -49,27 +39,6 @@ const RichTreeViewStyled = styled(RichTreeView)(({ theme }) => [
   }
 ])
 
-const ToolbarContainer = styled(Box)(({ theme }) => ({
-  position: 'absolute',
-  bottom: 0,
-  right: 0,
-  left: 0,
-  display: 'flex',
-  justifyContent: 'flex-end',
-  alignItems: 'center',
-  gap: theme.spacing(0.5),
-  padding: theme.spacing(1),
-  backgroundColor: alpha(theme.palette.background.paper, 0.95),
-  backdropFilter: 'blur(8px)',
-  borderTop: `1px solid ${alpha(theme.palette.text.primary, 0.12)}`,
-  borderBottomLeftRadius: '4px',
-  borderBottomRightRadius: '4px',
-  zIndex: 1,
-  ...theme.applyStyles('dark', {
-    backgroundColor: alpha(theme.palette.background.paper, 0.95)
-  })
-}))
-
 export interface TestsHierarchyTreeProps {
   tests: TestSecondary[]
   subgroups: SubgroupSecondary[]
@@ -77,22 +46,6 @@ export interface TestsHierarchyTreeProps {
   selectedTestId?: number
   selectedSubgroupId?: number
   selectedGroupId?: number
-}
-
-const getAllItemIds = (
-  items: TreeViewDefaultItemModelProperties[]
-): string[] => {
-  const ids: string[] = []
-
-  const traverse = (item: TreeViewDefaultItemModelProperties) => {
-    ids.push(item.id)
-    if (item.children && Array.isArray(item.children)) {
-      item.children.forEach(traverse)
-    }
-  }
-
-  items.forEach(traverse)
-  return ids
 }
 
 export function TestsHierarchyTree({
@@ -348,9 +301,20 @@ export function TestsHierarchyTree({
         fontWeight: 500
       }
     },
+    // [`& .${treeItemClasses.iconContainer}`]: {
+    //   borderRadius: '50%',
+    //   backgroundColor: theme.palette.primary.dark,
+    //   padding: theme.spacing(0.0, 1.6), // theme.spacing(0, 1.2),
+    //   ...theme.applyStyles('light', {
+    //     backgroundColor: alpha(theme.palette.primary.main, 0.25)
+    //   }),
+    //   ...theme.applyStyles('dark', {
+    //     color: theme.palette.primary.contrastText
+    //   })
+    // },
     [`& .${treeItemClasses.groupTransition}`]: {
       marginLeft: 15,
-      paddingLeft: 10,
+      paddingLeft: 10, // 18,
       borderLeft: `1px dashed ${alpha(theme.palette.text.primary, 0.4)}`
     },
     ...theme.applyStyles('light', {
@@ -376,16 +340,6 @@ export function TestsHierarchyTree({
       return oldExpandedItems
     })
   }, [defaultExpandedItems, setExpandedItems])
-
-  const allItemIds = React.useMemo(() => getAllItemIds(items), [items])
-
-  const handleExpandAll = () => {
-    setExpandedItems(allItemIds)
-  }
-
-  const handleCollapseAll = () => {
-    setExpandedItems([])
-  }
 
   const handleSelectedItemsChange = React.useCallback(
     (event: React.SyntheticEvent | null, itemIds: string | string[] | null) => {
@@ -430,40 +384,17 @@ export function TestsHierarchyTree({
 
   return (
     <Stack spacing={1.5} p={0} sx={{ height: '100%', overflow: 'hidden' }}>
-      <TreeViewContainer>
-        <RichTreeViewStyled
-          apiRef={apiRef}
-          items={items}
-          expansionTrigger="iconContainer"
-          selectedItems={selectedItem ?? null}
-          onSelectedItemsChange={handleSelectedItemsChange}
-          expandedItems={expandedItems}
-          onExpandedItemsChange={handleExpandedItemsChange}
-          slots={{ item: CustomTreeItem }}
-        />
-        <ToolbarContainer>
-          <Tooltip title="Свернуть все" arrow>
-            <IconButton
-              onClick={handleCollapseAll}
-              size="small"
-              color="primary"
-              aria-label="collapse all"
-            >
-              <UnfoldLessIcon />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Развернуть все" arrow>
-            <IconButton
-              onClick={handleExpandAll}
-              size="small"
-              color="primary"
-              aria-label="expand all"
-            >
-              <UnfoldMoreIcon />
-            </IconButton>
-          </Tooltip>
-        </ToolbarContainer>
-      </TreeViewContainer>
+      <RichTreeViewStyled
+        apiRef={apiRef}
+        items={items}
+        expansionTrigger="iconContainer"
+        selectedItems={selectedItem ?? null}
+        onSelectedItemsChange={handleSelectedItemsChange}
+        expandedItems={expandedItems}
+        onExpandedItemsChange={handleExpandedItemsChange}
+        slots={{ item: CustomTreeItem }}
+        sx={{ height: '100%', overflow: 'auto' }}
+      />
     </Stack>
   )
 }
