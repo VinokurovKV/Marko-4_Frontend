@@ -1,6 +1,8 @@
 // Project
 import type { TestPrimary } from '~/types'
 import { GridRefCell } from '../cells/grid-ref-cell'
+// React router
+import { useLocation } from 'react-router'
 // React
 import * as React from 'react'
 // Material UI
@@ -9,6 +11,9 @@ import type { GridColDef, GridRenderCellParams } from '@mui/x-data-grid'
 import capitalize from 'capitalize'
 
 export function useTestCol(tests: TestPrimary[] | null | undefined) {
+  const location = useLocation()
+  const isHierarchyPath = location.pathname.startsWith('/hierarchy')
+
   const testCodeForId = React.useMemo(
     () =>
       new Map(
@@ -27,7 +32,7 @@ export function useTestCol(tests: TestPrimary[] | null | undefined) {
       renderCell: (params: GridRenderCellParams<any, string>) => (
         <GridRefCell
           text={params.value}
-          hrefPrefix="/hierarchy/tests"
+          hrefPrefix={`${isHierarchyPath ? '/hierarchy' : ''}/tests`}
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
           hrefPath={params.row.testId}
           // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
@@ -37,7 +42,7 @@ export function useTestCol(tests: TestPrimary[] | null | undefined) {
       minWidth: 140,
       flex: 1
     }),
-    [testCodeForId]
+    [isHierarchyPath, testCodeForId]
   )
 
   return col

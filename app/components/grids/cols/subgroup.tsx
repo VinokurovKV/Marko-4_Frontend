@@ -3,6 +3,8 @@ import type { SubgroupPrimary } from '~/types'
 import { usePopupPreviewVisibilitySettings } from '~/hooks/popup-preview-visibility'
 import { GridRefCell } from '../cells/grid-ref-cell'
 import { SubgroupHoverPreview } from '~/components/subgroups/subgroup-hover-preview'
+// React router
+import { useLocation } from 'react-router'
 // React
 import * as React from 'react'
 // Material UI
@@ -13,6 +15,9 @@ import capitalize from 'capitalize'
 export function useSubgroupCol(
   subgroups: SubgroupPrimary[] | null | undefined
 ) {
+  const location = useLocation()
+  const isHierarchyPath = location.pathname.startsWith('/hierarchy')
+
   const { settings } = usePopupPreviewVisibilitySettings()
 
   const subgroupCodeForId = React.useMemo(
@@ -36,7 +41,7 @@ export function useSubgroupCol(
       renderCell: (params: GridRenderCellParams<any, string>) => (
         <GridRefCell
           text={params.value}
-          hrefPrefix="/hierarchy/subgroups"
+          hrefPrefix={`${isHierarchyPath ? '/hierarchy' : ''}/subgroups`}
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
           hrefPath={params.row.subgroupId}
           hoverPreview={
@@ -63,7 +68,7 @@ export function useSubgroupCol(
       minWidth: 140,
       flex: 1
     }),
-    [subgroupCodeForId, settings.subgroup]
+    [isHierarchyPath, subgroupCodeForId, settings.subgroup]
   )
 
   return col

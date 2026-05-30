@@ -47,7 +47,7 @@ import {
   ColumnViewerText
 } from '../common'
 // React router
-import { useNavigate } from 'react-router'
+import { useLocation, useNavigate } from 'react-router'
 // React
 import * as React from 'react'
 // Material UI
@@ -88,6 +88,8 @@ export function TestViewer({
   subgroup,
   group
 }: TestViewerProps) {
+  const location = useLocation()
+  const isHierarchyPath = location.pathname.startsWith('/hierarchy')
   const { settings } = usePopupPreviewVisibilitySettings()
   const navigate = useNavigate()
   const notifier = useNotifier()
@@ -455,7 +457,9 @@ export function TestViewer({
                 field="группа"
                 text={group?.code}
                 href={
-                  group !== null ? `/hierarchy/groups/${group.id}` : undefined
+                  group !== null
+                    ? `${isHierarchyPath ? '/hierarchy' : ''}/groups/${group.id}`
+                    : undefined
                 }
               />
               <ColumnViewerRef
@@ -463,7 +467,7 @@ export function TestViewer({
                 text={subgroup?.code}
                 href={
                   test.subgroupId !== null
-                    ? `/hierarchy/subgroups/${test.subgroupId}`
+                    ? `${isHierarchyPath ? '/hierarchy' : ''}/subgroups/${test.subgroupId}`
                     : undefined
                 }
               />

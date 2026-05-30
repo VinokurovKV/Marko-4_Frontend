@@ -30,7 +30,7 @@ import {
   ColumnViewerText
 } from '../common'
 // React router
-import { useNavigate } from 'react-router'
+import { useLocation, useNavigate } from 'react-router'
 // React
 import * as React from 'react'
 // Material UI
@@ -58,6 +58,8 @@ export function GroupViewer({
   subgroups,
   group
 }: GroupViewerProps) {
+  const location = useLocation()
+  const isHierarchyPath = location.pathname.startsWith('/hierarchy')
   const navigate = useNavigate()
   const [tabValue, setTabValue] = useLocationHash<TabVal>('main')
   const notifier = useNotifier()
@@ -176,7 +178,7 @@ export function GroupViewer({
                   emptyText={subgroups !== null ? 'нет' : '???'}
                   items={(subgroups ?? []).map((subgroup) => ({
                     text: subgroup.code,
-                    href: `/hierarchy/subgroups/${subgroup.id}`
+                    href: `${isHierarchyPath ? '/hierarchy' : ''}/subgroups/${subgroup.id}`
                   }))}
                 />
               </ColumnViewerBlock>

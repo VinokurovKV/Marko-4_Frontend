@@ -73,7 +73,7 @@ const RichTreeViewStyled = styled(RichTreeView)(({ theme }) => [
       justifyContent: 'center',
       marginRight: theme.spacing(0.5),
       borderRadius: '50%',
-      backgroundColor: alpha(theme.palette.action.hover, 0.25),
+      backgroundColor: alpha(theme.palette.action.hover, 0.15),
       transition: theme.transitions.create(['background-color', 'color']),
       '& svg': {
         fontSize: '1.1rem',

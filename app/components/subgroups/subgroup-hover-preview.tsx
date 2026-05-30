@@ -1,6 +1,8 @@
 // Project
 import { useSubgroup, useTestsFiltered } from '~/hooks/resources'
 import { ColumnViewerChipsBlock } from '~/components/single-viewers/common'
+// React router
+import { useLocation } from 'react-router'
 // React
 import * as React from 'react'
 // Material UI
@@ -27,6 +29,9 @@ export function SubgroupHoverPreview({
   text,
   onReadyChange
 }: SubgroupHoverPreviewProps) {
+  const location = useLocation()
+  const isHierarchyPath = location.pathname.startsWith('/hierarchy')
+
   const subgroup = useSubgroup(
     'UP_TO_TERTIARY_PROPS',
     subgroupId,
@@ -78,7 +83,7 @@ export function SubgroupHoverPreview({
             emptyText="нет"
             items={tests.map((test) => ({
               text: test.code,
-              href: `/hierarchy/tests/${test.id}`
+              href: `${isHierarchyPath ? '/hierarchy' : ''}/tests/${test.id}`
             }))}
           />
         </Box>
