@@ -256,20 +256,27 @@ export function TestViewer({
 
   const handleRequirementChange = React.useCallback(
     (event: SelectChangeEvent<number | string>) => {
-      setRequirementId((event.target.value ?? null) as number | null)
+      setRequirementId(
+        (event.target.value === '' ? null : (event.target.value ?? null)) as
+          | number
+          | null
+      )
     },
     [setRequirementId]
   )
 
-  const requirementSelectItems: FormSelectProps<number>['items'] =
-    React.useMemo(
-      () =>
-        (requirements ?? []).map((requirement) => ({
-          value: requirement.id,
-          title: requirement.code
-        })),
-      [requirements, requirementCodeForId]
-    )
+  const requirementSelectItemsWithEmpty: FormSelectProps<
+    number | string
+  >['items'] = React.useMemo(
+    () => [
+      { value: '', title: '— не выбрано —' },
+      ...(requirements ?? []).map((requirement) => ({
+        value: requirement.id,
+        title: requirement.code
+      }))
+    ],
+    [requirements]
+  )
 
   const topologyConfig = React.useMemo(() => {
     return commonTopology !== null && topology !== null
@@ -610,7 +617,7 @@ export function TestViewer({
               <FormSelect
                 name="requirementId"
                 label="отображаемое в описании требование"
-                items={requirementSelectItems}
+                items={requirementSelectItemsWithEmpty}
                 value={requirementId ?? ''}
                 onChange={handleRequirementChange}
               />
