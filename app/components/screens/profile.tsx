@@ -1,6 +1,12 @@
 // Project
 import type { RolePrimary, UserTertiary } from '~/types'
+import { serverConnector } from '~/server-connector'
+import {
+  ServerConnectorBadRequestError,
+  ServerConnectorUnauthorizedError
+} from '~/server-connector/error'
 import { useMeta } from '~/providers/meta'
+import { useNotifier } from '~/providers/notifier'
 import { localizationForRight } from '~/localization'
 import { type ProjBreadcrumbsProps } from '../breadcrumbs'
 import {
@@ -16,12 +22,18 @@ import {
   ColumnViewerChipsBlock,
   ColumnViewerText
 } from '../single-viewers/common'
+import { FormPassField } from '../forms/common'
+// React router
+import { useNavigate } from 'react-router'
 // React
 import * as React from 'react'
 // Material UI
+import Alert from '@mui/material/Alert'
 import Dialog from '@mui/material/Dialog'
 import DialogActions from '@mui/material/DialogActions'
 import DialogContent from '@mui/material/DialogContent'
+import DialogTitle from '@mui/material/DialogTitle'
+import DeleteIcon from '@mui/icons-material/Delete'
 import EditIcon from '@mui/icons-material/Edit'
 import LockResetIcon from '@mui/icons-material/LockReset'
 import Paper from '@mui/material/Paper'
@@ -36,6 +48,8 @@ export interface ProfileScreenProps {
 }
 
 export function ProfileScreen({ userId, role, user }: ProfileScreenProps) {
+  const navigate = useNavigate()
+  const notifier = useNotifier()
   const meta = useMeta()
 
   const rights = React.useMemo(
@@ -56,6 +70,7 @@ export function ProfileScreen({ userId, role, user }: ProfileScreenProps) {
     rightsSet.has('UPDATE_SELF') || rightsSet.has('UPDATE_USER')
   const canChangePassword =
     rightsSet.has('UPDATE_SELF_PASS') || rightsSet.has('UPDATE_USER_PASS')
+  const canDeleteProfile = rightsSet.has('DELETE_USER')
 
   const login =
     meta.status === 'AUTHENTICATED'
@@ -123,13 +138,101 @@ export function ProfileScreen({ userId, role, user }: ProfileScreenProps) {
   const [editDialogIsActive, setEditDialogIsActive] = React.useState(false)
   const [passDialogIsActive, setPassDialogIsActive] = React.useState(false)
   const [rightsDialogIsActive, setRightsDialogIsActive] = React.useState(false)
+  const [deleteDialogIsActive, setDeleteDialogIsActive] = React.useState(false)
+  const [deletePass, setDeletePass] = React.useState('')
+  const [deletePassConfirm, setDeletePassConfirm] = React.useState('')
+  const [deleteSubmitAttempted, setDeleteSubmitAttempted] =
+    React.useState(false)
+  const [deletePassError, setDeletePassError] = React.useState<string | null>(
+    null
+  )
+  const [deleteIsSubmitting, setDeleteIsSubmitting] = React.useState(false)
+
+  const deletePassIsEmpty = deletePass.length === 0
+  const deletePassConfirmIsEmpty = deletePassConfirm.length === 0
+  const deletePassesAreDifferent =
+    deletePassIsEmpty === false &&
+    deletePassConfirmIsEmpty === false &&
+    deletePass !== deletePassConfirm
+  const deleteCanBeSubmitted =
+    userId !== null &&
+    deletePassIsEmpty === false &&
+    deletePassConfirmIsEmpty === false &&
+    deletePassesAreDifferent === false
+
+  const clearDeleteDialog = React.useCallback(() => {
+    setDeletePass('')
+    setDeletePassConfirm('')
+    setDeleteSubmitAttempted(false)
+    setDeletePassError(null)
+  }, [])
+
+  const closeDeleteDialog = React.useCallback(() => {
+    if (deleteIsSubmitting) {
+      return
+    }
+    setDeleteDialogIsActive(false)
+    clearDeleteDialog()
+  }, [clearDeleteDialog, deleteIsSubmitting])
+
+  const handleDeleteSelfConfirm = React.useCallback(async () => {
+    setDeleteSubmitAttempted(true)
+
+    if (deleteCanBeSubmitted === false || userId === null) {
+      return
+    }
+
+    if (login === undefined) {
+      setDeletePassError('не удалось определить логин профиля')
+      return
+    }
+
+    setDeleteIsSubmitting(true)
+    try {
+      const authResult = await serverConnector.login({
+        login,
+        pass: deletePass
+      })
+      if (authResult.userId !== userId) {
+        throw new Error('пароль подтвержден для другого пользователя')
+      }
+      await serverConnector.deleteUser({ id: userId })
+      setDeleteDialogIsActive(false)
+      clearDeleteDialog()
+      void navigate('/login')
+    } catch (error) {
+      if (
+        error instanceof ServerConnectorUnauthorizedError ||
+        error instanceof ServerConnectorBadRequestError
+      ) {
+        setDeletePassError('неверный пароль')
+        return
+      }
+      notifier.showError(error)
+    } finally {
+      setDeleteIsSubmitting(false)
+    }
+  }, [
+    clearDeleteDialog,
+    deleteCanBeSubmitted,
+    deletePass,
+    login,
+    navigate,
+    notifier,
+    userId
+  ])
+
+  const handleDeleteSelfClick = React.useCallback(() => {
+    if (userId === null) {
+      return
+    }
+    setDeleteDialogIsActive(true)
+  }, [userId])
 
   const compactActionButtonSx = React.useMemo(
     () => ({
       justifyContent: 'flex-start',
-      px: 1.5,
-      py: 0.75,
-      minHeight: '36px'
+      px: 1.5
     }),
     []
   )
@@ -224,7 +327,7 @@ export function ProfileScreen({ userId, role, user }: ProfileScreenProps) {
             </ColumnViewerBlock>
           </ColumnViewer>
           <ColumnViewer>
-            <ColumnViewerBlock title="быстрые действия">
+            <ColumnViewerBlock title="действия">
               <Stack
                 spacing={1.25}
                 p={1}
@@ -253,6 +356,20 @@ export function ProfileScreen({ userId, role, user }: ProfileScreenProps) {
                 >
                   Изменить пароль
                 </ProjButton>
+                {canDeleteProfile ? (
+                  <ProjButton
+                    variant="outlined"
+                    color="error"
+                    startIcon={<DeleteIcon />}
+                    disabled={userId === null}
+                    sx={primaryActionButtonSx}
+                    onClick={() => {
+                      handleDeleteSelfClick()
+                    }}
+                  >
+                    Удалить профиль
+                  </ProjButton>
+                ) : null}
                 {canEditProfile && user === null ? (
                   <Typography
                     color="textSecondary"
@@ -302,6 +419,95 @@ export function ProfileScreen({ userId, role, user }: ProfileScreenProps) {
         setIsActive={setPassDialogIsActive}
         userId={userId}
       />
+      <Dialog
+        open={deleteDialogIsActive}
+        onClose={closeDeleteDialog}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle>
+          <Typography
+            color="error"
+            sx={{ fontSize: '1.2rem', fontWeight: 700, textAlign: 'center' }}
+          >
+            Удаление текущего профиля
+          </Typography>
+        </DialogTitle>
+        <DialogContent dividers>
+          <Stack spacing={2}>
+            <Alert severity="error">
+              Вы точно уверены, что хотите удалить текущий профиль?
+            </Alert>
+            <Typography color="textSecondary" sx={{ textAlign: 'center' }}>
+              После удаления профиль будет недоступен, а текущая сессия
+              завершится.
+            </Typography>
+            <FormPassField
+              required
+              name="deletePass"
+              label="пароль"
+              value={deletePass}
+              helperText={
+                deletePassError ??
+                (deleteSubmitAttempted && deletePassIsEmpty
+                  ? 'укажите пароль'
+                  : ' ')
+              }
+              error={
+                deletePassError !== null ||
+                (deleteSubmitAttempted && deletePassIsEmpty)
+              }
+              disabled={deleteIsSubmitting}
+              onChange={(event) => {
+                setDeletePassError(null)
+                setDeletePass(event.target.value)
+              }}
+            />
+            <FormPassField
+              required
+              name="deletePassConfirm"
+              label="подтверждение пароля"
+              value={deletePassConfirm}
+              helperText={
+                deleteSubmitAttempted && deletePassConfirmIsEmpty
+                  ? 'подтвердите пароль'
+                  : deleteSubmitAttempted && deletePassesAreDifferent
+                    ? 'пароли не совпадают'
+                    : ' '
+              }
+              error={
+                deleteSubmitAttempted &&
+                (deletePassConfirmIsEmpty || deletePassesAreDifferent)
+              }
+              disabled={deleteIsSubmitting}
+              onChange={(event) => {
+                setDeletePassConfirm(event.target.value)
+              }}
+            />
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ justifyContent: 'center', p: 2 }}>
+          <ProjButton
+            variant="contained"
+            loading={deleteIsSubmitting}
+            disabled={deleteIsSubmitting}
+            onClick={closeDeleteDialog}
+          >
+            отменить
+          </ProjButton>
+          <ProjButton
+            variant="contained"
+            color="error"
+            loading={deleteIsSubmitting}
+            disabled={deleteIsSubmitting}
+            onClick={() => {
+              void handleDeleteSelfConfirm()
+            }}
+          >
+            удалить профиль
+          </ProjButton>
+        </DialogActions>
+      </Dialog>
       <Dialog
         open={rightsDialogIsActive}
         onClose={() => {

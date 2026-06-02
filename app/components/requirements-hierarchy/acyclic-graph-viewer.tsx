@@ -109,6 +109,11 @@ const MINI_GRAPH_FIT_VIEW_OPTIONS = {
   minZoom: 0.01,
   maxZoom: 1
 } as const
+const MINI_GRAPH_DEFAULT_WIDTH = 360
+const MINI_GRAPH_MIN_WIDTH = 260
+const MINI_GRAPH_MAX_WIDTH = 720
+const MAIN_GRAPH_MIN_WIDTH_WHEN_RESIZING = 360
+const MINI_GRAPH_RESIZE_STEP = 24
 
 const isMacOs = () =>
   typeof navigator !== 'undefined' &&
@@ -598,6 +603,7 @@ export default function AcyclicGraphViewer({
   } = useContainerSize()
   const theme = useTheme()
   const mainGraphHostRef = useRef<HTMLDivElement | null>(null)
+  const [miniGraphWidth, setMiniGraphWidth] = useState(MINI_GRAPH_DEFAULT_WIDTH)
 
   const convertToNodes = useCallback((): AcyclicGraphNode[] => {
     const verticesByLevel = new Map<number, Vertex[]>()
@@ -783,10 +789,17 @@ export default function AcyclicGraphViewer({
       [
         selectedId ?? 'none',
         miniGraphDisplayMode,
+        Math.round(miniGraphWidth),
         miniFlowData.nodes.map((node) => node.id).join(','),
         miniFlowData.edges.map((edge) => edge.id).join(',')
       ].join('|'),
-    [selectedId, miniGraphDisplayMode, miniFlowData.nodes, miniFlowData.edges]
+    [
+      selectedId,
+      miniGraphDisplayMode,
+      miniGraphWidth,
+      miniFlowData.nodes,
+      miniFlowData.edges
+    ]
   )
 
   useEffect(() => {
@@ -942,6 +955,80 @@ export default function AcyclicGraphViewer({
 
   const isMiniGraphVisible = selectedId !== null && isMiniGraphEnabled
   const isHoverPreviewVisible = hoveredVertexPreview !== null
+
+  const getClampedMiniGraphWidth = useCallback(
+    (width: number) => {
+      const graphContainerWidth =
+        containerRef.current?.getBoundingClientRect().width ?? containerWidth
+      const maxWidthByContainer = Math.max(
+        MINI_GRAPH_MIN_WIDTH,
+        graphContainerWidth - MAIN_GRAPH_MIN_WIDTH_WHEN_RESIZING
+      )
+      const maxWidth = Math.min(MINI_GRAPH_MAX_WIDTH, maxWidthByContainer)
+
+      return Math.min(Math.max(width, MINI_GRAPH_MIN_WIDTH), maxWidth)
+    },
+    [containerRef, containerWidth]
+  )
+
+  useEffect(() => {
+    setMiniGraphWidth((prevWidth) => getClampedMiniGraphWidth(prevWidth))
+  }, [getClampedMiniGraphWidth])
+
+  useEffect(() => {
+    setMiniGraphReady(false)
+  }, [miniGraphWidth])
+
+  const handleMiniGraphSeparatorPointerDown = useCallback(
+    (event: React.PointerEvent<HTMLDivElement>) => {
+      event.preventDefault()
+      event.stopPropagation()
+
+      const startX = event.clientX
+      const startWidth = miniGraphWidth
+      const bodyCursor = document.body.style.cursor
+      const bodyUserSelect = document.body.style.userSelect
+
+      document.body.style.cursor = 'col-resize'
+      document.body.style.userSelect = 'none'
+
+      const handlePointerMove = (moveEvent: PointerEvent) => {
+        const nextWidth = startWidth + startX - moveEvent.clientX
+        setMiniGraphWidth(getClampedMiniGraphWidth(nextWidth))
+      }
+
+      const handlePointerUp = () => {
+        document.body.style.cursor = bodyCursor
+        document.body.style.userSelect = bodyUserSelect
+        window.removeEventListener('pointermove', handlePointerMove)
+        window.removeEventListener('pointerup', handlePointerUp)
+      }
+
+      window.addEventListener('pointermove', handlePointerMove)
+      window.addEventListener('pointerup', handlePointerUp)
+    },
+    [getClampedMiniGraphWidth, miniGraphWidth]
+  )
+
+  const handleMiniGraphSeparatorKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLDivElement>) => {
+      if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') {
+        return
+      }
+
+      event.preventDefault()
+      setMiniGraphWidth((prevWidth) =>
+        getClampedMiniGraphWidth(
+          prevWidth +
+            (event.key === 'ArrowLeft'
+              ? MINI_GRAPH_RESIZE_STEP
+              : -MINI_GRAPH_RESIZE_STEP)
+        )
+      )
+    },
+    [getClampedMiniGraphWidth]
+  )
+
   const fullCoverageBadgeColor = useMemo(() => {
     if (hoveredVertexPreview === null) {
       return {
@@ -1212,7 +1299,7 @@ export default function AcyclicGraphViewer({
                       '0 / 0'
                   ],
                   [
-                    'Возможные',
+                    'Необязательные',
                     hoveredVertexPreview.data.onlyMayCoverageFraction ?? '0 / 0'
                   ],
                   ...(hoveredVertexPreview.data.atomicityFlag
@@ -1262,11 +1349,23 @@ export default function AcyclicGraphViewer({
         {isMiniGraphVisible && (
           <>
             <Box
+              role="separator"
+              aria-orientation="vertical"
+              aria-label="Изменить ширину мини-графа"
+              aria-valuemin={MINI_GRAPH_MIN_WIDTH}
+              aria-valuemax={getClampedMiniGraphWidth(MINI_GRAPH_MAX_WIDTH)}
+              aria-valuenow={Math.round(miniGraphWidth)}
+              tabIndex={0}
+              onPointerDown={handleMiniGraphSeparatorPointerDown}
+              onKeyDown={handleMiniGraphSeparatorKeyDown}
               sx={{
                 mx: 2,
                 width: 18,
                 alignSelf: 'stretch',
                 flex: '0 0 auto',
+                cursor: 'col-resize',
+                userSelect: 'none',
+                touchAction: 'none',
                 borderRadius: 999,
                 backgroundColor:
                   theme.palette.mode === 'dark'
@@ -1291,15 +1390,29 @@ export default function AcyclicGraphViewer({
                     theme.palette.mode === 'dark'
                       ? alpha(theme.palette.common.white, 0.45)
                       : alpha(theme.palette.common.black, 0.32)
+                },
+                '&:hover, &:focus-visible': {
+                  outline: 'none',
+                  backgroundColor:
+                    theme.palette.mode === 'dark'
+                      ? alpha(theme.palette.common.white, 0.08)
+                      : alpha(theme.palette.common.black, 0.06),
+                  '&::before': {
+                    backgroundColor:
+                      theme.palette.mode === 'dark'
+                        ? alpha(theme.palette.common.white, 0.7)
+                        : alpha(theme.palette.common.black, 0.48)
+                  }
                 }
               }}
             />
             <Paper
               elevation={0}
               sx={{
-                width: 360,
-                minWidth: 360,
-                maxWidth: 360,
+                width: miniGraphWidth,
+                minWidth: MINI_GRAPH_MIN_WIDTH,
+                maxWidth: MINI_GRAPH_MAX_WIDTH,
+                flex: '0 0 auto',
                 borderRadius: 0,
                 backgroundColor: theme.palette.background.paper,
                 color: theme.palette.text.primary,
@@ -1374,6 +1487,8 @@ export default function AcyclicGraphViewer({
                   nodes={miniFlowData.nodes}
                   edges={miniFlowData.edges}
                   nodeTypes={nodeTypes}
+                  onNodeMouseEnter={handleNodeMouseEnter}
+                  onNodeMouseLeave={handleNodeMouseLeave}
                   minZoom={0.01}
                   maxZoom={1.5}
                   nodesDraggable={false}

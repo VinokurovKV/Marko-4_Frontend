@@ -25,7 +25,8 @@ export const createBackupFormValidator =
   new FormValidator<CreateBackupFormData>({
     oneField: {
       backupName: {
-        transforms: ['TRIM', 'EMPTY_STR_TO_UNDEFINED']
+        transforms: ['TRIM', 'EMPTY_STR_TO_UNDEFINED'],
+        rules: ['ALLOW_UNDEFINED', 'ASCII', 'NO_BACKSLASH', 'NO_WHITESPACE']
       }
     }
   })
