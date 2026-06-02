@@ -126,7 +126,6 @@ export function Grid(props: GridProps) {
   const lastSavedScrollTop = React.useRef<number | undefined>(undefined)
   const observerRef = React.useRef<MutationObserver | null>(null)
   const hasNavigatedToSelectedRow = React.useRef(false)
-  const prevPageSizeRef = React.useRef<number | undefined>(undefined)
 
   React.useEffect(() => {
     setRowSelectionModel(
@@ -240,10 +239,10 @@ export function Grid(props: GridProps) {
 
       const rowRect = rowElement.getBoundingClientRect()
       const containerRect = virtualScroller.getBoundingClientRect()
-      const visible =
+      return (
         rowRect.top >= containerRect.top &&
         rowRect.bottom <= containerRect.bottom
-      return visible
+      )
     },
     [apiRef]
   )
@@ -272,19 +271,19 @@ export function Grid(props: GridProps) {
     const performScroll = (attempt = 0) => {
       if (!apiRef.current) return
       const rowElement = apiRef.current.getRowElement(props.selectedRowId!)
-      if (rowElement || attempt >= 30) {
+      if (rowElement || attempt >= 10) {
         apiRef.current.scrollToIndexes({
           rowIndex: rowIndexOnPage
         })
         hasNavigatedToSelectedRow.current = true
       } else {
-        setTimeout(() => performScroll(attempt + 1), 50)
+        setTimeout(() => performScroll(attempt + 1), 15)
       }
     }
 
     if (needPageChange) {
       apiRef.current.setPage(targetPage)
-      setTimeout(() => performScroll(), 100)
+      setTimeout(() => performScroll(), 20)
     } else {
       performScroll()
     }
@@ -300,7 +299,7 @@ export function Grid(props: GridProps) {
 
     const checkAndNavigate = () => {
       if (!apiRef.current) {
-        setTimeout(checkAndNavigate, 100)
+        requestAnimationFrame(checkAndNavigate)
         return
       }
       if (hasNavigatedToSelectedRow.current) return
@@ -314,35 +313,6 @@ export function Grid(props: GridProps) {
 
     checkAndNavigate()
   }, [apiRef, props.rows, props.selectedRowId, navigateToSelectedRow])
-
-  React.useEffect(() => {
-    if (props.selectedRowId === undefined) return
-
-    if (apiRef.current) {
-      prevPageSizeRef.current =
-        apiRef.current.state.pagination.paginationModel.pageSize
-    }
-
-    const intervalId = setInterval(() => {
-      if (!apiRef.current) return
-      const currentPageSize =
-        apiRef.current.state.pagination.paginationModel.pageSize
-      if (
-        prevPageSizeRef.current !== undefined &&
-        prevPageSizeRef.current !== currentPageSize
-      ) {
-        hasNavigatedToSelectedRow.current = false
-        setTimeout(() => {
-          if (apiRef.current && props.selectedRowId) {
-            navigateToSelectedRow()
-          }
-        }, 200)
-      }
-      prevPageSizeRef.current = currentPageSize
-    }, 500)
-
-    return () => clearInterval(intervalId)
-  }, [props.selectedRowId, apiRef, navigateToSelectedRow])
 
   React.useEffect(() => {
     if (!apiRef.current || !props.rows.length) return
@@ -369,22 +339,16 @@ export function Grid(props: GridProps) {
     if (virtualScroller) {
       restoreScrollPosition()
     } else {
-      if (observerRef.current) {
-        observerRef.current.disconnect()
-      }
-
+      if (observerRef.current) observerRef.current.disconnect()
       observerRef.current = new MutationObserver(() => {
         const scroller = apiRef.current?.rootElementRef?.current?.querySelector(
           '.MuiDataGrid-virtualScroller'
         )
         if (scroller) {
           restoreScrollPosition()
-          if (observerRef.current) {
-            observerRef.current.disconnect()
-          }
+          if (observerRef.current) observerRef.current.disconnect()
         }
       })
-
       if (apiRef.current.rootElementRef?.current) {
         observerRef.current.observe(apiRef.current.rootElementRef.current, {
           childList: true,
@@ -394,9 +358,7 @@ export function Grid(props: GridProps) {
     }
 
     return () => {
-      if (observerRef.current) {
-        observerRef.current.disconnect()
-      }
+      if (observerRef.current) observerRef.current.disconnect()
     }
   }, [apiRef, restoreScrollPosition, props.selectedRowId])
 
@@ -408,15 +370,10 @@ export function Grid(props: GridProps) {
       const stateFromLocalStorage = JSON.parse(
         stateFromLocalStorageUnparsed
       ) as ExtendedGridState
-      const pageSize =
-        stateFromLocalStorage.pagination?.paginationModel?.pageSize
-      if (
-        pageSize !== undefined &&
-        PAGE_SIZE_OPTIONS.includes(pageSize) === false
-      ) {
-        if (!stateFromLocalStorage.pagination) {
+      let pageSize = stateFromLocalStorage.pagination?.paginationModel?.pageSize
+      if (pageSize !== undefined && !PAGE_SIZE_OPTIONS.includes(pageSize)) {
+        if (!stateFromLocalStorage.pagination)
           stateFromLocalStorage.pagination = {}
-        }
         if (!stateFromLocalStorage.pagination.paginationModel) {
           stateFromLocalStorage.pagination.paginationModel = {
             pageSize: PAGE_SIZE_OPTIONS[PAGE_SIZE_OPTIONS.length - 1],
@@ -438,9 +395,7 @@ export function Grid(props: GridProps) {
       }
       loadedState = {
         ...gridInitialState,
-        columns: {
-          columnVisibilityModel: columnVisibilityModel
-        }
+        columns: { columnVisibilityModel }
       }
     }
 
@@ -479,16 +434,20 @@ export function Grid(props: GridProps) {
     setInitialState(loadedState)
 
     window.addEventListener('beforeunload', saveSnapshot)
-
     return () => {
       saveSnapshot()
     }
-  }, [])
+  }, [
+    props.selectedRowId,
+    props.rows,
+    props.defaultHiddenFields,
+    saveSnapshot,
+    LS_GRID_STATE_KEY
+  ])
 
   const handleRowClick = React.useCallback(
     (event: GridRowParams<any>) => {
       if (props.navigationMode) {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access
         props.navigationModeOnRowClick?.(event.row.id)
       }
     },
@@ -552,14 +511,7 @@ export function Grid(props: GridProps) {
         }
       }
     }),
-    [
-      deleteModeIsActive,
-      setDeleteModeIsActive,
-      rowSelectionModel,
-      setRowSelectionModel,
-      dialogs,
-      props.deleteMany
-    ]
+    [deleteModeIsActive, rowSelectionModel, dialogs, props.deleteMany]
   )
 
   if (initialState === undefined) {
@@ -568,16 +520,11 @@ export function Grid(props: GridProps) {
 
   return (
     <Stack spacing={1.5} p={0} sx={{ height: '100%', overflow: 'hidden' }}>
-      {props.title !== undefined ? (
-        <Typography
-          variant="h5"
-          sx={{
-            fontWeight: 'bold'
-          }}
-        >
+      {props.title !== undefined && (
+        <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
           {capitalize(props.title, true)}
         </Typography>
-      ) : null}
+      )}
       <DataGridStyled
         localeText={
           props.compactFooter === true
@@ -623,10 +570,7 @@ export function Grid(props: GridProps) {
                   }
                 : undefined,
               deleteManyButton: props.deleteMany
-                ? {
-                    active: deleteModeIsActive,
-                    onClick: handleDeleteManyClick
-                  }
+                ? { active: deleteModeIsActive, onClick: handleDeleteManyClick }
                 : undefined
             } satisfies ProjGridToolbarProps,
             footer: footerProps
@@ -640,9 +584,9 @@ export function Grid(props: GridProps) {
         keepNonExistentRowsSelected
         onRowClick={handleRowClick}
         rowSelectionModel={rowSelectionModel}
-        onRowSelectionModelChange={(newRowSelectionModel) => {
+        onRowSelectionModelChange={(newRowSelectionModel) =>
           setRowSelectionModel(newRowSelectionModel)
-        }}
+        }
         onPaginationModelChange={() => saveSnapshot()}
         className={props.navigationMode ? 'navigation-mode' : undefined}
         rowSpanning={props.rowSpanning}
