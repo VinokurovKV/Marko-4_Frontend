@@ -545,7 +545,6 @@ export function TestsHierarchyTree({
       return
 
     if (inputRef.current && document.activeElement === inputRef.current) return
-    if (debouncedSearchText.trim()) return
 
     const parents: string[] = []
     let current = selectedItem
@@ -556,14 +555,16 @@ export function TestsHierarchyTree({
     }
 
     if (parents.length) {
-      startTransition(() => {
-        setExpandedItems((prev) => {
-          const newSet = new Set(prev)
-          for (const p of parents) {
+      setExpandedItems((prev) => {
+        const newSet = new Set(prev)
+        let changed = false
+        for (const p of parents) {
+          if (!newSet.has(p)) {
             newSet.add(p)
+            changed = true
           }
-          return Array.from(newSet)
-        })
+        }
+        return changed ? Array.from(newSet) : prev
       })
     }
 
@@ -593,16 +594,15 @@ export function TestsHierarchyTree({
       } else {
         targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
       }
-
-      setTimeout(() => {
-        apiRef.current?.focusItem(null, selectedItem)
-      }, 100)
       return true
     }
 
     const handler = () => {
       if (scrollIfNeeded()) {
         if (intervalId) clearInterval(intervalId)
+        setTimeout(() => {
+          apiRef.current?.focusItem(null, selectedItem)
+        }, 150)
       } else if (attempts >= maxAttempts) {
         if (intervalId) clearInterval(intervalId)
       }
@@ -610,9 +610,14 @@ export function TestsHierarchyTree({
     }
 
     intervalId = setInterval(handler, intervalMs)
-    const delay = parents.length ? 150 : 50
+    const delay = parents.length ? 250 : 100
     setTimeout(() => {
-      if (scrollIfNeeded() && intervalId) clearInterval(intervalId)
+      if (scrollIfNeeded()) {
+        if (intervalId) clearInterval(intervalId)
+        setTimeout(() => {
+          apiRef.current?.focusItem(null, selectedItem)
+        }, 150)
+      }
     }, delay)
 
     return () => {
