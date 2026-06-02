@@ -5,6 +5,8 @@ import {
   LayoutScreenContainer
 } from '../containers'
 import { serverConnector } from '~/server-connector'
+import { ServerConnectorBadRequestError } from '~/server-connector/error'
+import { useMeta } from '~/providers/meta'
 import { useNotifier } from '~/providers/notifier'
 import { ProjButton } from '../buttons/button'
 import { downloadFileFromBlob } from '~/utilities'
@@ -12,9 +14,13 @@ import { ImportDataFormDialog } from '../forms/resources/import-data'
 import { ExportDataFormDialog } from '../forms/resources/export-data'
 import type { ImportSuccessResultDto } from '@common/dtos/server-api/import.dto'
 import { ArchiveHistoryFormDialog } from '../forms/resources/archive-history'
+import { FormPassField } from '../forms/common'
+// React router
+import { useNavigate } from 'react-router'
 // React
 import * as React from 'react'
 // Material UI
+import Alert from '@mui/material/Alert'
 import ImportExportIcon from '@mui/icons-material/ImportExport'
 import Paper from '@mui/material/Paper'
 import Stack from '@mui/material/Stack'
@@ -24,6 +30,7 @@ import CloseIcon from '@mui/icons-material/Close'
 import Dialog from '@mui/material/Dialog'
 import DialogActions from '@mui/material/DialogActions'
 import DialogContent from '@mui/material/DialogContent'
+import DialogTitle from '@mui/material/DialogTitle'
 import Menu from '@mui/material/Menu'
 import MenuItem from '@mui/material/MenuItem'
 
@@ -85,7 +92,11 @@ function getArrayLength(
 }
 
 export function DataTransferScreen() {
+  const navigate = useNavigate()
+  const meta = useMeta()
   const notifier = useNotifier()
+  const canClearAll =
+    meta.status === 'AUTHENTICATED' && meta.selfMeta.rightsSet.has('CLEAR_ALL')
   const [importModeIsActive, setImportModeIsActive] = React.useState(false)
   const [exportModeIsActive, setExportModeIsActive] = React.useState(false)
   const [technicalReport, setTechnicalReport] = React.useState<{
@@ -103,6 +114,27 @@ export function DataTransferScreen() {
     React.useState(false)
   const [logsMenuAnchorEl, setLogsMenuAnchorEl] =
     React.useState<null | HTMLElement>(null)
+  const [clearAllDialogIsActive, setClearAllDialogIsActive] =
+    React.useState(false)
+  const [clearAllPass, setClearAllPass] = React.useState('')
+  const [clearAllPassConfirm, setClearAllPassConfirm] = React.useState('')
+  const [clearAllSubmitAttempted, setClearAllSubmitAttempted] =
+    React.useState(false)
+  const [clearAllPassError, setClearAllPassError] = React.useState<
+    string | null
+  >(null)
+  const [clearAllIsSubmitting, setClearAllIsSubmitting] = React.useState(false)
+
+  const clearAllPassIsEmpty = clearAllPass.length === 0
+  const clearAllPassConfirmIsEmpty = clearAllPassConfirm.length === 0
+  const clearAllPassesAreDifferent =
+    clearAllPassIsEmpty === false &&
+    clearAllPassConfirmIsEmpty === false &&
+    clearAllPass !== clearAllPassConfirm
+  const clearAllCanBeSubmitted =
+    clearAllPassIsEmpty === false &&
+    clearAllPassConfirmIsEmpty === false &&
+    clearAllPassesAreDifferent === false
 
   const breadcrumbsItems: ProjBreadcrumbsProps['items'] = React.useMemo(
     () => [
@@ -255,6 +287,51 @@ export function DataTransferScreen() {
     [handleLogsMenuClose, notifier]
   )
 
+  const clearClearAllDialog = React.useCallback(() => {
+    setClearAllPass('')
+    setClearAllPassConfirm('')
+    setClearAllSubmitAttempted(false)
+    setClearAllPassError(null)
+  }, [])
+
+  const closeClearAllDialog = React.useCallback(() => {
+    if (clearAllIsSubmitting) {
+      return
+    }
+    setClearAllDialogIsActive(false)
+    clearClearAllDialog()
+  }, [clearAllIsSubmitting, clearClearAllDialog])
+
+  const handleClearAllConfirm = React.useCallback(async () => {
+    setClearAllSubmitAttempted(true)
+
+    if (clearAllCanBeSubmitted === false) {
+      return
+    }
+
+    setClearAllIsSubmitting(true)
+    try {
+      await serverConnector.clearAll({ pass: clearAllPass })
+      setClearAllDialogIsActive(false)
+      clearClearAllDialog()
+      void navigate('/setup')
+    } catch (error) {
+      if (error instanceof ServerConnectorBadRequestError) {
+        setClearAllPassError('неверный пароль')
+        return
+      }
+      notifier.showError(error, 'не удалось удалить все данные системы')
+    } finally {
+      setClearAllIsSubmitting(false)
+    }
+  }, [
+    clearAllCanBeSubmitted,
+    clearAllPass,
+    clearClearAllDialog,
+    navigate,
+    notifier
+  ])
+
   return (
     <>
       <LayoutScreenContainer
@@ -320,6 +397,17 @@ export function DataTransferScreen() {
               <ProjButton variant="contained" onClick={handleLogsMenuOpen}>
                 скачать логи системы
               </ProjButton>
+              {canClearAll ? (
+                <ProjButton
+                  variant="outlined"
+                  color="error"
+                  onClick={() => {
+                    setClearAllDialogIsActive(true)
+                  }}
+                >
+                  удалить все данные системы
+                </ProjButton>
+              ) : null}
             </Stack>
           </Paper>
           <Paper
@@ -489,6 +577,95 @@ export function DataTransferScreen() {
         onSuccessArchiveHistory={cancelArchiveHistoryForm}
         onCancelClick={cancelArchiveHistoryForm}
       />
+      <Dialog
+        open={clearAllDialogIsActive}
+        onClose={closeClearAllDialog}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle>
+          <Typography
+            color="error"
+            sx={{ fontSize: '1.2rem', fontWeight: 700, textAlign: 'center' }}
+          >
+            Удаление всех данных системы
+          </Typography>
+        </DialogTitle>
+        <DialogContent dividers>
+          <Stack spacing={2}>
+            <Alert severity="error">
+              Вы точно уверены, что хотите удалить все данные системы?
+            </Alert>
+            <Typography color="textSecondary" sx={{ textAlign: 'center' }}>
+              После удаления система будет сброшена, текущие сессии завершатся,
+              а данные, файлы и логи будут удалены.
+            </Typography>
+            <FormPassField
+              required
+              name="clearAllPass"
+              label="пароль"
+              value={clearAllPass}
+              helperText={
+                clearAllPassError ??
+                (clearAllSubmitAttempted && clearAllPassIsEmpty
+                  ? 'укажите пароль'
+                  : ' ')
+              }
+              error={
+                clearAllPassError !== null ||
+                (clearAllSubmitAttempted && clearAllPassIsEmpty)
+              }
+              disabled={clearAllIsSubmitting}
+              onChange={(event) => {
+                setClearAllPassError(null)
+                setClearAllPass(event.target.value)
+              }}
+            />
+            <FormPassField
+              required
+              name="clearAllPassConfirm"
+              label="подтверждение пароля"
+              value={clearAllPassConfirm}
+              helperText={
+                clearAllSubmitAttempted && clearAllPassConfirmIsEmpty
+                  ? 'подтвердите пароль'
+                  : clearAllSubmitAttempted && clearAllPassesAreDifferent
+                    ? 'пароли не совпадают'
+                    : ' '
+              }
+              error={
+                clearAllSubmitAttempted &&
+                (clearAllPassConfirmIsEmpty || clearAllPassesAreDifferent)
+              }
+              disabled={clearAllIsSubmitting}
+              onChange={(event) => {
+                setClearAllPassConfirm(event.target.value)
+              }}
+            />
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ justifyContent: 'center', p: 2 }}>
+          <ProjButton
+            variant="contained"
+            loading={clearAllIsSubmitting}
+            disabled={clearAllIsSubmitting}
+            onClick={closeClearAllDialog}
+          >
+            отменить
+          </ProjButton>
+          <ProjButton
+            variant="contained"
+            color="error"
+            loading={clearAllIsSubmitting}
+            disabled={clearAllIsSubmitting}
+            onClick={() => {
+              void handleClearAllConfirm()
+            }}
+          >
+            удалить все данные
+          </ProjButton>
+        </DialogActions>
+      </Dialog>
       <Menu
         anchorEl={logsMenuAnchorEl}
         open={logsMenuIsOpen}
