@@ -18,6 +18,7 @@ export interface ColumnViewerLinksBlockProps {
     secondaryText?: string
     href?: string
     onClick?: () => void
+    isActive?: boolean
     disableCapitalize?: boolean
   }[]
 }
@@ -30,6 +31,32 @@ export function ColumnViewerLinksBlock(props: ColumnViewerLinksBlockProps) {
       event.stopPropagation()
     },
     []
+  )
+
+  const getButtonSx = React.useCallback(
+    (item: ColumnViewerLinksBlockProps['items'][number]) => {
+      const hoverBg =
+        theme.palette.mode === 'light'
+          ? 'rgb(239, 244, 251)'
+          : 'rgb(40, 47, 54)'
+      const activeBg =
+        theme.palette.mode === 'light'
+          ? 'rgb(230, 238, 248)'
+          : 'rgb(48, 56, 64)'
+
+      return {
+        justifyContent: 'flex-start',
+        textTransform: 'none',
+        px: 1,
+        py: 0.75,
+        minWidth: 0,
+        bgcolor: item.isActive ? activeBg : undefined,
+        ':hover': {
+          bgcolor: item.isActive ? activeBg : hoverBg
+        }
+      }
+    },
+    [theme]
   )
 
   return (
@@ -49,19 +76,7 @@ export function ColumnViewerLinksBlock(props: ColumnViewerLinksBlockProps) {
                 handleClick(event)
                 item.onClick?.()
               }}
-              sx={{
-                justifyContent: 'flex-start',
-                textTransform: 'none',
-                px: 1,
-                py: 0.75,
-                minWidth: 0,
-                ':hover': {
-                  bgcolor:
-                    theme.palette.mode === 'light'
-                      ? 'rgb(239, 244, 251)'
-                      : 'rgb(40, 47, 54)'
-                }
-              }}
+              sx={getButtonSx(item)}
             >
               <Stack alignItems="flex-start" spacing={0.25} width="100%">
                 <Typography
@@ -90,19 +105,7 @@ export function ColumnViewerLinksBlock(props: ColumnViewerLinksBlockProps) {
                 handleClick(event)
                 item.onClick?.()
               }}
-              sx={{
-                justifyContent: 'flex-start',
-                textTransform: 'none',
-                px: 1,
-                py: 0.75,
-                minWidth: 0,
-                ':hover': {
-                  bgcolor:
-                    theme.palette.mode === 'light'
-                      ? 'rgb(239, 244, 251)'
-                      : 'rgb(40, 47, 54)'
-                }
-              }}
+              sx={getButtonSx(item)}
             >
               <Stack alignItems="flex-start" spacing={0.25} width="100%">
                 <Typography

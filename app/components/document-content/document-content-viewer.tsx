@@ -96,6 +96,7 @@ export interface DocumentContentViewerProps {
     areaId: number
     seq: number
   } | null
+  onActiveAreaChange?: (areaId: number | null) => void
   browseAreaRequest?: {
     areaId: number
     seq: number
@@ -106,6 +107,7 @@ export function DocumentContentViewer({
   document,
   onFragmentPagesChange,
   previewAreaRequest,
+  onActiveAreaChange,
   browseAreaRequest
 }: DocumentContentViewerProps) {
   const fullscreenContainerRef = React.useRef<HTMLDivElement | null>(null)
@@ -269,6 +271,14 @@ export function DocumentContentViewer({
     return areas.find((a) => a.id === editingAreaId)?.innerCode ?? ''
   }, [areas, editingAreaId])
 
+  const activeAreaId = React.useMemo(
+    () =>
+      mode.type === 'BROWSE_AREA' || mode.type === 'UPDATE_AREA_RECTANGLE'
+        ? mode.areaId
+        : null,
+    [mode]
+  )
+
   const isCreateAreaNameEmpty =
     editingAreaId === null && newAreaName.trim().length === 0
 
@@ -324,6 +334,10 @@ export function DocumentContentViewer({
     setIsBrowseDialogOpen(false)
     setMode({ type: 'BROWSE_AREA', areaId: browseAreaRequest.areaId })
   }, [areas, browseAreaRequest])
+
+  React.useEffect(() => {
+    onActiveAreaChange?.(activeAreaId)
+  }, [activeAreaId, onActiveAreaChange])
 
   const openCreateAreaDialog = React.useCallback(
     (rectangle: Rectangle, configFile?: File) => {

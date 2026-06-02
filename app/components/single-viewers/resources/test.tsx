@@ -666,7 +666,7 @@ export function TestViewer({
                       }
                       href={
                         selectedFragment.documentId !== null
-                          ? `/documents/${selectedFragment.documentId}`
+                          ? `/documents/${selectedFragment.documentId}?fragmentId=${selectedFragment.id}`
                           : undefined
                       }
                     />

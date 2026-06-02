@@ -140,6 +140,9 @@ export function DocumentViewer({
     areaId: number
     seq: number
   } | null>(null)
+  const [activeFragmentId, setActiveFragmentId] = React.useState<number | null>(
+    null
+  )
   const browseAreaRequestSeqRef = React.useRef(0)
   const previewAreaRequestSeqRef = React.useRef(0)
   const getConfigBlob = React.useCallback(async () => {
@@ -156,6 +159,7 @@ export function DocumentViewer({
 
   const requestBrowseArea = React.useCallback((areaId: number) => {
     browseAreaRequestSeqRef.current += 1
+    setActiveFragmentId(areaId)
     setBrowseAreaRequest({
       areaId,
       seq: browseAreaRequestSeqRef.current
@@ -234,6 +238,7 @@ export function DocumentViewer({
               document={document}
               onFragmentPagesChange={setFragmentPagesForId}
               previewAreaRequest={previewAreaRequest}
+              onActiveAreaChange={setActiveFragmentId}
               browseAreaRequest={browseAreaRequest}
             />
           ) : (
@@ -343,6 +348,7 @@ export function DocumentViewer({
                         : undefined
                     })(),
                     onClick: () => requestBrowseArea(fragment.id),
+                    isActive: activeFragmentId === fragment.id,
                     disableCapitalize: true
                   }))}
                 />
