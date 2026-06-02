@@ -4,6 +4,7 @@ import type { TestSecondary, SubgroupSecondary, GroupPrimary } from '~/types'
 import { useNavigate } from 'react-router'
 // React
 import * as React from 'react'
+import { startTransition } from 'react'
 // Material UI
 import { alpha, styled } from '@mui/material/styles'
 import { useRichTreeViewApiRef } from '@mui/x-tree-view/hooks'
@@ -57,8 +58,6 @@ const RichTreeViewStyled = styled(RichTreeView)(({ theme }) => [
     flex: 1,
     overflow: 'auto',
     padding: '10px',
-    paddingTop: '8px',
-    paddingBottom: '10px',
 
     '& .MuiTreeItem-groupTransition': {
       transform: 'translateZ(0)',
@@ -66,8 +65,8 @@ const RichTreeViewStyled = styled(RichTreeView)(({ theme }) => [
     },
 
     '& .MuiTreeItem-iconContainer:not(:empty)': {
-      width: 24,
-      height: 24,
+      width: 20,
+      height: 20,
       display: 'inline-flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -76,7 +75,7 @@ const RichTreeViewStyled = styled(RichTreeView)(({ theme }) => [
       backgroundColor: alpha(theme.palette.action.hover, 0.15),
       transition: theme.transitions.create(['background-color', 'color']),
       '& svg': {
-        fontSize: '1.1rem',
+        fontSize: '0.9rem',
         color: theme.palette.text.secondary
       },
       '&:hover': {
@@ -89,16 +88,15 @@ const RichTreeViewStyled = styled(RichTreeView)(({ theme }) => [
 
     '& > .MuiTreeItem-root > .MuiTreeItem-content': {
       position: 'sticky',
-      top: 3,
+      top: 0,
       zIndex: 4,
       boxShadow: `0 1px 2px ${alpha(theme.palette.common.black, 0.05)}`,
-      marginBottom: '1px',
-      backgroundColor: theme.palette.mode === 'light' ? '#e8eaf6' : '#2c3e50',
+      backgroundColor: theme.palette.mode === 'light' ? '#f3e5f5' : '#3e2723',
       '&[data-focused]': {
-        backgroundColor: theme.palette.mode === 'light' ? '#c5cae9' : '#1a237e'
+        backgroundColor: theme.palette.mode === 'light' ? '#ce93d8' : '#4a148c'
       },
       '&.Mui-selected': {
-        backgroundColor: theme.palette.mode === 'light' ? '#9fa8da' : '#283593'
+        backgroundColor: theme.palette.mode === 'light' ? '#ab47bc' : '#6a1b9a'
       }
     },
 
@@ -107,12 +105,12 @@ const RichTreeViewStyled = styled(RichTreeView)(({ theme }) => [
       top: '37.5px',
       zIndex: 3,
       boxShadow: `0 0.5px 1px ${alpha(theme.palette.common.black, 0.03)}`,
-      backgroundColor: theme.palette.mode === 'light' ? '#f3e5f5' : '#3e2723',
+      backgroundColor: theme.palette.mode === 'light' ? '#e8eaf6' : '#2c3e50',
       '&[data-focused]': {
-        backgroundColor: theme.palette.mode === 'light' ? '#ce93d8' : '#4a148c'
+        backgroundColor: theme.palette.mode === 'light' ? '#c5cae9' : '#1a237e'
       },
       '&.Mui-selected': {
-        backgroundColor: theme.palette.mode === 'light' ? '#ab47bc' : '#6a1b9a'
+        backgroundColor: theme.palette.mode === 'light' ? '#9fa8da' : '#283593'
       }
     },
 
@@ -180,6 +178,8 @@ const STORAGE_KEYS = {
   EXPANDED_ITEMS: 'tests-hierarchy-expanded-items'
 }
 
+const EMPTY_ARRAY: string[] = []
+
 const getAllItemIds = (
   items: TreeViewDefaultItemModelProperties[]
 ): string[] => {
@@ -225,6 +225,54 @@ const filterTree = (
     .filter((item): item is TreeViewDefaultItemModelProperties => item !== null)
 }
 
+const CustomTreeItem = styled((props: any) => {
+  const { itemId, ...other } = props
+  return (
+    <TreeItem
+      {...other}
+      itemId={itemId}
+      slotProps={{
+        ...other.slotProps,
+        root: {
+          ...other.slotProps?.root,
+          'data-id': itemId
+        },
+        iconContainer: {
+          onMouseDown: (e: React.MouseEvent) => {
+            e.stopPropagation()
+            e.preventDefault()
+          },
+          ...other.slotProps?.iconContainer
+        }
+      }}
+    />
+  )
+})(({ theme }) => ({
+  color: theme.palette.grey[200],
+  [`& .${treeItemClasses.content}`]: {
+    borderRadius: theme.spacing(0.5),
+    borderBottom: `0.9px solid ${
+      theme.palette.mode === 'light'
+        ? theme.palette.grey[200]
+        : theme.palette.grey[800]
+    }`,
+    padding: theme.spacing(0.9, 1.25),
+    margin: theme.spacing(0.5, 0),
+    [`& .${treeItemClasses.label}`]: {
+      fontSize: '0.8rem',
+      fontWeight: 500
+    }
+  },
+  [`& .${treeItemClasses.groupTransition}`]: {
+    marginLeft: 15,
+    paddingLeft: 10,
+    borderLeft: `1px dashed ${alpha(theme.palette.text.primary, 0.4)}`
+  },
+  ...theme.applyStyles('light', {
+    color: theme.palette.grey[800]
+  })
+}))
+
 export function TestsHierarchyTree({
   tests,
   subgroups,
@@ -235,6 +283,7 @@ export function TestsHierarchyTree({
 }: TestsHierarchyTreeProps) {
   const navigate = useNavigate()
   const apiRef = useRichTreeViewApiRef()
+  const inputRef = React.useRef<HTMLInputElement>(null)
 
   const [searchText, setSearchText] = React.useState(() => {
     try {
@@ -244,13 +293,21 @@ export function TestsHierarchyTree({
     }
   })
 
+  const [debouncedSearchText, setDebouncedSearchText] =
+    React.useState(searchText)
+
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchText(searchText)
+    }, 150)
+    return () => clearTimeout(timer)
+  }, [searchText])
+
   const [expandedItems, setExpandedItems] = React.useState<string[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEYS.EXPANDED_ITEMS)
       if (saved) {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const parsed = JSON.parse(saved)
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
         return Array.isArray(parsed) ? parsed : []
       }
     } catch {
@@ -386,12 +443,6 @@ export function TestsHierarchyTree({
     [selectedTestId, selectedSubgroupId, selectedGroupId]
   )
 
-  React.useEffect(() => {
-    if (selectedItem !== undefined) {
-      setTimeout(() => apiRef.current?.focusItem(null, selectedItem), 0)
-    }
-  }, [selectedItem, apiRef])
-
   const rawItems: TreeViewDefaultItemModelProperties[] = React.useMemo(
     () => [
       ...(orphanTests.length > 0 || orphanSubgroups.length > 0
@@ -462,27 +513,128 @@ export function TestsHierarchyTree({
   )
 
   const filteredItems = React.useMemo(
-    () => filterTree(rawItems, searchText),
-    [rawItems, searchText]
+    () => filterTree(rawItems, debouncedSearchText),
+    [rawItems, debouncedSearchText]
   )
   const items = React.useMemo(
-    () => (searchText.trim() ? filteredItems : rawItems),
-    [searchText, filteredItems, rawItems]
+    () => (debouncedSearchText.trim() ? filteredItems : rawItems),
+    [debouncedSearchText, filteredItems, rawItems]
   )
+
+  const parentMap = React.useMemo(() => {
+    const map = new Map<string, string>()
+    const traverse = (
+      items: TreeViewDefaultItemModelProperties[],
+      parentId?: string
+    ) => {
+      for (const item of items) {
+        if (parentId) map.set(item.id, parentId)
+        if (item.children) traverse(item.children, item.id)
+      }
+    }
+    traverse(items)
+    return map
+  }, [items])
+
+  React.useEffect(() => {
+    if (
+      !selectedItem ||
+      selectedItem === 'default-group' ||
+      selectedItem === 'default-subgroup'
+    )
+      return
+
+    if (inputRef.current && document.activeElement === inputRef.current) return
+    if (debouncedSearchText.trim()) return
+
+    const parents: string[] = []
+    let current = selectedItem
+    while (parentMap.has(current)) {
+      const p = parentMap.get(current)!
+      parents.push(p)
+      current = p
+    }
+
+    if (parents.length) {
+      startTransition(() => {
+        setExpandedItems((prev) => {
+          const newSet = new Set(prev)
+          for (const p of parents) {
+            newSet.add(p)
+          }
+          return Array.from(newSet)
+        })
+      })
+    }
+
+    let attempts = 0
+    const maxAttempts = 20
+    const intervalMs = 100
+    let intervalId: NodeJS.Timeout | null = null
+
+    const scrollIfNeeded = () => {
+      const targetElement = document.querySelector(
+        `.MuiTreeItem-root[data-id="${selectedItem}"]`
+      ) as HTMLElement
+      if (!targetElement) return false
+
+      const scrollContainer = targetElement.closest(
+        '.MuiRichTreeView-root'
+      ) as HTMLElement
+      if (scrollContainer) {
+        const containerRect = scrollContainer.getBoundingClientRect()
+        const targetRect = targetElement.getBoundingClientRect()
+        const isVisible =
+          targetRect.top >= containerRect.top &&
+          targetRect.bottom <= containerRect.bottom
+        if (!isVisible) {
+          targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        }
+      } else {
+        targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }
+
+      setTimeout(() => {
+        apiRef.current?.focusItem(null, selectedItem)
+      }, 100)
+      return true
+    }
+
+    const handler = () => {
+      if (scrollIfNeeded()) {
+        if (intervalId) clearInterval(intervalId)
+      } else if (attempts >= maxAttempts) {
+        if (intervalId) clearInterval(intervalId)
+      }
+      attempts++
+    }
+
+    intervalId = setInterval(handler, intervalMs)
+    const delay = parents.length ? 150 : 50
+    setTimeout(() => {
+      if (scrollIfNeeded() && intervalId) clearInterval(intervalId)
+    }, delay)
+
+    return () => {
+      if (intervalId) clearInterval(intervalId)
+    }
+  }, [selectedItem, parentMap, apiRef, debouncedSearchText])
 
   React.useEffect(() => {
     if (!isInitialized && items.length > 0) {
-      if (expandedItems.length === 0 && !searchText.trim()) {
+      if (expandedItems.length === 0 && !debouncedSearchText.trim()) {
         setExpandedItems(defaultExpandedItems)
-      } else if (searchText.trim()) {
-        setExpandedItems(getAllItemIds(items))
+      } else if (debouncedSearchText.trim()) {
+        startTransition(() => {
+          setExpandedItems(getAllItemIds(items))
+        })
       }
       setIsInitialized(true)
     }
   }, [
     items,
     defaultExpandedItems,
-    searchText,
+    debouncedSearchText,
     expandedItems.length,
     isInitialized
   ])
@@ -509,10 +661,12 @@ export function TestsHierarchyTree({
   }, [expandedItems, isInitialized])
 
   React.useEffect(() => {
-    if (isInitialized && searchText.trim()) {
-      setExpandedItems(getAllItemIds(items))
+    if (isInitialized && debouncedSearchText.trim()) {
+      startTransition(() => {
+        setExpandedItems(getAllItemIds(items))
+      })
     }
-  }, [searchText, items, isInitialized])
+  }, [debouncedSearchText, items, isInitialized])
 
   const allItemIds = React.useMemo(() => getAllItemIds(items), [items])
 
@@ -528,23 +682,35 @@ export function TestsHierarchyTree({
 
   const handleExpandAll = () => {
     disableStickyTemporarily()
-    setExpandedItems(allItemIds)
+    startTransition(() => {
+      setExpandedItems(allItemIds)
+    })
   }
 
   const handleCollapseAll = () => {
     disableStickyTemporarily()
-    setExpandedItems([])
+    startTransition(() => {
+      setExpandedItems(EMPTY_ARRAY)
+    })
   }
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) =>
     setSearchText(e.target.value)
+
   const handleClearSearch = () => {
     setSearchText('')
-    if (!searchText.trim()) setExpandedItems(defaultExpandedItems)
+    setDebouncedSearchText('')
+    startTransition(() => {
+      setExpandedItems(defaultExpandedItems)
+    })
+    inputRef.current?.focus()
   }
 
   const handleSelectedItemsChange = React.useCallback(
     (event: React.SyntheticEvent | null, itemIds: string | string[] | null) => {
+      const target = event?.nativeEvent?.target as HTMLElement
+      if (target?.closest?.('.MuiTreeItem-iconContainer')) return
+
       const id =
         itemIds === null
           ? null
@@ -577,7 +743,9 @@ export function TestsHierarchyTree({
     itemIds: string[]
   ) => {
     disableStickyTemporarily()
-    setExpandedItems(itemIds)
+    startTransition(() => {
+      setExpandedItems(itemIds)
+    })
   }
 
   return (
@@ -607,6 +775,7 @@ export function TestsHierarchyTree({
             </Tooltip>
           </ButtonGroup>
           <SearchField
+            inputRef={inputRef}
             size="small"
             placeholder="Поиск..."
             value={searchText}
@@ -644,29 +813,3 @@ export function TestsHierarchyTree({
     </Stack>
   )
 }
-
-const CustomTreeItem = styled(TreeItem)(({ theme }) => ({
-  color: theme.palette.grey[200],
-  [`& .${treeItemClasses.content}`]: {
-    borderRadius: theme.spacing(0.5),
-    borderBottom: `0.9px solid ${
-      theme.palette.mode === 'light'
-        ? theme.palette.grey[200]
-        : theme.palette.grey[800]
-    }`,
-    padding: theme.spacing(0.9, 1.25),
-    margin: theme.spacing(0.5, 0),
-    [`& .${treeItemClasses.label}`]: {
-      fontSize: '0.8rem',
-      fontWeight: 500
-    }
-  },
-  [`& .${treeItemClasses.groupTransition}`]: {
-    marginLeft: 15,
-    paddingLeft: 10,
-    borderLeft: `1px dashed ${alpha(theme.palette.text.primary, 0.4)}`
-  },
-  ...theme.applyStyles('light', {
-    color: theme.palette.grey[800]
-  })
-}))

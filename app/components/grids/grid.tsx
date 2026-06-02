@@ -224,36 +224,8 @@ export function Grid(props: GridProps) {
     }
   }, [apiRef, initialState, props.selectedRowId])
 
-  const isRowVisible = React.useCallback(
-    (rowId: number): boolean => {
-      if (!apiRef.current) return false
-
-      const rowElement = apiRef.current.getRowElement(rowId)
-      if (!rowElement) return false
-
-      const virtualScroller =
-        apiRef.current.rootElementRef?.current?.querySelector(
-          '.MuiDataGrid-virtualScroller'
-        )
-      if (!virtualScroller) return false
-
-      const rowRect = rowElement.getBoundingClientRect()
-      const containerRect = virtualScroller.getBoundingClientRect()
-      return (
-        rowRect.top >= containerRect.top &&
-        rowRect.bottom <= containerRect.bottom
-      )
-    },
-    [apiRef]
-  )
-
   const navigateToSelectedRow = React.useCallback(() => {
     if (!apiRef.current || props.selectedRowId === undefined) return
-
-    if (isRowVisible(props.selectedRowId)) {
-      hasNavigatedToSelectedRow.current = true
-      return
-    }
 
     const rowIndex = props.rows.findIndex(
       (row) => row.id === props.selectedRowId
@@ -264,30 +236,46 @@ export function Grid(props: GridProps) {
       apiRef.current.state.pagination.paginationModel.pageSize ??
       DEFAULT_PAGE_SIZE
     const targetPage = Math.floor(rowIndex / pageSize)
-    const rowIndexOnPage = rowIndex % pageSize
     const currentPage = apiRef.current.state.pagination.paginationModel.page
-    const needPageChange = currentPage !== targetPage
 
     const performScroll = (attempt = 0) => {
       if (!apiRef.current) return
-      const rowElement = apiRef.current.getRowElement(props.selectedRowId!)
-      if (rowElement || attempt >= 10) {
-        apiRef.current.scrollToIndexes({
-          rowIndex: rowIndexOnPage
-        })
-        hasNavigatedToSelectedRow.current = true
-      } else {
-        setTimeout(() => performScroll(attempt + 1), 15)
-      }
+      apiRef.current.scrollToIndexes({ rowIndex: rowIndex })
+      setTimeout(() => {
+        const scroller = apiRef.current?.rootElementRef?.current?.querySelector(
+          '.MuiDataGrid-virtualScroller'
+        )
+        if (scroller) {
+          const rowElement = apiRef.current?.getRowElement(props.selectedRowId!)
+          if (rowElement) {
+            const containerRect = scroller.getBoundingClientRect()
+            const rowRect = rowElement.getBoundingClientRect()
+            if (
+              rowRect.top < containerRect.top ||
+              rowRect.bottom > containerRect.bottom
+            ) {
+              if (attempt < 5) setTimeout(() => performScroll(attempt + 1), 50)
+            } else {
+              hasNavigatedToSelectedRow.current = true
+            }
+          } else {
+            if (attempt < 5) setTimeout(() => performScroll(attempt + 1), 50)
+            else hasNavigatedToSelectedRow.current = true
+          }
+        } else {
+          if (attempt < 5) setTimeout(() => performScroll(attempt + 1), 50)
+          else hasNavigatedToSelectedRow.current = true
+        }
+      }, 50)
     }
 
-    if (needPageChange) {
+    if (currentPage !== targetPage) {
       apiRef.current.setPage(targetPage)
-      setTimeout(() => performScroll(), 20)
+      setTimeout(() => performScroll(), 50)
     } else {
       performScroll()
     }
-  }, [apiRef, props.rows, props.selectedRowId, isRowVisible])
+  }, [apiRef, props.rows, props.selectedRowId])
 
   React.useEffect(() => {
     if (props.selectedRowId === undefined) {
@@ -370,7 +358,8 @@ export function Grid(props: GridProps) {
       const stateFromLocalStorage = JSON.parse(
         stateFromLocalStorageUnparsed
       ) as ExtendedGridState
-      let pageSize = stateFromLocalStorage.pagination?.paginationModel?.pageSize
+      const pageSize =
+        stateFromLocalStorage.pagination?.paginationModel?.pageSize
       if (pageSize !== undefined && !PAGE_SIZE_OPTIONS.includes(pageSize)) {
         if (!stateFromLocalStorage.pagination)
           stateFromLocalStorage.pagination = {}
@@ -448,6 +437,7 @@ export function Grid(props: GridProps) {
   const handleRowClick = React.useCallback(
     (event: GridRowParams<any>) => {
       if (props.navigationMode) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access
         props.navigationModeOnRowClick?.(event.row.id)
       }
     },
@@ -511,7 +501,14 @@ export function Grid(props: GridProps) {
         }
       }
     }),
-    [deleteModeIsActive, rowSelectionModel, dialogs, props.deleteMany]
+    [
+      deleteModeIsActive,
+      setDeleteModeIsActive,
+      rowSelectionModel,
+      setRowSelectionModel,
+      dialogs,
+      props.deleteMany
+    ]
   )
 
   if (initialState === undefined) {
