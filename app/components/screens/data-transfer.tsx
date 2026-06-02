@@ -318,7 +318,7 @@ export function DataTransferScreen() {
                 удалить архивированную историю
               </ProjButton>
               <ProjButton variant="contained" onClick={handleLogsMenuOpen}>
-                скачивание логов системы
+                скачать логи системы
               </ProjButton>
             </Stack>
           </Paper>
