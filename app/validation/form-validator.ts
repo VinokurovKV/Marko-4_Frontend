@@ -13,6 +13,7 @@ type FormValidatorFieldTransform =
 
 type FormValidatorOneFieldRule =
   | 'ALLOW_UNDEFINED'
+  | 'ASCII'
   | 'AUTOCOMPLETE_FREE_ITEMS'
   | 'BIG_CODE'
   | 'BIG_NAME'
@@ -25,6 +26,8 @@ type FormValidatorOneFieldRule =
   | 'JSON_ZIP_EXT'
   | 'LOGIN'
   | 'NAME'
+  | 'NO_BACKSLASH'
+  | 'NO_WHITESPACE'
   | 'NOT_EMPTY_STR'
   | 'NOT_UNDEFINED'
   | 'PASS'
@@ -111,6 +114,9 @@ export class FormValidator<Data extends FormData> {
         case 'ALLOW_UNDEFINED':
           // props.push('необязательное поле')
           break
+        case 'ASCII':
+          props.push('ASCII-строка')
+          break
         case 'BIG_CODE':
           ;(() => {
             const { minLength, maxLength } = restrictionConfig.common.bigCode
@@ -183,6 +189,12 @@ export class FormValidator<Data extends FormData> {
             const { minLength, maxLength } = restrictionConfig.common.name
             props.push(`${minLength}-${maxLength} символов`)
           })()
+          break
+        case 'NO_BACKSLASH':
+          props.push(`без символа '\\'`)
+          break
+        case 'NO_WHITESPACE':
+          props.push('без пробелов')
           break
         case 'NOT_EMPTY_STR':
           // props.push('обязательное поле')
@@ -513,6 +525,19 @@ export class FormValidator<Data extends FormData> {
             interrupt = true
           }
           break
+        case 'ASCII':
+          ;(() => {
+            const asciiErrors = this.getStringErrors(
+              val,
+              undefined,
+              undefined,
+              true
+            )
+            if (asciiErrors !== null) {
+              errors.push(...asciiErrors)
+            }
+          })()
+          break
         case 'BIG_CODE':
           ;(() => {
             const codeErrors = this.getStringErrors(
@@ -640,6 +665,24 @@ export class FormValidator<Data extends FormData> {
             )
             if (nameErrors !== null) {
               errors.push(...nameErrors)
+            }
+          })()
+          break
+        case 'NO_BACKSLASH':
+          ;(() => {
+            if (typeof val !== 'string') {
+              errors.push('значение должно быть строкой')
+            } else if ((val as string).includes('\\')) {
+              errors.push(`обратный слеш не допускается`)
+            }
+          })()
+          break
+        case 'NO_WHITESPACE':
+          ;(() => {
+            if (typeof val !== 'string') {
+              errors.push('значение должно быть строкой')
+            } else if (this.withWhitespace(val)) {
+              errors.push(`пробелы не допускаются`)
             }
           })()
           break

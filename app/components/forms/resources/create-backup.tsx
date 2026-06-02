@@ -11,6 +11,9 @@ import { useForm, FormBlock, FormDialog, FormTextField } from '../common'
 // React
 import * as React from 'react'
 
+const CREATE_BACKUP_FORM_PROPS_JOINED =
+  createBackupFormValidator.getPromptsJoined()
+
 export interface CreateBackupFormDialogProps {
   createModeIsActive: boolean
   setCreateModeIsActive: React.Dispatch<React.SetStateAction<boolean>>
@@ -36,7 +39,7 @@ export function CreateBackupFormDialog(props: CreateBackupFormDialogProps) {
     [props.onSuccessCreateBackup, notifier]
   )
 
-  const { formInternal, data, handleTextFieldChange } = useForm<
+  const { formInternal, data, errors, handleTextFieldChange } = useForm<
     CreateBackupFormData,
     BackupSuccessResultDto
   >({
@@ -61,7 +64,12 @@ export function CreateBackupFormDialog(props: CreateBackupFormDialogProps) {
           name="backupName"
           label="название (необязательно)"
           value={data.backupName ?? ''}
-          helperText="если оставить пустым, имя будет сгенерировано автоматически"
+          helperText={
+            errors?.backupName ??
+            CREATE_BACKUP_FORM_PROPS_JOINED.backupName ??
+            'если оставить пустым, имя будет сгенерировано автоматически'
+          }
+          error={!!errors?.backupName}
           onChange={handleTextFieldChange}
         />
       </FormBlock>

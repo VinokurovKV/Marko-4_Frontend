@@ -4,6 +4,7 @@ import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
 import { useChangeDetector } from '~/hooks/change-detector'
 import { useFragmentsFiltered } from '~/hooks/resources'
+import { FormValidator } from '~/validation/form-validator'
 import {
   PdfViewer,
   type PdfViewerMode,
@@ -39,6 +40,14 @@ import Box from '@mui/material/Box'
 import TextField from '@mui/material/TextField'
 
 const DEFAULT_MODE: PdfViewerMode = { type: 'DEFAULT' }
+const areaInnerCodeValidator = new FormValidator<{ innerCode?: string }>({
+  oneField: {
+    innerCode: {
+      transforms: ['TRIM', 'EMPTY_STR_TO_UNDEFINED'],
+      rules: ['ALLOW_UNDEFINED', 'CODE']
+    }
+  }
+})
 
 type ViewerArea = PdfArea & {
   innerCode: string
@@ -266,6 +275,14 @@ export function DocumentContentViewer({
   const isRenameAreaNameEmpty =
     editingAreaId !== null && newAreaName.trim().length === 0
 
+  const areaInnerCodeError = React.useMemo(
+    () =>
+      areaInnerCodeValidator.getErrorsJoined({
+        innerCode: newAreaName
+      })?.innerCode,
+    [newAreaName]
+  )
+
   const showCreateAreaNameEmpty = !isAreaDialogClosing && isCreateAreaNameEmpty
 
   const showRenameAreaNameEmpty = !isAreaDialogClosing && isRenameAreaNameEmpty
@@ -353,6 +370,10 @@ export function DocumentContentViewer({
   }, [creatingAreaDraft])
 
   const confirmAreaName = React.useCallback(() => {
+    if (areaInnerCodeError !== undefined) {
+      return
+    }
+
     const trimmedName = newAreaName.trim()
 
     void (async () => {
@@ -480,6 +501,7 @@ export function DocumentContentViewer({
   }, [
     editingAreaId,
     newAreaName,
+    areaInnerCodeError,
     previousAreaInnerCodeForDialog,
     creatingAreaDraft,
     notifier,
@@ -884,24 +906,29 @@ export function DocumentContentViewer({
               value={newAreaName}
               onChange={(e) => setNewAreaName(e.target.value)}
               helperText={
-                isCreateAreaNameEmpty
+                areaInnerCodeError ??
+                (isCreateAreaNameEmpty
                   ? `Код пусто, будет использовано значение "${areaIdForDialogPreview}"`
                   : isRenameAreaNameEmpty
                     ? `Код пусто, будет возвращено предыдущее: "${previousAreaInnerCodeForDialog}"`
-                    : ' '
+                    : ' ')
               }
+              error={areaInnerCodeError !== undefined}
               FormHelperTextProps={{
-                sx: isCreateAreaNameEmpty
-                  ? {
-                      color: orange[400],
-                      fontWeight: 500
-                    }
-                  : isRenameAreaNameEmpty
-                    ? {
-                        color: red[400],
-                        fontWeight: 500
-                      }
-                    : undefined
+                sx:
+                  areaInnerCodeError !== undefined
+                    ? undefined
+                    : isCreateAreaNameEmpty
+                      ? {
+                          color: orange[400],
+                          fontWeight: 500
+                        }
+                      : isRenameAreaNameEmpty
+                        ? {
+                            color: red[400],
+                            fontWeight: 500
+                          }
+                        : undefined
               }}
               sx={
                 showCreateAreaNameEmpty
@@ -957,7 +984,11 @@ export function DocumentContentViewer({
 
           <DialogActions>
             <ProjButton onClick={closeCreateAreaDialog}>Закрыть</ProjButton>
-            <ProjButton variant="contained" onClick={confirmAreaName}>
+            <ProjButton
+              variant="contained"
+              onClick={confirmAreaName}
+              disabled={areaInnerCodeError !== undefined}
+            >
               Сохранить
             </ProjButton>
           </DialogActions>
