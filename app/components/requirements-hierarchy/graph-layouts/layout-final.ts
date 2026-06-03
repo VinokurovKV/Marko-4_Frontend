@@ -72,7 +72,7 @@ const calculateNodePositions = (
   containerWidth: number,
   containerHeight: number
 ): AcyclicGraphNode[] => {
-  const NODE_WIDTH = 240
+  const NODE_WIDTH = 300
   const NODE_HEIGHT = 120
   const HORIZONTAL_PADDING = 20
   const LEVEL_OFFSET = 150

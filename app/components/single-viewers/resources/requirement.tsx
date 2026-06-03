@@ -336,23 +336,43 @@ export function RequirementViewer({
           <ColumnViewerBlock title="покрытие атомарных требований">
             <ColumnViewerPercent
               field="все"
-              fraction={`${vertex.coveredRate.full} / ${vertex.aggregateRate.full}`}
+              fraction={
+                vertex.atomic
+                  ? `${vertex.testId !== null ? '1' : '0'} / 1`
+                  : `${vertex.coveredRate.full} / ${vertex.aggregateRate.full}`
+              }
             />
             <ColumnViewerPercent
               field="обязательные"
-              fraction={`${vertex.coveredRate.onlyMust} / ${vertex.aggregateRate.onlyMust}`}
+              fraction={
+                vertex.atomic
+                  ? `${vertex.testId !== null && vertex.modifier === 'MUST' ? '1' : '0'} / ${vertex.modifier === 'MUST' ? '1' : '0'}`
+                  : `${vertex.coveredRate.onlyMust} / ${vertex.aggregateRate.onlyMust}`
+              }
             />
             <ColumnViewerPercent
               field="обязательные и рекомендуемые"
-              fraction={`${vertex.coveredRate.mustAndShould} / ${vertex.aggregateRate.mustAndShould}`}
+              fraction={
+                vertex.atomic
+                  ? `${vertex.testId !== null && vertex.modifier !== 'MAY' ? '1' : '0'} / ${vertex.modifier !== 'MAY' ? '1' : '0'}`
+                  : `${vertex.coveredRate.mustAndShould} / ${vertex.aggregateRate.mustAndShould}`
+              }
             />
             <ColumnViewerPercent
               field="рекомендуемые"
-              fraction={`${vertex.coveredRate.onlyShould} / ${vertex.aggregateRate.onlyShould}`}
+              fraction={
+                vertex.atomic
+                  ? `${vertex.testId !== null && vertex.modifier === 'SHOULD' ? '1' : '0'} / ${vertex.modifier === 'SHOULD' ? '1' : '0'}`
+                  : `${vertex.coveredRate.onlyShould} / ${vertex.aggregateRate.onlyShould}`
+              }
             />
             <ColumnViewerPercent
               field="необязательные"
-              fraction={`${vertex.coveredRate.onlyMay} / ${vertex.aggregateRate.onlyMay}`}
+              fraction={
+                vertex.atomic
+                  ? `${vertex.testId !== null && vertex.modifier === 'MAY' ? '1' : '0'} / ${vertex.modifier === 'MAY' ? '1' : '0'}`
+                  : `${vertex.coveredRate.onlyMay} / ${vertex.aggregateRate.onlyMay}`
+              }
             />
           </ColumnViewerBlock>
           <ColumnViewerBlock title="теги">

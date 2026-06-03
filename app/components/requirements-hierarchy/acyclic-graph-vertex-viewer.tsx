@@ -1,7 +1,6 @@
 import { Handle, Position, type NodeProps } from 'reactflow'
 import { RequirementModifierIcon } from '~/components/icons'
 import type { RequirementModifier } from '@common/enums'
-import OutlinedFlagIcon from '@mui/icons-material/OutlinedFlag'
 import { useTheme } from '@mui/material/styles'
 import { green, orange, red } from '~/theme/themePrimitives'
 import './styles.css'
@@ -101,6 +100,11 @@ export default function AcyclicGraphVertexViewer({
               ? green[500]
               : green[400]
 
+  const indicatorBgColor = theme.palette.mode === 'dark' ? '#2d2d2d' : '#ffffff'
+
+  const atomicityTextColor =
+    theme.palette.mode === 'dark' ? '#e1bee7' : '#7b1fa2'
+
   const handleClick = () => {
     onClick?.(id)
   }
@@ -126,18 +130,57 @@ export default function AcyclicGraphVertexViewer({
           className="vertex-handle"
         />
       )}
+
       {data.atomicityFlag ? (
-        <span className="atomic-indicator" title="Требование атомарно">
-          <OutlinedFlagIcon sx={{ fontSize: 14 }} />
+        <span
+          className="atomic-indicator"
+          title="Атомарное"
+          style={{
+            backgroundColor: indicatorBgColor,
+            color: atomicityTextColor,
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderRadius: '4px',
+            padding: '2px',
+            width: '20px',
+            height: '20px',
+            fontSize: '14px',
+            fontWeight: 'bold'
+          }}
+        >
+          А
         </span>
       ) : null}
+
       {modifierIsKnown(data.modifier) ? (
-        <span className="modifier-indicator">
+        <span
+          className="modifier-indicator"
+          style={{
+            backgroundColor: indicatorBgColor,
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderRadius: '4px',
+            padding: '2px'
+          }}
+        >
           <RequirementModifierIcon modifier={data.modifier} />
         </span>
       ) : null}
 
-      <div className="vertex-code">{data.code}</div>
+      <div
+        className="vertex-code"
+        style={{
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          maxWidth: '200px'
+        }}
+        title={data.code}
+      >
+        {data.code}
+      </div>
       <span className="coverage-indicator-track" aria-hidden>
         <span
           className="coverage-indicator-fill"

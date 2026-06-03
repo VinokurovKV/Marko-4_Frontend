@@ -104,7 +104,8 @@ export function RequirementsHierarchyAcyclicViewer({
 
   const handleMiniVertexClick = React.useCallback(
     (vertexId: number) => {
-      void navigate(`/requirements/${vertexId}`)
+      window.open(`/requirements/${vertexId}`, '_blank')
+      // void navigate(`/requirements/${vertexId}`)
     },
     [navigate]
   )

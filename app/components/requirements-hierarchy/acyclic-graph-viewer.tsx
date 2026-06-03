@@ -587,7 +587,7 @@ const getMiniFlowData = (
   const edges: Edge[] = []
 
   const levelHeight = 110
-  const nodeWidth = 170
+  const nodeWidth = 220
   const nodeSpacing = 30
 
   sortedLevels.forEach((level, levelIndex) => {
@@ -1460,26 +1460,38 @@ export default function AcyclicGraphViewer({
                 {[
                   [
                     'Покрытие всех',
-                    hoveredVertexPreview.data.fullCoverageFraction ?? '0 / 0'
+                    hoveredVertexPreview.data.atomicityFlag
+                      ? `${hoveredVertexPreview.data.test !== '' ? '1' : '0'} / 1`
+                      : (hoveredVertexPreview.data.fullCoverageFraction ??
+                        '0 / 0')
                   ],
                   [
                     'Обязательные',
-                    hoveredVertexPreview.data.onlyMustCoverageFraction ??
-                      '0 / 0'
+                    hoveredVertexPreview.data.atomicityFlag
+                      ? `${hoveredVertexPreview.data.test !== '' && hoveredVertexPreview.data.modifier === 'MUST' ? '1' : '0'} / ${hoveredVertexPreview.data.modifier === 'MUST' ? '1' : '0'}`
+                      : (hoveredVertexPreview.data.onlyMustCoverageFraction ??
+                        '0 / 0')
                   ],
                   [
                     'Обязательные и рекомендуемые',
-                    hoveredVertexPreview.data.mustAndShouldCoverageFraction ??
-                      '0 / 0'
+                    hoveredVertexPreview.data.atomicityFlag
+                      ? `${hoveredVertexPreview.data.test !== '' && hoveredVertexPreview.data.modifier !== 'MAY' ? '1' : '0'} / ${hoveredVertexPreview.data.modifier !== 'MAY' ? '1' : '0'}`
+                      : (hoveredVertexPreview.data
+                          .mustAndShouldCoverageFraction ?? '0 / 0')
                   ],
                   [
                     'Рекомендуемые',
-                    hoveredVertexPreview.data.onlyShouldCoverageFraction ??
-                      '0 / 0'
+                    hoveredVertexPreview.data.atomicityFlag
+                      ? `${hoveredVertexPreview.data.test !== '' && hoveredVertexPreview.data.modifier === 'SHOULD' ? '1' : '0'} / ${hoveredVertexPreview.data.modifier === 'SHOULD' ? '1' : '0'}`
+                      : (hoveredVertexPreview.data.onlyShouldCoverageFraction ??
+                        '0 / 0')
                   ],
                   [
                     'Необязательные',
-                    hoveredVertexPreview.data.onlyMayCoverageFraction ?? '0 / 0'
+                    hoveredVertexPreview.data.atomicityFlag
+                      ? `${hoveredVertexPreview.data.test !== '' && hoveredVertexPreview.data.modifier === 'MAY' ? '1' : '0'} / ${hoveredVertexPreview.data.modifier === 'MAY' ? '1' : '0'}`
+                      : (hoveredVertexPreview.data.onlyMayCoverageFraction ??
+                        '0 / 0')
                   ],
                   ...(hoveredVertexPreview.data.atomicityFlag
                     ? [['Тест', hoveredVertexPreview.data.test || '—']]
@@ -1509,8 +1521,12 @@ export default function AcyclicGraphViewer({
                         sx={{
                           fontWeight: 600,
                           textAlign: 'right',
-                          fontSize: '12px'
+                          fontSize: '12px',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap'
                         }}
+                        title={value}
                       >
                         {value}
                       </Typography>
@@ -1744,27 +1760,38 @@ export default function AcyclicGraphViewer({
                   {[
                     [
                       'Покрытие всех',
-                      hoveredVertexPreview.data.fullCoverageFraction ?? '0 / 0'
+                      hoveredVertexPreview.data.atomicityFlag
+                        ? `${hoveredVertexPreview.data.test !== '' ? '1' : '0'} / 1`
+                        : (hoveredVertexPreview.data.fullCoverageFraction ??
+                          '0 / 0')
                     ],
                     [
                       'Обязательные',
-                      hoveredVertexPreview.data.onlyMustCoverageFraction ??
-                        '0 / 0'
+                      hoveredVertexPreview.data.atomicityFlag
+                        ? `${hoveredVertexPreview.data.test !== '' && hoveredVertexPreview.data.modifier === 'MUST' ? '1' : '0'} / ${hoveredVertexPreview.data.modifier === 'MUST' ? '1' : '0'}`
+                        : (hoveredVertexPreview.data.onlyMustCoverageFraction ??
+                          '0 / 0')
                     ],
                     [
                       'Обязательные и рекомендуемые',
-                      hoveredVertexPreview.data.mustAndShouldCoverageFraction ??
-                        '0 / 0'
+                      hoveredVertexPreview.data.atomicityFlag
+                        ? `${hoveredVertexPreview.data.test !== '' && hoveredVertexPreview.data.modifier !== 'MAY' ? '1' : '0'} / ${hoveredVertexPreview.data.modifier !== 'MAY' ? '1' : '0'}`
+                        : (hoveredVertexPreview.data
+                            .mustAndShouldCoverageFraction ?? '0 / 0')
                     ],
                     [
                       'Рекомендуемые',
-                      hoveredVertexPreview.data.onlyShouldCoverageFraction ??
-                        '0 / 0'
+                      hoveredVertexPreview.data.atomicityFlag
+                        ? `${hoveredVertexPreview.data.test !== '' && hoveredVertexPreview.data.modifier === 'SHOULD' ? '1' : '0'} / ${hoveredVertexPreview.data.modifier === 'SHOULD' ? '1' : '0'}`
+                        : (hoveredVertexPreview.data
+                            .onlyShouldCoverageFraction ?? '0 / 0')
                     ],
                     [
                       'Необязательные',
-                      hoveredVertexPreview.data.onlyMayCoverageFraction ??
-                        '0 / 0'
+                      hoveredVertexPreview.data.atomicityFlag
+                        ? `${hoveredVertexPreview.data.test !== '' && hoveredVertexPreview.data.modifier === 'MAY' ? '1' : '0'} / ${hoveredVertexPreview.data.modifier === 'MAY' ? '1' : '0'}`
+                        : (hoveredVertexPreview.data.onlyMayCoverageFraction ??
+                          '0 / 0')
                     ],
                     ...(hoveredVertexPreview.data.atomicityFlag
                       ? [['Тест', hoveredVertexPreview.data.test || '—']]

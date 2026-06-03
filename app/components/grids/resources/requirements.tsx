@@ -98,23 +98,33 @@ export function RequirementsGrid(props: RequirementsGridProps) {
           atomic: vertex?.atomic,
           fullCoverageRate:
             vertex !== undefined
-              ? `${vertex.coveredRate.full} / ${vertex.aggregateRate.full}`
+              ? vertex.atomic
+                ? `${vertex.testId !== null ? '1' : '0'} / 1`
+                : `${vertex.coveredRate.full} / ${vertex.aggregateRate.full}`
               : '0 / 0',
           onlyMustCoverageRate:
             vertex !== undefined
-              ? `${vertex.coveredRate.onlyMust} / ${vertex.aggregateRate.onlyMust}`
+              ? vertex.atomic
+                ? `${vertex.testId !== null && vertex.modifier === 'MUST' ? '1' : '0'} / ${vertex.modifier === 'MUST' ? '1' : '0'}`
+                : `${vertex.coveredRate.onlyMust} / ${vertex.aggregateRate.onlyMust}`
               : '0 / 0',
           mustAndShouldCoverageRate:
             vertex !== undefined
-              ? `${vertex.coveredRate.mustAndShould} / ${vertex.aggregateRate.mustAndShould}`
+              ? vertex.atomic
+                ? `${vertex.testId !== null && vertex.modifier !== 'MAY' ? '1' : '0'} / ${vertex.modifier !== 'MAY' ? '1' : '0'}`
+                : `${vertex.coveredRate.mustAndShould} / ${vertex.aggregateRate.mustAndShould}`
               : '0 / 0',
           onlyShouldCoverageRate:
             vertex !== undefined
-              ? `${vertex.coveredRate.onlyShould} / ${vertex.aggregateRate.onlyShould}`
+              ? vertex.atomic
+                ? `${vertex.testId !== null && vertex.modifier === 'SHOULD' ? '1' : '0'} / ${vertex.modifier === 'SHOULD' ? '1' : '0'}`
+                : `${vertex.coveredRate.onlyShould} / ${vertex.aggregateRate.onlyShould}`
               : '0 / 0',
           onlyMayCoverageRate:
             vertex !== undefined
-              ? `${vertex.coveredRate.onlyMay} / ${vertex.aggregateRate.onlyMay}`
+              ? vertex.atomic
+                ? `${vertex.testId !== null && vertex.modifier === 'MAY' ? '1' : '0'} / ${vertex.modifier === 'MAY' ? '1' : '0'}`
+                : `${vertex.coveredRate.onlyMay} / ${vertex.aggregateRate.onlyMay}`
               : '0 / 0'
         }
       }),
