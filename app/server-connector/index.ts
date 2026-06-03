@@ -27,7 +27,8 @@ import type {
   BackupSuccessWrapDto,
   CreateBackupQueryDto,
   DeleteBackupQueryDto,
-  DownloadBackupQueryDto
+  DownloadBackupQueryDto,
+  RestoreBackupQueryDto
 } from '@common/dtos/server-api/backup.dto'
 import type {
   ReadActionParamsDto,
@@ -1466,9 +1467,9 @@ export class ServerConnector {
     })
   }
   restoreBackup(
-    params: Params<DeleteBackupQueryDto>
+    params: Params<RestoreBackupQueryDto>
   ): Result<BackupSuccessWrapDto> {
-    return this.postForObjectWithParams<BackupSuccessWrapDto>(
+    return this.postForObject<BackupSuccessWrapDto>(
       '/backup/restore',
       params
     ).then((result) => {

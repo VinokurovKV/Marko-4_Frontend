@@ -1,4 +1,4 @@
-import type { CreateBackupQueryDto } from '@common/dtos/server-api/backup'
+import type { CreateBackupQueryDto } from '@common/dtos/server-api/backup.dto'
 import type { DtoWithoutEnums } from '@common/dto-without-enums'
 import {
   type FormKey,
