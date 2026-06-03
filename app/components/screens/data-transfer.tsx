@@ -31,6 +31,7 @@ import Dialog from '@mui/material/Dialog'
 import DialogActions from '@mui/material/DialogActions'
 import DialogContent from '@mui/material/DialogContent'
 import DialogTitle from '@mui/material/DialogTitle'
+import Divider from '@mui/material/Divider'
 import Menu from '@mui/material/Menu'
 import MenuItem from '@mui/material/MenuItem'
 
@@ -344,13 +345,14 @@ export function DataTransferScreen() {
             sx={{ p: 2.5, width: '100%', maxWidth: '420px', height: '100%' }}
           >
             <Stack spacing={1.2}>
+              <Divider sx={{ my: 0.5 }}>Данные</Divider>
               <ProjButton
                 variant="contained"
                 onClick={() => {
                   setImportModeIsActive(true)
                 }}
               >
-                импортировать данные
+                импортировать
               </ProjButton>
               <ProjButton
                 variant="contained"
@@ -358,8 +360,9 @@ export function DataTransferScreen() {
                   setExportModeIsActive(true)
                 }}
               >
-                экспортировать данные
+                экспортировать
               </ProjButton>
+              <Divider sx={{ my: 0.5 }}>История</Divider>
               <ProjButton
                 variant="contained"
                 onClick={() => {
@@ -370,7 +373,7 @@ export function DataTransferScreen() {
                   // })
                 }}
               >
-                архивировать историю
+                архивировать
               </ProjButton>
               <ProjButton
                 variant="contained"
@@ -381,7 +384,7 @@ export function DataTransferScreen() {
                   })
                 }}
               >
-                восстановить историю
+                восстановить
               </ProjButton>
               <ProjButton
                 variant="contained"
@@ -392,21 +395,25 @@ export function DataTransferScreen() {
                   })
                 }}
               >
-                удалить архивированную историю
+                удалить архивированную
               </ProjButton>
+              <Divider sx={{ my: 0.5 }}>Системные логи</Divider>
               <ProjButton variant="contained" onClick={handleLogsMenuOpen}>
-                скачать логи системы
+                скачать
               </ProjButton>
               {canClearAll ? (
-                <ProjButton
-                  variant="outlined"
-                  color="error"
-                  onClick={() => {
-                    setClearAllDialogIsActive(true)
-                  }}
-                >
-                  удалить все данные системы
-                </ProjButton>
+                <>
+                  <Divider sx={{ my: 0.5 }}>Система</Divider>
+                  <ProjButton
+                    variant="outlined"
+                    color="error"
+                    onClick={() => {
+                      setClearAllDialogIsActive(true)
+                    }}
+                  >
+                    удалить все данные
+                  </ProjButton>
+                </>
               ) : null}
             </Stack>
           </Paper>

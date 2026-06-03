@@ -82,6 +82,24 @@ div.acyclic-vertex .atomic-indicator {
   color: hsl(220, 30%, 94%);
 }
 
+div.acyclic-vertex .modifier-indicator {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  background: hsla(220, 30%, 6%, 0.18);
+}
+
+div.acyclic-vertex .modifier-indicator svg {
+  font-size: 16px;
+  opacity: 1;
+}
+
 div.acyclic-vertex .coverage-indicator-track {
   position: absolute;
   left: 8px;

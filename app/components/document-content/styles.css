@@ -127,7 +127,7 @@
   font-size: 12px;
   padding: 3px 8px;
   border-radius: 8px;
-  background: hsla(220, 20%, 25%, 0.85);
+  background: hsla(220, 20%, 25%, 0.5);
   color: hsl(220, 35%, 97%);
   max-width: 320px;
   box-sizing: border-box;
@@ -142,7 +142,7 @@
   white-space: nowrap;
 }
 .pdfv-area-label:hover {
-  background: hsla(220, 20%, 25%, 0.95);
+  background: hsla(220, 20%, 25%, 0.6);
 }
 .pdfv-draft-rect {
   position: absolute;

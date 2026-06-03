@@ -8,6 +8,8 @@ import { useTheme } from '@mui/material/styles'
 // other
 import AcyclicGraphViewer from './acyclic-graph-viewer'
 import type { VertexData } from './acyclic-graph-vertex-viewer'
+// React router
+import { useNavigate } from 'react-router'
 
 import {
   buildRequirementsHierarchyGraphData,
@@ -61,6 +63,7 @@ export function RequirementsHierarchyAcyclicViewer({
   requirementsHierarchy,
   tests
 }: RequirementsHierarchyAcyclicViewerProps) {
+  const navigate = useNavigate()
   const fullscreenContainerRef = React.useRef<HTMLDivElement | null>(null)
   const theme = useTheme()
 
@@ -97,6 +100,13 @@ export function RequirementsHierarchyAcyclicViewer({
   const dataForVertexIdAsVertexData = React.useMemo(
     () => buildVertexDataMap(dataForVertexId, testCodeForId),
     [dataForVertexId, testCodeForId]
+  )
+
+  const handleMiniVertexClick = React.useCallback(
+    (vertexId: number) => {
+      void navigate(`/requirements/${vertexId}`)
+    },
+    [navigate]
   )
 
   React.useEffect(() => {
@@ -159,6 +169,7 @@ export function RequirementsHierarchyAcyclicViewer({
           fitOnSelectedIdChange={true}
           isFullscreen={isFullscreen}
           onToggleFullscreen={toggleFullscreen}
+          onMiniVertexClick={handleMiniVertexClick}
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
           onVertexClick={(vertexId: number) => {}}
         />

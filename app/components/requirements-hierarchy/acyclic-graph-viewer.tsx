@@ -1,5 +1,6 @@
 // Project
 import { ProjButton } from '../buttons/button'
+import { FormTextField } from '../forms/common'
 // React
 import {
   useCallback,
@@ -38,6 +39,7 @@ import Divider from '@mui/material/Divider'
 import Paper from '@mui/material/Paper'
 import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
+import Autocomplete from '@mui/material/Autocomplete'
 import FullscreenIcon from '@mui/icons-material/Fullscreen'
 import FullscreenExitIcon from '@mui/icons-material/FullscreenExit'
 import AccountTreeIcon from '@mui/icons-material/AccountTree'
@@ -68,6 +70,7 @@ export interface AcyclicGraphViewerProps {
   selectedId: number | null
   setSelectedId: React.Dispatch<React.SetStateAction<number | null>>
   onVertexClick?: (vertexId: number) => void
+  onMiniVertexClick?: (vertexId: number) => void
   isFullscreen?: boolean
   onToggleFullscreen?: () => void
 }
@@ -77,6 +80,7 @@ type MiniGraphDisplayMode = 'ROOT_PATH' | 'ALL_RELATED'
 type HoveredVertexPreview = {
   id: number
   data: VertexData
+  source: 'MAIN' | 'MINI'
 }
 
 const HOVER_PREVIEW_DELAY_MS = 400
@@ -376,6 +380,68 @@ function MainGraphAutoFitOnRequest({ fitRequest }: { fitRequest: number }) {
   return null
 }
 
+function MainGraphFocusOnNodeRequest({
+  focusRequest,
+  nodeId
+}: {
+  focusRequest: number
+  nodeId: string | null
+}) {
+  const reactFlow = useReactFlow()
+  const nodesInitialized = useNodesInitialized()
+  const viewportInitialized = useStore(
+    (state) =>
+      state.width > 0 &&
+      state.height > 0 &&
+      state.d3Zoom !== null &&
+      state.d3Selection !== null
+  )
+
+  useLayoutEffect(() => {
+    if (
+      focusRequest === 0 ||
+      nodeId === null ||
+      nodesInitialized === false ||
+      viewportInitialized === false
+    ) {
+      return
+    }
+
+    let cancelled = false
+    let frameId = 0
+
+    const runFocus = () => {
+      if (cancelled) {
+        return
+      }
+
+      const node = reactFlow.getNode(nodeId)
+      if (node === undefined) {
+        frameId = requestAnimationFrame(runFocus)
+        return
+      }
+
+      const position = node.positionAbsolute ?? node.position
+      const width = node.width ?? 200
+      const height = node.height ?? 60
+
+      reactFlow.setCenter(position.x + width / 2, position.y + height / 2, {
+        zoom: 0.5,
+        duration: 300
+      })
+    }
+
+    frameId = requestAnimationFrame(runFocus)
+
+    return () => {
+      cancelled = true
+      cancelAnimationFrame(frameId)
+    }
+  }, [focusRequest, nodeId, reactFlow, nodesInitialized, viewportInitialized])
+
+  return null
+}
+
 const getVertexLevel = (vertexData: VertexData): number => {
   const v = vertexData as unknown
   if (typeof v === 'object' && v !== null && 'level' in v) {
@@ -593,6 +659,7 @@ export default function AcyclicGraphViewer({
   selectedId,
   setSelectedId,
   onVertexClick,
+  onMiniVertexClick,
   isFullscreen = false,
   onToggleFullscreen
 }: AcyclicGraphViewerProps) {
@@ -738,9 +805,9 @@ export default function AcyclicGraphViewer({
   const [hoveredVertexPreview, setHoveredVertexPreview] =
     useState<HoveredVertexPreview | null>(null)
   const [mainGraphFitRequest, setMainGraphFitRequest] = useState(0)
+  const [mainGraphFocusRequest, setMainGraphFocusRequest] = useState(0)
   const isFullscreenInitializedRef = useRef(false)
   const isMiniGraphToggleInitializedRef = useRef(false)
-  const previousSelectedIdRef = useRef<number | null>(selectedId)
   const hoverPreviewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
     null
   )
@@ -789,17 +856,10 @@ export default function AcyclicGraphViewer({
       [
         selectedId ?? 'none',
         miniGraphDisplayMode,
-        Math.round(miniGraphWidth),
         miniFlowData.nodes.map((node) => node.id).join(','),
         miniFlowData.edges.map((edge) => edge.id).join(',')
       ].join('|'),
-    [
-      selectedId,
-      miniGraphDisplayMode,
-      miniGraphWidth,
-      miniFlowData.nodes,
-      miniFlowData.edges
-    ]
+    [selectedId, miniGraphDisplayMode, miniFlowData.nodes, miniFlowData.edges]
   )
 
   useEffect(() => {
@@ -826,20 +886,6 @@ export default function AcyclicGraphViewer({
     }
   }, [isMiniGraphEnabled])
 
-  useEffect(() => {
-    const previousSelectedId = previousSelectedIdRef.current
-
-    if (
-      previousSelectedId !== null &&
-      selectedId === null &&
-      isMiniGraphEnabled
-    ) {
-      setMainGraphFitRequest((prev) => prev + 1)
-    }
-
-    previousSelectedIdRef.current = selectedId
-  }, [selectedId, isMiniGraphEnabled])
-
   const showNextLevel = () => {
     if (
       maxDisplayedLayerWhenWithoutSelected === null ||
@@ -860,6 +906,72 @@ export default function AcyclicGraphViewer({
     }
   }
 
+  const requirementSearchOptions = useMemo(
+    () =>
+      vertexes
+        .map((vertex) => {
+          const vertexData = dataForVertexId.get(vertex.id)
+          return vertexData === undefined
+            ? null
+            : {
+                id: vertex.id,
+                title: vertexData.code,
+                level: getVertexLevel(vertexData)
+              }
+        })
+        .filter(
+          (option): option is { id: number; title: string; level: number } => {
+            return option !== null
+          }
+        )
+        .sort((a, b) => a.title.localeCompare(b.title)),
+    [vertexes, dataForVertexId]
+  )
+
+  const selectedRequirementSearchOption = useMemo(
+    () =>
+      selectedId === null
+        ? null
+        : (requirementSearchOptions.find(
+            (option) => option.id === selectedId
+          ) ?? null),
+    [selectedId, requirementSearchOptions]
+  )
+
+  const selectVertex = useCallback(
+    (
+      vertexId: number,
+      options?: { focus?: boolean; ensureVisible?: boolean }
+    ) => {
+      const nodeId = vertexId.toString()
+
+      onVertexClick?.(vertexId)
+      setSelectedId(vertexId)
+      setSelectedNodeId(nodeId)
+      setSelectedEdgeId(null)
+
+      if (options?.ensureVisible === true) {
+        const selectedData = dataForVertexId.get(vertexId)
+        if (selectedData !== undefined) {
+          const selectedLevel = getVertexLevel(selectedData)
+          setMaxDisplayedLayerWhenWithoutSelected((prev) =>
+            prev === null ? prev : Math.max(prev, selectedLevel)
+          )
+        }
+      }
+
+      if (options?.focus === true) {
+        setMainGraphFocusRequest((prev) => prev + 1)
+      }
+    },
+    [
+      dataForVertexId,
+      onVertexClick,
+      setMaxDisplayedLayerWhenWithoutSelected,
+      setSelectedId
+    ]
+  )
+
   const handleNodeClick = useCallback(
     (
       _event: React.MouseEvent,
@@ -876,12 +988,9 @@ export default function AcyclicGraphViewer({
         return
       }
 
-      onVertexClick?.(vertexId)
-      setSelectedId(vertexId)
-      setSelectedNodeId(nodeId)
-      setSelectedEdgeId(null)
+      selectVertex(vertexId)
     },
-    [onVertexClick, setSelectedId, selectedId]
+    [onVertexClick, setSelectedId, selectedId, selectVertex]
   )
 
   const handleEdgeClick = useCallback((event: React.MouseEvent, edge: Edge) => {
@@ -889,10 +998,10 @@ export default function AcyclicGraphViewer({
     setSelectedEdgeId((prev) => (prev === edge.id ? null : edge.id))
   }, [])
 
-  const handleNodeMouseEnter = useCallback(
+  const scheduleHoverPreview = useCallback(
     (
-      event: React.MouseEvent,
-      node: Node<AcyclicGraphVertexViewerProps<VertexData>>
+      node: Node<AcyclicGraphVertexViewerProps<VertexData>>,
+      source: HoveredVertexPreview['source']
     ) => {
       if (hoverPreviewHideTimerRef.current !== null) {
         clearTimeout(hoverPreviewHideTimerRef.current)
@@ -905,7 +1014,8 @@ export default function AcyclicGraphViewer({
 
       const previewData: HoveredVertexPreview = {
         id: node.data.id,
-        data: node.data.data
+        data: node.data.data,
+        source
       }
 
       hoverPreviewTimerRef.current = setTimeout(() => {
@@ -914,6 +1024,26 @@ export default function AcyclicGraphViewer({
       }, HOVER_PREVIEW_DELAY_MS)
     },
     []
+  )
+
+  const handleNodeMouseEnter = useCallback(
+    (
+      _event: React.MouseEvent,
+      node: Node<AcyclicGraphVertexViewerProps<VertexData>>
+    ) => {
+      scheduleHoverPreview(node, 'MAIN')
+    },
+    [scheduleHoverPreview]
+  )
+
+  const handleMiniNodeMouseEnter = useCallback(
+    (
+      _event: React.MouseEvent,
+      node: Node<AcyclicGraphVertexViewerProps<VertexData>>
+    ) => {
+      scheduleHoverPreview(node, 'MINI')
+    },
+    [scheduleHoverPreview]
   )
 
   const handleNodeMouseLeave = useCallback(() => {
@@ -931,6 +1061,17 @@ export default function AcyclicGraphViewer({
       hoverPreviewHideTimerRef.current = null
     }, HOVER_PREVIEW_HIDE_DELAY_MS)
   }, [])
+
+  const handleMiniNodeClick = useCallback(
+    (
+      event: React.MouseEvent,
+      node: Node<AcyclicGraphVertexViewerProps<VertexData>>
+    ) => {
+      event.stopPropagation()
+      onMiniVertexClick?.(node.data.id)
+    },
+    [onMiniVertexClick]
+  )
 
   useEffect(() => {
     return () => {
@@ -953,8 +1094,26 @@ export default function AcyclicGraphViewer({
     setSelectedId(null)
   }, [setSelectedId])
 
+  const handleRequirementSearchChange = useCallback(
+    (
+      _event: React.SyntheticEvent,
+      value: { id: number; title: string; level: number } | null
+    ) => {
+      if (value === null) {
+        resetSelection()
+        return
+      }
+
+      selectVertex(value.id, { ensureVisible: true, focus: true })
+    },
+    [resetSelection, selectVertex]
+  )
+
   const isMiniGraphVisible = selectedId !== null && isMiniGraphEnabled
-  const isHoverPreviewVisible = hoveredVertexPreview !== null
+  const mainHoverPreviewIsVisible =
+    hoveredVertexPreview !== null && hoveredVertexPreview.source === 'MAIN'
+  const miniHoverPreviewIsVisible =
+    hoveredVertexPreview !== null && hoveredVertexPreview.source === 'MINI'
 
   const getClampedMiniGraphWidth = useCallback(
     (width: number) => {
@@ -974,10 +1133,6 @@ export default function AcyclicGraphViewer({
   useEffect(() => {
     setMiniGraphWidth((prevWidth) => getClampedMiniGraphWidth(prevWidth))
   }, [getClampedMiniGraphWidth])
-
-  useEffect(() => {
-    setMiniGraphReady(false)
-  }, [miniGraphWidth])
 
   const handleMiniGraphSeparatorPointerDown = useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
@@ -1141,6 +1296,25 @@ export default function AcyclicGraphViewer({
           >
             Сбросить выделение
           </ProjButton>
+
+          <Autocomplete
+            size="small"
+            options={requirementSearchOptions}
+            value={selectedRequirementSearchOption}
+            onChange={handleRequirementSearchChange}
+            getOptionLabel={(option) => option.title}
+            isOptionEqualToValue={(option, value) => option.id === value.id}
+            noOptionsText="требования не найдены"
+            renderInput={(params) => (
+              <FormTextField {...params} label="поиск требования" />
+            )}
+            sx={{
+              width: { xs: '100%', sm: 280 },
+              '& .MuiInputBase-root': {
+                height: 32
+              }
+            }}
+          />
         </Stack>
         {onToggleFullscreen !== undefined ? (
           <Box
@@ -1196,6 +1370,7 @@ export default function AcyclicGraphViewer({
       <Box
         ref={containerRef}
         sx={{
+          position: 'relative',
           display: 'flex',
           minHeight: 0,
           flex: 1,
@@ -1233,10 +1408,14 @@ export default function AcyclicGraphViewer({
           >
             <ReactFlowPinchZoomSensitivityController />
             <MainGraphAutoFitOnRequest fitRequest={mainGraphFitRequest} />
+            <MainGraphFocusOnNodeRequest
+              focusRequest={mainGraphFocusRequest}
+              nodeId={selectedNodeId}
+            />
             <Controls showInteractive={false} />
             <Background />
           </ReactFlow>
-          {isHoverPreviewVisible ? (
+          {mainHoverPreviewIsVisible ? (
             <Paper
               elevation={6}
               sx={{
@@ -1475,6 +1654,7 @@ export default function AcyclicGraphViewer({
                 sx={{
                   flex: 1,
                   minHeight: 0,
+                  position: 'relative',
                   visibility: miniGraphReady ? 'visible' : 'hidden'
                 }}
               >
@@ -1487,8 +1667,9 @@ export default function AcyclicGraphViewer({
                   nodes={miniFlowData.nodes}
                   edges={miniFlowData.edges}
                   nodeTypes={nodeTypes}
-                  onNodeMouseEnter={handleNodeMouseEnter}
+                  onNodeMouseEnter={handleMiniNodeMouseEnter}
                   onNodeMouseLeave={handleNodeMouseLeave}
+                  onNodeClick={handleMiniNodeClick}
                   minZoom={0.01}
                   maxZoom={1.5}
                   nodesDraggable={false}
@@ -1518,6 +1699,115 @@ export default function AcyclicGraphViewer({
                 </ReactFlow>
               </Box>
             </Paper>
+            {miniHoverPreviewIsVisible ? (
+              <Paper
+                elevation={6}
+                sx={{
+                  position: 'absolute',
+                  right: 10,
+                  top: 6,
+                  width: 'clamp(180px, 24vw, 230px)',
+                  pointerEvents: 'none',
+                  zIndex: 20,
+                  p: 0.6,
+                  borderRadius: 1
+                }}
+              >
+                <Box
+                  sx={{
+                    borderRadius: 1,
+                    border: `2px solid ${theme.palette.divider}`,
+                    backgroundColor: fullCoverageBadgeColor.backgroundColor,
+                    color: fullCoverageBadgeColor.color,
+                    px: 1,
+                    py: 0.35,
+                    textAlign: 'center',
+                    fontWeight: 700,
+                    fontSize: '12px'
+                  }}
+                >
+                  {hoveredVertexPreview.data.code}
+                </Box>
+                <Stack
+                  spacing={0.5}
+                  sx={{
+                    mt: 0.5,
+                    p: 0.4,
+                    borderRadius: 1,
+                    border: `1px solid ${theme.palette.divider}`,
+                    backgroundColor:
+                      theme.palette.mode === 'dark'
+                        ? alpha(theme.palette.background.default, 0.35)
+                        : alpha(theme.palette.background.default, 0.55)
+                  }}
+                >
+                  {[
+                    [
+                      'Покрытие всех',
+                      hoveredVertexPreview.data.fullCoverageFraction ?? '0 / 0'
+                    ],
+                    [
+                      'Обязательные',
+                      hoveredVertexPreview.data.onlyMustCoverageFraction ??
+                        '0 / 0'
+                    ],
+                    [
+                      'Обязательные и рекомендуемые',
+                      hoveredVertexPreview.data.mustAndShouldCoverageFraction ??
+                        '0 / 0'
+                    ],
+                    [
+                      'Рекомендуемые',
+                      hoveredVertexPreview.data.onlyShouldCoverageFraction ??
+                        '0 / 0'
+                    ],
+                    [
+                      'Необязательные',
+                      hoveredVertexPreview.data.onlyMayCoverageFraction ??
+                        '0 / 0'
+                    ],
+                    ...(hoveredVertexPreview.data.atomicityFlag
+                      ? [['Тест', hoveredVertexPreview.data.test || '—']]
+                      : [])
+                  ].map(([label, value], index, array) => (
+                    <Box key={label}>
+                      <Box
+                        sx={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: 0.6
+                        }}
+                      >
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            color: theme.palette.text.secondary,
+                            letterSpacing: 0.15,
+                            fontSize: '10px'
+                          }}
+                        >
+                          {label}
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            fontWeight: 600,
+                            color: theme.palette.text.primary,
+                            fontSize: '11px'
+                          }}
+                        >
+                          {value}
+                        </Typography>
+                      </Box>
+                      {index < array.length - 1 ? (
+                        <Divider sx={{ mt: 0.3 }} />
+                      ) : null}
+                    </Box>
+                  ))}
+                </Stack>
+              </Paper>
+            ) : null}
           </>
         )}
       </Box>

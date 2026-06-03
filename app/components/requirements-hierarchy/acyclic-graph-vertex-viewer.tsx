@@ -1,4 +1,6 @@
 import { Handle, Position, type NodeProps } from 'reactflow'
+import { RequirementModifierIcon } from '~/components/icons'
+import type { RequirementModifier } from '@common/enums'
 import OutlinedFlagIcon from '@mui/icons-material/OutlinedFlag'
 import { useTheme } from '@mui/material/styles'
 import { green, orange, red } from '~/theme/themePrimitives'
@@ -53,6 +55,10 @@ function parseCoverageFractionPercent(
     return null
   }
   return (covered / total) * 100
+}
+
+function modifierIsKnown(modifier: string): modifier is RequirementModifier {
+  return modifier === 'MUST' || modifier === 'SHOULD' || modifier === 'MAY'
 }
 
 export default function AcyclicGraphVertexViewer({
@@ -123,6 +129,11 @@ export default function AcyclicGraphVertexViewer({
       {data.atomicityFlag ? (
         <span className="atomic-indicator" title="Требование атомарно">
           <OutlinedFlagIcon sx={{ fontSize: 14 }} />
+        </span>
+      ) : null}
+      {modifierIsKnown(data.modifier) ? (
+        <span className="modifier-indicator">
+          <RequirementModifierIcon modifier={data.modifier} />
         </span>
       ) : null}
 
