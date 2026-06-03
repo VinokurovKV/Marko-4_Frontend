@@ -1,5 +1,5 @@
 // Project
-import type { BackupSuccessResultDto } from '@common/dtos/server-api/backup'
+import type { BackupSuccessResultDto } from '@common/dtos/server-api/backup.dto'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
 import {

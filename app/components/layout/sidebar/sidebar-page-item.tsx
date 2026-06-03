@@ -47,7 +47,11 @@ export function SidebarPageItem({
   nestedNavigation
 }: SidebarPageItemProps) {
   const miniNavigationPopupShiftY =
-    id === 'access' ? 'calc(-50px - 45px)' : '-50px'
+    id === 'system-management'
+      ? '-100%'
+      : id === 'access'
+        ? 'calc(-50px - 45px)'
+        : '-50px'
 
   const sidebarMeta = useSidebarMeta()
 
