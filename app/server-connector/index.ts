@@ -28,7 +28,7 @@ import type {
   CreateBackupQueryDto,
   DeleteBackupQueryDto,
   DownloadBackupQueryDto
-} from '@common/dtos/server-api/backup'
+} from '@common/dtos/server-api/backup.dto'
 import type {
   ReadActionParamsDto,
   ReadActionSuccessResultDto,
