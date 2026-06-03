@@ -14,7 +14,7 @@ export function BackupsScreen() {
   const breadcrumbsItems: ProjBreadcrumbsProps['items'] = React.useMemo(
     () => [
       {
-        title: 'бэкапы',
+        title: 'резервные копии',
         href: '/backups',
         Icon: BackupIcon
       }
@@ -23,7 +23,10 @@ export function BackupsScreen() {
   )
 
   return (
-    <LayoutScreenContainer title="бэкапы" breadcrumbsItems={breadcrumbsItems}>
+    <LayoutScreenContainer
+      title="резервные копии"
+      breadcrumbsItems={breadcrumbsItems}
+    >
       <BackupsGrid backups={backups} />
     </LayoutScreenContainer>
   )

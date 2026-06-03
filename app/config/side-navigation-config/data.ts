@@ -283,7 +283,7 @@ export const SIDE_NAVIGATION_CONFIG: SideNavigationConfig = [
           },
           {
             id: 'backups',
-            title: 'бэкапы',
+            title: 'рез. копии',
             Icon: BackupIcon,
             href: '/backups'
           }

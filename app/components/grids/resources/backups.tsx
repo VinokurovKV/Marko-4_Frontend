@@ -85,7 +85,7 @@ export function BackupsGrid({ backups }: BackupsGridProps) {
           } catch (error) {
             notifier.showError(
               error,
-              `не удалось скачать бэкап «${backupName}»`
+              `не удалось скачать резервную копию «${backupName}»`
             )
           }
         }
@@ -101,17 +101,19 @@ export function BackupsGrid({ backups }: BackupsGridProps) {
               }
               try {
                 await serverConnector.restoreBackup({ backupName })
-                notifier.showSuccess(`бэкап «${backupName}» восстановлен`)
+                notifier.showSuccess(
+                  `резервная копия «${backupName}» восстановлена`
+                )
               } catch (error) {
                 if (isNonexistentBackupBadRequest(error)) {
                   notifier.showError(
-                    `не удалось восстановить бэкап «${backupName}»: неполный или поврежденный бэкап`
+                    `не удалось восстановить резервную копию «${backupName}»: неполные или поврежденные данные`
                   )
                   return
                 }
                 notifier.showError(
                   error,
-                  `не удалось восстановить бэкап «${backupName}»`
+                  `не удалось восстановить резервную копию «${backupName}»`
                 )
               }
             }
@@ -123,7 +125,7 @@ export function BackupsGrid({ backups }: BackupsGridProps) {
               const backupName = rows.find(
                 (item) => item.id === rowId
               )?.backupName
-              return `удалить бэкап «${backupName ?? ''}»?`
+              return `удалить резервную копию «${backupName ?? ''}»?`
             },
             action: async (rowId) => {
               const backupName = rows.find(
@@ -134,11 +136,11 @@ export function BackupsGrid({ backups }: BackupsGridProps) {
               }
               try {
                 await serverConnector.deleteBackup({ backupName })
-                notifier.showSuccess(`бэкап «${backupName}» удален`)
+                notifier.showSuccess(`резервная копия «${backupName}» удалена`)
               } catch (error) {
                 notifier.showError(
                   error,
-                  `не удалось удалить бэкап «${backupName}»`
+                  `не удалось удалить резервную копию «${backupName}»`
                 )
               }
             }

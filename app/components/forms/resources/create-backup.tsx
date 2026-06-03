@@ -33,7 +33,7 @@ export function CreateBackupFormDialog(props: CreateBackupFormDialogProps) {
 
   const onSuccessSubmit = React.useCallback(
     (_: CreateBackupFormData, result: BackupSuccessResultDto) => {
-      notifier.showSuccess(`бэкап «${result.backupName}» создан`)
+      notifier.showSuccess(`резервная копия «${result.backupName}» создана`)
       props.onSuccessCreateBackup?.(result)
     },
     [props.onSuccessCreateBackup, notifier]
@@ -52,7 +52,7 @@ export function CreateBackupFormDialog(props: CreateBackupFormDialogProps) {
   return (
     <FormDialog
       formInternal={formInternal}
-      title="создать бэкап"
+      title="создать резервную копию"
       submitButtonTitle="создать"
       cancelButton={{ title: 'отменить', onClick: props.onCancelClick }}
       clearButton={{ title: 'очистить' }}
