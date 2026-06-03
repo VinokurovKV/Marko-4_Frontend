@@ -228,30 +228,34 @@ export function DocumentRequirementsGrid({
   const rows: GridValidRowModel[] = React.useMemo(
     () =>
       [
-        {
-          id: '+',
-          fragmentIds: fragmentsWithoutRequirements.map(
-            (fragment) => fragment.id
-          ),
-          fragmentInnerCodes: fragmentsWithoutRequirements.map(
-            (fragment) => fragment.innerCode
-          ),
-          requirementId: undefined,
-          requirementCode: '',
-          fullCoverageRate: undefined,
-          onlyMustCoverageRate: undefined,
-          mustAndShouldCoverageRate: undefined,
-          onlyShouldCoverageRate: undefined,
-          onlyMayCoverageRate: undefined,
-          atomicRequirementId: undefined,
-          atomicRequirementCode: '',
-          modifier: '',
-          origin: '',
-          covered: undefined,
-          testId: undefined,
-          subgroupId: undefined,
-          groupId: undefined
-        },
+        ...(fragmentsWithoutRequirements.length > 0
+          ? [
+              {
+                id: '+',
+                fragmentIds: fragmentsWithoutRequirements.map(
+                  (fragment) => fragment.id
+                ),
+                fragmentInnerCodes: fragmentsWithoutRequirements.map(
+                  (fragment) => fragment.innerCode
+                ),
+                requirementId: undefined,
+                requirementCode: '',
+                fullCoverageRate: undefined,
+                onlyMustCoverageRate: undefined,
+                mustAndShouldCoverageRate: undefined,
+                onlyShouldCoverageRate: undefined,
+                onlyMayCoverageRate: undefined,
+                atomicRequirementId: undefined,
+                atomicRequirementCode: '',
+                modifier: '',
+                origin: '',
+                covered: undefined,
+                testId: undefined,
+                subgroupId: undefined,
+                groupId: undefined
+              }
+            ]
+          : []),
         ...mainRequirements.flatMap((mainRequirement) => {
           const mainRequirementId = mainRequirement.id
           const mainRequirementVertex =
