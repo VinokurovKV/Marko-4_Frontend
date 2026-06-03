@@ -290,34 +290,34 @@ export function DocumentRequirementsGrid({
               requirementId: mainRequirementId,
               requirementCode: mainRequirementVertex?.code ?? '',
               fullCoverageRate:
-                atomicRequirementVertex !== undefined
-                  ? atomicRequirementVertex.atomic
-                    ? `${atomicRequirementVertex.testId !== null ? '1' : '0'} / 1`
-                    : `${atomicRequirementVertex.coveredRate.full} / ${atomicRequirementVertex.aggregateRate.full}`
+                mainRequirementVertex !== undefined
+                  ? mainRequirementVertex.atomic
+                    ? `${mainRequirementVertex.testId !== null ? '1' : '0'} / 1`
+                    : `${mainRequirementVertex.coveredRate.full} / ${mainRequirementVertex.aggregateRate.full}`
                   : '0 / 0',
               onlyMustCoverageRate:
-                atomicRequirementVertex !== undefined
-                  ? atomicRequirementVertex.atomic
-                    ? `${atomicRequirementVertex.testId !== null && atomicRequirementVertex.modifier === 'MUST' ? '1' : '0'} / ${atomicRequirementVertex.modifier === 'MUST' ? '1' : '0'}`
-                    : `${atomicRequirementVertex.coveredRate.onlyMust} / ${atomicRequirementVertex.aggregateRate.onlyMust}`
+                mainRequirementVertex !== undefined
+                  ? mainRequirementVertex.atomic
+                    ? `${mainRequirementVertex.testId !== null && mainRequirementVertex.modifier === 'MUST' ? '1' : '0'} / ${mainRequirementVertex.modifier === 'MUST' ? '1' : '0'}`
+                    : `${mainRequirementVertex.coveredRate.onlyMust} / ${mainRequirementVertex.aggregateRate.onlyMust}`
                   : '0 / 0',
               mustAndShouldCoverageRate:
-                atomicRequirementVertex !== undefined
-                  ? atomicRequirementVertex.atomic
-                    ? `${atomicRequirementVertex.testId !== null && atomicRequirementVertex.modifier !== 'MAY' ? '1' : '0'} / ${atomicRequirementVertex.modifier !== 'MAY' ? '1' : '0'}`
-                    : `${atomicRequirementVertex.coveredRate.mustAndShould} / ${atomicRequirementVertex.aggregateRate.mustAndShould}`
+                mainRequirementVertex !== undefined
+                  ? mainRequirementVertex.atomic
+                    ? `${mainRequirementVertex.testId !== null && mainRequirementVertex.modifier !== 'MAY' ? '1' : '0'} / ${mainRequirementVertex.modifier !== 'MAY' ? '1' : '0'}`
+                    : `${mainRequirementVertex.coveredRate.mustAndShould} / ${mainRequirementVertex.aggregateRate.mustAndShould}`
                   : '0 / 0',
               onlyShouldCoverageRate:
-                atomicRequirementVertex !== undefined
-                  ? atomicRequirementVertex.atomic
-                    ? `${atomicRequirementVertex.testId !== null && atomicRequirementVertex.modifier === 'SHOULD' ? '1' : '0'} / ${atomicRequirementVertex.modifier === 'SHOULD' ? '1' : '0'}`
-                    : `${atomicRequirementVertex.coveredRate.onlyShould} / ${atomicRequirementVertex.aggregateRate.onlyShould}`
+                mainRequirementVertex !== undefined
+                  ? mainRequirementVertex.atomic
+                    ? `${mainRequirementVertex.testId !== null && mainRequirementVertex.modifier === 'SHOULD' ? '1' : '0'} / ${mainRequirementVertex.modifier === 'SHOULD' ? '1' : '0'}`
+                    : `${mainRequirementVertex.coveredRate.onlyShould} / ${mainRequirementVertex.aggregateRate.onlyShould}`
                   : '0 / 0',
               onlyMayCoverageRate:
-                atomicRequirementVertex !== undefined
-                  ? atomicRequirementVertex.atomic
-                    ? `${atomicRequirementVertex.testId !== null && atomicRequirementVertex.modifier === 'MAY' ? '1' : '0'} / ${atomicRequirementVertex.modifier === 'MAY' ? '1' : '0'}`
-                    : `${atomicRequirementVertex.coveredRate.onlyMay} / ${atomicRequirementVertex.aggregateRate.onlyMay}`
+                mainRequirementVertex !== undefined
+                  ? mainRequirementVertex.atomic
+                    ? `${mainRequirementVertex.testId !== null && mainRequirementVertex.modifier === 'MAY' ? '1' : '0'} / ${mainRequirementVertex.modifier === 'MAY' ? '1' : '0'}`
+                    : `${mainRequirementVertex.coveredRate.onlyMay} / ${mainRequirementVertex.aggregateRate.onlyMay}`
                   : '0 / 0',
               atomicRequirementId: atomicRequirementId,
               atomicRequirementCode: atomicRequirement?.code ?? '',
