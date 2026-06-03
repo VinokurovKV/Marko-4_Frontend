@@ -31,17 +31,18 @@ export function useCoveredCol(
       type: 'boolean',
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/restrict-template-expressions
       rowSpanValueGetter: (value, row) => `${row.id}_${value}`,
-      renderCell: (params: GridRenderCellParams<any, boolean>) => (
-        <Tooltip
-          title={capitalize(
-            (params.value === true ? truePrompt : falsePrompt) ?? ''
-          )}
-        >
-          <Stack>
-            <CoveredIcon flag={params.value === true} />
-          </Stack>
-        </Tooltip>
-      ),
+      renderCell: (params: GridRenderCellParams<any, boolean>) =>
+        params.value === undefined ? null : (
+          <Tooltip
+            title={capitalize(
+              (params.value === true ? truePrompt : falsePrompt) ?? ''
+            )}
+          >
+            <Stack>
+              <CoveredIcon flag={params.value === true} />
+            </Stack>
+          </Tooltip>
+        ),
       minWidth: 90,
       flex: 0.01
     }),

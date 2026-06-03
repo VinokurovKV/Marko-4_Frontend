@@ -1,5 +1,6 @@
 // Project
 import type {
+  RequirementsHierarchy,
   DocumentTertiary,
   FragmentTertiary,
   RequirementSecondary,
@@ -7,6 +8,7 @@ import type {
   SubgroupSecondary,
   GroupPrimary
 } from '~/types'
+import { serverConnector } from '~/server-connector'
 import {
   readFragmentTertiary,
   readRequirementsSecondaryFiltered,
@@ -16,14 +18,20 @@ import {
 } from '~/readers'
 import { Grid } from '../grid'
 import {
+  useAtomicRequirementCol,
   useCoveredCol,
-  useFragmentCol,
+  useFragmentsCol,
+  useFullCoverageRateCol,
+  useGroupCol,
+  useMustAndShouldCoverageRateCol,
+  useOnlyMayCoverageRateCol,
+  useOnlyMustCoverageRateCol,
+  useOnlyShouldCoverageRateCol,
   useRequirementCol,
   useRequirementModifierCol,
   useRequirementOriginCol,
-  useTestCol,
   useSubgroupCol,
-  useGroupCol
+  useTestCol
 } from '../cols'
 // React
 import * as React from 'react'
@@ -37,7 +45,18 @@ export interface DocumentRequirementsGridProps {
 export function DocumentRequirementsGrid({
   document
 }: DocumentRequirementsGridProps) {
+  const [hierarchy, setHierarchy] = React.useState<RequirementsHierarchy>({
+    vertexes: [],
+    links: []
+  })
   const [fragments, setFragments] = React.useState<FragmentTertiary[]>([])
+  const [fragmentsWithoutRequirements, setFragmentsWithoutRequirements] =
+    React.useState<FragmentTertiary[]>([])
+  const [atomicIdsForMainRequirementId, setAtomicIdsForMainRequirementId] =
+    React.useState<Map<number, number[]>>(new Map())
+  const [mainRequirements, setMainRequirements] = React.useState<
+    RequirementSecondary[]
+  >([])
   const [requirements, setRequirements] = React.useState<
     RequirementSecondary[]
   >([])
@@ -53,14 +72,79 @@ export function DocumentRequirementsGrid({
           fragmentIds.map((fragmentId) => readFragmentTertiary(fragmentId))
         )
       ).filter((fragment) => fragment !== null)
-      const requirementIds = Array.from(
+      const fragmentsWithoutRequirements = fragments.filter(
+        (fragment) => fragment.requirementsCount === 0
+      )
+      const mainRequirementIds = Array.from(
         new Set(fragments.flatMap((fragment) => fragment.requirementIds))
       )
-      const requirements =
-        (await readRequirementsSecondaryFiltered(requirementIds)) ?? []
+      const mainRequirements =
+        (await readRequirementsSecondaryFiltered(mainRequirementIds)) ?? []
+      const requirementsHierarchy =
+        await serverConnector.readRequirementsHierarchy()
+      const vertexForRequirementId = new Map(
+        requirementsHierarchy.vertexes.map((vertex) => [vertex.id, vertex])
+      )
+      const childIdsForRequirementId = (() => {
+        const childIdsForRequirementId = new Map<number, number[]>()
+        for (const link of requirementsHierarchy.links) {
+          if (childIdsForRequirementId.has(link.parentId) === false) {
+            childIdsForRequirementId.set(link.parentId, [])
+          }
+          childIdsForRequirementId.get(link.parentId)?.push(link.childId)
+        }
+        return childIdsForRequirementId
+      })()
+      const atomicIdsForMainRequirementId = (() => {
+        const atomicIdsForMainRequirementId = new Map<number, number[]>()
+        for (const mainRequirementId of mainRequirementIds) {
+          let atomicIds: number[] = []
+          let notProcessedIds = [mainRequirementId]
+          let processedIdsSet = new Set<number>()
+          while (notProcessedIds.length > 0) {
+            for (const requirementId of notProcessedIds) {
+              if (processedIdsSet.has(requirementId) === false) {
+                processedIdsSet.add(requirementId)
+                const vertex = vertexForRequirementId.get(requirementId)
+                if (vertex !== undefined) {
+                  if (vertex.atomic) {
+                    atomicIds.push(requirementId)
+                  } else {
+                    notProcessedIds.push(
+                      ...(childIdsForRequirementId.get(requirementId) ?? [])
+                    )
+                  }
+                }
+              }
+            }
+            notProcessedIds = notProcessedIds.filter(
+              (id) => processedIdsSet.has(id) === false
+            )
+          }
+          atomicIdsForMainRequirementId.set(mainRequirementId, atomicIds)
+        }
+        return atomicIdsForMainRequirementId
+      })()
+      const atomicRequirementIds = (() => {
+        const atomicRequirementIds: number[] = []
+        for (const requirementId of mainRequirementIds) {
+          atomicRequirementIds.push(
+            ...(atomicIdsForMainRequirementId.get(requirementId) ?? [])
+          )
+        }
+        return Array.from(new Set(atomicRequirementIds))
+      })()
+      const allRequirementIds = Array.from(
+        new Set([...mainRequirementIds, ...atomicRequirementIds])
+      )
+      const allRequirements =
+        (await readRequirementsSecondaryFiltered(allRequirementIds)) ?? []
+      const atomicRequirements = allRequirements.filter(
+        (requirement) => requirement.childRequirementsCount === 0
+      )
       const testIds = Array.from(
         new Set(
-          requirements
+          atomicRequirements
             .map((requirement) => requirement.testId)
             .filter((testId) => testId !== null)
         )
@@ -83,43 +167,27 @@ export function DocumentRequirementsGrid({
         )
       )
       const groups = (await readGroupsSecondaryFiltered(groupIds)) ?? []
+      setHierarchy(requirementsHierarchy)
       setFragments(fragments)
-      setRequirements(requirements)
+      setFragmentsWithoutRequirements(fragmentsWithoutRequirements)
+      setAtomicIdsForMainRequirementId(atomicIdsForMainRequirementId)
+      setMainRequirements(mainRequirements)
+      setRequirements(allRequirements)
       setTests(tests)
       setSubgroups(subgroups)
       setGroups(groups)
     })()
   }, [document])
 
-  // const fragmentIdsSet = React.useMemo(
-  //   () => new Set(fragments.map((fragment) => fragment.id)),
-  //   [fragments]
-  // )
+  const vertexForRequirementId = React.useMemo(
+    () => new Map(hierarchy.vertexes.map((vertex) => [vertex.id, vertex])),
+    [hierarchy]
+  )
 
-  // const requirementIdsSet = React.useMemo(
-  //   () => new Set(requirements.map((requirement) => requirement.id)),
-  //   [requirements]
-  // )
-
-  // const testIdsSet = React.useMemo(
-  //   () => new Set(tests.map((test) => test.id)),
-  //   [tests]
-  // )
-
-  // const subgroupIdsSet = React.useMemo(
-  //   () => new Set(subgroups.map((subgroup) => subgroup.id)),
-  //   [subgroups]
-  // )
-
-  // const groupIdsSet = React.useMemo(
-  //   () => new Set(groups.map((group) => group.id)),
-  //   [groups]
-  // )
-
-  // const fragmentForId = React.useMemo(
-  //   () => new Map(fragments.map((fragment) => [fragment.id, fragment])),
-  //   [fragments]
-  // )
+  const fragmentForId = React.useMemo(
+    () => new Map(fragments?.map((fragment) => [fragment.id, fragment])),
+    [fragments]
+  )
 
   const requirementForId = React.useMemo(
     () =>
@@ -128,6 +196,19 @@ export function DocumentRequirementsGrid({
       ),
     [requirements]
   )
+
+  const fragmentIdsForRequirementId = React.useMemo(() => {
+    const result = new Map<number, number[]>()
+    for (const fragment of fragments) {
+      for (const requirementId of fragment.requirementIds) {
+        if (result.has(requirementId) === false) {
+          result.set(requirementId, [])
+        }
+        result.get(requirementId)!.push(fragment.id)
+      }
+    }
+    return result
+  }, [fragments])
 
   const testForId = React.useMemo(
     () => new Map(tests.map((test) => [test.id, test])),
@@ -144,124 +225,236 @@ export function DocumentRequirementsGrid({
     [groups]
   )
 
-  // const fragmentIdsWithoutRequirements = React.useMemo(
-  //   () =>
-  //     fragments
-  //       .filter((fragment) => fragment.requirementsCount === 0)
-  //       .map((fragment) => fragment.id),
-  //   [fragments]
-  // )
-
-  // const requirementIdsWithoutTest = React.useMemo(
-  //   () =>
-  //     requirements
-  //       .filter((requirement) => requirement.testId === null)
-  //       .map((requirement) => requirement.id),
-  //   [requirements]
-  // )
-
-  // const testIdsWithoutSubgroup = React.useMemo(
-  //   () =>
-  //     tests.filter((test) => test.subgroupId === null).map((test) => test.id),
-  //   [tests]
-  // )
-
-  // const subgroupIdsWithoutGroup = React.useMemo(
-  //   () =>
-  //     subgroups
-  //       .filter((subgroup) => subgroup.groupId === null)
-  //       .map((subgroup) => subgroup.id),
-  //   [subgroups]
-  // )
-
   const rows: GridValidRowModel[] = React.useMemo(
     () =>
       [
-        ...fragments.flatMap((fragment) => {
-          const requirementIds = fragment.requirementIds
-          if (requirementIds.length === 0) {
-            return [
-              {
-                id: `++++${fragment.id}`,
-                fragmentId: fragment.id,
-                fragmentInnerCode: fragment.innerCode,
-                requirementId: undefined,
-                requirementCode: '',
-                covered: false,
-                modifier: '',
-                origin: '',
-                testId: undefined,
-                testCode: '',
-                subgroupId: undefined,
-                subgroupCode: '',
-                groupId: undefined,
-                groupCode: ''
-              }
-            ]
-          } else {
-            return requirementIds.map((requirementId) => {
-              const requirement = requirementForId.get(requirementId) ?? null
-              const test =
-                (requirement?.testId ?? null) !== null
-                  ? (testForId.get(requirement!.testId!) ?? null)
-                  : null
-              const subgroup =
-                (test?.subgroupId ?? null) !== null
-                  ? (subgroupForId.get(test!.subgroupId!) ?? null)
-                  : null
-              const group =
-                (subgroup?.groupId ?? null) !== null
-                  ? (groupForId.get(subgroup!.groupId!) ?? null)
-                  : null
-              return {
-                id: `${group?.id ?? ''}${subgroup?.id ?? ''}${test?.id ?? ''}${requirement?.id ?? ''}${fragment.id}`,
-                fragmentId: fragment.id,
-                fragmentInnerCode: fragment.innerCode,
-                requirementId: requirement?.id ?? undefined,
-                requirementCode: requirement?.code ?? '',
-                covered: test !== null,
-                modifier: requirement?.modifier ?? '',
-                origin: requirement?.origin ?? '',
-                testId: test?.id ?? undefined,
-                testCode: test?.code ?? '',
-                subgroupId: subgroup?.id ?? undefined,
-                subgroupCode: subgroup?.code ?? '',
-                groupId: group?.id ?? undefined,
-                groupCode: group?.code ?? ''
-              }
-            })
-          }
+        {
+          id: '+',
+          fragmentIds: fragmentsWithoutRequirements.map(
+            (fragment) => fragment.id
+          ),
+          fragmentInnerCodes: fragmentsWithoutRequirements.map(
+            (fragment) => fragment.innerCode
+          ),
+          requirementId: undefined,
+          requirementCode: '',
+          fullCoverageRate: undefined,
+          onlyMustCoverageRate: undefined,
+          mustAndShouldCoverageRate: undefined,
+          onlyShouldCoverageRate: undefined,
+          onlyMayCoverageRate: undefined,
+          atomicRequirementId: undefined,
+          atomicRequirementCode: '',
+          modifier: '',
+          origin: '',
+          covered: undefined,
+          testId: undefined,
+          subgroupId: undefined,
+          groupId: undefined
+        },
+        ...mainRequirements.flatMap((mainRequirement) => {
+          const mainRequirementId = mainRequirement.id
+          const mainRequirementVertex =
+            vertexForRequirementId.get(mainRequirementId)
+          const fragmentIds =
+            fragmentIdsForRequirementId.get(mainRequirementId) ?? []
+          const atomicRequirementIds =
+            atomicIdsForMainRequirementId.get(mainRequirementId) ?? []
+          return atomicRequirementIds.map((atomicRequirementId) => {
+            const atomicRequirement =
+              requirementForId.get(atomicRequirementId) ?? null
+            const atomicRequirementVertex =
+              vertexForRequirementId.get(atomicRequirementId)
+            const test =
+              (atomicRequirement?.testId ?? null) !== null
+                ? (testForId.get(atomicRequirement!.testId!) ?? null)
+                : null
+            const subgroup =
+              (test?.subgroupId ?? null) !== null
+                ? (subgroupForId.get(test!.subgroupId!) ?? null)
+                : null
+            const group =
+              (subgroup?.groupId ?? null) !== null
+                ? (groupForId.get(subgroup!.groupId!) ?? null)
+                : null
+            return {
+              id: `${fragmentIds.join('-')}+${mainRequirementId}+${atomicRequirementId}`,
+              fragmentIds: fragmentIds,
+              fragmentInnerCodes: fragmentIds.map(
+                (fragmentId) => fragmentForId.get(fragmentId)?.id
+              ),
+              requirementId: mainRequirementId,
+              requirementCode: mainRequirementVertex?.code ?? '',
+              fullCoverageRate:
+                atomicRequirementVertex !== undefined
+                  ? atomicRequirementVertex.atomic
+                    ? `${atomicRequirementVertex.testId !== null ? '1' : '0'} / 1`
+                    : `${atomicRequirementVertex.coveredRate.full} / ${atomicRequirementVertex.aggregateRate.full}`
+                  : '0 / 0',
+              onlyMustCoverageRate:
+                atomicRequirementVertex !== undefined
+                  ? atomicRequirementVertex.atomic
+                    ? `${atomicRequirementVertex.testId !== null && atomicRequirementVertex.modifier === 'MUST' ? '1' : '0'} / ${atomicRequirementVertex.modifier === 'MUST' ? '1' : '0'}`
+                    : `${atomicRequirementVertex.coveredRate.onlyMust} / ${atomicRequirementVertex.aggregateRate.onlyMust}`
+                  : '0 / 0',
+              mustAndShouldCoverageRate:
+                atomicRequirementVertex !== undefined
+                  ? atomicRequirementVertex.atomic
+                    ? `${atomicRequirementVertex.testId !== null && atomicRequirementVertex.modifier !== 'MAY' ? '1' : '0'} / ${atomicRequirementVertex.modifier !== 'MAY' ? '1' : '0'}`
+                    : `${atomicRequirementVertex.coveredRate.mustAndShould} / ${atomicRequirementVertex.aggregateRate.mustAndShould}`
+                  : '0 / 0',
+              onlyShouldCoverageRate:
+                atomicRequirementVertex !== undefined
+                  ? atomicRequirementVertex.atomic
+                    ? `${atomicRequirementVertex.testId !== null && atomicRequirementVertex.modifier === 'SHOULD' ? '1' : '0'} / ${atomicRequirementVertex.modifier === 'SHOULD' ? '1' : '0'}`
+                    : `${atomicRequirementVertex.coveredRate.onlyShould} / ${atomicRequirementVertex.aggregateRate.onlyShould}`
+                  : '0 / 0',
+              onlyMayCoverageRate:
+                atomicRequirementVertex !== undefined
+                  ? atomicRequirementVertex.atomic
+                    ? `${atomicRequirementVertex.testId !== null && atomicRequirementVertex.modifier === 'MAY' ? '1' : '0'} / ${atomicRequirementVertex.modifier === 'MAY' ? '1' : '0'}`
+                    : `${atomicRequirementVertex.coveredRate.onlyMay} / ${atomicRequirementVertex.aggregateRate.onlyMay}`
+                  : '0 / 0',
+              atomicRequirementId: atomicRequirementId,
+              atomicRequirementCode: atomicRequirement?.code ?? '',
+              modifier: atomicRequirement?.modifier ?? '',
+              origin: atomicRequirement?.origin ?? '',
+              covered: (atomicRequirement?.testId ?? null) !== null,
+              testId: test?.id ?? undefined,
+              subgroupId: subgroup?.id ?? undefined,
+              groupId: group?.id ?? undefined
+            }
+          })
         })
-      ].toSorted((fragment_1, fragment_2) => {
-        function prepare(fragment: typeof fragment_1) {
-          return `${fragment.groupCode} ${fragment.subgroupCode} ${fragment.testCode} ${fragment.requirementCode} ${fragment.fragmentInnerCode}`
+      ].toSorted((raw_1, raw_2) => {
+        function prepare(raw: typeof raw_1) {
+          return `${raw_1.fragmentInnerCodes.join(', ')} ${raw_1.atomicRequirementCode}`
         }
-        return prepare(fragment_1).localeCompare(prepare(fragment_2))
+        return prepare(raw_1).localeCompare(prepare(raw_2))
       }),
     [
+      hierarchy,
       fragments,
+      fragmentsWithoutRequirements,
+      atomicIdsForMainRequirementId,
+      mainRequirements,
       requirements,
+      tests,
+      subgroups,
+      groups,
+      vertexForRequirementId,
+      fragmentForId,
       requirementForId,
+      fragmentIdsForRequirementId,
       testForId,
       subgroupForId,
       groupForId
     ]
   )
 
+  // const rows: GridValidRowModel[] = React.useMemo(
+  //   () =>
+  //     [
+  //       ...fragments.flatMap((fragment) => {
+  //         const requirementIds = fragment.requirementIds
+  //         if (requirementIds.length === 0) {
+  //           return [
+  //             {
+  //               id: `++++${fragment.id}`,
+  //               fragmentIds: [fragment.id],
+  //               fragmentInnerCode: fragment.innerCode,
+  //               requirementId: undefined,
+  //               requirementCode: '',
+  //               covered: false,
+  //               modifier: '',
+  //               origin: '',
+  //               testId: undefined,
+  //               testCode: '',
+  //               subgroupId: undefined,
+  //               subgroupCode: '',
+  //               groupId: undefined,
+  //               groupCode: ''
+  //             }
+  //           ]
+  //         } else {
+  //           return requirementIds.map((requirementId) => {
+  //             const requirement = requirementForId.get(requirementId) ?? null
+  //             const test =
+  //               (requirement?.testId ?? null) !== null
+  //                 ? (testForId.get(requirement!.testId!) ?? null)
+  //                 : null
+  //             const subgroup =
+  //               (test?.subgroupId ?? null) !== null
+  //                 ? (subgroupForId.get(test!.subgroupId!) ?? null)
+  //                 : null
+  //             const group =
+  //               (subgroup?.groupId ?? null) !== null
+  //                 ? (groupForId.get(subgroup!.groupId!) ?? null)
+  //                 : null
+  //             return {
+  //               id: `${group?.id ?? ''}${subgroup?.id ?? ''}${test?.id ?? ''}${requirement?.id ?? ''}${fragment.id}`,
+  //               fragmentIds: [fragment.id],
+  //               fragmentInnerCode: fragment.innerCode,
+  //               requirementId: requirement?.id ?? undefined,
+  //               requirementCode: requirement?.code ?? '',
+  //               covered: test !== null,
+  //               modifier: requirement?.modifier ?? '',
+  //               origin: requirement?.origin ?? '',
+  //               testId: test?.id ?? undefined,
+  //               testCode: test?.code ?? '',
+  //               subgroupId: subgroup?.id ?? undefined,
+  //               subgroupCode: subgroup?.code ?? '',
+  //               groupId: group?.id ?? undefined,
+  //               groupCode: group?.code ?? ''
+  //             }
+  //           })
+  //         }
+  //       })
+  //     ].toSorted((fragment_1, fragment_2) => {
+  //       function prepare(fragment: typeof fragment_1) {
+  //         return `${fragment.groupCode} ${fragment.subgroupCode} ${fragment.testCode} ${fragment.requirementCode} ${fragment.fragmentInnerCode}`
+  //       }
+  //       return prepare(fragment_1).localeCompare(prepare(fragment_2))
+  //     }),
+  //   [
+  //     fragments,
+  //     requirements,
+  //     requirementForId,
+  //     testForId,
+  //     subgroupForId,
+  //     groupForId
+  //   ]
+  // )
+
   const readCols = [
-    useGroupCol(groups),
-    useSubgroupCol(subgroups),
-    useTestCol(tests),
-    useRequirementCol(requirements),
-    useCoveredCol('MIDDLE'),
+    useFragmentsCol(fragments),
+    useRequirementCol(mainRequirements),
+    useFullCoverageRateCol(),
+    useOnlyMustCoverageRateCol(),
+    useMustAndShouldCoverageRateCol(),
+    useOnlyShouldCoverageRateCol(),
+    useOnlyMayCoverageRateCol(),
+    useAtomicRequirementCol(requirements),
     useRequirementModifierCol(),
     useRequirementOriginCol(),
-    useFragmentCol(fragments)
+    useCoveredCol('MIDDLE'),
+    useTestCol(tests),
+    useSubgroupCol(subgroups),
+    useGroupCol(groups)
   ]
 
   const cols: GridColDef[] = React.useMemo(() => readCols, [readCols])
 
-  const defaultHiddenFields = React.useMemo(() => ['origin'], [])
+  const defaultHiddenFields = React.useMemo(
+    () => [
+      'origin',
+      'fullCoverageRate',
+      'mustAndShouldCoverageRate',
+      'onlyShouldCoverageRate',
+      'onlyMayCoverageRate'
+    ],
+    []
+  )
 
   return (
     <>

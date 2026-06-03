@@ -18,11 +18,12 @@ export function useOnlyMayCoverageRateCol() {
       field: 'onlyMayCoverageRate',
       headerName: 'Покр. необяз. атом. треб.',
       type: 'string',
-      renderCell: (params: GridRenderCellParams<any, string>) => (
-        <Center>
-          <PercentBar fraction={params.value ?? ''} />
-        </Center>
-      ),
+      renderCell: (params: GridRenderCellParams<any, string>) =>
+        params.value === undefined ? null : (
+          <Center>
+            <PercentBar fraction={params.value ?? ''} />
+          </Center>
+        ),
       minWidth: 180,
       flex: 0.01
     }),

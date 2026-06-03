@@ -18,11 +18,12 @@ export function useMustAndShouldCoverageRateCol() {
       field: 'mustAndShouldCoverageRate',
       headerName: 'Покр. обяз. и рекоменд. атом. треб.',
       type: 'string',
-      renderCell: (params: GridRenderCellParams<any, string>) => (
-        <Center>
-          <PercentBar fraction={params.value ?? ''} />
-        </Center>
-      ),
+      renderCell: (params: GridRenderCellParams<any, string>) =>
+        params.value === undefined ? null : (
+          <Center>
+            <PercentBar fraction={params.value ?? ''} />
+          </Center>
+        ),
       minWidth: 240,
       flex: 0.01
     }),
