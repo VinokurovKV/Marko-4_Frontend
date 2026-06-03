@@ -198,12 +198,17 @@ export function RequirementHoverPreview({
       ? (fragmentForId.get(selectedFragmentId) ?? null)
       : null
 
+  // const withLongDescription = React.useMemo(
+  //   () =>
+  //     !!(
+  //       requirement?.description &&
+  //       requirement.description.text.split('\n').length > 10
+  //     ),
+  //   [requirement]
+  // )
+
   const withLongDescription = React.useMemo(
-    () =>
-      !!(
-        requirement?.description &&
-        requirement.description.text.split('\n').length > 10
-      ),
+    () => !!requirement?.description,
     [requirement]
   )
 
