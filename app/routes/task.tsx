@@ -203,9 +203,7 @@ function TaskRouteInner({
 
       const initialData: CreateTaskFormData = {
         name:
-          task.name !== null && task.name.trim() !== ''
-            ? `Шаблон по ${task.name}`
-            : `Шаблон по ${task.code}`,
+          task.name !== null && task.name.trim() !== '' ? task.name : task.code,
         mode: task.mode,
         commonTopologyId: task.commonTopology.id,
         testIds: Array.from(testIds),
@@ -241,7 +239,7 @@ function TaskRouteInner({
             setCreateModeIsActive(true)
           }}
         >
-          использовать как шаблон
+          перезапустить
         </ProjButton>
       ) : null,
     [meta, createTaskInitialFormData]
