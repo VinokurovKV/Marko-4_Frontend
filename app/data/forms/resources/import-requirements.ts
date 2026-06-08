@@ -16,6 +16,8 @@ export type ImportRequirementsFormData = DtoWithoutEnums<
   } & {
     ignoreTestIfNotExists: boolean
   } & {
+    persistExistingRelations: boolean
+  } & {
     interruptIfError: boolean
   }
 >
@@ -28,6 +30,7 @@ export const INITIAL_IMPORT_REQUIREMENTS_FORM_DATA: ImportRequirementsFormData =
   {
     existingRequirementMode: 'ERROR',
     ignoreTestIfNotExists: false,
+    persistExistingRelations: false,
     interruptIfError: true
   }
 

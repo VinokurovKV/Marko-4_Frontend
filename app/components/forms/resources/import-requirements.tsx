@@ -180,7 +180,12 @@ export function ImportRequirementsFormDialog(
 
   const submitAction = React.useCallback(
     async (validatedData: ImportRequirementsFormData) => {
-      const { config, ignoreTestIfNotExists, interruptIfError } = validatedData
+      const {
+        config,
+        ignoreTestIfNotExists,
+        persistExistingRelations,
+        interruptIfError
+      } = validatedData
 
       const tagIdForCode = new Map(
         (tags ?? []).map((tag) => [tag.code, tag.id])
@@ -248,6 +253,7 @@ export function ImportRequirementsFormDialog(
             const tagIds = params.tagCodes?.map(
               (tagCode) => tagIdForCode.get(tagCode)!
             )
+            const tagIdsSet = new Set(tagIds)
             //
             const nonexistentParentRequirementCodes = (
               params.parentRequirementCodes ?? []
@@ -260,6 +266,7 @@ export function ImportRequirementsFormDialog(
             const parentRequirementIds = params.parentRequirementCodes?.map(
               (requirementCode) => requirementIdForCode.get(requirementCode)!
             )
+            const parentRequirementIdsSet = new Set(parentRequirementIds)
             //
             const nonexistentChildRequirementCodes = (
               params.childRequirementCodes ?? []
@@ -272,6 +279,7 @@ export function ImportRequirementsFormDialog(
             const childRequirementIds = params.childRequirementCodes?.map(
               (requirementCode) => requirementIdForCode.get(requirementCode)!
             )
+            const childRequirementIdsSet = new Set(childRequirementIds)
             //
             const testId = (() => {
               const testCode = params.testCode
@@ -302,13 +310,12 @@ export function ImportRequirementsFormDialog(
                 scope: 'UP_TO_TERTIARY_PROPS'
               }
             )
-            const oldTagIdsSet = new Set(requirement.tagIds)
-            const oldParentRequirementIdsSet = new Set(
-              requirement.parentRequirementIds
-            )
-            const oldChildRequirementIdsSet = new Set(
-              requirement.childRequirementIds
-            )
+            const oldTagIds = requirement.tagIds
+            const oldTagIdsSet = new Set(oldTagIds)
+            const oldParentRequirementIds = requirement.parentRequirementIds
+            const oldParentRequirementIdsSet = new Set(oldParentRequirementIds)
+            const oldChildRequirementIds = requirement.childRequirementIds
+            const oldChildRequirementIdsSet = new Set(oldChildRequirementIds)
             //
             if (
               requirement.code !== params.code ||
@@ -324,12 +331,22 @@ export function ImportRequirementsFormDialog(
                 (requirement.remark?.text ?? null) !==
                   (params.remark?.text ?? null)) ||
               (tagIds ?? []).some((id) => oldTagIdsSet.has(id) === false) ||
+              (persistExistingRelations === false &&
+                (oldTagIds ?? []).some((id) => tagIdsSet.has(id) === false)) ||
               (parentRequirementIds ?? []).some(
                 (id) => oldParentRequirementIdsSet.has(id) === false
               ) ||
+              (persistExistingRelations === false &&
+                (oldParentRequirementIds ?? []).some(
+                  (id) => parentRequirementIdsSet.has(id) === false
+                )) ||
               (childRequirementIds ?? []).some(
                 (id) => oldChildRequirementIdsSet.has(id) === false
-              )
+              ) ||
+              (persistExistingRelations === false &&
+                (oldChildRequirementIds ?? []).some(
+                  (id) => childRequirementIdsSet.has(id) === false
+                ))
             ) {
               // TODO: для предотвращения ошибок
               const updateRequirementConfig = {
@@ -343,17 +360,33 @@ export function ImportRequirementsFormDialog(
                 description: params.description,
                 remark: params.remark,
                 tagIds: {
-                  added: tagIds?.filter((id) => oldTagIdsSet.has(id) === false)
+                  added: tagIds?.filter((id) => oldTagIdsSet.has(id) === false),
+                  removed:
+                    persistExistingRelations === false
+                      ? oldTagIds?.filter((id) => tagIdsSet.has(id) === false)
+                      : undefined
                 },
                 parentRequirementIds: {
                   added: parentRequirementIds?.filter(
                     (id) => oldParentRequirementIdsSet.has(id) === false
-                  )
+                  ),
+                  removed:
+                    persistExistingRelations === false
+                      ? oldParentRequirementIds?.filter(
+                          (id) => parentRequirementIdsSet.has(id) === false
+                        )
+                      : undefined
                 },
                 childRequirementIds: {
                   added: childRequirementIds?.filter(
                     (id) => oldChildRequirementIdsSet.has(id) === false
-                  )
+                  ),
+                  removed:
+                    persistExistingRelations === false
+                      ? oldChildRequirementIds?.filter(
+                          (id) => childRequirementIdsSet.has(id) === false
+                        )
+                      : undefined
                 }
               }
               try {
@@ -702,6 +735,12 @@ export function ImportRequirementsFormDialog(
           name="ignoreTestIfNotExists"
           label="игнорировать тест при его отсутствии в системе"
           checked={data.ignoreTestIfNotExists}
+          onChange={handleCheckboxChange}
+        />
+        <FormCheckbox
+          name="persistExistingRelations"
+          label="сохранять существующие связи"
+          checked={data.persistExistingRelations}
           onChange={handleCheckboxChange}
         />
         <FormCheckbox

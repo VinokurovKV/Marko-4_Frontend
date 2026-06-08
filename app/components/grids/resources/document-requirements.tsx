@@ -98,9 +98,9 @@ export function DocumentRequirementsGrid({
       const atomicIdsForMainRequirementId = (() => {
         const atomicIdsForMainRequirementId = new Map<number, number[]>()
         for (const mainRequirementId of mainRequirementIds) {
-          let atomicIds: number[] = []
+          const atomicIds: number[] = []
           let notProcessedIds = [mainRequirementId]
-          let processedIdsSet = new Set<number>()
+          const processedIdsSet = new Set<number>()
           while (notProcessedIds.length > 0) {
             for (const requirementId of notProcessedIds) {
               if (processedIdsSet.has(requirementId) === false) {
@@ -267,8 +267,6 @@ export function DocumentRequirementsGrid({
           return atomicRequirementIds.map((atomicRequirementId) => {
             const atomicRequirement =
               requirementForId.get(atomicRequirementId) ?? null
-            const atomicRequirementVertex =
-              vertexForRequirementId.get(atomicRequirementId)
             const test =
               (atomicRequirement?.testId ?? null) !== null
                 ? (testForId.get(atomicRequirement!.testId!) ?? null)
@@ -331,6 +329,7 @@ export function DocumentRequirementsGrid({
           })
         })
       ].toSorted((raw_1, raw_2) => {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         function prepare(raw: typeof raw_1) {
           return `${raw_1.fragmentInnerCodes.join(', ')} ${raw_1.atomicRequirementCode}`
         }

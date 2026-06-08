@@ -10,6 +10,7 @@ import { alpha, styled } from '@mui/material/styles'
 import { useRichTreeViewApiRef } from '@mui/x-tree-view/hooks'
 import type { TreeViewDefaultItemModelProperties } from '@mui/x-tree-view/models'
 import { RichTreeView } from '@mui/x-tree-view/RichTreeView'
+import type { TreeItemProps } from '@mui/x-tree-view/TreeItem'
 import { TreeItem, treeItemClasses } from '@mui/x-tree-view/TreeItem'
 import Stack from '@mui/material/Stack'
 import Box from '@mui/material/Box'
@@ -225,24 +226,26 @@ const filterTree = (
     .filter((item): item is TreeViewDefaultItemModelProperties => item !== null)
 }
 
-const CustomTreeItem = styled((props: any) => {
-  const { itemId, ...other } = props
+const CustomTreeItem = styled((props: TreeItemProps) => {
+  const { itemId, slotProps, ...other } = props
+
   return (
     <TreeItem
       {...other}
       itemId={itemId}
       slotProps={{
-        ...other.slotProps,
+        ...slotProps,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         root: {
-          ...other.slotProps?.root,
+          ...(slotProps?.root as Record<string, unknown>),
           'data-id': itemId
-        },
+        } as any,
         iconContainer: {
           onMouseDown: (e: React.MouseEvent) => {
             e.stopPropagation()
             e.preventDefault()
           },
-          ...other.slotProps?.iconContainer
+          ...slotProps?.iconContainer
         }
       }}
     />
@@ -307,7 +310,8 @@ export function TestsHierarchyTree({
     try {
       const saved = localStorage.getItem(STORAGE_KEYS.EXPANDED_ITEMS)
       if (saved) {
-        const parsed = JSON.parse(saved)
+        const parsed = JSON.parse(saved) as unknown
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
         return Array.isArray(parsed) ? parsed : []
       }
     } catch {
