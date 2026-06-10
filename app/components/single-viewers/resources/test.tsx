@@ -16,6 +16,7 @@ import type {
 } from '~/types'
 import { usePopupPreviewVisibilitySettings } from '~/hooks/popup-preview-visibility'
 import { serverConnector } from '~/server-connector'
+import { useLocationHash } from '~/hooks/use-location-hash'
 import { useDialogs } from '~/providers/dialogs'
 import {
   readTopologiesPrimary,
@@ -28,9 +29,12 @@ import { useMeta } from '~/providers/meta'
 import { FlagIcon } from '~/components/icons'
 import { MarkdownView } from '~/components/markdown-view'
 import {
+  ContainerWithTitle,
   HorizontalTwoPartsContainer,
   VerticalTwoPartsContainer
 } from '~/components/containers'
+import type { TabViewerProps } from '~/components/tab-viewer'
+import { TabViewer } from '~/components/tab-viewer'
 import { CommonTopologyHoverPreview } from '~/components/topologies/common-topology-hover-preview'
 import { TopologyHoverPreview } from '~/components/topologies/topology-hover-preview'
 import { TopologyConfigSchema } from '~/components/topologies/topology-config-schema'
@@ -55,11 +59,15 @@ import Box from '@mui/material/Box'
 import CircularProgress from '@mui/material/CircularProgress'
 import type { SelectChangeEvent } from '@mui/material/Select'
 import Stack from '@mui/material/Stack'
+import Tab from '@mui/material/Tab'
 import Typography from '@mui/material/Typography'
 // Other
 import capitalize from 'capitalize'
 
 const FRAGMENT_SCREENSHOT_LOADER_DELAY_MS = 250
+
+type TabVal = 'all' | 'description'
+type Tab = TabViewerProps<TabVal>['tabs'][0]
 
 export interface TestViewerProps {
   tags: TagPrimary[] | null
@@ -92,6 +100,7 @@ export function TestViewer({
   const isHierarchyPath = location.pathname.startsWith('/hierarchy')
   const { settings } = usePopupPreviewVisibilitySettings()
   const navigate = useNavigate()
+  const [tabValue, setTabValue] = useLocationHash<TabVal>('all')
   const notifier = useNotifier()
   const meta = useMeta()
   const rightsSet = React.useMemo(
@@ -123,6 +132,27 @@ export function TestViewer({
   >([])
   const [efSubgroups, setEfSubgroups] = React.useState<SubgroupPrimary[]>([])
   const [updatedTestId, setUpdatedTestId] = React.useState<number | null>(null)
+
+  const handleTabChange = React.useCallback(
+    (event: React.SyntheticEvent, value: TabVal) => {
+      setTabValue(value)
+    },
+    [setTabValue]
+  )
+
+  const tabs: Tab[] = React.useMemo(
+    () => [
+      {
+        label: 'Общее',
+        value: 'all'
+      },
+      {
+        label: 'Описание',
+        value: 'description'
+      }
+    ],
+    []
+  )
 
   const documentCodeForId = React.useMemo(
     () =>
@@ -417,321 +447,344 @@ export function TestViewer({
 
   return (
     <>
-      <HorizontalTwoPartsContainer
-        proportions="EQUAL"
-        title={['Тест', `${test.code}`]}
-      >
-        <VerticalTwoPartsContainer proportions="50_50">
-          <ColumnViewer>
-            <ColumnViewerBlock title="вид навигации">
-              <ColumnViewerChipsBlock
-                items={[
-                  {
-                    text: 'таблица',
-                    href: `/tests/${test.id}`
-                  },
-                  {
-                    text: 'иерархия',
-                    href: `/hierarchy/tests/${test.id}`
-                  }
-                ]}
-              />
-            </ColumnViewerBlock>
-            <ColumnViewerBlock title="действия">
-              <ColumnViewerActions
-                onUpdateClick={
-                  rightsSet.has('UPDATE_TEST') ? handleUpdateClick : undefined
-                }
-                onDeleteClick={
-                  rightsSet.has('DELETE_TEST') ? handleDeleteClick : undefined
-                }
-              />
-            </ColumnViewerBlock>
-            <ColumnViewerBlock title="основная информация">
-              <ColumnViewerItem field="код" val={test.code} />
-              <ColumnViewerItem field="название" val={test.name ?? ''} />
-              <ColumnViewerItem
-                field="готовность"
-                Icon={
-                  <FlagIcon
-                    flag={test.prepared}
-                    truePrompt="все необходимые конфигурации загружены"
-                    falsePrompt="не все необходимые конфигурации загружены"
+      <ContainerWithTitle title={['Тест', `${test.code}`]}>
+        <TabViewer tabs={tabs} onChange={handleTabChange} value={tabValue} />
+        {tabValue === 'all' ? (
+          <HorizontalTwoPartsContainer proportions="EQUAL">
+            <VerticalTwoPartsContainer proportions="50_50">
+              <ColumnViewer>
+                <ColumnViewerBlock title="вид навигации">
+                  <ColumnViewerChipsBlock
+                    items={[
+                      {
+                        text: 'таблица',
+                        href: `/tests/${test.id}`
+                      },
+                      {
+                        text: 'иерархия',
+                        href: `/hierarchy/tests/${test.id}`
+                      }
+                    ]}
                   />
-                }
-              />
-              <ColumnViewerRef
-                field="группа"
-                text={group?.code}
-                href={
-                  group !== null
-                    ? `${isHierarchyPath ? '/hierarchy' : ''}/groups/${group.id}`
-                    : undefined
-                }
-              />
-              <ColumnViewerRef
-                field="подгруппа"
-                text={subgroup?.code}
-                href={
-                  test.subgroupId !== null
-                    ? `${isHierarchyPath ? '/hierarchy' : ''}/subgroups/${test.subgroupId}`
-                    : undefined
-                }
-              />
-              <ColumnViewerItem
-                field="номер в подгруппе"
-                val={test.numInSubgroup ?? undefined}
-              />
-              <ColumnViewerRef
-                field="общая топология"
-                text={commonTopology?.code ?? '???'}
-                href={
-                  commonTopology !== null
-                    ? `/common-topologies/${commonTopology?.id}`
-                    : undefined
-                }
-                hoverPreview={
-                  settings.commonTopology && commonTopology !== null
-                    ? {
-                        renderContent: (_active, onReadyChange) => (
-                          <CommonTopologyHoverPreview
-                            key={commonTopology.id}
-                            commonTopologyId={commonTopology.id}
-                            text={commonTopology.code}
-                            onReadyChange={onReadyChange}
-                          />
-                        )
-                      }
-                    : undefined
-                }
-              />
-              <ColumnViewerRef
-                field="топология"
-                text={topology?.code ?? '???'}
-                href={`/topologies/${test.topologyId}`}
-                hoverPreview={
-                  settings.topology && topology !== null
-                    ? {
-                        renderContent: (_active, onReadyChange) => (
-                          <TopologyHoverPreview
-                            key={topology.id}
-                            topologyId={topology.id}
-                            text={topology.code}
-                            onReadyChange={onReadyChange}
-                          />
-                        )
-                      }
-                    : undefined
-                }
-              />
-              <ColumnViewerRef
-                field="шаблон"
-                text={testTemplate?.code}
-                href={
-                  test.testTemplateId !== null
-                    ? `/test-templates/${test.testTemplateId}`
-                    : undefined
-                }
-              />
-              {test.config !== null ? (
-                <ColumnViewerFile
-                  id={test.id}
-                  field="конфигурация"
-                  fieldFull={`конфигурация теста «${test.code}»`}
-                  name={`${test.code}-config`}
-                  size={test.config.size}
-                  format={test.config.format}
-                  getFileBlob={getConfigBlob}
-                  withBrowse
-                />
-              ) : (
-                <ColumnViewerItem field="конфигурация" />
-              )}
-              <ColumnViewerRef
-                field="история"
-                text="ПЕРЕЙТИ"
-                href={`/history/tests/${test.id}`}
-              />
-            </ColumnViewerBlock>
-            {test.vertexes.map((vertex, vertexIndex) => (
-              <ColumnViewerBlock
-                key={vertex.vertexName}
-                title={`вершина ${vertex.vertexName}`}
-              >
-                <>
-                  {vertex.dbcId !== null ? (
-                    <>
-                      <ColumnViewerRef
-                        field="базовая конфигурация"
-                        text={dbcCodeForId.get(vertex.dbcId) ?? '???'}
-                        href={`/dbcs/${test.topologyId}`}
+                </ColumnViewerBlock>
+                <ColumnViewerBlock title="действия">
+                  <ColumnViewerActions
+                    onUpdateClick={
+                      rightsSet.has('UPDATE_TEST')
+                        ? handleUpdateClick
+                        : undefined
+                    }
+                    onDeleteClick={
+                      rightsSet.has('DELETE_TEST')
+                        ? handleDeleteClick
+                        : undefined
+                    }
+                  />
+                </ColumnViewerBlock>
+                <ColumnViewerBlock title="основная информация">
+                  <ColumnViewerItem field="код" val={test.code} />
+                  <ColumnViewerItem field="название" val={test.name ?? ''} />
+                  <ColumnViewerItem
+                    field="готовность"
+                    Icon={
+                      <FlagIcon
+                        flag={test.prepared}
+                        truePrompt="все необходимые конфигурации загружены"
+                        falsePrompt="не все необходимые конфигурации загружены"
                       />
-                      <ColumnViewerFile
-                        id={vertexIndex}
-                        fieldFull={`базовая конфигурация «${dbcCodeForId.get(vertex.dbcId) ?? '???'}»`}
-                        name={`${dbcCodeForId.get(vertex.dbcId) ?? '???'}`}
-                        format="ZIP"
-                        getFileBlob={getDbcConfigBlob}
-                        hideTitle
-                        withBrowse
-                      />
-                    </>
-                  ) : (
-                    <ColumnViewerItem field="базовая конфигурация" val="нет" />
-                  )}
-                  {vertex.delta !== null ? (
+                    }
+                  />
+                  <ColumnViewerRef
+                    field="группа"
+                    text={group?.code}
+                    href={
+                      group !== null
+                        ? `${isHierarchyPath ? '/hierarchy' : ''}/groups/${group.id}`
+                        : undefined
+                    }
+                  />
+                  <ColumnViewerRef
+                    field="подгруппа"
+                    text={subgroup?.code}
+                    href={
+                      test.subgroupId !== null
+                        ? `${isHierarchyPath ? '/hierarchy' : ''}/subgroups/${test.subgroupId}`
+                        : undefined
+                    }
+                  />
+                  <ColumnViewerItem
+                    field="номер в подгруппе"
+                    val={test.numInSubgroup ?? undefined}
+                  />
+                  <ColumnViewerRef
+                    field="общая топология"
+                    text={commonTopology?.code ?? '???'}
+                    href={
+                      commonTopology !== null
+                        ? `/common-topologies/${commonTopology?.id}`
+                        : undefined
+                    }
+                    hoverPreview={
+                      settings.commonTopology && commonTopology !== null
+                        ? {
+                            renderContent: (_active, onReadyChange) => (
+                              <CommonTopologyHoverPreview
+                                key={commonTopology.id}
+                                commonTopologyId={commonTopology.id}
+                                text={commonTopology.code}
+                                onReadyChange={onReadyChange}
+                              />
+                            )
+                          }
+                        : undefined
+                    }
+                  />
+                  <ColumnViewerRef
+                    field="топология"
+                    text={topology?.code ?? '???'}
+                    href={`/topologies/${test.topologyId}`}
+                    hoverPreview={
+                      settings.topology && topology !== null
+                        ? {
+                            renderContent: (_active, onReadyChange) => (
+                              <TopologyHoverPreview
+                                key={topology.id}
+                                topologyId={topology.id}
+                                text={topology.code}
+                                onReadyChange={onReadyChange}
+                              />
+                            )
+                          }
+                        : undefined
+                    }
+                  />
+                  <ColumnViewerRef
+                    field="шаблон"
+                    text={testTemplate?.code}
+                    href={
+                      test.testTemplateId !== null
+                        ? `/test-templates/${test.testTemplateId}`
+                        : undefined
+                    }
+                  />
+                  {test.config !== null ? (
                     <ColumnViewerFile
-                      id={vertexIndex}
-                      field="delta-конфигурация"
-                      fieldFull={`delta-конфигурация теста «${test.code}»`}
-                      name={`${test.code}-${vertex.vertexName}-delta`}
-                      size={vertex.delta.size}
-                      format={vertex.delta.format}
-                      getFileBlob={getDeltaBlob}
+                      id={test.id}
+                      field="конфигурация"
+                      fieldFull={`конфигурация теста «${test.code}»`}
+                      name={`${test.code}-config`}
+                      size={test.config.size}
+                      format={test.config.format}
+                      getFileBlob={getConfigBlob}
                       withBrowse
                     />
                   ) : (
-                    <ColumnViewerItem field="delta-конфигурация" val="нет" />
+                    <ColumnViewerItem field="конфигурация" />
                   )}
-                </>
-              </ColumnViewerBlock>
-            ))}
-            <ColumnViewerBlock title="теги">
-              <ColumnViewerChipsBlock
-                emptyText={tags !== null ? 'нет' : '???'}
-                items={(tags ?? []).map((tag) => ({
-                  text: tag.code,
-                  href: `/tags/${tag.id}`
-                }))}
+                  <ColumnViewerRef
+                    field="история"
+                    text="ПЕРЕЙТИ"
+                    href={`/history/tests/${test.id}`}
+                  />
+                </ColumnViewerBlock>
+                {test.vertexes.map((vertex, vertexIndex) => (
+                  <ColumnViewerBlock
+                    key={vertex.vertexName}
+                    title={`вершина ${vertex.vertexName}`}
+                  >
+                    <>
+                      {vertex.dbcId !== null ? (
+                        <>
+                          <ColumnViewerRef
+                            field="базовая конфигурация"
+                            text={dbcCodeForId.get(vertex.dbcId) ?? '???'}
+                            href={`/dbcs/${test.topologyId}`}
+                          />
+                          <ColumnViewerFile
+                            id={vertexIndex}
+                            fieldFull={`базовая конфигурация «${dbcCodeForId.get(vertex.dbcId) ?? '???'}»`}
+                            name={`${dbcCodeForId.get(vertex.dbcId) ?? '???'}`}
+                            format="ZIP"
+                            getFileBlob={getDbcConfigBlob}
+                            hideTitle
+                            withBrowse
+                          />
+                        </>
+                      ) : (
+                        <ColumnViewerItem
+                          field="базовая конфигурация"
+                          val="нет"
+                        />
+                      )}
+                      {vertex.delta !== null ? (
+                        <ColumnViewerFile
+                          id={vertexIndex}
+                          field="delta-конфигурация"
+                          fieldFull={`delta-конфигурация теста «${test.code}»`}
+                          name={`${test.code}-${vertex.vertexName}-delta`}
+                          size={vertex.delta.size}
+                          format={vertex.delta.format}
+                          getFileBlob={getDeltaBlob}
+                          withBrowse
+                        />
+                      ) : (
+                        <ColumnViewerItem
+                          field="delta-конфигурация"
+                          val="нет"
+                        />
+                      )}
+                    </>
+                  </ColumnViewerBlock>
+                ))}
+                <ColumnViewerBlock title="теги">
+                  <ColumnViewerChipsBlock
+                    emptyText={tags !== null ? 'нет' : '???'}
+                    items={(tags ?? []).map((tag) => ({
+                      text: tag.code,
+                      href: `/tags/${tag.id}`
+                    }))}
+                  />
+                </ColumnViewerBlock>
+              </ColumnViewer>
+              <TopologyConfigSchema
+                config={topologyConfig}
+                nullConfigTitle="схема топологии"
               />
-            </ColumnViewerBlock>
-          </ColumnViewer>
-          <TopologyConfigSchema
-            config={topologyConfig}
-            nullConfigTitle="схема топологии"
-          />
-        </VerticalTwoPartsContainer>
-        <VerticalTwoPartsContainer proportions="45_55">
-          <ColumnViewer>
-            <Stack spacing={-2}>
-              <FormSelect
-                name="requirementId"
-                label="отображаемое в описании требование"
-                items={requirementSelectItemsWithEmpty}
-                value={requirementId ?? ''}
-                onChange={handleRequirementChange}
-              />
-            </Stack>
-            <ColumnViewerBlock title="покрываемые требования">
-              <ColumnViewerChipsBlock
-                emptyText="нет"
-                items={(requirements ?? []).map((requirement) => ({
-                  text: requirement.code,
-                  href: `/requirements/${requirement.id}`,
-                  disableCapitalize: true
-                }))}
-              />
-            </ColumnViewerBlock>
-            <ColumnViewerBlock
-              title={`фрагменты документов${(fragments ?? []).length > 0 ? ` (${(fragments ?? []).length})` : ''}`}
-            >
-              <ColumnViewerChipsBlock
-                emptyText="нет"
-                items={(fragments ?? []).map((fragment) => {
-                  const documentCode =
-                    documentCodeForId.get(fragment.documentId) ?? null
-                  return {
-                    text: `${documentCode ?? '???'} - ${fragment.innerCode}`,
-                    onClick: () => handleFragmentClick(fragment.id),
-                    isActive: selectedFragmentId === fragment.id,
-                    disableCapitalize: true
-                  }
-                })}
-              />
-            </ColumnViewerBlock>
-          </ColumnViewer>
-          <ColumnViewer>
-            {selectedFragmentId !== null ? (
-              <ColumnViewerBlock title="фрагмент">
-                <Box
-                  flexDirection="column"
-                  sx={{
-                    position: 'relative',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    width: '100%',
-                    p: 1
-                  }}
+            </VerticalTwoPartsContainer>
+            <VerticalTwoPartsContainer proportions="45_55">
+              <ColumnViewer>
+                <Stack spacing={-2}>
+                  <FormSelect
+                    name="requirementId"
+                    label="отображаемое в описании требование"
+                    items={requirementSelectItemsWithEmpty}
+                    value={requirementId ?? ''}
+                    onChange={handleRequirementChange}
+                  />
+                </Stack>
+                <ColumnViewerBlock title="покрываемые требования">
+                  <ColumnViewerChipsBlock
+                    emptyText="нет"
+                    items={(requirements ?? []).map((requirement) => ({
+                      text: requirement.code,
+                      href: `/requirements/${requirement.id}`,
+                      disableCapitalize: true
+                    }))}
+                  />
+                </ColumnViewerBlock>
+                <ColumnViewerBlock
+                  title={`фрагменты документов${(fragments ?? []).length > 0 ? ` (${(fragments ?? []).length})` : ''}`}
                 >
-                  {selectedFragment !== null ? (
-                    <ColumnViewerRef
-                      field="документ"
-                      text={
-                        documentCodeForId.get(selectedFragment.documentId) ??
-                        '???'
+                  <ColumnViewerChipsBlock
+                    emptyText="нет"
+                    items={(fragments ?? []).map((fragment) => {
+                      const documentCode =
+                        documentCodeForId.get(fragment.documentId) ?? null
+                      return {
+                        text: `${documentCode ?? '???'} - ${fragment.innerCode}`,
+                        onClick: () => handleFragmentClick(fragment.id),
+                        isActive: selectedFragmentId === fragment.id,
+                        disableCapitalize: true
                       }
-                      href={
-                        selectedFragment.documentId !== null
-                          ? `/documents/${selectedFragment.documentId}?fragmentId=${selectedFragment.id}`
-                          : undefined
-                      }
-                    />
-                  ) : null}
-                  {selectedFragmentScreenshotUrl !== null &&
-                  fragmentScreenshotLoadError === false ? (
+                    })}
+                  />
+                </ColumnViewerBlock>
+              </ColumnViewer>
+              <ColumnViewer>
+                {selectedFragmentId !== null ? (
+                  <ColumnViewerBlock title="фрагмент">
                     <Box
-                      component="img"
-                      src={selectedFragmentScreenshotUrl}
-                      alt={
-                        selectedFragment !== null
-                          ? `Скриншот фрагмента ${selectedFragment.innerCode}`
-                          : 'Скриншот фрагмента'
-                      }
+                      flexDirection="column"
                       sx={{
-                        width: '100%',
-                        height: 'auto',
-                        objectFit: 'contain',
-                        borderRadius: 1
-                      }}
-                    />
-                  ) : fragmentScreenshotLoadError ? (
-                    <Typography textAlign="center" variant="body2">
-                      файл фрагмента не удалось отобразить как изображение
-                    </Typography>
-                  ) : (
-                    <Typography textAlign="center" variant="body2">
-                      загрузка скриншота...
-                    </Typography>
-                  )}
-                  {isFragmentScreenshotLoading &&
-                  showFragmentScreenshotLoader ? (
-                    <Box
-                      sx={{
-                        position: 'absolute',
-                        inset: 0,
+                        position: 'relative',
                         display: 'flex',
                         alignItems: 'center',
-                        justifyContent: 'center'
+                        justifyContent: 'center',
+                        width: '100%',
+                        p: 1
                       }}
                     >
-                      <CircularProgress size={24} />
+                      {selectedFragment !== null ? (
+                        <ColumnViewerRef
+                          field="документ"
+                          text={
+                            documentCodeForId.get(
+                              selectedFragment.documentId
+                            ) ?? '???'
+                          }
+                          href={
+                            selectedFragment.documentId !== null
+                              ? `/documents/${selectedFragment.documentId}?fragmentId=${selectedFragment.id}`
+                              : undefined
+                          }
+                        />
+                      ) : null}
+                      {selectedFragmentScreenshotUrl !== null &&
+                      fragmentScreenshotLoadError === false ? (
+                        <Box
+                          component="img"
+                          src={selectedFragmentScreenshotUrl}
+                          alt={
+                            selectedFragment !== null
+                              ? `Скриншот фрагмента ${selectedFragment.innerCode}`
+                              : 'Скриншот фрагмента'
+                          }
+                          sx={{
+                            width: '100%',
+                            height: 'auto',
+                            objectFit: 'contain',
+                            borderRadius: 1
+                          }}
+                        />
+                      ) : fragmentScreenshotLoadError ? (
+                        <Typography textAlign="center" variant="body2">
+                          файл фрагмента не удалось отобразить как изображение
+                        </Typography>
+                      ) : (
+                        <Typography textAlign="center" variant="body2">
+                          загрузка скриншота...
+                        </Typography>
+                      )}
+                      {isFragmentScreenshotLoading &&
+                      showFragmentScreenshotLoader ? (
+                        <Box
+                          sx={{
+                            position: 'absolute',
+                            inset: 0,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}
+                        >
+                          <CircularProgress size={24} />
+                        </Box>
+                      ) : null}
                     </Box>
-                  ) : null}
-                </Box>
-              </ColumnViewerBlock>
-            ) : (
-              <ColumnViewerBlock title="описание">
-                {filteredDescriptionText !== null ? (
-                  <MarkdownView text={filteredDescriptionText} />
+                  </ColumnViewerBlock>
                 ) : (
-                  <ColumnViewerText emptyText="нет" />
+                  <ColumnViewerBlock title="описание">
+                    {filteredDescriptionText !== null ? (
+                      <MarkdownView text={filteredDescriptionText} />
+                    ) : (
+                      <ColumnViewerText emptyText="нет" />
+                    )}
+                  </ColumnViewerBlock>
                 )}
-              </ColumnViewerBlock>
-            )}
+              </ColumnViewer>
+            </VerticalTwoPartsContainer>
+          </HorizontalTwoPartsContainer>
+        ) : (
+          <ColumnViewer>
+            <ColumnViewerBlock title="описание">
+              {filteredDescriptionText !== null ? (
+                <MarkdownView text={filteredDescriptionText} />
+              ) : (
+                <ColumnViewerText emptyText="нет" />
+              )}
+            </ColumnViewerBlock>
           </ColumnViewer>
-        </VerticalTwoPartsContainer>
-      </HorizontalTwoPartsContainer>
+        )}
+      </ContainerWithTitle>
       <UpdateTestFormDialog
         key={updatedTestId}
         topologies={efTopologies}
