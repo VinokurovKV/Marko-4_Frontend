@@ -464,6 +464,8 @@ import type {
   ReadTestExistsFlagSuccessResultDto,
   ReadTestParamsDto,
   ReadTestQueryDto,
+  ReadTestTasksParamsDto,
+  ReadTestTasksSuccessResultDto,
   ReadTestTransitionsCountParamsDto,
   ReadTestTransitionsCountQueryDto,
   ReadTestTransitionsCountSuccessResultDto,
@@ -2759,6 +2761,11 @@ export class ServerConnector {
     return this.withEmptyArray(params)
       ? Promise.resolve([])
       : this.getObject('/tests', params)
+  }
+  readTestTasks(
+    params: ReadTestTasksParamsDto
+  ): Result<ReadTestTasksSuccessResultDto> {
+    return this.getObject(`/tests/${params.id}/tasks`)
   }
   createTest(
     main: Params<CreateTestBodyMainDto>,

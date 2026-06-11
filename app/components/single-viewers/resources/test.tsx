@@ -12,7 +12,8 @@ import type {
   TestTemplatePrimary,
   TestTertiary,
   SubgroupPrimary,
-  GroupPrimary
+  GroupPrimary,
+  TaskPrimary
 } from '~/types'
 import { usePopupPreviewVisibilitySettings } from '~/hooks/popup-preview-visibility'
 import { serverConnector } from '~/server-connector'
@@ -81,6 +82,7 @@ export interface TestViewerProps {
   test: TestTertiary
   subgroup: SubgroupPrimary | null
   group: GroupPrimary | null
+  tasks: TaskPrimary[] | null
 }
 
 export function TestViewer({
@@ -94,7 +96,8 @@ export function TestViewer({
   testTemplate,
   test,
   subgroup,
-  group
+  group,
+  tasks
 }: TestViewerProps) {
   const location = useLocation()
   const isHierarchyPath = location.pathname.startsWith('/hierarchy')
@@ -642,6 +645,15 @@ export function TestViewer({
                     items={(tags ?? []).map((tag) => ({
                       text: tag.code,
                       href: `/tags/${tag.id}`
+                    }))}
+                  />
+                </ColumnViewerBlock>
+                <ColumnViewerBlock title="задания">
+                  <ColumnViewerChipsBlock
+                    emptyText={tasks !== null ? 'нет' : '???'}
+                    items={(tasks ?? []).map((task) => ({
+                      text: task.code,
+                      href: `/tasks/${task.id}`
                     }))}
                   />
                 </ColumnViewerBlock>

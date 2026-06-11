@@ -25,7 +25,8 @@ import {
   readDbcsPrimaryFiltered,
   readTestTemplatePrimary,
   readSubgroupSecondary,
-  readGroupPrimary
+  readGroupPrimary,
+  readTasksPrimaryFiltered
 } from '~/readers'
 import { useNotifier } from '~/providers/notifier'
 import { useMeta } from '~/providers/meta'
@@ -57,14 +58,22 @@ export async function clientLoader({ params }: Route.ClientLoaderArgs) {
   const [test] = await Promise.all([readTestTertiary(testId)])
   const tagIds = test?.tagIds ?? null
   const dbcIds = test?.dbcIds ?? null
-  const [tags, requirements, topology, dbcs, testTemplate, subgroup] =
+  const [tags, requirements, topology, dbcs, testTemplate, subgroup, taskIds] =
     await Promise.all([
       readTagsPrimaryFiltered(tagIds),
       readRequirementsPrimaryFiltered(test?.requirementIds ?? null),
       readTopologyTertiary(test?.topologyId ?? null),
       readDbcsPrimaryFiltered(dbcIds),
       readTestTemplatePrimary(test?.testTemplateId ?? null),
-      readSubgroupSecondary(test?.subgroupId ?? null)
+      readSubgroupSecondary(test?.subgroupId ?? null),
+      test !== null
+        ? serverConnector
+            .readTestTasks({
+              id: test.id
+            })
+            .then((result) => result.taskIds)
+            .catch(() => [] as number[])
+        : ([] as number[])
     ])
   const fragments =
     serverConnector.meta.status === 'AUTHENTICATED' &&
@@ -89,10 +98,11 @@ export async function clientLoader({ params }: Route.ClientLoaderArgs) {
   const documentIds = Array.from(
     new Set((fragments ?? []).map((fragment) => fragment.documentId))
   )
-  const [documents, commonTopology, group] = await Promise.all([
+  const [documents, commonTopology, group, tasks] = await Promise.all([
     readDocumentsPrimaryFiltered(documentIds),
     readCommonTopologyTertiary(topology?.commonTopologyId ?? null),
-    readGroupPrimary(subgroup?.groupId ?? null)
+    readGroupPrimary(subgroup?.groupId ?? null),
+    readTasksPrimaryFiltered(taskIds)
   ])
   return {
     testId,
@@ -106,7 +116,8 @@ export async function clientLoader({ params }: Route.ClientLoaderArgs) {
     testTemplate,
     test,
     subgroup,
-    group
+    group,
+    tasks
   }
 }
 
@@ -123,7 +134,8 @@ function TestRouteInner({
     testTemplate: initialTestTemplate,
     test: initialTest,
     subgroup: initialSubgroup,
-    group: initialGroup
+    group: initialGroup,
+    tasks: initialTasks
   }
 }: Route.ComponentProps) {
   const notifier = useNotifier()
@@ -228,6 +240,7 @@ function TestRouteInner({
       test={test}
       subgroup={subgroup}
       group={group}
+      tasks={initialTasks}
     />
   ) : null
 }
