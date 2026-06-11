@@ -187,18 +187,18 @@ function TaskRouteInner({
       }
       for (const orphanSubgroup of task.hierarchy.orphanSubgroups) {
         subgroupIds.add(orphanSubgroup.version.id)
-        for (const test of orphanSubgroup.tests) {
-          testIds.add(test.id)
-        }
+        // for (const test of orphanSubgroup.tests) {
+        //   testIds.add(test.id)
+        // }
       }
       for (const group of task.hierarchy.groups) {
         groupIds.add(group.version.id)
-        for (const subgroup of group.subgroups) {
-          subgroupIds.add(subgroup.version.id)
-          for (const test of subgroup.tests) {
-            testIds.add(test.id)
-          }
-        }
+        // for (const subgroup of group.subgroups) {
+        //   subgroupIds.add(subgroup.version.id)
+        //   for (const test of subgroup.tests) {
+        //     testIds.add(test.id)
+        //   }
+        // }
       }
 
       const initialData: CreateTaskFormData = {
