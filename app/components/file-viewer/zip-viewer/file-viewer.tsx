@@ -5,14 +5,15 @@ import { NotZipFileViewer } from '../not-zip-viewer'
 import * as React from 'react'
 // Other
 import 'react-json-view-lite/dist/index.css'
-import * as JSZip from 'jszip'
+import JSZip from 'jszip'
 
 export interface FileViewerProps {
   zip: JSZip
   fileName: string
+  onZipChange?: (zip: JSZip) => Promise<boolean>
 }
 
-export function FileViewer({ zip, fileName }: FileViewerProps) {
+export function FileViewer({ zip, fileName, onZipChange }: FileViewerProps) {
   const notifier = useNotifier()
 
   const [blob, setBlob] = React.useState<Blob | null>(null)
@@ -32,7 +33,28 @@ export function FileViewer({ zip, fileName }: FileViewerProps) {
     })()
   }, [zip, fileName])
 
+  const handleFileBlobChange = React.useCallback(
+    async (fileBlob: Blob) => {
+      const newZip = await JSZip.loadAsync(
+        await zip.generateAsync({ type: 'blob' })
+      )
+      newZip.file(fileName, fileBlob)
+      if (onZipChange !== undefined) {
+        const success = await onZipChange(newZip)
+        return success
+      }
+      return false
+    },
+    [zip, fileName, onZipChange]
+  )
+
   return blob !== null && fileNameLocal !== null ? (
-    <NotZipFileViewer fileName={fileNameLocal} fileBlob={blob} />
+    <NotZipFileViewer
+      fileName={fileNameLocal}
+      fileBlob={blob}
+      onFileBlobChange={
+        onZipChange !== undefined ? handleFileBlobChange : undefined
+      }
+    />
   ) : null
 }

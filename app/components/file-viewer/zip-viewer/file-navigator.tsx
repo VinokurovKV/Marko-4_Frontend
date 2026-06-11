@@ -1,5 +1,6 @@
 // Project
 import { downloadFileFromBlob } from '~/utilities'
+import { useChangeDetector } from '~/hooks/change-detector'
 import { useNotifier } from '~/providers/notifier'
 // React
 import * as React from 'react'
@@ -140,10 +141,16 @@ export function FileNavigator({
     null
   )
 
-  React.useEffect(() => {
-    setSelectedItemId(null)
-    onFileSelect?.(null)
-  }, [zipBlob])
+  useChangeDetector({
+    detectedObjects: [fileNames],
+    otherDependencies: [onFileSelect],
+    onChange: ([oldFileNames]) => {
+      if (JSON.stringify(fileNames) !== JSON.stringify(oldFileNames)) {
+        setSelectedItemId(null)
+        onFileSelect?.(null)
+      }
+    }
+  })
 
   React.useEffect(() => {
     if (selectedItemId === null) {

@@ -198,6 +198,27 @@ export function TestViewer({
     }
   }, [test])
 
+  const changeConfigBlob = React.useCallback(
+    async (id: number, fileName: string, fileBlob: Blob) => {
+      try {
+        await serverConnector.updateTest(
+          {
+            id: id
+          },
+          new File([fileBlob], fileName, { type: fileBlob.type }),
+          undefined,
+          undefined
+        )
+        notifier.showSuccess(`конфигурация теста «${test.code}» изменена`)
+        return true
+      } catch (error) {
+        notifier.showError(error)
+        return false
+      }
+    },
+    [test]
+  )
+
   const getDeltaBlob = React.useCallback(
     async (vertexIndex: number) => {
       try {
@@ -209,6 +230,43 @@ export function TestViewer({
       } catch (error) {
         notifier.showError(error)
         return null
+      }
+    },
+    [test]
+  )
+
+  const changeDeltaBlob = React.useCallback(
+    async (id: number, fileName: string, fileBlob: Blob) => {
+      const vertexIndex = id
+      const vertex = test.vertexes[vertexIndex]
+      if (vertex !== undefined) {
+        try {
+          await serverConnector.updateTest(
+            {
+              id: test.id,
+              vertexes: {
+                updated: [
+                  {
+                    vertexName: vertex.vertexName,
+                    deltaIndex: 0
+                  }
+                ]
+              }
+            },
+            undefined,
+            [new File([fileBlob], fileName, { type: fileBlob.type })],
+            undefined
+          )
+          notifier.showSuccess(
+            `delta-конфигурация теста «${test.code}» для вершины «${vertex.vertexName}» изменена`
+          )
+          return true
+        } catch (error) {
+          notifier.showError(error)
+          return false
+        }
+      } else {
+        return false
       }
     },
     [test]
@@ -580,6 +638,7 @@ export function TestViewer({
                       format={test.config.format}
                       getFileBlob={getConfigBlob}
                       withBrowse
+                      onFileBlobChange={changeConfigBlob}
                     />
                   ) : (
                     <ColumnViewerItem field="конфигурация" />
@@ -629,6 +688,7 @@ export function TestViewer({
                           format={vertex.delta.format}
                           getFileBlob={getDeltaBlob}
                           withBrowse
+                          onFileBlobChange={changeDeltaBlob}
                         />
                       ) : (
                         <ColumnViewerItem

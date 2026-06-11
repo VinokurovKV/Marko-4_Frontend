@@ -15,7 +15,9 @@ import * as React from 'react'
 // Material UI
 import ContentCopyIcon from '@mui/icons-material/ContentCopy'
 import DownloadIcon from '@mui/icons-material/Download'
+import EditIcon from '@mui/icons-material/Edit'
 import IconButton from '@mui/material/IconButton'
+import Button from '@mui/material/Button'
 import { useTheme } from '@mui/material/styles'
 import Stack from '@mui/material/Stack'
 import Tooltip from '@mui/material/Tooltip'
@@ -24,11 +26,13 @@ import Typography from '@mui/material/Typography'
 export interface NotZipFileViewerProps {
   fileName: string
   fileBlob: Blob
+  onFileBlobChange?: (fileBlob: Blob) => Promise<boolean>
 }
 
 export function NotZipFileViewer({
   fileName,
-  fileBlob
+  fileBlob,
+  onFileBlobChange
 }: NotZipFileViewerProps) {
   const theme = useTheme()
   const notifier = useNotifier()
@@ -40,7 +44,14 @@ export function NotZipFileViewer({
   const [ext, setExt] = React.useState<string | null>(null)
   const [text, setText] = React.useState<string | null>(null)
   const [isTextFile, setIsTextFile] = React.useState<boolean>(false)
+  const [isEditMode, setIsEditMode] = React.useState<boolean>(false)
+  const [editText, setEditText] = React.useState<string | null>(null)
   const [isBlobFile, setIsBlobFile] = React.useState<boolean>(false)
+
+  React.useEffect(() => {
+    setIsEditMode(false)
+    setEditText(null)
+  }, [fileName])
 
   React.useEffect(() => {
     void (async () => {
@@ -92,12 +103,41 @@ export function NotZipFileViewer({
 
   const handleCopyClick = React.useCallback(() => {
     if (text !== null) {
-      void navigator.clipboard.writeText(text)
+      void navigator.clipboard.writeText(editText ?? text)
       notifier.showInfo(
         `текст файла '${localFileName}' скопирован в буфер обмена`
       )
     }
-  }, [localFileName, text])
+  }, [localFileName, text, editText])
+
+  const handleEditClick = React.useCallback(() => {
+    if (text !== null) {
+      setIsEditMode(true)
+      setEditText(text)
+    }
+  }, [text])
+
+  const handleEditTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setEditText(e.target.value)
+  }
+
+  const handleCancelEdit = React.useCallback(() => {
+    setIsEditMode(false)
+    setEditText(null)
+  }, [])
+
+  const handleSaveEdit = React.useCallback(() => {
+    void (async () => {
+      if (editText !== null && onFileBlobChange !== undefined) {
+        const success = await onFileBlobChange(
+          new Blob([editText], { type: 'text/plain' })
+        )
+        if (success) {
+          setText(editText)
+        }
+      }
+    })()
+  }, [editText])
 
   const handleDownloadClick = React.useCallback(() => {
     if (localFileBlob !== null && localFileName !== null) {
@@ -123,14 +163,14 @@ export function NotZipFileViewer({
           isDarkMode={isDarkMode}
         />
       ) : null}
-      {ext === 'json' && text !== null ? (
+      {ext === 'json' && text !== null && isEditMode === false ? (
         <JsonFileViewer
           fileName={localFileName}
           fileText={text}
           isDarkMode={isDarkMode}
         />
       ) : null}
-      {ext === 'md' && text !== null ? (
+      {ext === 'md' && text !== null && isEditMode === false ? (
         <MarkdownFileViewer
           fileName={localFileName}
           fileText={text}
@@ -151,7 +191,9 @@ export function NotZipFileViewer({
           isDarkMode={isDarkMode}
         />
       ) : null}
-      {(ext === 'py' || ext === 'ts') && text !== null ? (
+      {(ext === 'py' || ext === 'ts') &&
+      text !== null &&
+      isEditMode === false ? (
         <CodeFileViewer
           fileName={localFileName}
           fileText={text}
@@ -159,7 +201,9 @@ export function NotZipFileViewer({
           isDarkMode={isDarkMode}
         />
       ) : null}
-      {(ext === 'log' || ext === 'txt') && text !== null ? (
+      {(ext === 'log' || ext === 'txt') &&
+      text !== null &&
+      isEditMode === false ? (
         <TextFileViewer
           fileName={localFileName}
           fileText={text}
@@ -173,7 +217,7 @@ export function NotZipFileViewer({
           isDarkMode={isDarkMode}
         />
       ) : null}
-      {ext === 'xml' && text !== null ? (
+      {ext === 'xml' && text !== null && isEditMode === false ? (
         <XmlFileViewer
           fileName={localFileName}
           fileText={text}
@@ -184,6 +228,60 @@ export function NotZipFileViewer({
         <Typography color="error">
           {`Формат файла '${localFileName}' не поддерживается просмотрщиком`}
         </Typography>
+      ) : null}
+
+      {isTextFile && editText !== null && isEditMode ? (
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            height: '100%',
+            width: '100%'
+          }}
+        >
+          <textarea
+            value={editText}
+            onChange={handleEditTextChange}
+            style={{
+              flex: '1 1 auto',
+              minHeight: 0,
+              width: '100%',
+              fontFamily: 'monospace',
+              fontSize: '14px',
+              padding: '8px',
+              boxSizing: 'border-box',
+              resize: 'none',
+              borderRadius: '8px',
+              outline: 'none',
+              boxShadow: 'none',
+              borderColor: '#ccc',
+              backgroundColor: isDarkMode ? '#1e1e1e' : '#fff',
+              color: isDarkMode ? '#d4d4d4' : '#000',
+              overflow: 'auto'
+            }}
+          />
+          <Stack
+            direction="row"
+            spacing={1}
+            sx={{
+              mt: 1,
+              justifyContent: 'flex-end',
+              flexShrink: 0
+            }}
+          >
+            <Button variant="outlined" size="small" onClick={handleCancelEdit}>
+              {editText === text ? 'Закрыть' : 'Отмена'}
+            </Button>
+            <Button
+              variant="contained"
+              size="small"
+              onClick={handleSaveEdit}
+              disabled={editText === text}
+            >
+              Сохранить
+            </Button>
+          </Stack>
+        </div>
       ) : null}
 
       <Stack
@@ -198,25 +296,35 @@ export function NotZipFileViewer({
         }}
       >
         {isTextFile ? (
-          <Tooltip title="Скопировать текст файла">
+          <Tooltip
+            title={`Скопировать текст${isEditMode ? ' измененного' : ''} файла`}
+          >
             <IconButton
               size="medium"
               onClick={handleCopyClick}
-              sx={{
-                transform: 'translateX(-5px)'
-              }}
+              sx={{ transform: 'translateX(-5px)' }}
             >
               <ContentCopyIcon />
             </IconButton>
           </Tooltip>
         ) : null}
-        <Tooltip title="Скачать файл">
+        {isTextFile && onFileBlobChange !== undefined ? (
+          <Tooltip title="Изменить файл">
+            <IconButton
+              size="medium"
+              onClick={handleEditClick}
+              sx={{ transform: 'translateX(-5px)' }}
+              disabled={isEditMode}
+            >
+              <EditIcon />
+            </IconButton>
+          </Tooltip>
+        ) : null}
+        <Tooltip title={`Скачать${isEditMode ? ' исходный' : ''} файл`}>
           <IconButton
             size="medium"
             onClick={handleDownloadClick}
-            sx={{
-              transform: 'translateX(-5px)'
-            }}
+            sx={{ transform: 'translateX(-5px)' }}
           >
             <DownloadIcon />
           </IconButton>

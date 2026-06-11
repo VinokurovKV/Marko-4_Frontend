@@ -20,6 +20,7 @@ export interface FileViewerProps {
   fileTitle: string
   fileName: string
   fileBlob: Blob | null
+  onFileBlobChange?: (blob: Blob) => Promise<boolean>
 }
 
 export function FileViewer({
@@ -27,7 +28,8 @@ export function FileViewer({
   setIsActive,
   fileTitle,
   fileName,
-  fileBlob
+  fileBlob,
+  onFileBlobChange
 }: FileViewerProps) {
   const ext = React.useMemo(
     () =>
@@ -62,9 +64,17 @@ export function FileViewer({
       <DialogContent dividers={true} sx={{ width: '70vw' }}>
         {fileBlob !== null ? (
           ext === 'zip' ? (
-            <ZipFileViewer fileName={fileName} fileBlob={fileBlob} />
+            <ZipFileViewer
+              fileName={fileName}
+              fileBlob={fileBlob}
+              onFileBlobChange={onFileBlobChange}
+            />
           ) : (
-            <NotZipFileViewer fileName={fileName} fileBlob={fileBlob} />
+            <NotZipFileViewer
+              fileName={fileName}
+              fileBlob={fileBlob}
+              onFileBlobChange={onFileBlobChange}
+            />
           )
         ) : null}
       </DialogContent>

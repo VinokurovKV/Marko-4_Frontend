@@ -87,6 +87,29 @@ export function DeviceViewer({ tags, device }: DeviceViewerProps) {
     }
   }, [device])
 
+  const changeConfigBlob = React.useCallback(
+    async (id: number, fileName: string, fileBlob: Blob) => {
+      try {
+        await serverConnector.updateDevice(
+          {
+            id: id
+          },
+          new File([fileBlob], fileName, { type: fileBlob.type }),
+          undefined,
+          undefined,
+          undefined,
+          undefined
+        )
+        notifier.showSuccess(`параметры устройства «${device.code}» изменены`)
+        return true
+      } catch (error) {
+        notifier.showError(error)
+        return false
+      }
+    },
+    [device]
+  )
+
   const getAccessConfigBlob = React.useCallback(async () => {
     try {
       const data = await serverConnector.readDeviceAccessConfig({
@@ -99,6 +122,31 @@ export function DeviceViewer({ tags, device }: DeviceViewerProps) {
     }
   }, [device])
 
+  const changeAccessConfigBlob = React.useCallback(
+    async (id: number, fileName: string, fileBlob: Blob) => {
+      try {
+        await serverConnector.updateDevice(
+          {
+            id: id
+          },
+          undefined,
+          undefined,
+          new File([fileBlob], fileName, { type: fileBlob.type }),
+          undefined,
+          undefined
+        )
+        notifier.showSuccess(
+          `конфигурация доступа устройства «${device.code}» изменена`
+        )
+        return true
+      } catch (error) {
+        notifier.showError(error)
+        return false
+      }
+    },
+    [device]
+  )
+
   const getClearConfigBlob = React.useCallback(async () => {
     try {
       const data = await serverConnector.readDeviceClearConfig({
@@ -110,6 +158,31 @@ export function DeviceViewer({ tags, device }: DeviceViewerProps) {
       return null
     }
   }, [device])
+
+  const changeClearConfigBlob = React.useCallback(
+    async (id: number, fileName: string, fileBlob: Blob) => {
+      try {
+        await serverConnector.updateDevice(
+          {
+            id: id
+          },
+          undefined,
+          new File([fileBlob], fileName, { type: fileBlob.type }),
+          undefined,
+          undefined,
+          undefined
+        )
+        notifier.showSuccess(
+          `конфигурация очищения устройства «${device.code}» изменена`
+        )
+        return true
+      } catch (error) {
+        notifier.showError(error)
+        return false
+      }
+    },
+    [device]
+  )
 
   return (
     <>
@@ -155,12 +228,13 @@ export function DeviceViewer({ tags, device }: DeviceViewerProps) {
             <ColumnViewerFile
               id={device.id}
               field="параметры"
-              fieldFull={`парамтеры устройства «${device.code}»`}
+              fieldFull={`параметры устройства «${device.code}»`}
               name={`${device.code}-parameters`}
               size={device.config.size}
               format={device.config.format}
               getFileBlob={getConfigBlob}
               withBrowse
+              onFileBlobChange={changeConfigBlob}
             />
           ) : (
             <ColumnViewerItem field="параметры" />
@@ -175,6 +249,7 @@ export function DeviceViewer({ tags, device }: DeviceViewerProps) {
               format={device.clearConfig.format}
               getFileBlob={getClearConfigBlob}
               withBrowse
+              onFileBlobChange={changeClearConfigBlob}
             />
           ) : (
             <ColumnViewerItem field="конфигурация очищения" />
@@ -189,6 +264,7 @@ export function DeviceViewer({ tags, device }: DeviceViewerProps) {
               format={device.accessConfig.format}
               getFileBlob={getAccessConfigBlob}
               withBrowse
+              onFileBlobChange={changeAccessConfigBlob}
             />
           ) : (
             <ColumnViewerItem field="конфигурация доступа" />

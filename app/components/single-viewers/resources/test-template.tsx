@@ -91,6 +91,27 @@ export function TestTemplateViewer({
     }
   }, [testTemplate])
 
+  const changeConfigBlob = React.useCallback(
+    async (id: number, fileName: string, fileBlob: Blob) => {
+      try {
+        await serverConnector.updateTestTemplate(
+          {
+            id: id
+          },
+          new File([fileBlob], fileName, { type: fileBlob.type })
+        )
+        notifier.showSuccess(
+          `конфигурация шаблона «${testTemplate.code}» изменена`
+        )
+        return true
+      } catch (error) {
+        notifier.showError(error)
+        return false
+      }
+    },
+    [testTemplate]
+  )
+
   return (
     <>
       <HorizontalTwoPartsContainer
@@ -135,6 +156,7 @@ export function TestTemplateViewer({
                 format={testTemplate.config.format}
                 getFileBlob={getConfigBlob}
                 withBrowse
+                onFileBlobChange={changeConfigBlob}
               />
             ) : (
               <ColumnViewerItem field="конфигурация" />

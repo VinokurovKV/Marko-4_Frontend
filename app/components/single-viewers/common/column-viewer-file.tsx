@@ -29,6 +29,11 @@ export interface ColumnViewerFileProps extends Omit<Item, 'size' | 'time'> {
   time?: Date
   hideTitle?: boolean
   withBrowse?: boolean
+  onFileBlobChange?: (
+    id: number,
+    fileName: string,
+    fileBlob: Blob
+  ) => Promise<boolean>
 }
 
 export function ColumnViewerFile(props: ColumnViewerFileProps) {
@@ -59,26 +64,46 @@ export function ColumnViewerFile(props: ColumnViewerFileProps) {
         downloadFileFromBlob(blob, fileName)
       }
     })()
-  }, [props, fileName])
+  }, [props.id, props.getFileBlob, fileName])
+
+  const updateBlob = React.useCallback(async () => {
+    const blob = await props.getFileBlob(props.id)
+    if (blob === null) {
+      notifier.showError('файл отсутствует')
+      return
+    }
+    setFileBlob(blob)
+  }, [props.id, props.getFileBlob])
 
   const handlePopoverClick = React.useCallback(() => {
     void (async () => {
       if (props.withBrowse === true) {
-        const blob = await props.getFileBlob(props.id)
-        if (blob === null) {
-          notifier.showError('файл отсутствует')
-          return
-        }
-        setFileBlob(blob)
+        await updateBlob()
         setFileViewerIsActive(true)
       }
     })()
-  }, [props.withBrowse, props.getFileBlob, notifier])
+  }, [props.withBrowse, notifier, updateBlob])
 
   const handlePopoverClose = React.useCallback(() => {
     setPopoverAnchorEl(null)
     setPopoverRawText(null)
   }, [])
+
+  const handleFileBlobChange = React.useCallback(
+    async (fileBlob: Blob) => {
+      if (props.onFileBlobChange !== undefined && fileBlob !== null) {
+        const success = await props.onFileBlobChange?.(
+          props.id,
+          fileName,
+          fileBlob
+        )
+        await updateBlob()
+        return success
+      }
+      return false
+    },
+    [props.id, props.onFileBlobChange, fileName, updateBlob]
+  )
 
   const popoverIsOpen = Boolean(popoverAnchorEl)
   const popoverId = popoverIsOpen ? 'popover' : undefined
@@ -141,6 +166,11 @@ export function ColumnViewerFile(props: ColumnViewerFileProps) {
         fileTitle={props.fieldFull ?? props.field ?? fileName}
         fileName={fileName}
         fileBlob={fileBlob}
+        onFileBlobChange={
+          props.onFileBlobChange !== undefined
+            ? handleFileBlobChange
+            : undefined
+        }
       />
     </>
   )

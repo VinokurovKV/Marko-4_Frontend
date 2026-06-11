@@ -8,16 +8,18 @@ import * as React from 'react'
 // Material UI
 import Box from '@mui/material/Box'
 // Other
-import * as JSZip from 'jszip'
+import JSZip from 'jszip'
 
 export interface ZipFileViewerProps {
   fileName: string
   fileBlob: Blob
+  onFileBlobChange?: (fileBlob: Blob) => Promise<boolean>
 }
 
 export function ZipFileViewer({
   fileName: fileNameLocal,
-  fileBlob
+  fileBlob,
+  onFileBlobChange
 }: ZipFileViewerProps) {
   const notifier = useNotifier()
 
@@ -27,53 +29,65 @@ export function ZipFileViewer({
     null
   )
 
-  React.useEffect(() => {
-    void (async () => {
-      try {
-        const zip = (await JSZip.loadAsync(fileBlob)) as JSZip
-        setZip(zip)
-        const fileNames = Object.keys(zip.files).filter(
-          (fileName) => fileName.startsWith('__MACOSX') === false
-        )
-        const fileNamesFull = Array.from(
-          new Set(
-            fileNames.flatMap((fileName) => {
-              const isFolder = fileName.endsWith('/')
-              const names: string[] = []
-              const parts = fileName.split('/').filter((part) => part !== '')
-              for (let i = 0; i < parts.length; i++) {
-                const part = parts[i]
-                if (i === 0) {
-                  names.push(
-                    i < parts.length - 1 || isFolder ? `${part}/` : part
-                  )
-                } else {
-                  const last = names.at(-1)!
-                  names.push(
-                    i < parts.length - 1 || isFolder
-                      ? `${last}${part}/`
-                      : `${last}${part}`
-                  )
-                }
+  const updateZip = React.useCallback(async () => {
+    try {
+      const zip = await JSZip.loadAsync(fileBlob)
+      setZip(zip)
+      const fileNames = Object.keys(zip.files).filter(
+        (fileName) => fileName.startsWith('__MACOSX') === false
+      )
+      const fileNamesFull = Array.from(
+        new Set(
+          fileNames.flatMap((fileName) => {
+            const isFolder = fileName.endsWith('/')
+            const names: string[] = []
+            const parts = fileName.split('/').filter((part) => part !== '')
+            for (let i = 0; i < parts.length; i++) {
+              const part = parts[i]
+              if (i === 0) {
+                names.push(i < parts.length - 1 || isFolder ? `${part}/` : part)
+              } else {
+                const last = names.at(-1)!
+                names.push(
+                  i < parts.length - 1 || isFolder
+                    ? `${last}${part}/`
+                    : `${last}${part}`
+                )
               }
-              return names
-            })
-          )
+            }
+            return names
+          })
         )
-        setFileNames(fileNamesFull)
-      } catch (error) {
-        notifier.showError(
-          error,
-          `ошибка при разархивировании ZIP-файла '${fileNameLocal}'`
-        )
-        throw error
-      }
-    })()
+      )
+      setFileNames(fileNamesFull)
+    } catch (error) {
+      notifier.showError(
+        error,
+        `ошибка при разархивировании ZIP-файла '${fileNameLocal}'`
+      )
+      throw error
+    }
   }, [fileNameLocal, fileBlob])
+
+  React.useEffect(() => {
+    void updateZip()
+  }, [fileNameLocal, fileBlob, updateZip])
 
   const handleFileSelect = React.useCallback((fileName: string | null) => {
     setSelectedFileName(fileName)
   }, [])
+
+  const handleZipChange = React.useCallback(
+    async (zip: JSZip) => {
+      const blob = await zip.generateAsync({ type: 'blob' })
+      if (onFileBlobChange !== undefined) {
+        const success = await onFileBlobChange(blob)
+        return success
+      }
+      return false
+    },
+    [onFileBlobChange]
+  )
 
   return (
     <HorizontalTwoPartsContainer proportions="ONE_TWO">
@@ -89,7 +103,13 @@ export function ZipFileViewer({
       </Box>
       <Box sx={{ height: '60vh', overflow: 'auto' }}>
         {zip !== null && selectedFileName !== null ? (
-          <FileViewer zip={zip} fileName={selectedFileName} />
+          <FileViewer
+            zip={zip}
+            fileName={selectedFileName}
+            onZipChange={
+              onFileBlobChange !== undefined ? handleZipChange : undefined
+            }
+          />
         ) : null}
       </Box>
     </HorizontalTwoPartsContainer>

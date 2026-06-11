@@ -85,6 +85,26 @@ export function DbcViewer({ tags, dbc, tests }: DbcViewerProps) {
     }
   }, [dbc])
 
+  const changeConfigBlob = React.useCallback(
+    async (id: number, fileName: string, fileBlob: Blob) => {
+      try {
+        await serverConnector.updateDbc(
+          {
+            id: id
+          },
+          new File([fileBlob], fileName, { type: fileBlob.type }),
+          undefined
+        )
+        notifier.showSuccess(`базовая конфигурация «${dbc.code}» изменена`)
+        return true
+      } catch (error) {
+        notifier.showError(error)
+        return false
+      }
+    },
+    [dbc]
+  )
+
   return (
     <>
       <HorizontalTwoPartsContainer
@@ -125,6 +145,7 @@ export function DbcViewer({ tags, dbc, tests }: DbcViewerProps) {
                 format={dbc.config.format}
                 getFileBlob={getConfigBlob}
                 withBrowse
+                onFileBlobChange={changeConfigBlob}
               />
             ) : (
               <ColumnViewerItem field="конфигурация" />
