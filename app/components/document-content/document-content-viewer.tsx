@@ -115,7 +115,6 @@ export function DocumentContentViewer({
   const notifier = useNotifier()
   const handledBrowseAreaRequestSeqRef = React.useRef<number | null>(null)
 
-  const [configBlob, setConfigBlob] = React.useState<Blob | null>(null)
   const [configBuffer, setConfigBuffer] = React.useState<ArrayBuffer | null>(
     null
   )
@@ -535,13 +534,14 @@ export function DocumentContentViewer({
     otherDependencies: [document.code, notifier],
     onChange: () => {
       void (async () => {
+        setConfigBuffer(null)
         try {
-          const config = await serverConnector.readDocumentConfig({
+          const config = await serverConnector.readDocumentConfigBuffer({
             id: document.id
           })
-          setConfigBlob(config)
+          setConfigBuffer(config)
         } catch (error) {
-          setConfigBlob(null)
+          setConfigBuffer(null)
           notifier.showError(
             error,
             `не удалось загрузить документ ${document.code}`
@@ -552,16 +552,6 @@ export function DocumentContentViewer({
     },
     withInitialAction: true
   })
-
-  React.useEffect(() => {
-    void (async () => {
-      const buffer =
-        configBlob !== null
-          ? await new Response(configBlob).arrayBuffer()
-          : null
-      setConfigBuffer(buffer)
-    })()
-  }, [configBlob])
 
   React.useEffect(() => {
     if (fragments === null) return
@@ -1013,6 +1003,7 @@ export function DocumentContentViewer({
         <div className="dcv-viewer-container">
           {configBuffer !== null ? (
             <PdfViewer
+              key={document.id}
               data={configBuffer}
               areas={areas}
               clickableAreas={true}

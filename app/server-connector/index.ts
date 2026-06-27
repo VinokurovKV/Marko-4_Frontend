@@ -1810,6 +1810,11 @@ export class ServerConnector {
   ): Promise<Blob> {
     return this.getBlob(`/documents/${params.id}/config`)
   }
+  readDocumentConfigBuffer(
+    params: Params<ReadDocumentConfigParamsDto>
+  ): Promise<ArrayBuffer> {
+    return this.getArrayBuffer(`/documents/${params.id}/config`)
+  }
   readDocument<ScopeWrap extends ReadOneScopeWrap>(
     params: Params<ReadDocumentParamsDto>,
     extra: ReadOneExtra<ScopeWrap, ReadDocumentQueryDto>
@@ -4028,6 +4033,34 @@ export class ServerConnector {
       return data
     }
   }
+  private async getArrayBuffer(
+    path: string,
+    params?: object,
+    withAuthentication: boolean = true,
+    withReauthenticateAttempt: boolean = true
+  ): Promise<ArrayBuffer> {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const data = await this.makeRequest({
+      method: 'GET',
+      path,
+      params,
+      body: undefined,
+      responseType: 'arraybuffer',
+      withAuthentication,
+      withReauthenticateAttempt
+    })
+    if (data instanceof ArrayBuffer === false) {
+      const message = 'Unsuccessful converting server response to ArrayBuffer'
+      log(
+        [
+          `Invalid server response for GET-request with path "${path}": ${message}`
+        ],
+        'importantError'
+      )
+      throw new ServerConnectorError(undefined, message)
+    }
+    return data
+  }
   private async makeRequestWithObjectResponse<Response extends object>(
     method: 'GET' | 'POST',
     path: string,
@@ -4069,7 +4102,7 @@ export class ServerConnector {
     path: string
     params: object | undefined
     body: object | undefined
-    responseType: 'json' | 'blob'
+    responseType: 'json' | 'blob' | 'arraybuffer'
     withAuthentication: boolean
     withReauthenticateAttempt: boolean
   }): Promise<any> {
