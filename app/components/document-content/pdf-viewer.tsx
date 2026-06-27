@@ -90,6 +90,7 @@ export type PdfViewerProps = {
   mode: PdfViewerMode
   interactionMode: 'AREAS' | 'TEXT'
   showThumbnails?: boolean
+  areaLabelPlacement?: 'AREA' | 'MARGIN'
   searchText?: string
   searchCaseSensitive?: boolean
   searchWholeWord?: boolean
@@ -2245,6 +2246,16 @@ const PdfViewerBody: React.FC<
                     top
                   )};width:${fmtPx(w)};height:${fmtPx(h)};}`
                 )
+
+                if (props.areaLabelPlacement === 'MARGIN') {
+                  const labelWidth = 112
+                  const labelLeft = -left - labelWidth
+                  pageDynamicCssParts.push(
+                    `.${pageClass} .${areaPosClass} .pdfv-area-label-wrap--margin{left:${fmtPx(
+                      labelLeft
+                    )};top:0;width:${fmtPx(labelWidth)};}`
+                  )
+                }
               }
 
               if (draftOnPage) {
@@ -2371,6 +2382,8 @@ const PdfViewerBody: React.FC<
                           props.mode.areaId === a.id
                         const showAreaLabel = a.name.trim().length > 0
                         const isAreaLabelInteractive = !isTextMode
+                        const labelPlacement =
+                          props.areaLabelPlacement ?? 'AREA'
 
                         const areaPosClass = `pdfv-area--id-${a.id}`
 
@@ -2410,7 +2423,17 @@ const PdfViewerBody: React.FC<
                           >
                             {showAreaLabel && (
                               <div
-                                className={`pdfv-area-label-wrap${isAreaLabelInteractive ? '' : ' pdfv-area-label-wrap--passive'}`}
+                                className={[
+                                  'pdfv-area-label-wrap',
+                                  labelPlacement === 'MARGIN'
+                                    ? 'pdfv-area-label-wrap--margin'
+                                    : 'pdfv-area-label-wrap--area',
+                                  isAreaLabelInteractive
+                                    ? ''
+                                    : 'pdfv-area-label-wrap--passive'
+                                ]
+                                  .filter(Boolean)
+                                  .join(' ')}
                                 onMouseDown={
                                   isAreaLabelInteractive
                                     ? (e) => e.stopPropagation()

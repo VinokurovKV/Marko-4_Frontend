@@ -34,6 +34,7 @@ import MenuItem from '@mui/material/MenuItem'
 import Typography from '@mui/material/Typography'
 import TextSnippetIcon from '@mui/icons-material/TextSnippet'
 import ViewSidebarIcon from '@mui/icons-material/ViewSidebar'
+import LabelOutlinedIcon from '@mui/icons-material/LabelOutlined'
 import FullscreenIcon from '@mui/icons-material/Fullscreen'
 import FullscreenExitIcon from '@mui/icons-material/FullscreenExit'
 import Box from '@mui/material/Box'
@@ -235,6 +236,8 @@ export function DocumentContentViewer({
   const [searchPreviousRequest, setSearchPreviousRequest] = React.useState(0)
   const [isSearchPending, setIsSearchPending] = React.useState(false)
   const [areThumbnailsVisible, setAreThumbnailsVisible] = React.useState(false)
+  const [areAreaLabelsInMargin, setAreAreaLabelsInMargin] =
+    React.useState(false)
   const [isFullscreen, setIsFullscreen] = React.useState(false)
 
   const toggleFullscreen = React.useCallback(() => {
@@ -749,6 +752,26 @@ export function DocumentContentViewer({
             />
 
             <ProjButton
+              variant={areAreaLabelsInMargin ? 'contained' : 'outlined'}
+              title={
+                areAreaLabelsInMargin
+                  ? 'Показывать коды над областями'
+                  : 'Перенести коды областей на левое поле'
+              }
+              aria-label={
+                areAreaLabelsInMargin
+                  ? 'Показывать коды над областями'
+                  : 'Перенести коды областей на левое поле'
+              }
+              onClick={() =>
+                setAreAreaLabelsInMargin((prevVisible) => !prevVisible)
+              }
+              sx={{ minWidth: 0, px: 1 }}
+            >
+              <LabelOutlinedIcon fontSize="small" />
+            </ProjButton>
+
+            <ProjButton
               variant={areThumbnailsVisible ? 'contained' : 'outlined'}
               title={
                 areThumbnailsVisible
@@ -1014,6 +1037,7 @@ export function DocumentContentViewer({
               mode={mode}
               interactionMode={interactionMode}
               showThumbnails={areThumbnailsVisible}
+              areaLabelPlacement={areAreaLabelsInMargin ? 'MARGIN' : 'AREA'}
               searchText={searchText}
               searchCaseSensitive={isSearchCaseSensitive}
               searchWholeWord={isSearchWholeWord}

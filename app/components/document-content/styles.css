@@ -113,10 +113,17 @@
 }
 .pdfv-area-label-wrap {
   position: absolute;
-  left: 0;
-  top: -26px;
   pointer-events: auto;
   cursor: pointer;
+  z-index: 2;
+}
+.pdfv-area-label-wrap--area {
+  left: 0;
+  top: -26px;
+}
+.pdfv-area-label-wrap--margin {
+  overflow: hidden;
+  text-align: right;
 }
 .pdfv-area-label-wrap--passive {
   pointer-events: none;
@@ -129,7 +136,7 @@
   border-radius: 8px;
   background: hsla(220, 20%, 25%, 0.5);
   color: hsl(220, 35%, 97%);
-  max-width: 320px;
+  max-width: min(320px, 100%);
   box-sizing: border-box;
 }
 .pdfv-area-label--passive {
