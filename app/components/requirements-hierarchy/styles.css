@@ -11,8 +11,9 @@
 div.acyclic-vertex {
   border-radius: 8px;
   padding: 12px 12px 18px;
-  min-width: 150px;
-  min-height: 80px;
+  width: 150px;
+  height: 80px;
+  box-sizing: border-box;
   cursor: pointer;
   transition: transform 0.2s, box-shadow 0.2s;
   box-shadow: 0 2px 8px hsla(220, 30%, 6%, 0.1);
@@ -46,6 +47,7 @@ div.acyclic-vertex.dimmed {
 }
 
 div.acyclic-vertex .vertex-code {
+  max-width: 112px !important;
   font-weight: bold;
   font-size: 14px;
   text-align: center;

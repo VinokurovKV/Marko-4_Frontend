@@ -66,12 +66,12 @@ function buildLevels(
     .filter((id) => (inDegreeForId.get(id) ?? 0) === 0)
 
   for (const id of queue) {
-    levelForId.set(id, 0)
+    levelForId.set(id, 1)
   }
 
   while (queue.length > 0) {
     const currentId = queue.shift()!
-    const currentLevel = levelForId.get(currentId) ?? 0
+    const currentLevel = levelForId.get(currentId) ?? 1
     const childIds = childIdsSetForId.get(currentId)
 
     if (childIds === undefined) {
@@ -81,7 +81,7 @@ function buildLevels(
     for (const childId of childIds) {
       levelForId.set(
         childId,
-        Math.max(levelForId.get(childId) ?? 0, currentLevel + 1)
+        Math.max(levelForId.get(childId) ?? 1, currentLevel + 1)
       )
       const currentInDegree = inDegreeForId.get(childId) ?? 0
       const nextInDegree = Math.max(0, currentInDegree - 1)
@@ -129,7 +129,7 @@ export function buildRequirementsHierarchyGraphData(
     const aggregateOnlyMay = vertex.aggregateRate.onlyMay
     dataForVertexId.set(vertex.id, {
       code: vertex.code,
-      level: levelForId.get(vertex.id) ?? 0,
+      level: levelForId.get(vertex.id) ?? 1,
       hasParents: (parentsIds?.size ?? 0) > 0,
       hasChildren: (childIds?.size ?? 0) > 0,
       atomicityFlag: vertex.atomic,

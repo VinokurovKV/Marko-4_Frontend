@@ -17,19 +17,16 @@ import ReactFlow, {
   type Node,
   useNodesInitialized,
   useReactFlow,
-  useStore,
-  useEdgesState,
-  useNodesState
+  useStore
 } from 'reactflow'
 import 'reactflow/dist/style.css'
 // Other
 import AcyclicGraphVertexViewer, {
   type AcyclicGraphVertexViewerProps,
-  type AcyclicGraphVertexType,
   type VertexData
 } from './acyclic-graph-vertex-viewer'
 import { edgeStyle } from './requirements'
-import calculateNodePositions from './graph-layouts/layout-final'
+import calculateNodePositions from './graph-layouts/layout-new'
 import { gray, green, orange, red } from '~/theme/themePrimitives'
 import './styles.css'
 // Material UI
@@ -106,6 +103,7 @@ const nodeTypes = {
 
 const MAIN_FLOW_MIN_ZOOM = 0.05
 const MAIN_FLOW_MAX_ZOOM = 2
+const MAIN_FLOW_INITIAL_ZOOM = 0.5
 const MAIN_FLOW_PINCH_ZOOM_SENSITIVITY_MULTIPLIER = 4
 const MINI_GRAPH_ZOOM_SENSITIVITY_MULTIPLIER = 2.5
 const MINI_GRAPH_FIT_VIEW_OPTIONS = {
@@ -338,6 +336,70 @@ function MiniGraphAutoFit({
   return null
 }
 
+function MainGraphInitialTopViewport({ fitKey }: { fitKey: string }) {
+  const reactFlow = useReactFlow()
+  const nodesInitialized = useNodesInitialized()
+  const viewportWidth = useStore((state) => state.width)
+  const viewportInitialized = useStore(
+    (state) =>
+      state.width > 0 &&
+      state.height > 0 &&
+      state.d3Zoom !== null &&
+      state.d3Selection !== null
+  )
+
+  useLayoutEffect(() => {
+    if (nodesInitialized === false || viewportInitialized === false) {
+      return
+    }
+
+    let cancelled = false
+    const frameIds: number[] = []
+
+    const alignTop = () => {
+      if (cancelled) {
+        return
+      }
+
+      const nodes = reactFlow.getNodes()
+      if (nodes.length === 0) {
+        return
+      }
+
+      const minX = Math.min(...nodes.map((node) => node.position.x))
+      const maxX = Math.max(
+        ...nodes.map((node) => node.position.x + (node.width ?? 150))
+      )
+      const minY = Math.min(...nodes.map((node) => node.position.y))
+      const zoom = MAIN_FLOW_INITIAL_ZOOM
+      void reactFlow.setViewport({
+        x: viewportWidth / 2 - ((minX + maxX) / 2) * zoom,
+        y: -minY * zoom,
+        zoom
+      })
+    }
+
+    const scheduleAlign = (framesLeft: number) => {
+      const frameId = requestAnimationFrame(() => {
+        alignTop()
+        if (framesLeft > 0) {
+          scheduleAlign(framesLeft - 1)
+        }
+      })
+      frameIds.push(frameId)
+    }
+
+    scheduleAlign(8)
+
+    return () => {
+      cancelled = true
+      frameIds.forEach((frameId) => cancelAnimationFrame(frameId))
+    }
+  }, [fitKey, reactFlow, nodesInitialized, viewportInitialized, viewportWidth])
+
+  return null
+}
+
 function MainGraphAutoFitOnRequest({ fitRequest }: { fitRequest: number }) {
   const reactFlow = useReactFlow()
   const nodesInitialized = useNodesInitialized()
@@ -448,7 +510,7 @@ const getVertexLevel = (vertexData: VertexData): number => {
     const level = (v as Record<string, unknown>).level
     if (typeof level === 'number' && Number.isFinite(level)) return level
   }
-  return 0
+  return 1
 }
 
 const useContainerSize = (
@@ -495,41 +557,31 @@ const getMiniGraphNodeIds = (
   vertexes: Vertex[],
   displayMode: MiniGraphDisplayMode
 ): number[] => {
-  if (selectedId === null) return []
-
-  const vertexMap = new Map<number, Vertex>()
-  vertexes.forEach((vertex) => {
-    vertexMap.set(vertex.id, vertex)
-  })
-
-  const result = new Set<number>()
-  const visitedUp = new Set<number>()
-  const visitedDown = new Set<number>()
-
-  const addParents = (vertexId: number) => {
-    if (visitedUp.has(vertexId)) return
-    visitedUp.add(vertexId)
-    result.add(vertexId)
-
-    const vertex = vertexMap.get(vertexId)
-    if (!vertex) return
-
-    vertex.parentsIds.forEach((parentId) => {
-      addParents(parentId)
-    })
+  if (selectedId === null) {
+    return []
   }
 
-  const addChildren = (vertexId: number) => {
-    if (visitedDown.has(vertexId)) return
-    visitedDown.add(vertexId)
-    result.add(vertexId)
+  const vertexById = new Map(vertexes.map((vertex) => [vertex.id, vertex]))
+  const includedIds = new Set<number>()
 
-    const vertex = vertexMap.get(vertexId)
-    if (!vertex) return
+  const addParents = (id: number) => {
+    const vertex = vertexById.get(id)
+    if (vertex === undefined) {
+      return
+    }
 
-    vertex.childIds.forEach((childId) => {
-      addChildren(childId)
-    })
+    includedIds.add(id)
+    vertex.parentsIds.forEach((parentId) => addParents(parentId))
+  }
+
+  const addChildren = (id: number) => {
+    const vertex = vertexById.get(id)
+    if (vertex === undefined) {
+      return
+    }
+
+    includedIds.add(id)
+    vertex.childIds.forEach((childId) => addChildren(childId))
   }
 
   addParents(selectedId)
@@ -538,7 +590,7 @@ const getMiniGraphNodeIds = (
     addChildren(selectedId)
   }
 
-  return Array.from(result).sort((a, b) => a - b)
+  return Array.from(includedIds)
 }
 
 const getMiniFlowData = (
@@ -550,79 +602,68 @@ const getMiniFlowData = (
   nodes: AcyclicGraphNode[]
   edges: Edge[]
 } => {
-  const includedIds = new Set(
-    getMiniGraphNodeIds(selectedId, vertexes, displayMode)
-  )
-
-  if (includedIds.size === 0) {
+  if (selectedId === null) {
     return { nodes: [], edges: [] }
   }
 
+  const includedIds = new Set(
+    getMiniGraphNodeIds(selectedId, vertexes, displayMode)
+  )
   const includedVertexes = vertexes.filter((vertex) =>
     includedIds.has(vertex.id)
   )
-  const vertexMap = new Map<number, Vertex>()
-  includedVertexes.forEach((vertex) => {
-    vertexMap.set(vertex.id, vertex)
-  })
-
-  const nodesByLevel = new Map<number, Vertex[]>()
+  const vertexById = new Map(
+    includedVertexes.map((vertex) => [vertex.id, vertex])
+  )
+  const byLevel = new Map<number, Vertex[]>()
 
   includedVertexes.forEach((vertex) => {
     const vertexData = dataForVertexId.get(vertex.id)
-    if (!vertexData) return
-
-    const level = getVertexLevel(vertexData)
-
-    if (!nodesByLevel.has(level)) {
-      nodesByLevel.set(level, [])
+    if (vertexData === undefined) {
+      return
     }
 
-    nodesByLevel.get(level)!.push(vertex)
+    const level = getVertexLevel(vertexData)
+    byLevel.set(level, [...(byLevel.get(level) ?? []), vertex])
   })
 
-  const sortedLevels = Array.from(nodesByLevel.keys()).sort((a, b) => a - b)
-
-  const nodes: AcyclicGraphNode[] = []
-  const edges: Edge[] = []
-
-  const levelHeight = 110
+  const levels = Array.from(byLevel.keys()).sort((a, b) => a - b)
   const nodeWidth = 220
   const nodeSpacing = 30
+  const levelHeight = 110
+  const nodes: AcyclicGraphNode[] = []
 
-  sortedLevels.forEach((level, levelIndex) => {
-    const verticesInLevel = [...(nodesByLevel.get(level) || [])].sort(
-      (a, b) => a.id - b.id
-    )
+  levels.forEach((level, levelIndex) => {
+    const levelVertexes = (byLevel.get(level) ?? []).sort((a, b) => a.id - b.id)
+    const levelWidth =
+      levelVertexes.length * nodeWidth +
+      Math.max(0, levelVertexes.length - 1) * nodeSpacing
+    const startX = -levelWidth / 2
 
-    const totalWidth =
-      verticesInLevel.length * nodeWidth +
-      Math.max(0, verticesInLevel.length - 1) * nodeSpacing
-    const startX = 180 - totalWidth / 2
-
-    verticesInLevel.forEach((vertex, vertexIndex) => {
+    levelVertexes.forEach((vertex, index) => {
       const vertexData = dataForVertexId.get(vertex.id)
-      if (!vertexData) return
-
-      let type: AcyclicGraphVertexType = 'RELATED'
-      if (selectedId === vertex.id) {
-        type = 'SELECTED'
+      if (vertexData === undefined) {
+        return
       }
 
       nodes.push({
         id: vertex.id.toString(),
         type: 'acyclicGraphVertex',
         position: {
-          x: startX + vertexIndex * (nodeWidth + nodeSpacing) + nodeWidth / 2,
+          x: startX + index * (nodeWidth + nodeSpacing) + nodeWidth / 2,
           y: levelIndex * levelHeight + 40
         },
         data: {
           id: vertex.id,
           level,
-          hasParents: vertex.parentsIds.some((id) => includedIds.has(id)),
-          hasChildren: vertex.childIds.some((id) => includedIds.has(id)),
+          hasParents: vertex.parentsIds.some((parentId) =>
+            includedIds.has(parentId)
+          ),
+          hasChildren: vertex.childIds.some((childId) =>
+            includedIds.has(childId)
+          ),
           data: vertexData,
-          type,
+          type: vertex.id === selectedId ? 'SELECTED' : 'RELATED',
           dimmed: false,
           collapsed: false
         },
@@ -632,29 +673,56 @@ const getMiniFlowData = (
     })
   })
 
-  includedVertexes.forEach((vertex) => {
-    vertex.childIds.forEach((childId) => {
-      if (!includedIds.has(childId)) return
-
-      edges.push({
+  const edges = includedVertexes.flatMap((vertex) =>
+    vertex.childIds
+      .filter((childId) => vertexById.has(childId))
+      .map((childId) => ({
         id: `mini-${vertex.id}-${childId}`,
         source: vertex.id.toString(),
         target: childId.toString(),
         type: 'default',
         animated: false,
         ...edgeStyle
-      })
-    })
-  })
+      }))
+  )
 
   return { nodes, edges }
+}
+
+const getDirectChildVertexes = (
+  selectedId: number | null,
+  vertexes: Vertex[],
+  dataForVertexId: Map<number, VertexData>
+): { childLevel: number; childVertexes: Vertex[] } => {
+  if (selectedId === null) {
+    return { childLevel: 1, childVertexes: [] }
+  }
+
+  const selectedVertex = vertexes.find((vertex) => vertex.id === selectedId)
+  const selectedData = dataForVertexId.get(selectedId)
+
+  if (selectedVertex === undefined || selectedData === undefined) {
+    return { childLevel: 1, childVertexes: [] }
+  }
+
+  const childLevel = getVertexLevel(selectedData) + 1
+  const childVertexes = selectedVertex.childIds
+    .map((childId) => vertexes.find((vertex) => vertex.id === childId))
+    .filter((vertex): vertex is Vertex => vertex !== undefined)
+    .filter((vertex) => {
+      const vertexData = dataForVertexId.get(vertex.id)
+      return (
+        vertexData !== undefined && getVertexLevel(vertexData) === childLevel
+      )
+    })
+    .sort((a, b) => a.id - b.id)
+
+  return { childLevel, childVertexes }
 }
 
 export default function AcyclicGraphViewer({
   vertexes,
   dataForVertexId,
-  maxDisplayedLayerWhenWithoutSelected,
-  setMaxDisplayedLayerWhenWithoutSelected,
   fitOnSelectedIdChange = false,
   selectedId,
   setSelectedId,
@@ -663,6 +731,8 @@ export default function AcyclicGraphViewer({
   isFullscreen = false,
   onToggleFullscreen
 }: AcyclicGraphViewerProps) {
+  void fitOnSelectedIdChange
+
   const {
     containerRef,
     width: containerWidth,
@@ -673,135 +743,50 @@ export default function AcyclicGraphViewer({
   const [miniGraphWidth, setMiniGraphWidth] = useState(MINI_GRAPH_DEFAULT_WIDTH)
 
   const convertToNodes = useCallback((): AcyclicGraphNode[] => {
-    const verticesByLevel = new Map<number, Vertex[]>()
-    const vertexMap = new Map<number, Vertex>()
-    vertexes.forEach((vertex) => {
-      vertexMap.set(vertex.id, vertex)
-    })
-
-    const selectedVertex =
-      selectedId !== null ? (vertexMap.get(selectedId) ?? null) : null
-    const connectedIds =
-      selectedId !== null
-        ? new Set(getMiniGraphNodeIds(selectedId, vertexes, 'ALL_RELATED'))
-        : null
-    const directlyRelatedIds =
-      selectedVertex !== null
-        ? new Set([...selectedVertex.parentsIds, ...selectedVertex.childIds])
-        : null
+    const nodes: AcyclicGraphNode[] = []
 
     vertexes.forEach((vertex) => {
       const vertexData = dataForVertexId.get(vertex.id)
-      if (!vertexData) return
-
-      const level = getVertexLevel(vertexData)
-
-      if (
-        maxDisplayedLayerWhenWithoutSelected !== null &&
-        level > maxDisplayedLayerWhenWithoutSelected
-      ) {
+      if (vertexData === undefined || getVertexLevel(vertexData) !== 1) {
         return
       }
 
-      if (!verticesByLevel.has(level)) {
-        verticesByLevel.set(level, [])
-      }
-      verticesByLevel.get(level)!.push(vertex)
-    })
-
-    const sortedLevels = Array.from(verticesByLevel.keys()).sort(
-      (a, b) => a - b
-    )
-    const levelHeight = 150
-    const nodeWidth = 200
-    const nodeSpacing = 50
-
-    const nodes: AcyclicGraphNode[] = []
-
-    sortedLevels.forEach((level, levelIndex) => {
-      const verticesInLevel = verticesByLevel.get(level)!
-      const totalWidth = verticesInLevel.length * (nodeWidth + nodeSpacing)
-      const startX = -totalWidth / 2
-
-      verticesInLevel.forEach((vertex, vertexIndex) => {
-        const x =
-          startX + vertexIndex * (nodeWidth + nodeSpacing) + nodeWidth / 2
-        const y = levelIndex * levelHeight
-
-        const vertexData = dataForVertexId.get(vertex.id)!
-
-        let nodeType: AcyclicGraphVertexType = 'DEFAULT'
-        let dimmed = false
-
-        if (selectedId !== null) {
-          if (vertex.id === selectedId) {
-            nodeType = 'SELECTED'
-          } else if (directlyRelatedIds?.has(vertex.id)) {
-            nodeType = 'RELATED'
-          } else if (connectedIds?.has(vertex.id)) {
-            nodeType = 'SECONDARY'
-          } else {
-            nodeType = 'DEFAULT'
-            dimmed = true
-          }
+      nodes.push({
+        id: vertex.id.toString(),
+        type: 'acyclicGraphVertex',
+        position: { x: 0, y: 0 },
+        data: {
+          id: vertex.id,
+          level: 1,
+          hasParents: false,
+          hasChildren: vertex.childIds.length > 0,
+          data: vertexData,
+          type: selectedId === vertex.id ? 'SELECTED' : 'DEFAULT',
+          dimmed: false,
+          collapsed: false
         }
-
-        nodes.push({
-          id: vertex.id.toString(),
-          type: 'acyclicGraphVertex',
-          position: { x, y },
-          data: {
-            id: vertex.id,
-            level,
-            hasParents: vertex.parentsIds.length > 0,
-            hasChildren: vertex.childIds.length > 0,
-            data: vertexData,
-            type: nodeType,
-            dimmed,
-            collapsed: false
-          }
-        })
       })
     })
 
     return nodes
-  }, [
-    vertexes,
-    dataForVertexId,
-    maxDisplayedLayerWhenWithoutSelected,
-    selectedId
-  ])
+  }, [vertexes, dataForVertexId, selectedId])
 
-  const convertToEdges = useCallback((): Edge[] => {
-    const edges: Edge[] = []
-
-    vertexes.forEach((vertex) => {
-      vertex.childIds.forEach((childId) => {
-        edges.push({
-          id: `${vertex.id}-${childId}`,
-          source: vertex.id.toString(),
-          target: childId.toString(),
-          type: 'default',
-          animated: false,
-          ...edgeStyle
-        })
-      })
-    })
-
-    return edges
-  }, [vertexes])
-
-  const [allNodes, setAllNodes, onNodesChange] = useNodesState<
-    AcyclicGraphVertexViewerProps<VertexData>
-  >([])
-  const [allEdges, setAllEdges, onEdgesChange] = useEdgesState<Edge>([])
+  const convertToEdges = useCallback((): Edge[] => [], [])
+  const [baseNodes, setBaseNodes] = useState<AcyclicGraphNode[]>([])
+  const [baseEdges, setBaseEdges] = useState<Edge[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null)
   const [miniGraphReady, setMiniGraphReady] = useState(false)
   const [miniGraphDisplayMode, setMiniGraphDisplayMode] =
     useState<MiniGraphDisplayMode>('ALL_RELATED')
-  const [isMiniGraphEnabled, setIsMiniGraphEnabled] = useState(true)
+  const [isMiniGraphEnabled, setIsMiniGraphEnabled] = useState(false)
+  const [childPanelAnchor, setChildPanelAnchor] = useState({
+    left: 12,
+    top: 12
+  })
+  const [childPanelReady, setChildPanelReady] = useState(false)
+  const [childScrollStartIndex, setChildScrollStartIndex] = useState(0)
   const [hoveredVertexPreview, setHoveredVertexPreview] =
     useState<HoveredVertexPreview | null>(null)
   const [mainGraphFitRequest, setMainGraphFitRequest] = useState(0)
@@ -815,7 +800,13 @@ export default function AcyclicGraphViewer({
     null
   )
 
-  useEffect(() => {
+  const selectedChildCount = useMemo(
+    () =>
+      getDirectChildVertexes(selectedId, vertexes, dataForVertexId)
+        .childVertexes.length,
+    [selectedId, vertexes, dataForVertexId]
+  )
+  useLayoutEffect(() => {
     if (containerWidth > 0 && containerHeight > 0) {
       const nodes = convertToNodes()
       const edges = convertToEdges()
@@ -827,8 +818,8 @@ export default function AcyclicGraphViewer({
         containerHeight
       )
 
-      setAllNodes(layoutedNodes)
-      setAllEdges(edges)
+      setBaseNodes(layoutedNodes)
+      setBaseEdges(edges)
       setLoading(false)
     }
   }, [
@@ -837,9 +828,124 @@ export default function AcyclicGraphViewer({
     convertToNodes,
     convertToEdges,
     vertexes,
-    setAllNodes,
-    setAllEdges
+    setBaseNodes,
+    setBaseEdges
   ])
+
+  const childGraphData = useMemo(() => {
+    const selectedLayoutedNode =
+      selectedId !== null
+        ? baseNodes.find((node) => node.id === selectedId.toString())
+        : undefined
+    const { childLevel, childVertexes } = getDirectChildVertexes(
+      selectedId,
+      vertexes,
+      dataForVertexId
+    )
+    const visibleChildLimit = 12
+    const safeChildStartIndex = Math.min(
+      childScrollStartIndex,
+      Math.max(0, childVertexes.length - visibleChildLimit)
+    )
+    const displayedChildVertexes = childVertexes.slice(
+      safeChildStartIndex,
+      safeChildStartIndex + visibleChildLimit
+    )
+    const nodeWidth = 150
+    const nodeSpacing = 16
+    const slotStep = nodeWidth + nodeSpacing
+    const graphCenterX =
+      baseNodes.length === 0
+        ? 0
+        : (Math.min(...baseNodes.map((node) => node.position.x)) +
+            Math.max(...baseNodes.map((node) => node.position.x + nodeWidth))) /
+          2
+    const parentCenterX =
+      (selectedLayoutedNode?.position.x ?? graphCenterX) + nodeWidth / 2
+    const fullSlotsStartX =
+      graphCenterX - ((visibleChildLimit - 1) * slotStep) / 2 - nodeWidth / 2
+    const parentSlotIndex = Math.min(
+      visibleChildLimit - 1,
+      Math.max(
+        0,
+        Math.round((parentCenterX - fullSlotsStartX - nodeWidth / 2) / slotStep)
+      )
+    )
+    const compactSlotIndexes = Array.from(
+      { length: visibleChildLimit },
+      (_value, index) => index
+    ).sort(
+      (a, b) => Math.abs(a - parentSlotIndex) - Math.abs(b - parentSlotIndex)
+    )
+    const childY = (selectedLayoutedNode?.position.y ?? 0) + 136
+    const nodes: AcyclicGraphNode[] =
+      selectedLayoutedNode === undefined
+        ? []
+        : displayedChildVertexes.flatMap((vertex, index) => {
+            const vertexData = dataForVertexId.get(vertex.id)
+            if (vertexData === undefined) {
+              return []
+            }
+
+            return [
+              {
+                id: vertex.id.toString(),
+                type: 'acyclicGraphVertex',
+                position: {
+                  x:
+                    fullSlotsStartX +
+                    (childVertexes.length > visibleChildLimit
+                      ? index
+                      : (compactSlotIndexes[index] ?? parentSlotIndex)) *
+                      slotStep,
+                  y: childY
+                },
+                data: {
+                  id: vertex.id,
+                  level: childLevel,
+                  hasParents: true,
+                  hasChildren: vertex.childIds.length > 0,
+                  data: vertexData,
+                  type: 'RELATED',
+                  dimmed: false,
+                  collapsed: false
+                },
+                draggable: false,
+                selectable: false
+              }
+            ]
+          })
+    const edges: Edge[] =
+      selectedLayoutedNode === undefined
+        ? []
+        : displayedChildVertexes.map((vertex) => ({
+            id: `child-panel-${selectedId}-${vertex.id}`,
+            source: selectedId?.toString() ?? '',
+            target: vertex.id.toString(),
+            type: 'default',
+            animated: false,
+            ...edgeStyle
+          }))
+
+    return { nodes, edges }
+  }, [baseNodes, selectedId, vertexes, dataForVertexId, childScrollStartIndex])
+
+  const allNodes = useMemo(
+    () => [...baseNodes, ...childGraphData.nodes],
+    [baseNodes, childGraphData.nodes]
+  )
+  const allEdges = useMemo(
+    () => [...baseEdges, ...childGraphData.edges],
+    [baseEdges, childGraphData.edges]
+  )
+
+  const mainGraphInitialFitKey = useMemo(
+    () =>
+      baseNodes
+        .map((node) => `${node.id}:${node.position.x}:${node.position.y}`)
+        .join('|'),
+    [baseNodes]
+  )
 
   const miniFlowData = useMemo(
     () =>
@@ -851,6 +957,63 @@ export default function AcyclicGraphViewer({
       ),
     [selectedId, vertexes, dataForVertexId, miniGraphDisplayMode]
   )
+  const childFlowIsVisible = selectedId !== null && selectedChildCount > 0
+  const updateChildPanelAnchor = useCallback(() => {
+    if (selectedNodeId === null || mainGraphHostRef.current === null) {
+      return
+    }
+
+    const nodeElement = mainGraphHostRef.current.querySelector<HTMLElement>(
+      `.react-flow__node[data-id="${selectedNodeId}"]`
+    )
+
+    if (nodeElement === null) {
+      return
+    }
+
+    const hostRect = mainGraphHostRef.current.getBoundingClientRect()
+    const nodeRect = nodeElement.getBoundingClientRect()
+    const top = Math.max(12, nodeRect.bottom - hostRect.top + 8)
+
+    setChildPanelAnchor({ left: 0, top })
+    setChildPanelReady(true)
+  }, [selectedNodeId])
+  const handleChildPanelWheel = useCallback(
+    (event: React.WheelEvent) => {
+      if (selectedChildCount <= 12) {
+        return
+      }
+
+      event.preventDefault()
+      event.stopPropagation()
+      const direction = event.deltaY + event.deltaX > 0 ? 1 : -1
+      setChildScrollStartIndex((prev) =>
+        Math.min(Math.max(prev + direction, 0), selectedChildCount - 12)
+      )
+    },
+    [selectedChildCount]
+  )
+
+  const handleMainGraphHostWheelCapture = useCallback(
+    (event: React.WheelEvent) => {
+      if (childFlowIsVisible === false || mainGraphHostRef.current === null) {
+        return
+      }
+
+      const hostRect = mainGraphHostRef.current.getBoundingClientRect()
+      const pointerY = event.clientY - hostRect.top
+      if (
+        pointerY < childPanelAnchor.top ||
+        pointerY > childPanelAnchor.top + 80
+      ) {
+        return
+      }
+
+      handleChildPanelWheel(event)
+    },
+    [childFlowIsVisible, childPanelAnchor.top, handleChildPanelWheel]
+  )
+
   const miniGraphFitKey = useMemo(
     () =>
       [
@@ -865,6 +1028,30 @@ export default function AcyclicGraphViewer({
   useEffect(() => {
     setMiniGraphReady(false)
   }, [miniGraphFitKey])
+
+  useEffect(() => {
+    setChildPanelReady(false)
+    setChildScrollStartIndex(0)
+  }, [selectedId])
+
+  useLayoutEffect(() => {
+    if (childFlowIsVisible === false) {
+      setChildPanelReady(false)
+      return undefined
+    }
+
+    let cancelled = false
+    const frameId = requestAnimationFrame(() => {
+      if (cancelled === false) {
+        updateChildPanelAnchor()
+      }
+    })
+
+    return () => {
+      cancelled = true
+      cancelAnimationFrame(frameId)
+    }
+  }, [updateChildPanelAnchor, selectedId, childFlowIsVisible])
 
   useEffect(() => {
     if (isFullscreenInitializedRef.current === false) {
@@ -885,26 +1072,6 @@ export default function AcyclicGraphViewer({
       setMainGraphFitRequest((prev) => prev + 1)
     }
   }, [isMiniGraphEnabled])
-
-  const showNextLevel = () => {
-    if (
-      maxDisplayedLayerWhenWithoutSelected === null ||
-      maxDisplayedLayerWhenWithoutSelected < 5
-    ) {
-      setMaxDisplayedLayerWhenWithoutSelected((prev) =>
-        prev === null ? 1 : Math.min(prev + 1, 5)
-      )
-    }
-  }
-
-  const hideLastLevel = () => {
-    if (
-      maxDisplayedLayerWhenWithoutSelected !== null &&
-      maxDisplayedLayerWhenWithoutSelected > 0
-    ) {
-      setMaxDisplayedLayerWhenWithoutSelected((prev) => prev! - 1)
-    }
-  }
 
   const requirementSearchOptions = useMemo(
     () =>
@@ -950,26 +1117,11 @@ export default function AcyclicGraphViewer({
       setSelectedNodeId(nodeId)
       setSelectedEdgeId(null)
 
-      if (options?.ensureVisible === true) {
-        const selectedData = dataForVertexId.get(vertexId)
-        if (selectedData !== undefined) {
-          const selectedLevel = getVertexLevel(selectedData)
-          setMaxDisplayedLayerWhenWithoutSelected((prev) =>
-            prev === null ? prev : Math.max(prev, selectedLevel)
-          )
-        }
-      }
-
       if (options?.focus === true) {
         setMainGraphFocusRequest((prev) => prev + 1)
       }
     },
-    [
-      dataForVertexId,
-      onVertexClick,
-      setMaxDisplayedLayerWhenWithoutSelected,
-      setSelectedId
-    ]
+    [onVertexClick, setSelectedId]
   )
 
   const handleNodeClick = useCallback(
@@ -1084,15 +1236,15 @@ export default function AcyclicGraphViewer({
     }
   }, [])
 
-  const handlePaneClick = useCallback(() => {
-    setSelectedEdgeId(null)
-  }, [])
-
   const resetSelection = useCallback(() => {
     setSelectedNodeId(null)
     setSelectedEdgeId(null)
     setSelectedId(null)
   }, [setSelectedId])
+
+  const handlePaneClick = useCallback(() => {
+    resetSelection()
+  }, [resetSelection])
 
   const handleRequirementSearchChange = useCallback(
     (
@@ -1228,11 +1380,6 @@ export default function AcyclicGraphViewer({
     return <div className="graph-loading">Загрузка графа...</div>
   }
 
-  const hideButtonDisabled = maxDisplayedLayerWhenWithoutSelected === 0
-  const showButtonDisabled =
-    maxDisplayedLayerWhenWithoutSelected !== null &&
-    maxDisplayedLayerWhenWithoutSelected >= 5
-
   return (
     <StackStyled sx={{ height: '100%' }}>
       <Box
@@ -1252,41 +1399,6 @@ export default function AcyclicGraphViewer({
           useFlexGap
           sx={{ minWidth: 0 }}
         >
-          <Box
-            sx={{
-              px: 1.5,
-              py: 1,
-              borderRadius: 1,
-              border: `1px solid ${theme.palette.divider}`,
-              backgroundColor: theme.palette.action.hover,
-              color: theme.palette.text.secondary
-            }}
-          >
-            <Typography fontSize={12}>
-              Макс. уровень: {maxDisplayedLayerWhenWithoutSelected ?? 'все'}
-              {selectedEdgeId !== null && ` | Выбрана связь: ${selectedEdgeId}`}
-            </Typography>
-          </Box>
-          <ProjButton
-            variant="contained"
-            type="button"
-            className={`${hideButtonDisabled ? 'disabled' : ''}`}
-            disabled={hideButtonDisabled}
-            onClick={hideLastLevel}
-          >
-            Скрыть уровень
-          </ProjButton>
-
-          <ProjButton
-            variant="contained"
-            type="button"
-            className={`${showButtonDisabled ? 'disabled' : ''}`}
-            disabled={showButtonDisabled}
-            onClick={showNextLevel}
-          >
-            Раскрыть уровень
-          </ProjButton>
-
           <ProjButton
             variant="contained"
             type="button"
@@ -1379,21 +1491,22 @@ export default function AcyclicGraphViewer({
       >
         <Box
           ref={mainGraphHostRef}
+          onWheelCapture={handleMainGraphHostWheelCapture}
           sx={{ flex: 1, minWidth: 0, position: 'relative' }}
         >
           <ReactFlow
             style={{ width: '100%', height: '100%' }}
             nodes={allNodes}
             edges={allEdges}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
             onNodeClick={handleNodeClick}
             onNodeMouseEnter={handleNodeMouseEnter}
             onNodeMouseLeave={handleNodeMouseLeave}
             onEdgeClick={handleEdgeClick}
             onPaneClick={handlePaneClick}
+            onMove={updateChildPanelAnchor}
             nodeTypes={nodeTypes}
-            fitView={fitOnSelectedIdChange}
+            fitView={false}
+            defaultViewport={{ x: 0, y: 0, zoom: MAIN_FLOW_INITIAL_ZOOM }}
             nodesDraggable={false}
             panOnScroll={true}
             panOnScrollSpeed={1}
@@ -1407,6 +1520,7 @@ export default function AcyclicGraphViewer({
             proOptions={{ hideAttribution: true }}
           >
             <ReactFlowPinchZoomSensitivityController />
+            <MainGraphInitialTopViewport fitKey={mainGraphInitialFitKey} />
             <MainGraphAutoFitOnRequest fitRequest={mainGraphFitRequest} />
             <MainGraphFocusOnNodeRequest
               focusRequest={mainGraphFocusRequest}
@@ -1415,6 +1529,48 @@ export default function AcyclicGraphViewer({
             <Controls showInteractive={false} />
             <Background />
           </ReactFlow>
+          {childFlowIsVisible && childPanelReady ? (
+            <Paper
+              elevation={10}
+              sx={{
+                position: 'absolute',
+                left: 0,
+                right: 0,
+                top: childPanelAnchor.top,
+                height: 80,
+                boxSizing: 'border-box',
+                zIndex: 1,
+                pointerEvents: 'none',
+                border: `1px solid ${theme.palette.divider}`,
+                backgroundColor:
+                  theme.palette.mode === 'dark'
+                    ? alpha(theme.palette.background.default, 0.16)
+                    : alpha(theme.palette.background.paper, 0.08),
+                boxShadow: theme.shadows[10]
+              }}
+            />
+          ) : null}
+          {childFlowIsVisible && childPanelReady && selectedChildCount > 12 ? (
+            <Box
+              component="input"
+              type="range"
+              min={0}
+              max={selectedChildCount - 12}
+              value={childScrollStartIndex}
+              onChange={(event) => {
+                setChildScrollStartIndex(Number(event.target.value))
+              }}
+              sx={{
+                position: 'absolute',
+                left: 24,
+                right: 24,
+                top: childPanelAnchor.top + 62,
+                zIndex: 16,
+                pointerEvents: 'auto',
+                accentColor: theme.palette.primary.main
+              }}
+            />
+          ) : null}
           {mainHoverPreviewIsVisible ? (
             <Paper
               elevation={6}
@@ -1667,6 +1823,11 @@ export default function AcyclicGraphViewer({
               </Box>
 
               <Box
+                className="nowheel nopan"
+                onWheel={(event) => {
+                  event.currentTarget.scrollLeft += event.deltaY + event.deltaX
+                  event.preventDefault()
+                }}
                 sx={{
                   flex: 1,
                   minHeight: 0,
