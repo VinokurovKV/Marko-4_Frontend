@@ -37,6 +37,10 @@ import Paper from '@mui/material/Paper'
 import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
 import Autocomplete from '@mui/material/Autocomplete'
+import Checkbox from '@mui/material/Checkbox'
+import ListItemText from '@mui/material/ListItemText'
+import Menu from '@mui/material/Menu'
+import MenuItem from '@mui/material/MenuItem'
 import FullscreenIcon from '@mui/icons-material/Fullscreen'
 import FullscreenExitIcon from '@mui/icons-material/FullscreenExit'
 import AccountTreeIcon from '@mui/icons-material/AccountTree'
@@ -74,6 +78,7 @@ export interface AcyclicGraphViewerProps {
 
 type AcyclicGraphNode = Node<AcyclicGraphVertexViewerProps<VertexData>>
 type MiniGraphDisplayMode = 'ROOT_PATH' | 'ALL_RELATED'
+type ChildPanelKey = 'level2' | 'level3' | 'level4' | 'level5'
 type HoveredVertexPreview = {
   id: number
   data: VertexData
@@ -812,6 +817,19 @@ export default function AcyclicGraphViewer({
   const [greatGrandChildScrollStartIndex, setGreatGrandChildScrollStartIndex] =
     useState(0)
   const [level5ScrollStartIndex, setLevel5ScrollStartIndex] = useState(0)
+  const [hiddenChildVertexIdsByPanel, setHiddenChildVertexIdsByPanel] =
+    useState<Record<ChildPanelKey, number[]>>({
+      level2: [],
+      level3: [],
+      level4: [],
+      level5: []
+    })
+  const [filterMenuAnchor, setFilterMenuAnchor] = useState<HTMLElement | null>(
+    null
+  )
+  const [filterMenuPanelKey, setFilterMenuPanelKey] =
+    useState<ChildPanelKey | null>(null)
+  const [filterMenuSearch, setFilterMenuSearch] = useState('')
   const [hoveredVertexPreview, setHoveredVertexPreview] =
     useState<HoveredVertexPreview | null>(null)
   const [mainGraphFitRequest, setMainGraphFitRequest] = useState(0)
@@ -825,30 +843,42 @@ export default function AcyclicGraphViewer({
     null
   )
 
-  const selectedChildCount = useMemo(
+  const level2ChildVertexes = useMemo(
     () =>
       getDirectChildVertexes(expandedLevel1Id, vertexes, dataForVertexId)
-        .childVertexes.length,
+        .childVertexes,
     [expandedLevel1Id, vertexes, dataForVertexId]
   )
-  const selectedGrandChildCount = useMemo(
+  const level3ChildVertexes = useMemo(
     () =>
       getDirectChildVertexes(expandedLevel2Id, vertexes, dataForVertexId)
-        .childVertexes.length,
+        .childVertexes,
     [expandedLevel2Id, vertexes, dataForVertexId]
   )
-  const selectedGreatGrandChildCount = useMemo(
+  const level4ChildVertexes = useMemo(
     () =>
       getDirectChildVertexes(expandedLevel3Id, vertexes, dataForVertexId)
-        .childVertexes.length,
+        .childVertexes,
     [expandedLevel3Id, vertexes, dataForVertexId]
   )
-  const selectedLevel5Count = useMemo(
+  const level5ChildVertexes = useMemo(
     () =>
       getDirectChildVertexes(expandedLevel4Id, vertexes, dataForVertexId)
-        .childVertexes.length,
+        .childVertexes,
     [expandedLevel4Id, vertexes, dataForVertexId]
   )
+  const selectedChildCount = level2ChildVertexes.filter(
+    (vertex) => !hiddenChildVertexIdsByPanel.level2.includes(vertex.id)
+  ).length
+  const selectedGrandChildCount = level3ChildVertexes.filter(
+    (vertex) => !hiddenChildVertexIdsByPanel.level3.includes(vertex.id)
+  ).length
+  const selectedGreatGrandChildCount = level4ChildVertexes.filter(
+    (vertex) => !hiddenChildVertexIdsByPanel.level4.includes(vertex.id)
+  ).length
+  const selectedLevel5Count = level5ChildVertexes.filter(
+    (vertex) => !hiddenChildVertexIdsByPanel.level5.includes(vertex.id)
+  ).length
   useLayoutEffect(() => {
     if (containerWidth > 0 && containerHeight > 0) {
       const nodes = convertToNodes()
@@ -880,16 +910,17 @@ export default function AcyclicGraphViewer({
       parentId: number | null,
       parentNodes: AcyclicGraphNode[],
       scrollStartIndex: number,
-      panelId: string
+      panelId: string,
+      hiddenVertexIds: number[]
     ) => {
       const selectedLayoutedNode =
         parentId !== null
           ? parentNodes.find((node) => node.id === parentId.toString())
           : undefined
-      const { childLevel, childVertexes } = getDirectChildVertexes(
-        parentId,
-        vertexes,
-        dataForVertexId
+      const { childLevel, childVertexes: allChildVertexes } =
+        getDirectChildVertexes(parentId, vertexes, dataForVertexId)
+      const childVertexes = allChildVertexes.filter(
+        (vertex) => !hiddenVertexIds.includes(vertex.id)
       )
       const visibleChildLimit = 12
       const safeChildStartIndex = Math.min(
@@ -991,9 +1022,16 @@ export default function AcyclicGraphViewer({
         expandedLevel1Id,
         baseNodes,
         childScrollStartIndex,
-        'child-panel'
+        'child-panel',
+        hiddenChildVertexIdsByPanel.level2
       ),
-    [createChildGraphData, expandedLevel1Id, baseNodes, childScrollStartIndex]
+    [
+      createChildGraphData,
+      expandedLevel1Id,
+      baseNodes,
+      childScrollStartIndex,
+      hiddenChildVertexIdsByPanel.level2
+    ]
   )
   const grandChildGraphData = useMemo(
     () =>
@@ -1001,13 +1039,15 @@ export default function AcyclicGraphViewer({
         expandedLevel2Id,
         childGraphData.nodes,
         grandChildScrollStartIndex,
-        'grand-child-panel'
+        'grand-child-panel',
+        hiddenChildVertexIdsByPanel.level3
       ),
     [
       createChildGraphData,
       expandedLevel2Id,
       childGraphData.nodes,
-      grandChildScrollStartIndex
+      grandChildScrollStartIndex,
+      hiddenChildVertexIdsByPanel.level3
     ]
   )
 
@@ -1017,13 +1057,15 @@ export default function AcyclicGraphViewer({
         expandedLevel3Id,
         grandChildGraphData.nodes,
         greatGrandChildScrollStartIndex,
-        'great-grand-child-panel'
+        'great-grand-child-panel',
+        hiddenChildVertexIdsByPanel.level4
       ),
     [
       createChildGraphData,
       expandedLevel3Id,
       grandChildGraphData.nodes,
-      greatGrandChildScrollStartIndex
+      greatGrandChildScrollStartIndex,
+      hiddenChildVertexIdsByPanel.level4
     ]
   )
 
@@ -1033,13 +1075,15 @@ export default function AcyclicGraphViewer({
         expandedLevel4Id,
         greatGrandChildGraphData.nodes,
         level5ScrollStartIndex,
-        'level-5-panel'
+        'level-5-panel',
+        hiddenChildVertexIdsByPanel.level5
       ),
     [
       createChildGraphData,
       expandedLevel4Id,
       greatGrandChildGraphData.nodes,
-      level5ScrollStartIndex
+      level5ScrollStartIndex,
+      hiddenChildVertexIdsByPanel.level5
     ]
   )
 
@@ -1093,13 +1137,14 @@ export default function AcyclicGraphViewer({
       ),
     [selectedId, vertexes, dataForVertexId, miniGraphDisplayMode]
   )
-  const childFlowIsVisible = expandedLevel1Id !== null && selectedChildCount > 0
+  const childFlowIsVisible =
+    expandedLevel1Id !== null && level2ChildVertexes.length > 0
   const grandChildFlowIsVisible =
-    expandedLevel2Id !== null && selectedGrandChildCount > 0
+    expandedLevel2Id !== null && level3ChildVertexes.length > 0
   const greatGrandChildFlowIsVisible =
-    expandedLevel3Id !== null && selectedGreatGrandChildCount > 0
+    expandedLevel3Id !== null && level4ChildVertexes.length > 0
   const level5FlowIsVisible =
-    expandedLevel4Id !== null && selectedLevel5Count > 0
+    expandedLevel4Id !== null && level5ChildVertexes.length > 0
   const updatePanelAnchor = useCallback(
     (
       nodeId: number | null,
@@ -1153,6 +1198,85 @@ export default function AcyclicGraphViewer({
     expandedLevel4Id,
     updatePanelAnchor
   ])
+  const getPanelFilterVertexes = useCallback(
+    (panelKey: ChildPanelKey): Vertex[] => {
+      switch (panelKey) {
+        case 'level2':
+          return level2ChildVertexes
+        case 'level3':
+          return level3ChildVertexes
+        case 'level4':
+          return level4ChildVertexes
+        case 'level5':
+          return level5ChildVertexes
+      }
+    },
+    [
+      level2ChildVertexes,
+      level3ChildVertexes,
+      level4ChildVertexes,
+      level5ChildVertexes
+    ]
+  )
+
+  const handleOpenPanelFilterMenu = useCallback(
+    (panelKey: ChildPanelKey, event: React.MouseEvent<HTMLElement>) => {
+      event.stopPropagation()
+      setFilterMenuPanelKey(panelKey)
+      setFilterMenuSearch('')
+      setFilterMenuAnchor(event.currentTarget)
+    },
+    []
+  )
+
+  const handleClosePanelFilterMenu = useCallback(() => {
+    setFilterMenuAnchor(null)
+    setFilterMenuPanelKey(null)
+    setFilterMenuSearch('')
+  }, [])
+
+  const handleTogglePanelFilterVertex = useCallback(
+    (panelKey: ChildPanelKey, vertexId: number) => {
+      setHiddenChildVertexIdsByPanel((prev) => {
+        const hiddenIds = prev[panelKey]
+        const isHidden = hiddenIds.includes(vertexId)
+
+        if (isHidden) {
+          return {
+            ...prev,
+            [panelKey]: hiddenIds.filter((id) => id !== vertexId)
+          }
+        }
+
+        return {
+          ...prev,
+          [panelKey]: [...hiddenIds, vertexId]
+        }
+      })
+    },
+    []
+  )
+
+  const handleToggleAllPanelFilterVertexes = useCallback(
+    (panelKey: ChildPanelKey, targetVertexIds?: number[]) => {
+      setHiddenChildVertexIdsByPanel((prev) => {
+        const allVertexIds =
+          targetVertexIds ??
+          getPanelFilterVertexes(panelKey).map((vertex) => vertex.id)
+        const allHidden = allVertexIds.every((id) =>
+          prev[panelKey].includes(id)
+        )
+
+        return {
+          ...prev,
+          [panelKey]: allHidden
+            ? prev[panelKey].filter((id) => !allVertexIds.includes(id))
+            : Array.from(new Set([...prev[panelKey], ...allVertexIds]))
+        }
+      })
+    },
+    [getPanelFilterVertexes]
+  )
   const handleChildPanelWheel = useCallback(
     (event: React.WheelEvent) => {
       if (selectedChildCount <= 12 || expandedLevel2Id !== null) {
@@ -1305,6 +1429,13 @@ export default function AcyclicGraphViewer({
     setGreatGrandChildScrollStartIndex(0)
     setLevel5PanelReady(false)
     setLevel5ScrollStartIndex(0)
+    setHiddenChildVertexIdsByPanel((prev) => ({
+      ...prev,
+      level2: [],
+      level3: [],
+      level4: [],
+      level5: []
+    }))
   }, [expandedLevel1Id])
 
   useEffect(() => {
@@ -1315,6 +1446,12 @@ export default function AcyclicGraphViewer({
     setGreatGrandChildScrollStartIndex(0)
     setLevel5PanelReady(false)
     setLevel5ScrollStartIndex(0)
+    setHiddenChildVertexIdsByPanel((prev) => ({
+      ...prev,
+      level3: [],
+      level4: [],
+      level5: []
+    }))
   }, [expandedLevel2Id])
 
   useEffect(() => {
@@ -1323,11 +1460,20 @@ export default function AcyclicGraphViewer({
     setExpandedLevel4Id(null)
     setLevel5PanelReady(false)
     setLevel5ScrollStartIndex(0)
+    setHiddenChildVertexIdsByPanel((prev) => ({
+      ...prev,
+      level4: [],
+      level5: []
+    }))
   }, [expandedLevel3Id])
 
   useEffect(() => {
     setLevel5PanelReady(false)
     setLevel5ScrollStartIndex(0)
+    setHiddenChildVertexIdsByPanel((prev) => ({
+      ...prev,
+      level5: []
+    }))
   }, [expandedLevel4Id])
 
   useLayoutEffect(() => {
@@ -1694,6 +1840,88 @@ export default function AcyclicGraphViewer({
     [resetSelection, selectVertex, vertexes]
   )
 
+  const renderPanelControls = ({
+    panelKey,
+    panelTop,
+    totalCount,
+    visibleCount,
+    scrollStartIndex,
+    setScrollStartIndex,
+    beforeScrollChange,
+    disabled
+  }: {
+    panelKey: ChildPanelKey
+    panelTop: number
+    totalCount: number
+    visibleCount: number
+    scrollStartIndex: number
+    setScrollStartIndex: React.Dispatch<React.SetStateAction<number>>
+    beforeScrollChange?: () => void
+    disabled?: boolean
+  }) => {
+    if (totalCount <= 12) {
+      return null
+    }
+
+    const maxScrollStartIndex = Math.max(0, visibleCount - 12)
+
+    return (
+      <>
+        {visibleCount > 12 ? (
+          <Box
+            component="input"
+            type="range"
+            min={0}
+            max={maxScrollStartIndex}
+            value={Math.min(scrollStartIndex, maxScrollStartIndex)}
+            disabled={disabled}
+            onChange={(event) => {
+              if (disabled === true) {
+                return
+              }
+              beforeScrollChange?.()
+              setScrollStartIndex(Number(event.target.value))
+            }}
+            sx={{
+              position: 'absolute',
+              left: 24,
+              right: 50,
+              top: panelTop + 62,
+              zIndex: 16,
+              pointerEvents: 'auto',
+              accentColor: theme.palette.primary.main
+            }}
+          />
+        ) : null}
+        <Box
+          component="button"
+          type="button"
+          title="Выбрать отображаемые узлы"
+          aria-label="Выбрать отображаемые узлы"
+          onClick={(event) => handleOpenPanelFilterMenu(panelKey, event)}
+          sx={{
+            position: 'absolute',
+            right: 26,
+            top: panelTop + 65,
+            zIndex: 16,
+            width: 0,
+            height: 0,
+            p: 0,
+            border: 0,
+            borderLeft: '6px solid transparent',
+            borderRight: '6px solid transparent',
+            borderTop: `8px solid ${theme.palette.primary.main}`,
+            backgroundColor: 'transparent',
+            cursor: 'pointer',
+            pointerEvents: 'auto',
+            '&:hover': {
+              borderTopColor: theme.palette.primary.light
+            }
+          }}
+        />
+      </>
+    )
+  }
   const isMiniGraphVisible = selectedId !== null && isMiniGraphEnabled
   const mainHoverPreviewIsVisible =
     hoveredVertexPreview !== null && hoveredVertexPreview.source === 'MAIN'
@@ -1985,31 +2213,17 @@ export default function AcyclicGraphViewer({
               }}
             />
           ) : null}
-          {childFlowIsVisible && childPanelReady && selectedChildCount > 12 ? (
-            <Box
-              component="input"
-              type="range"
-              min={0}
-              max={selectedChildCount - 12}
-              value={childScrollStartIndex}
-              disabled={expandedLevel2Id !== null}
-              onChange={(event) => {
-                if (expandedLevel2Id !== null) {
-                  return
-                }
-                setChildScrollStartIndex(Number(event.target.value))
-              }}
-              sx={{
-                position: 'absolute',
-                left: 24,
-                right: 24,
-                top: childPanelAnchor.top + 62,
-                zIndex: 16,
-                pointerEvents: 'auto',
-                accentColor: theme.palette.primary.main
-              }}
-            />
-          ) : null}
+          {childFlowIsVisible && childPanelReady
+            ? renderPanelControls({
+                panelKey: 'level2',
+                panelTop: childPanelAnchor.top,
+                totalCount: level2ChildVertexes.length,
+                visibleCount: selectedChildCount,
+                scrollStartIndex: childScrollStartIndex,
+                setScrollStartIndex: setChildScrollStartIndex,
+                disabled: expandedLevel2Id !== null
+              })
+            : null}
           {grandChildFlowIsVisible && grandChildPanelReady ? (
             <Paper
               elevation={10}
@@ -2033,30 +2247,17 @@ export default function AcyclicGraphViewer({
               }}
             />
           ) : null}
-          {grandChildFlowIsVisible &&
-          grandChildPanelReady &&
-          selectedGrandChildCount > 12 ? (
-            <Box
-              component="input"
-              type="range"
-              min={0}
-              max={selectedGrandChildCount - 12}
-              value={grandChildScrollStartIndex}
-              onChange={(event) => {
-                setExpandedLevel3Id(null)
-                setGrandChildScrollStartIndex(Number(event.target.value))
-              }}
-              sx={{
-                position: 'absolute',
-                left: 24,
-                right: 24,
-                top: grandChildPanelAnchor.top + 62,
-                zIndex: 16,
-                pointerEvents: 'auto',
-                accentColor: theme.palette.primary.main
-              }}
-            />
-          ) : null}{' '}
+          {grandChildFlowIsVisible && grandChildPanelReady
+            ? renderPanelControls({
+                panelKey: 'level3',
+                panelTop: grandChildPanelAnchor.top,
+                totalCount: level3ChildVertexes.length,
+                visibleCount: selectedGrandChildCount,
+                scrollStartIndex: grandChildScrollStartIndex,
+                setScrollStartIndex: setGrandChildScrollStartIndex,
+                beforeScrollChange: () => setExpandedLevel3Id(null)
+              })
+            : null}
           {greatGrandChildFlowIsVisible && greatGrandChildPanelReady ? (
             <Paper
               elevation={10}
@@ -2080,29 +2281,17 @@ export default function AcyclicGraphViewer({
               }}
             />
           ) : null}
-          {greatGrandChildFlowIsVisible &&
-          greatGrandChildPanelReady &&
-          selectedGreatGrandChildCount > 12 ? (
-            <Box
-              component="input"
-              type="range"
-              min={0}
-              max={selectedGreatGrandChildCount - 12}
-              value={greatGrandChildScrollStartIndex}
-              onChange={(event) => {
-                setGreatGrandChildScrollStartIndex(Number(event.target.value))
-              }}
-              sx={{
-                position: 'absolute',
-                left: 24,
-                right: 24,
-                top: greatGrandChildPanelAnchor.top + 62,
-                zIndex: 16,
-                pointerEvents: 'auto',
-                accentColor: theme.palette.primary.main
-              }}
-            />
-          ) : null}{' '}
+          {greatGrandChildFlowIsVisible && greatGrandChildPanelReady
+            ? renderPanelControls({
+                panelKey: 'level4',
+                panelTop: greatGrandChildPanelAnchor.top,
+                totalCount: level4ChildVertexes.length,
+                visibleCount: selectedGreatGrandChildCount,
+                scrollStartIndex: greatGrandChildScrollStartIndex,
+                setScrollStartIndex: setGreatGrandChildScrollStartIndex,
+                beforeScrollChange: () => setExpandedLevel4Id(null)
+              })
+            : null}
           {level5FlowIsVisible && level5PanelReady ? (
             <Paper
               elevation={10}
@@ -2126,29 +2315,123 @@ export default function AcyclicGraphViewer({
               }}
             />
           ) : null}
-          {level5FlowIsVisible &&
-          level5PanelReady &&
-          selectedLevel5Count > 12 ? (
-            <Box
-              component="input"
-              type="range"
-              min={0}
-              max={selectedLevel5Count - 12}
-              value={level5ScrollStartIndex}
-              onChange={(event) => {
-                setLevel5ScrollStartIndex(Number(event.target.value))
-              }}
-              sx={{
-                position: 'absolute',
-                left: 24,
-                right: 24,
-                top: level5PanelAnchor.top + 62,
-                zIndex: 16,
-                pointerEvents: 'auto',
-                accentColor: theme.palette.primary.main
-              }}
-            />
-          ) : null}{' '}
+          {level5FlowIsVisible && level5PanelReady
+            ? renderPanelControls({
+                panelKey: 'level5',
+                panelTop: level5PanelAnchor.top,
+                totalCount: level5ChildVertexes.length,
+                visibleCount: selectedLevel5Count,
+                scrollStartIndex: level5ScrollStartIndex,
+                setScrollStartIndex: setLevel5ScrollStartIndex
+              })
+            : null}
+          <Menu
+            anchorEl={filterMenuAnchor}
+            open={filterMenuAnchor !== null && filterMenuPanelKey !== null}
+            onClose={handleClosePanelFilterMenu}
+            MenuListProps={{ dense: true }}
+            slotProps={{
+              paper: {
+                sx: {
+                  maxHeight: 320,
+                  minWidth: 260
+                }
+              }
+            }}
+          >
+            {filterMenuPanelKey !== null ? (
+              <Box sx={{ px: 1, py: 0.75 }}>
+                <FormTextField
+                  size="small"
+                  label="поиск"
+                  value={filterMenuSearch}
+                  onClick={(event) => event.stopPropagation()}
+                  onKeyDown={(event) => event.stopPropagation()}
+                  onChange={(event) => setFilterMenuSearch(event.target.value)}
+                  sx={{
+                    width: '100%',
+                    '& .MuiInputBase-root': {
+                      height: 32
+                    }
+                  }}
+                />
+              </Box>
+            ) : null}
+            {filterMenuPanelKey !== null ? (
+              <MenuItem
+                onClick={() => {
+                  const filteredVertexIds = getPanelFilterVertexes(
+                    filterMenuPanelKey
+                  )
+                    .filter((vertex) => {
+                      const code = dataForVertexId.get(vertex.id)?.code ?? ''
+                      return code
+                        .toLowerCase()
+                        .includes(filterMenuSearch.trim().toLowerCase())
+                    })
+                    .map((vertex) => vertex.id)
+                  handleToggleAllPanelFilterVertexes(
+                    filterMenuPanelKey,
+                    filteredVertexIds
+                  )
+                }}
+              >
+                <ListItemText
+                  primary={(() => {
+                    const filteredVertexIds = getPanelFilterVertexes(
+                      filterMenuPanelKey
+                    )
+                      .filter((vertex) => {
+                        const code = dataForVertexId.get(vertex.id)?.code ?? ''
+                        return code
+                          .toLowerCase()
+                          .includes(filterMenuSearch.trim().toLowerCase())
+                      })
+                      .map((vertex) => vertex.id)
+                    const allFilteredHidden = filteredVertexIds.every((id) =>
+                      hiddenChildVertexIdsByPanel[filterMenuPanelKey].includes(
+                        id
+                      )
+                    )
+                    return allFilteredHidden ? 'Выбрать все' : 'Убрать все'
+                  })()}
+                />
+              </MenuItem>
+            ) : null}
+            <Divider />
+            {filterMenuPanelKey !== null
+              ? getPanelFilterVertexes(filterMenuPanelKey)
+                  .filter((vertex) => {
+                    const code = dataForVertexId.get(vertex.id)?.code ?? ''
+                    return code
+                      .toLowerCase()
+                      .includes(filterMenuSearch.trim().toLowerCase())
+                  })
+                  .map((vertex) => {
+                    const vertexData = dataForVertexId.get(vertex.id)
+                    const hiddenIds =
+                      hiddenChildVertexIdsByPanel[filterMenuPanelKey]
+                    const checked = !hiddenIds.includes(vertex.id)
+
+                    return (
+                      <MenuItem
+                        key={vertex.id}
+                        onClick={() =>
+                          handleTogglePanelFilterVertex(
+                            filterMenuPanelKey,
+                            vertex.id
+                          )
+                        }
+                      >
+                        <Checkbox size="small" checked={checked} />
+                        <ListItemText
+                          primary={vertexData?.code ?? vertex.id.toString()}
+                        />
+                      </MenuItem>
+                    )
+                  })
+              : null}{' '}
+          </Menu>{' '}
           {mainHoverPreviewIsVisible ? (
             <Paper
               elevation={6}
