@@ -31,6 +31,7 @@ export interface AcyclicGraphVertexViewerProps<VertexData> {
   hasParents: boolean
   hasChildren: boolean
   data: VertexData
+  coverageFraction?: string
   type: AcyclicGraphVertexType
   dimmed?: boolean
   collapsed: boolean
@@ -66,6 +67,7 @@ export default function AcyclicGraphVertexViewer({
     hasParents,
     hasChildren,
     data,
+    coverageFraction,
     type,
     dimmed = false,
     collapsed,
@@ -75,7 +77,7 @@ export default function AcyclicGraphVertexViewer({
   const theme = useTheme()
 
   const coveragePercent = parseCoverageFractionPercent(
-    data.fullCoverageFraction
+    coverageFraction ?? data.fullCoverageFraction
   )
   const normalizedCoveragePercent =
     coveragePercent === null ? 0 : Math.max(0, Math.min(coveragePercent, 100))

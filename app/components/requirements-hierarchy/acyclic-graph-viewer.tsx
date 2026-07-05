@@ -44,6 +44,7 @@ import MenuItem from '@mui/material/MenuItem'
 import FullscreenIcon from '@mui/icons-material/Fullscreen'
 import FullscreenExitIcon from '@mui/icons-material/FullscreenExit'
 import AccountTreeIcon from '@mui/icons-material/AccountTree'
+import TuneIcon from '@mui/icons-material/Tune'
 
 const StackStyled = styled(Stack)(() => [
   {
@@ -79,12 +80,24 @@ export interface AcyclicGraphViewerProps {
 type AcyclicGraphNode = Node<AcyclicGraphVertexViewerProps<VertexData>>
 type MiniGraphDisplayMode = 'ROOT_PATH' | 'ALL_RELATED'
 type ChildPanelKey = 'level2' | 'level3' | 'level4' | 'level5'
+type CoverageDisplayKey = 'full' | 'must' | 'mustShould' | 'should' | 'may'
 type HoveredVertexPreview = {
   id: number
   data: VertexData
   source: 'MAIN' | 'MINI'
+  anchor: { left: number; top: number }
 }
 
+const COVERAGE_DISPLAY_OPTIONS: Array<{
+  key: CoverageDisplayKey
+  label: string
+}> = [
+  { key: 'full', label: 'Покрытие всех' },
+  { key: 'must', label: 'Обязательные' },
+  { key: 'mustShould', label: 'Обязательные и рекомендуемые' },
+  { key: 'should', label: 'Рекомендуемые' },
+  { key: 'may', label: 'Необязательные' }
+]
 const HOVER_PREVIEW_DELAY_MS = 400
 const HOVER_PREVIEW_HIDE_DELAY_MS = 180
 
@@ -100,6 +113,34 @@ function parseCoverageFractionPercent(fraction: string): number | null {
     return null
   }
   return (covered / total) * 100
+}
+
+function getCoverageFractionForVertex(
+  vertexData: VertexData,
+  coverageKey: CoverageDisplayKey
+): string {
+  switch (coverageKey) {
+    case 'full':
+      return vertexData.atomicityFlag
+        ? `${vertexData.test !== '' ? '1' : '0'} / 1`
+        : (vertexData.fullCoverageFraction ?? '0 / 0')
+    case 'must':
+      return vertexData.atomicityFlag
+        ? `${vertexData.test !== '' && vertexData.modifier === 'MUST' ? '1' : '0'} / ${vertexData.modifier === 'MUST' ? '1' : '0'}`
+        : (vertexData.onlyMustCoverageFraction ?? '0 / 0')
+    case 'mustShould':
+      return vertexData.atomicityFlag
+        ? `${vertexData.test !== '' && vertexData.modifier !== 'MAY' ? '1' : '0'} / ${vertexData.modifier !== 'MAY' ? '1' : '0'}`
+        : (vertexData.mustAndShouldCoverageFraction ?? '0 / 0')
+    case 'should':
+      return vertexData.atomicityFlag
+        ? `${vertexData.test !== '' && vertexData.modifier === 'SHOULD' ? '1' : '0'} / ${vertexData.modifier === 'SHOULD' ? '1' : '0'}`
+        : (vertexData.onlyShouldCoverageFraction ?? '0 / 0')
+    case 'may':
+      return vertexData.atomicityFlag
+        ? `${vertexData.test !== '' && vertexData.modifier === 'MAY' ? '1' : '0'} / ${vertexData.modifier === 'MAY' ? '1' : '0'}`
+        : (vertexData.onlyMayCoverageFraction ?? '0 / 0')
+  }
 }
 
 const nodeTypes = {
@@ -602,7 +643,8 @@ const getMiniFlowData = (
   selectedId: number | null,
   vertexes: Vertex[],
   dataForVertexId: Map<number, VertexData>,
-  displayMode: MiniGraphDisplayMode
+  displayMode: MiniGraphDisplayMode,
+  coverageDisplayKey: CoverageDisplayKey
 ): {
   nodes: AcyclicGraphNode[]
   edges: Edge[]
@@ -668,6 +710,10 @@ const getMiniFlowData = (
             includedIds.has(childId)
           ),
           data: vertexData,
+          coverageFraction: getCoverageFractionForVertex(
+            vertexData,
+            coverageDisplayKey
+          ),
           type: vertex.id === selectedId ? 'SELECTED' : 'RELATED',
           dimmed: false,
           collapsed: false
@@ -747,35 +793,6 @@ export default function AcyclicGraphViewer({
   const mainGraphHostRef = useRef<HTMLDivElement | null>(null)
   const [miniGraphWidth, setMiniGraphWidth] = useState(MINI_GRAPH_DEFAULT_WIDTH)
 
-  const convertToNodes = useCallback((): AcyclicGraphNode[] => {
-    const nodes: AcyclicGraphNode[] = []
-
-    vertexes.forEach((vertex) => {
-      const vertexData = dataForVertexId.get(vertex.id)
-      if (vertexData === undefined || getVertexLevel(vertexData) !== 1) {
-        return
-      }
-
-      nodes.push({
-        id: vertex.id.toString(),
-        type: 'acyclicGraphVertex',
-        position: { x: 0, y: 0 },
-        data: {
-          id: vertex.id,
-          level: 1,
-          hasParents: false,
-          hasChildren: vertex.childIds.length > 0,
-          data: vertexData,
-          type: selectedId === vertex.id ? 'SELECTED' : 'DEFAULT',
-          dimmed: false,
-          collapsed: false
-        }
-      })
-    })
-
-    return nodes
-  }, [vertexes, dataForVertexId, selectedId])
-
   const convertToEdges = useCallback((): Edge[] => [], [])
   const [baseNodes, setBaseNodes] = useState<AcyclicGraphNode[]>([])
   const [baseEdges, setBaseEdges] = useState<Edge[]>([])
@@ -830,8 +847,53 @@ export default function AcyclicGraphViewer({
   const [filterMenuPanelKey, setFilterMenuPanelKey] =
     useState<ChildPanelKey | null>(null)
   const [filterMenuSearch, setFilterMenuSearch] = useState('')
+  const [coverageMenuAnchor, setCoverageMenuAnchor] =
+    useState<HTMLElement | null>(null)
+  const [visibleCoverageDisplayKeys, setVisibleCoverageDisplayKeys] = useState<
+    CoverageDisplayKey[]
+  >(COVERAGE_DISPLAY_OPTIONS.map((option) => option.key))
   const [hoveredVertexPreview, setHoveredVertexPreview] =
     useState<HoveredVertexPreview | null>(null)
+  const selectedCoverageDisplayKey = useMemo(
+    () =>
+      COVERAGE_DISPLAY_OPTIONS.find((option) =>
+        visibleCoverageDisplayKeys.includes(option.key)
+      )?.key ?? 'full',
+    [visibleCoverageDisplayKeys]
+  )
+  const convertToNodes = useCallback((): AcyclicGraphNode[] => {
+    const nodes: AcyclicGraphNode[] = []
+
+    vertexes.forEach((vertex) => {
+      const vertexData = dataForVertexId.get(vertex.id)
+      if (vertexData === undefined || getVertexLevel(vertexData) !== 1) {
+        return
+      }
+
+      nodes.push({
+        id: vertex.id.toString(),
+        type: 'acyclicGraphVertex',
+        position: { x: 0, y: 0 },
+        data: {
+          id: vertex.id,
+          level: 1,
+          hasParents: false,
+          hasChildren: vertex.childIds.length > 0,
+          data: vertexData,
+          coverageFraction: getCoverageFractionForVertex(
+            vertexData,
+            selectedCoverageDisplayKey
+          ),
+          type: selectedId === vertex.id ? 'SELECTED' : 'DEFAULT',
+          dimmed: false,
+          collapsed: false
+        }
+      })
+    })
+
+    return nodes
+  }, [vertexes, dataForVertexId, selectedId, selectedCoverageDisplayKey])
+
   const [mainGraphFitRequest, setMainGraphFitRequest] = useState(0)
   const [mainGraphFocusRequest, setMainGraphFocusRequest] = useState(0)
   const isFullscreenInitializedRef = useRef(false)
@@ -990,6 +1052,10 @@ export default function AcyclicGraphViewer({
                     hasParents: true,
                     hasChildren: vertex.childIds.length > 0,
                     data: vertexData,
+                    coverageFraction: getCoverageFractionForVertex(
+                      vertexData,
+                      selectedCoverageDisplayKey
+                    ),
                     type: selectedId === vertex.id ? 'SELECTED' : 'RELATED',
                     dimmed: false,
                     collapsed: false
@@ -1013,7 +1079,13 @@ export default function AcyclicGraphViewer({
 
       return { nodes, edges }
     },
-    [baseNodes, vertexes, dataForVertexId, selectedId]
+    [
+      baseNodes,
+      vertexes,
+      dataForVertexId,
+      selectedId,
+      selectedCoverageDisplayKey
+    ]
   )
 
   const childGraphData = useMemo(
@@ -1133,9 +1205,16 @@ export default function AcyclicGraphViewer({
         selectedId,
         vertexes,
         dataForVertexId,
-        miniGraphDisplayMode
+        miniGraphDisplayMode,
+        selectedCoverageDisplayKey
       ),
-    [selectedId, vertexes, dataForVertexId, miniGraphDisplayMode]
+    [
+      selectedId,
+      vertexes,
+      dataForVertexId,
+      miniGraphDisplayMode,
+      selectedCoverageDisplayKey
+    ]
   )
   const childFlowIsVisible =
     expandedLevel1Id !== null && level2ChildVertexes.length > 0
@@ -1684,6 +1763,7 @@ export default function AcyclicGraphViewer({
 
   const scheduleHoverPreview = useCallback(
     (
+      event: React.MouseEvent,
       node: Node<AcyclicGraphVertexViewerProps<VertexData>>,
       source: HoveredVertexPreview['source']
     ) => {
@@ -1696,10 +1776,25 @@ export default function AcyclicGraphViewer({
         clearTimeout(hoverPreviewTimerRef.current)
       }
 
+      const nodeElement =
+        event.currentTarget instanceof HTMLElement
+          ? (event.currentTarget.closest<HTMLElement>('.react-flow__node') ??
+            event.currentTarget)
+          : null
+      const nodeRect = nodeElement?.getBoundingClientRect()
+      const anchor =
+        nodeRect !== undefined
+          ? {
+              left: nodeRect.left,
+              top: nodeRect.top
+            }
+          : { left: event.clientX, top: event.clientY }
+
       const previewData: HoveredVertexPreview = {
         id: node.data.id,
         data: node.data.data,
-        source
+        source,
+        anchor
       }
 
       hoverPreviewTimerRef.current = setTimeout(() => {
@@ -1707,25 +1802,25 @@ export default function AcyclicGraphViewer({
         hoverPreviewTimerRef.current = null
       }, HOVER_PREVIEW_DELAY_MS)
     },
-    []
+    [containerRef]
   )
 
   const handleNodeMouseEnter = useCallback(
     (
-      _event: React.MouseEvent,
+      event: React.MouseEvent,
       node: Node<AcyclicGraphVertexViewerProps<VertexData>>
     ) => {
-      scheduleHoverPreview(node, 'MAIN')
+      scheduleHoverPreview(event, node, 'MAIN')
     },
     [scheduleHoverPreview]
   )
 
   const handleMiniNodeMouseEnter = useCallback(
     (
-      _event: React.MouseEvent,
+      event: React.MouseEvent,
       node: Node<AcyclicGraphVertexViewerProps<VertexData>>
     ) => {
-      scheduleHoverPreview(node, 'MINI')
+      scheduleHoverPreview(event, node, 'MINI')
     },
     [scheduleHoverPreview]
   )
@@ -1840,6 +1935,78 @@ export default function AcyclicGraphViewer({
     [resetSelection, selectVertex, vertexes]
   )
 
+  const handleOpenCoverageMenu = useCallback(
+    (event: React.MouseEvent<HTMLElement>) => {
+      event.stopPropagation()
+      setCoverageMenuAnchor(event.currentTarget)
+    },
+    []
+  )
+
+  const handleCloseCoverageMenu = useCallback(() => {
+    setCoverageMenuAnchor(null)
+  }, [])
+
+  const handleToggleCoverageDisplayKey = useCallback(
+    (key: CoverageDisplayKey) => {
+      setVisibleCoverageDisplayKeys((prevKeys) => {
+        if (prevKeys.includes(key)) {
+          if (prevKeys.length === 1) {
+            return prevKeys
+          }
+          return prevKeys.filter((prevKey) => prevKey !== key)
+        }
+
+        return [...prevKeys, key]
+      })
+    },
+    []
+  )
+
+  const getCoverageRowsForVertex = useCallback(
+    (vertexData: VertexData): string[][] => {
+      const rowsByKey: Record<CoverageDisplayKey, string[]> = {
+        full: [
+          'Покрытие всех',
+          vertexData.atomicityFlag
+            ? `${vertexData.test !== '' ? '1' : '0'} / 1`
+            : (vertexData.fullCoverageFraction ?? '0 / 0')
+        ],
+        must: [
+          'Обязательные',
+          vertexData.atomicityFlag
+            ? `${vertexData.test !== '' && vertexData.modifier === 'MUST' ? '1' : '0'} / ${vertexData.modifier === 'MUST' ? '1' : '0'}`
+            : (vertexData.onlyMustCoverageFraction ?? '0 / 0')
+        ],
+        mustShould: [
+          'Обязательные и рекомендуемые',
+          vertexData.atomicityFlag
+            ? `${vertexData.test !== '' && vertexData.modifier !== 'MAY' ? '1' : '0'} / ${vertexData.modifier !== 'MAY' ? '1' : '0'}`
+            : (vertexData.mustAndShouldCoverageFraction ?? '0 / 0')
+        ],
+        should: [
+          'Рекомендуемые',
+          vertexData.atomicityFlag
+            ? `${vertexData.test !== '' && vertexData.modifier === 'SHOULD' ? '1' : '0'} / ${vertexData.modifier === 'SHOULD' ? '1' : '0'}`
+            : (vertexData.onlyShouldCoverageFraction ?? '0 / 0')
+        ],
+        may: [
+          'Необязательные',
+          vertexData.atomicityFlag
+            ? `${vertexData.test !== '' && vertexData.modifier === 'MAY' ? '1' : '0'} / ${vertexData.modifier === 'MAY' ? '1' : '0'}`
+            : (vertexData.onlyMayCoverageFraction ?? '0 / 0')
+        ]
+      }
+
+      return [
+        ...COVERAGE_DISPLAY_OPTIONS.filter((option) =>
+          visibleCoverageDisplayKeys.includes(option.key)
+        ).map((option) => rowsByKey[option.key]),
+        ...(vertexData.atomicityFlag ? [['Тест', vertexData.test || '—']] : [])
+      ]
+    },
+    [visibleCoverageDisplayKeys]
+  )
   const renderPanelControls = ({
     panelKey,
     panelTop,
@@ -1997,14 +2164,17 @@ export default function AcyclicGraphViewer({
     [getClampedMiniGraphWidth]
   )
 
-  const fullCoverageBadgeColor = useMemo(() => {
+  const coverageBadgeColor = useMemo(() => {
     if (hoveredVertexPreview === null) {
       return {
         backgroundColor: theme.palette.primary.main,
         color: theme.palette.primary.contrastText
       }
     }
-    const fraction = hoveredVertexPreview.data.fullCoverageFraction ?? ''
+    const fraction = getCoverageFractionForVertex(
+      hoveredVertexPreview.data,
+      selectedCoverageDisplayKey
+    )
     const percent = parseCoverageFractionPercent(fraction)
     if (percent === null) {
       return {
@@ -2035,7 +2205,7 @@ export default function AcyclicGraphViewer({
       backgroundColor: theme.palette.mode === 'dark' ? green[500] : green[400],
       color: theme.palette.common.white
     }
-  }, [hoveredVertexPreview, theme.palette.mode])
+  }, [hoveredVertexPreview, selectedCoverageDisplayKey, theme.palette.mode])
 
   if (loading) {
     return <div className="graph-loading">Загрузка графа...</div>
@@ -2098,6 +2268,15 @@ export default function AcyclicGraphViewer({
               gap: 1
             }}
           >
+            <ProjButton
+              variant="outlined"
+              title="Выбрать отображаемые шкалы покрытия"
+              aria-label="Выбрать отображаемые шкалы покрытия"
+              onClick={handleOpenCoverageMenu}
+              sx={{ minWidth: 0, px: 1 }}
+            >
+              <TuneIcon fontSize="small" />
+            </ProjButton>{' '}
             <ProjButton
               variant={isMiniGraphEnabled ? 'contained' : 'outlined'}
               title={
@@ -2326,6 +2505,32 @@ export default function AcyclicGraphViewer({
               })
             : null}
           <Menu
+            anchorEl={coverageMenuAnchor}
+            open={coverageMenuAnchor !== null}
+            onClose={handleCloseCoverageMenu}
+            MenuListProps={{ dense: true }}
+            slotProps={{
+              paper: {
+                sx: {
+                  minWidth: 260
+                }
+              }
+            }}
+          >
+            {COVERAGE_DISPLAY_OPTIONS.map((option) => (
+              <MenuItem
+                key={option.key}
+                onClick={() => handleToggleCoverageDisplayKey(option.key)}
+              >
+                <Checkbox
+                  size="small"
+                  checked={visibleCoverageDisplayKeys.includes(option.key)}
+                />
+                <ListItemText primary={option.label} />
+              </MenuItem>
+            ))}
+          </Menu>{' '}
+          <Menu
             anchorEl={filterMenuAnchor}
             open={filterMenuAnchor !== null && filterMenuPanelKey !== null}
             onClose={handleClosePanelFilterMenu}
@@ -2342,7 +2547,6 @@ export default function AcyclicGraphViewer({
             {filterMenuPanelKey !== null ? (
               <Box sx={{ px: 1, py: 0.75 }}>
                 <FormTextField
-                  size="small"
                   label="поиск"
                   value={filterMenuSearch}
                   onClick={(event) => event.stopPropagation()}
@@ -2436,12 +2640,13 @@ export default function AcyclicGraphViewer({
             <Paper
               elevation={6}
               sx={{
-                position: 'absolute',
-                left: 10,
-                top: 6,
+                position: 'fixed',
+                left: hoveredVertexPreview.anchor.left,
+                top: hoveredVertexPreview.anchor.top,
+                transform: 'translateY(-100%)',
                 width: 'clamp(180px, 24vw, 230px)',
                 pointerEvents: 'none',
-                zIndex: 20,
+                zIndex: theme.zIndex.tooltip,
                 p: 0.6,
                 borderRadius: 1
               }}
@@ -2450,8 +2655,8 @@ export default function AcyclicGraphViewer({
                 sx={{
                   borderRadius: 1,
                   border: `2px solid ${theme.palette.divider}`,
-                  backgroundColor: fullCoverageBadgeColor.backgroundColor,
-                  color: fullCoverageBadgeColor.color,
+                  backgroundColor: coverageBadgeColor.backgroundColor,
+                  color: coverageBadgeColor.color,
                   px: 1,
                   py: 0.35,
                   textAlign: 'center',
@@ -2474,85 +2679,48 @@ export default function AcyclicGraphViewer({
                       : alpha(theme.palette.background.default, 0.55)
                 }}
               >
-                {[
-                  [
-                    'Покрытие всех',
-                    hoveredVertexPreview.data.atomicityFlag
-                      ? `${hoveredVertexPreview.data.test !== '' ? '1' : '0'} / 1`
-                      : (hoveredVertexPreview.data.fullCoverageFraction ??
-                        '0 / 0')
-                  ],
-                  [
-                    'Обязательные',
-                    hoveredVertexPreview.data.atomicityFlag
-                      ? `${hoveredVertexPreview.data.test !== '' && hoveredVertexPreview.data.modifier === 'MUST' ? '1' : '0'} / ${hoveredVertexPreview.data.modifier === 'MUST' ? '1' : '0'}`
-                      : (hoveredVertexPreview.data.onlyMustCoverageFraction ??
-                        '0 / 0')
-                  ],
-                  [
-                    'Обязательные и рекомендуемые',
-                    hoveredVertexPreview.data.atomicityFlag
-                      ? `${hoveredVertexPreview.data.test !== '' && hoveredVertexPreview.data.modifier !== 'MAY' ? '1' : '0'} / ${hoveredVertexPreview.data.modifier !== 'MAY' ? '1' : '0'}`
-                      : (hoveredVertexPreview.data
-                          .mustAndShouldCoverageFraction ?? '0 / 0')
-                  ],
-                  [
-                    'Рекомендуемые',
-                    hoveredVertexPreview.data.atomicityFlag
-                      ? `${hoveredVertexPreview.data.test !== '' && hoveredVertexPreview.data.modifier === 'SHOULD' ? '1' : '0'} / ${hoveredVertexPreview.data.modifier === 'SHOULD' ? '1' : '0'}`
-                      : (hoveredVertexPreview.data.onlyShouldCoverageFraction ??
-                        '0 / 0')
-                  ],
-                  [
-                    'Необязательные',
-                    hoveredVertexPreview.data.atomicityFlag
-                      ? `${hoveredVertexPreview.data.test !== '' && hoveredVertexPreview.data.modifier === 'MAY' ? '1' : '0'} / ${hoveredVertexPreview.data.modifier === 'MAY' ? '1' : '0'}`
-                      : (hoveredVertexPreview.data.onlyMayCoverageFraction ??
-                        '0 / 0')
-                  ],
-                  ...(hoveredVertexPreview.data.atomicityFlag
-                    ? [['Тест', hoveredVertexPreview.data.test || '—']]
-                    : [])
-                ].map(([label, value], index, array) => (
-                  <Box key={label}>
-                    <Box
-                      sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        gap: 0.6
-                      }}
-                    >
-                      <Typography
-                        variant="caption"
+                {getCoverageRowsForVertex(hoveredVertexPreview.data).map(
+                  ([label, value], index, array) => (
+                    <Box key={label}>
+                      <Box
                         sx={{
-                          color: theme.palette.text.secondary,
-                          letterSpacing: 0.15,
-                          fontSize: '10px'
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: 0.6
                         }}
                       >
-                        {label}
-                      </Typography>
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          fontWeight: 600,
-                          textAlign: 'right',
-                          fontSize: '12px',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap'
-                        }}
-                        title={value}
-                      >
-                        {value}
-                      </Typography>
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            color: theme.palette.text.secondary,
+                            letterSpacing: 0.15,
+                            fontSize: '10px'
+                          }}
+                        >
+                          {label}
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            fontWeight: 600,
+                            textAlign: 'right',
+                            fontSize: '12px',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap'
+                          }}
+                          title={value}
+                        >
+                          {value}
+                        </Typography>
+                      </Box>
+                      {index < array.length - 1 ? (
+                        <Divider sx={{ mt: 0.3 }} />
+                      ) : null}
                     </Box>
-                    {index < array.length - 1 ? (
-                      <Divider sx={{ mt: 0.3 }} />
-                    ) : null}
-                  </Box>
-                ))}
+                  )
+                )}
               </Stack>
             </Paper>
           ) : null}
@@ -2741,12 +2909,13 @@ export default function AcyclicGraphViewer({
               <Paper
                 elevation={6}
                 sx={{
-                  position: 'absolute',
-                  right: 10,
-                  top: 6,
+                  position: 'fixed',
+                  left: hoveredVertexPreview.anchor.left,
+                  top: hoveredVertexPreview.anchor.top,
+                  transform: 'translateY(-100%)',
                   width: 'clamp(180px, 24vw, 230px)',
                   pointerEvents: 'none',
-                  zIndex: 20,
+                  zIndex: theme.zIndex.tooltip,
                   p: 0.6,
                   borderRadius: 1
                 }}
@@ -2755,8 +2924,8 @@ export default function AcyclicGraphViewer({
                   sx={{
                     borderRadius: 1,
                     border: `2px solid ${theme.palette.divider}`,
-                    backgroundColor: fullCoverageBadgeColor.backgroundColor,
-                    color: fullCoverageBadgeColor.color,
+                    backgroundColor: coverageBadgeColor.backgroundColor,
+                    color: coverageBadgeColor.color,
                     px: 1,
                     py: 0.35,
                     textAlign: 'center',
@@ -2779,81 +2948,44 @@ export default function AcyclicGraphViewer({
                         : alpha(theme.palette.background.default, 0.55)
                   }}
                 >
-                  {[
-                    [
-                      'Покрытие всех',
-                      hoveredVertexPreview.data.atomicityFlag
-                        ? `${hoveredVertexPreview.data.test !== '' ? '1' : '0'} / 1`
-                        : (hoveredVertexPreview.data.fullCoverageFraction ??
-                          '0 / 0')
-                    ],
-                    [
-                      'Обязательные',
-                      hoveredVertexPreview.data.atomicityFlag
-                        ? `${hoveredVertexPreview.data.test !== '' && hoveredVertexPreview.data.modifier === 'MUST' ? '1' : '0'} / ${hoveredVertexPreview.data.modifier === 'MUST' ? '1' : '0'}`
-                        : (hoveredVertexPreview.data.onlyMustCoverageFraction ??
-                          '0 / 0')
-                    ],
-                    [
-                      'Обязательные и рекомендуемые',
-                      hoveredVertexPreview.data.atomicityFlag
-                        ? `${hoveredVertexPreview.data.test !== '' && hoveredVertexPreview.data.modifier !== 'MAY' ? '1' : '0'} / ${hoveredVertexPreview.data.modifier !== 'MAY' ? '1' : '0'}`
-                        : (hoveredVertexPreview.data
-                            .mustAndShouldCoverageFraction ?? '0 / 0')
-                    ],
-                    [
-                      'Рекомендуемые',
-                      hoveredVertexPreview.data.atomicityFlag
-                        ? `${hoveredVertexPreview.data.test !== '' && hoveredVertexPreview.data.modifier === 'SHOULD' ? '1' : '0'} / ${hoveredVertexPreview.data.modifier === 'SHOULD' ? '1' : '0'}`
-                        : (hoveredVertexPreview.data
-                            .onlyShouldCoverageFraction ?? '0 / 0')
-                    ],
-                    [
-                      'Необязательные',
-                      hoveredVertexPreview.data.atomicityFlag
-                        ? `${hoveredVertexPreview.data.test !== '' && hoveredVertexPreview.data.modifier === 'MAY' ? '1' : '0'} / ${hoveredVertexPreview.data.modifier === 'MAY' ? '1' : '0'}`
-                        : (hoveredVertexPreview.data.onlyMayCoverageFraction ??
-                          '0 / 0')
-                    ],
-                    ...(hoveredVertexPreview.data.atomicityFlag
-                      ? [['Тест', hoveredVertexPreview.data.test || '—']]
-                      : [])
-                  ].map(([label, value], index, array) => (
-                    <Box key={label}>
-                      <Box
-                        sx={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          gap: 0.6
-                        }}
-                      >
-                        <Typography
-                          variant="caption"
+                  {getCoverageRowsForVertex(hoveredVertexPreview.data).map(
+                    ([label, value], index, array) => (
+                      <Box key={label}>
+                        <Box
                           sx={{
-                            color: theme.palette.text.secondary,
-                            letterSpacing: 0.15,
-                            fontSize: '10px'
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            gap: 0.6
                           }}
                         >
-                          {label}
-                        </Typography>
-                        <Typography
-                          variant="body2"
-                          sx={{
-                            fontWeight: 600,
-                            color: theme.palette.text.primary,
-                            fontSize: '11px'
-                          }}
-                        >
-                          {value}
-                        </Typography>
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              color: theme.palette.text.secondary,
+                              letterSpacing: 0.15,
+                              fontSize: '10px'
+                            }}
+                          >
+                            {label}
+                          </Typography>
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              fontWeight: 600,
+                              color: theme.palette.text.primary,
+                              fontSize: '11px'
+                            }}
+                          >
+                            {value}
+                          </Typography>
+                        </Box>
+                        {index < array.length - 1 ? (
+                          <Divider sx={{ mt: 0.3 }} />
+                        ) : null}
                       </Box>
-                      {index < array.length - 1 ? (
-                        <Divider sx={{ mt: 0.3 }} />
-                      ) : null}
-                    </Box>
-                  ))}
+                    )
+                  )}
                 </Stack>
               </Paper>
             ) : null}
