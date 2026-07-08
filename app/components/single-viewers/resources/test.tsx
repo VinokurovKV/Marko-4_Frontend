@@ -846,15 +846,18 @@ export function TestViewer({
             </VerticalTwoPartsContainer>
           </HorizontalTwoPartsContainer>
         ) : (
-          <ColumnViewer>
-            <ColumnViewerBlock title="описание">
-              {filteredDescriptionText !== null ? (
-                <MarkdownView text={filteredDescriptionText} />
-              ) : (
-                <ColumnViewerText emptyText="нет" />
-              )}
-            </ColumnViewerBlock>
-          </ColumnViewer>
+          <ContainerWithTitle>
+            <ColumnViewer>
+              <ColumnViewerBlock title="описание">
+                {filteredDescriptionText !== null ? (
+                  <MarkdownView text={filteredDescriptionText} />
+                ) : (
+                  <ColumnViewerText emptyText="нет" />
+                )}
+              </ColumnViewerBlock>
+            </ColumnViewer>
+            null
+          </ContainerWithTitle>
         )}
       </ContainerWithTitle>
       <UpdateTestFormDialog
