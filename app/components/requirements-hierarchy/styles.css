@@ -15,7 +15,9 @@ div.acyclic-vertex {
   height: 80px;
   box-sizing: border-box;
   cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
   box-shadow: 0 2px 8px hsla(220, 30%, 6%, 0.1);
   position: relative;
   display: flex;
@@ -27,6 +29,11 @@ div.acyclic-vertex {
 
 div.acyclic-vertex:hover {
   box-shadow: 0 4px 12px hsla(220, 30%, 6%, 0.3);
+}
+
+div.acyclic-vertex.atomic-disabled,
+div.acyclic-vertex.atomic-disabled * {
+  cursor: not-allowed;
 }
 
 div.acyclic-vertex.selected {

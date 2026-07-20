@@ -559,6 +559,58 @@ const getVertexLevel = (vertexData: VertexData): number => {
   return 1
 }
 
+const getCommonPrefix = (values: string[]): string => {
+  if (values.length < 2) {
+    return ''
+  }
+
+  let prefix = values[0] ?? ''
+
+  values.slice(1).forEach((value) => {
+    while (prefix !== '' && value.startsWith(prefix) === false) {
+      prefix = prefix.slice(0, -1)
+    }
+  })
+
+  return prefix
+}
+
+type DisplayCodeInfo = {
+  displayCode: string
+  commonPrefix: string
+}
+
+const getDisplayCodeInfoByVertexId = (
+  vertexes: Vertex[],
+  dataForVertexId: Map<number, VertexData>
+): Map<number, DisplayCodeInfo> => {
+  const codes = vertexes
+    .map((vertex) => dataForVertexId.get(vertex.id)?.code ?? '')
+    .filter((code) => code !== '')
+  const commonPrefix = getCommonPrefix(codes)
+
+  if (commonPrefix === '') {
+    return new Map()
+  }
+
+  return new Map(
+    vertexes.map((vertex) => {
+      const code = dataForVertexId.get(vertex.id)?.code ?? ''
+      const displayCode = code.startsWith(commonPrefix)
+        ? code.slice(commonPrefix.length)
+        : code
+
+      return [
+        vertex.id,
+        {
+          displayCode: displayCode === '' ? code : displayCode,
+          commonPrefix
+        }
+      ]
+    })
+  )
+}
+
 const useContainerSize = (
   defaultWidth: number = 1920,
   defaultHeight: number = 1080
@@ -682,6 +734,10 @@ const getMiniFlowData = (
 
   levels.forEach((level, levelIndex) => {
     const levelVertexes = (byLevel.get(level) ?? []).sort((a, b) => a.id - b.id)
+    const displayCodeInfoByVertexId = getDisplayCodeInfoByVertexId(
+      levelVertexes,
+      dataForVertexId
+    )
     const levelWidth =
       levelVertexes.length * nodeWidth +
       Math.max(0, levelVertexes.length - 1) * nodeSpacing
@@ -710,6 +766,8 @@ const getMiniFlowData = (
             includedIds.has(childId)
           ),
           data: vertexData,
+          displayCode: displayCodeInfoByVertexId.get(vertex.id)?.displayCode,
+          commonPrefix: displayCodeInfoByVertexId.get(vertex.id)?.commonPrefix,
           coverageFraction: getCoverageFractionForVertex(
             vertexData,
             coverageDisplayKey
@@ -849,6 +907,10 @@ export default function AcyclicGraphViewer({
   const [filterMenuSearch, setFilterMenuSearch] = useState('')
   const [coverageMenuAnchor, setCoverageMenuAnchor] =
     useState<HTMLElement | null>(null)
+  const [progressMenuAnchor, setProgressMenuAnchor] =
+    useState<HTMLElement | null>(null)
+  const [selectedProgressDisplayKey, setSelectedProgressDisplayKey] =
+    useState<CoverageDisplayKey>('full')
   const [visibleCoverageDisplayKeys, setVisibleCoverageDisplayKeys] = useState<
     CoverageDisplayKey[]
   >(COVERAGE_DISPLAY_OPTIONS.map((option) => option.key))
@@ -863,8 +925,16 @@ export default function AcyclicGraphViewer({
   )
   const convertToNodes = useCallback((): AcyclicGraphNode[] => {
     const nodes: AcyclicGraphNode[] = []
+    const level1Vertexes = vertexes.filter((vertex) => {
+      const vertexData = dataForVertexId.get(vertex.id)
+      return vertexData !== undefined && getVertexLevel(vertexData) === 1
+    })
+    const displayCodeInfoByVertexId = getDisplayCodeInfoByVertexId(
+      level1Vertexes,
+      dataForVertexId
+    )
 
-    vertexes.forEach((vertex) => {
+    level1Vertexes.forEach((vertex) => {
       const vertexData = dataForVertexId.get(vertex.id)
       if (vertexData === undefined || getVertexLevel(vertexData) !== 1) {
         return
@@ -880,9 +950,11 @@ export default function AcyclicGraphViewer({
           hasParents: false,
           hasChildren: vertex.childIds.length > 0,
           data: vertexData,
+          displayCode: displayCodeInfoByVertexId.get(vertex.id)?.displayCode,
+          commonPrefix: displayCodeInfoByVertexId.get(vertex.id)?.commonPrefix,
           coverageFraction: getCoverageFractionForVertex(
             vertexData,
-            selectedCoverageDisplayKey
+            selectedProgressDisplayKey
           ),
           type: selectedId === vertex.id ? 'SELECTED' : 'DEFAULT',
           dimmed: false,
@@ -892,7 +964,7 @@ export default function AcyclicGraphViewer({
     })
 
     return nodes
-  }, [vertexes, dataForVertexId, selectedId, selectedCoverageDisplayKey])
+  }, [vertexes, dataForVertexId, selectedId, selectedProgressDisplayKey])
 
   const [mainGraphFitRequest, setMainGraphFitRequest] = useState(0)
   const [mainGraphFocusRequest, setMainGraphFocusRequest] = useState(0)
@@ -1024,6 +1096,10 @@ export default function AcyclicGraphViewer({
         (a, b) => Math.abs(a - parentSlotIndex) - Math.abs(b - parentSlotIndex)
       )
       const childY = (selectedLayoutedNode?.position.y ?? 0) + 136
+      const displayCodeInfoByVertexId = getDisplayCodeInfoByVertexId(
+        displayedChildVertexes,
+        dataForVertexId
+      )
       const nodes: AcyclicGraphNode[] =
         selectedLayoutedNode === undefined
           ? []
@@ -1052,9 +1128,13 @@ export default function AcyclicGraphViewer({
                     hasParents: true,
                     hasChildren: vertex.childIds.length > 0,
                     data: vertexData,
+                    displayCode: displayCodeInfoByVertexId.get(vertex.id)
+                      ?.displayCode,
+                    commonPrefix: displayCodeInfoByVertexId.get(vertex.id)
+                      ?.commonPrefix,
                     coverageFraction: getCoverageFractionForVertex(
                       vertexData,
-                      selectedCoverageDisplayKey
+                      selectedProgressDisplayKey
                     ),
                     type: selectedId === vertex.id ? 'SELECTED' : 'RELATED',
                     dimmed: false,
@@ -1084,7 +1164,7 @@ export default function AcyclicGraphViewer({
       vertexes,
       dataForVertexId,
       selectedId,
-      selectedCoverageDisplayKey
+      selectedProgressDisplayKey
     ]
   )
 
@@ -1206,14 +1286,14 @@ export default function AcyclicGraphViewer({
         vertexes,
         dataForVertexId,
         miniGraphDisplayMode,
-        selectedCoverageDisplayKey
+        selectedProgressDisplayKey
       ),
     [
       selectedId,
       vertexes,
       dataForVertexId,
       miniGraphDisplayMode,
-      selectedCoverageDisplayKey
+      selectedProgressDisplayKey
     ]
   )
   const childFlowIsVisible =
@@ -1667,6 +1747,10 @@ export default function AcyclicGraphViewer({
       _event: React.MouseEvent,
       node: Node<AcyclicGraphVertexViewerProps<VertexData>>
     ) => {
+      if (node.data.data.atomicityFlag) {
+        return
+      }
+
       const nodeId = node.id
       const vertexId = parseInt(nodeId, 10)
       const level = node.data.level
@@ -1847,6 +1931,11 @@ export default function AcyclicGraphViewer({
       node: Node<AcyclicGraphVertexViewerProps<VertexData>>
     ) => {
       event.stopPropagation()
+
+      if (node.data.data.atomicityFlag) {
+        return
+      }
+
       onMiniVertexClick?.(node.data.id)
     },
     [onMiniVertexClick]
@@ -1947,6 +2036,26 @@ export default function AcyclicGraphViewer({
     setCoverageMenuAnchor(null)
   }, [])
 
+  const handleOpenProgressMenu = useCallback(
+    (event: React.MouseEvent<HTMLElement>) => {
+      event.stopPropagation()
+      setProgressMenuAnchor(event.currentTarget)
+    },
+    []
+  )
+
+  const handleCloseProgressMenu = useCallback(() => {
+    setProgressMenuAnchor(null)
+  }, [])
+
+  const handleSelectProgressDisplayKey = useCallback(
+    (key: CoverageDisplayKey) => {
+      setSelectedProgressDisplayKey(key)
+      setProgressMenuAnchor(null)
+    },
+    []
+  )
+
   const handleToggleCoverageDisplayKey = useCallback(
     (key: CoverageDisplayKey) => {
       setVisibleCoverageDisplayKeys((prevKeys) => {
@@ -2007,10 +2116,50 @@ export default function AcyclicGraphViewer({
     },
     [visibleCoverageDisplayKeys]
   )
+  const renderLevelPrefixBadge = (
+    nodes: AcyclicGraphNode[],
+    top: number = 8
+  ) => {
+    const commonPrefix = nodes.find(
+      (node) => node.data.commonPrefix !== undefined
+    )?.data.commonPrefix
+
+    if (commonPrefix === undefined || commonPrefix === '') {
+      return null
+    }
+
+    return (
+      <Box
+        title={commonPrefix}
+        sx={{
+          position: 'absolute',
+          left: 8,
+          top,
+          zIndex: 15,
+          maxWidth: 'min(420px, 44vw)',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+          borderRadius: 1,
+          px: 0.75,
+          py: 0.25,
+          backgroundColor:
+            theme.palette.mode === 'dark'
+              ? alpha(theme.palette.common.black, 0.42)
+              : alpha(theme.palette.common.white, 0.68),
+          color: theme.palette.text.secondary,
+          fontSize: '11px',
+          lineHeight: 1.35,
+          pointerEvents: 'none'
+        }}
+      >
+        {commonPrefix}
+      </Box>
+    )
+  }
   const renderPanelControls = ({
     panelKey,
     panelTop,
-    totalCount,
     visibleCount,
     scrollStartIndex,
     setScrollStartIndex,
@@ -2019,17 +2168,12 @@ export default function AcyclicGraphViewer({
   }: {
     panelKey: ChildPanelKey
     panelTop: number
-    totalCount: number
     visibleCount: number
     scrollStartIndex: number
     setScrollStartIndex: React.Dispatch<React.SetStateAction<number>>
     beforeScrollChange?: () => void
     disabled?: boolean
   }) => {
-    if (totalCount <= 12) {
-      return null
-    }
-
     const maxScrollStartIndex = Math.max(0, visibleCount - 12)
 
     return (
@@ -2052,7 +2196,7 @@ export default function AcyclicGraphViewer({
             sx={{
               position: 'absolute',
               left: 24,
-              right: 50,
+              right: 56,
               top: panelTop + 62,
               zIndex: 16,
               pointerEvents: 'auto',
@@ -2068,21 +2212,33 @@ export default function AcyclicGraphViewer({
           onClick={(event) => handleOpenPanelFilterMenu(panelKey, event)}
           sx={{
             position: 'absolute',
-            right: 26,
-            top: panelTop + 65,
+            right: 8,
+            top: panelTop + 8,
             zIndex: 16,
-            width: 0,
-            height: 0,
+            width: 22,
+            height: 22,
             p: 0,
-            border: 0,
-            borderLeft: '6px solid transparent',
-            borderRight: '6px solid transparent',
-            borderTop: `8px solid ${theme.palette.primary.main}`,
-            backgroundColor: 'transparent',
+            border: `1px solid ${theme.palette.primary.main}`,
+            borderRadius: '50%',
+            backgroundColor: theme.palette.primary.main,
             cursor: 'pointer',
             pointerEvents: 'auto',
+            '&::before': {
+              content: '""',
+              position: 'absolute',
+              left: '50%',
+              top: '50%',
+              transform: 'translate(-50%, -35%)',
+              borderLeft: '5px solid transparent',
+              borderRight: '5px solid transparent',
+              borderTop: `6px solid ${theme.palette.primary.contrastText}`
+            },
             '&:hover': {
-              borderTopColor: theme.palette.primary.light
+              borderColor: theme.palette.primary.light,
+              backgroundColor: theme.palette.primary.light,
+              '&::before': {
+                borderTopColor: theme.palette.primary.contrastText
+              }
             }
           }}
         />
@@ -2278,6 +2434,15 @@ export default function AcyclicGraphViewer({
               <TuneIcon fontSize="small" />
             </ProjButton>{' '}
             <ProjButton
+              variant="outlined"
+              title="Выбрать шкалу нижней полосы"
+              aria-label="Выбрать шкалу нижней полосы"
+              onClick={handleOpenProgressMenu}
+              sx={{ minWidth: 0, px: 1 }}
+            >
+              <TuneIcon fontSize="small" />
+            </ProjButton>{' '}
+            <ProjButton
               variant={isMiniGraphEnabled ? 'contained' : 'outlined'}
               title={
                 isMiniGraphEnabled ? 'Скрыть мини-граф' : 'Показать мини-граф'
@@ -2369,6 +2534,7 @@ export default function AcyclicGraphViewer({
             <Controls showInteractive={false} />
             <Background />
           </ReactFlow>
+          {renderLevelPrefixBadge(baseNodes)}
           {childFlowIsVisible && childPanelReady ? (
             <Paper
               elevation={10}
@@ -2393,10 +2559,15 @@ export default function AcyclicGraphViewer({
             />
           ) : null}
           {childFlowIsVisible && childPanelReady
+            ? renderLevelPrefixBadge(
+                childGraphData.nodes,
+                childPanelAnchor.top + 8
+              )
+            : null}
+          {childFlowIsVisible && childPanelReady
             ? renderPanelControls({
                 panelKey: 'level2',
                 panelTop: childPanelAnchor.top,
-                totalCount: level2ChildVertexes.length,
                 visibleCount: selectedChildCount,
                 scrollStartIndex: childScrollStartIndex,
                 setScrollStartIndex: setChildScrollStartIndex,
@@ -2427,10 +2598,15 @@ export default function AcyclicGraphViewer({
             />
           ) : null}
           {grandChildFlowIsVisible && grandChildPanelReady
+            ? renderLevelPrefixBadge(
+                grandChildGraphData.nodes,
+                grandChildPanelAnchor.top + 8
+              )
+            : null}
+          {grandChildFlowIsVisible && grandChildPanelReady
             ? renderPanelControls({
                 panelKey: 'level3',
                 panelTop: grandChildPanelAnchor.top,
-                totalCount: level3ChildVertexes.length,
                 visibleCount: selectedGrandChildCount,
                 scrollStartIndex: grandChildScrollStartIndex,
                 setScrollStartIndex: setGrandChildScrollStartIndex,
@@ -2461,10 +2637,15 @@ export default function AcyclicGraphViewer({
             />
           ) : null}
           {greatGrandChildFlowIsVisible && greatGrandChildPanelReady
+            ? renderLevelPrefixBadge(
+                greatGrandChildGraphData.nodes,
+                greatGrandChildPanelAnchor.top + 8
+              )
+            : null}
+          {greatGrandChildFlowIsVisible && greatGrandChildPanelReady
             ? renderPanelControls({
                 panelKey: 'level4',
                 panelTop: greatGrandChildPanelAnchor.top,
-                totalCount: level4ChildVertexes.length,
                 visibleCount: selectedGreatGrandChildCount,
                 scrollStartIndex: greatGrandChildScrollStartIndex,
                 setScrollStartIndex: setGreatGrandChildScrollStartIndex,
@@ -2495,10 +2676,15 @@ export default function AcyclicGraphViewer({
             />
           ) : null}
           {level5FlowIsVisible && level5PanelReady
+            ? renderLevelPrefixBadge(
+                level5GraphData.nodes,
+                level5PanelAnchor.top + 8
+              )
+            : null}
+          {level5FlowIsVisible && level5PanelReady
             ? renderPanelControls({
                 panelKey: 'level5',
                 panelTop: level5PanelAnchor.top,
-                totalCount: level5ChildVertexes.length,
                 visibleCount: selectedLevel5Count,
                 scrollStartIndex: level5ScrollStartIndex,
                 setScrollStartIndex: setLevel5ScrollStartIndex
@@ -2525,6 +2711,32 @@ export default function AcyclicGraphViewer({
                 <Checkbox
                   size="small"
                   checked={visibleCoverageDisplayKeys.includes(option.key)}
+                />
+                <ListItemText primary={option.label} />
+              </MenuItem>
+            ))}
+          </Menu>{' '}
+          <Menu
+            anchorEl={progressMenuAnchor}
+            open={progressMenuAnchor !== null}
+            onClose={handleCloseProgressMenu}
+            MenuListProps={{ dense: true }}
+            slotProps={{
+              paper: {
+                sx: {
+                  minWidth: 260
+                }
+              }
+            }}
+          >
+            {COVERAGE_DISPLAY_OPTIONS.map((option) => (
+              <MenuItem
+                key={option.key}
+                onClick={() => handleSelectProgressDisplayKey(option.key)}
+              >
+                <Checkbox
+                  size="small"
+                  checked={selectedProgressDisplayKey === option.key}
                 />
                 <ListItemText primary={option.label} />
               </MenuItem>

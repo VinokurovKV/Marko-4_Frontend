@@ -31,6 +31,8 @@ export interface AcyclicGraphVertexViewerProps<VertexData> {
   hasParents: boolean
   hasChildren: boolean
   data: VertexData
+  displayCode?: string
+  commonPrefix?: string
   coverageFraction?: string
   type: AcyclicGraphVertexType
   dimmed?: boolean
@@ -67,6 +69,7 @@ export default function AcyclicGraphVertexViewer({
     hasParents,
     hasChildren,
     data,
+    displayCode,
     coverageFraction,
     type,
     dimmed = false,
@@ -108,12 +111,16 @@ export default function AcyclicGraphVertexViewer({
     theme.palette.mode === 'dark' ? '#e1bee7' : '#7b1fa2'
 
   const handleClick = () => {
+    if (data.atomicityFlag) {
+      return
+    }
+
     onClick?.(id)
   }
 
   return (
     <div
-      className={`acyclic-vertex ${type.toLowerCase()} ${dimmed ? 'dimmed' : ''} ${collapsed ? 'collapsed' : ''}`}
+      className={`acyclic-vertex ${type.toLowerCase()} ${dimmed ? 'dimmed' : ''} ${collapsed ? 'collapsed' : ''} ${data.atomicityFlag ? 'atomic-disabled' : ''}`}
       onClick={handleClick}
       style={{ borderColor, borderWidth: '3px' }}
     >
@@ -181,7 +188,7 @@ export default function AcyclicGraphVertexViewer({
         }}
         title={data.code}
       >
-        {data.code}
+        {displayCode ?? data.code}
       </div>
       <span className="coverage-indicator-track" aria-hidden>
         <span
