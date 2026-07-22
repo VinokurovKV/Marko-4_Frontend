@@ -39,6 +39,7 @@ import Typography from '@mui/material/Typography'
 import Tooltip from '@mui/material/Tooltip'
 import Autocomplete from '@mui/material/Autocomplete'
 import Checkbox from '@mui/material/Checkbox'
+import Radio from '@mui/material/Radio'
 import ListItemText from '@mui/material/ListItemText'
 import Menu from '@mui/material/Menu'
 import MenuItem from '@mui/material/MenuItem'
@@ -99,8 +100,8 @@ const COVERAGE_DISPLAY_OPTIONS: Array<{
   { key: 'should', label: 'Рекомендуемые' },
   { key: 'may', label: 'Необязательные' }
 ]
-const HOVER_PREVIEW_DELAY_MS = 400
-const HOVER_PREVIEW_HIDE_DELAY_MS = 180
+const HOVER_PREVIEW_DELAY_MS = 640
+const HOVER_PREVIEW_HIDE_DELAY_MS = 160
 
 function parseCoverageFractionPercent(fraction: string): number | null {
   const [coveredRaw, totalRaw] = fraction.split('/').map((part) => part.trim())
@@ -906,9 +907,7 @@ export default function AcyclicGraphViewer({
   const [filterMenuPanelKey, setFilterMenuPanelKey] =
     useState<ChildPanelKey | null>(null)
   const [filterMenuSearch, setFilterMenuSearch] = useState('')
-  const [coverageMenuAnchor, setCoverageMenuAnchor] =
-    useState<HTMLElement | null>(null)
-  const [progressMenuAnchor, setProgressMenuAnchor] =
+  const [coverageSettingsMenuAnchor, setCoverageSettingsMenuAnchor] =
     useState<HTMLElement | null>(null)
   const [selectedProgressDisplayKey, setSelectedProgressDisplayKey] =
     useState<CoverageDisplayKey>('full')
@@ -1867,13 +1866,30 @@ export default function AcyclicGraphViewer({
             event.currentTarget)
           : null
       const nodeRect = nodeElement?.getBoundingClientRect()
+      const previewWidth = Math.min(
+        Math.max(180, window.innerWidth * 0.24),
+        230
+      )
+      const viewportPadding = 8
       const anchor =
         nodeRect !== undefined
           ? {
-              left: nodeRect.left,
+              left: Math.min(
+                Math.max(
+                  nodeRect.left + nodeRect.width / 2 - previewWidth / 2,
+                  viewportPadding
+                ),
+                window.innerWidth - previewWidth - viewportPadding
+              ),
               top: nodeRect.top
             }
-          : { left: event.clientX, top: event.clientY }
+          : {
+              left: Math.min(
+                Math.max(event.clientX - previewWidth / 2, viewportPadding),
+                window.innerWidth - previewWidth - viewportPadding
+              ),
+              top: event.clientY
+            }
 
       const previewData: HoveredVertexPreview = {
         id: node.data.id,
@@ -2025,34 +2041,23 @@ export default function AcyclicGraphViewer({
     [resetSelection, selectVertex, vertexes]
   )
 
-  const handleOpenCoverageMenu = useCallback(
+  const handleOpenCoverageSettingsMenu = useCallback(
     (event: React.MouseEvent<HTMLElement>) => {
       event.stopPropagation()
-      setCoverageMenuAnchor(event.currentTarget)
+      setCoverageSettingsMenuAnchor((prevAnchor) =>
+        prevAnchor === null ? event.currentTarget : null
+      )
     },
     []
   )
 
-  const handleCloseCoverageMenu = useCallback(() => {
-    setCoverageMenuAnchor(null)
-  }, [])
-
-  const handleOpenProgressMenu = useCallback(
-    (event: React.MouseEvent<HTMLElement>) => {
-      event.stopPropagation()
-      setProgressMenuAnchor(event.currentTarget)
-    },
-    []
-  )
-
-  const handleCloseProgressMenu = useCallback(() => {
-    setProgressMenuAnchor(null)
+  const handleCloseCoverageSettingsMenu = useCallback(() => {
+    setCoverageSettingsMenuAnchor(null)
   }, [])
 
   const handleSelectProgressDisplayKey = useCallback(
     (key: CoverageDisplayKey) => {
       setSelectedProgressDisplayKey(key)
-      setProgressMenuAnchor(null)
     },
     []
   )
@@ -2385,6 +2390,17 @@ export default function AcyclicGraphViewer({
       </>
     )
   }
+
+  const handleHoverPreviewMouseEnter = useCallback(() => {
+    if (hoverPreviewHideTimerRef.current !== null) {
+      clearTimeout(hoverPreviewHideTimerRef.current)
+      hoverPreviewHideTimerRef.current = null
+    }
+  }, [])
+
+  const handleHoverPreviewMouseLeave = useCallback(() => {
+    handleNodeMouseLeave()
+  }, [handleNodeMouseLeave])
   const isMiniGraphVisible = selectedId !== null && isMiniGraphEnabled
   const mainHoverPreviewIsVisible =
     hoveredVertexPreview !== null && hoveredVertexPreview.source === 'MAIN'
@@ -2565,19 +2581,12 @@ export default function AcyclicGraphViewer({
             }}
           >
             <ProjButton
-              variant="outlined"
-              title="Выбрать отображаемые шкалы покрытия"
-              aria-label="Выбрать отображаемые шкалы покрытия"
-              onClick={handleOpenCoverageMenu}
-              sx={{ minWidth: 0, px: 1 }}
-            >
-              <TuneIcon fontSize="small" />
-            </ProjButton>{' '}
-            <ProjButton
-              variant="outlined"
-              title="Выбрать шкалу нижней полосы"
-              aria-label="Выбрать шкалу нижней полосы"
-              onClick={handleOpenProgressMenu}
+              variant={
+                coverageSettingsMenuAnchor !== null ? 'contained' : 'outlined'
+              }
+              title="Настроить отображение шкал покрытия"
+              aria-label="Настроить отображение шкал покрытия"
+              onClick={handleOpenCoverageSettingsMenu}
               sx={{ minWidth: 0, px: 1 }}
             >
               <TuneIcon fontSize="small" />
@@ -2819,56 +2828,72 @@ export default function AcyclicGraphViewer({
               })
             : null}
           <Menu
-            anchorEl={coverageMenuAnchor}
-            open={coverageMenuAnchor !== null}
-            onClose={handleCloseCoverageMenu}
+            anchorEl={coverageSettingsMenuAnchor}
+            open={coverageSettingsMenuAnchor !== null}
+            onClose={handleCloseCoverageSettingsMenu}
             MenuListProps={{ dense: true }}
             slotProps={{
+              root: {
+                sx: {
+                  pointerEvents: 'none'
+                }
+              },
               paper: {
                 sx: {
-                  minWidth: 260
+                  minWidth: 560,
+                  maxWidth: 720,
+                  pointerEvents: 'auto'
                 }
               }
             }}
           >
-            {COVERAGE_DISPLAY_OPTIONS.map((option) => (
-              <MenuItem
-                key={option.key}
-                onClick={() => handleToggleCoverageDisplayKey(option.key)}
-              >
-                <Checkbox
-                  size="small"
-                  checked={visibleCoverageDisplayKeys.includes(option.key)}
-                />
-                <ListItemText primary={option.label} />
-              </MenuItem>
-            ))}
-          </Menu>{' '}
-          <Menu
-            anchorEl={progressMenuAnchor}
-            open={progressMenuAnchor !== null}
-            onClose={handleCloseProgressMenu}
-            MenuListProps={{ dense: true }}
-            slotProps={{
-              paper: {
-                sx: {
-                  minWidth: 260
-                }
-              }
-            }}
-          >
-            {COVERAGE_DISPLAY_OPTIONS.map((option) => (
-              <MenuItem
-                key={option.key}
-                onClick={() => handleSelectProgressDisplayKey(option.key)}
-              >
-                <Checkbox
-                  size="small"
-                  checked={selectedProgressDisplayKey === option.key}
-                />
-                <ListItemText primary={option.label} />
-              </MenuItem>
-            ))}
+            <Box sx={{ display: 'flex', alignItems: 'stretch' }}>
+              <Box sx={{ width: 280, py: 0.75 }}>
+                <Box sx={{ px: 2, pb: 0.75, textAlign: 'center' }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
+                    Шкалы во всплывающей подсказке
+                  </Typography>
+                </Box>
+                {COVERAGE_DISPLAY_OPTIONS.map((option) => (
+                  <MenuItem
+                    key={`coverage-${option.key}`}
+                    onClick={() => handleToggleCoverageDisplayKey(option.key)}
+                  >
+                    <Checkbox
+                      size="small"
+                      checked={visibleCoverageDisplayKeys.includes(option.key)}
+                    />
+                    <ListItemText
+                      primary={option.label}
+                      slotProps={{ primary: { fontSize: 13 } }}
+                    />
+                  </MenuItem>
+                ))}
+              </Box>
+              <Divider orientation="vertical" flexItem />
+              <Box sx={{ width: 280, py: 0.75 }}>
+                <Box sx={{ px: 2, pb: 0.75, textAlign: 'center' }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
+                    Шкала нижней полосы
+                  </Typography>
+                </Box>
+                {COVERAGE_DISPLAY_OPTIONS.map((option) => (
+                  <MenuItem
+                    key={`progress-${option.key}`}
+                    onClick={() => handleSelectProgressDisplayKey(option.key)}
+                  >
+                    <Radio
+                      size="small"
+                      checked={selectedProgressDisplayKey === option.key}
+                    />
+                    <ListItemText
+                      primary={option.label}
+                      slotProps={{ primary: { fontSize: 13 } }}
+                    />
+                  </MenuItem>
+                ))}
+              </Box>
+            </Box>
           </Menu>{' '}
           <Menu
             anchorEl={filterMenuAnchor}
@@ -2979,13 +3004,15 @@ export default function AcyclicGraphViewer({
           {mainHoverPreviewIsVisible ? (
             <Paper
               elevation={6}
+              onMouseEnter={handleHoverPreviewMouseEnter}
+              onMouseLeave={handleHoverPreviewMouseLeave}
               sx={{
                 position: 'fixed',
                 left: hoveredVertexPreview.anchor.left,
                 top: hoveredVertexPreview.anchor.top,
                 transform: 'translateY(-100%)',
                 width: 'clamp(180px, 24vw, 230px)',
-                pointerEvents: 'none',
+                pointerEvents: 'auto',
                 zIndex: theme.zIndex.tooltip,
                 p: 0.6,
                 borderRadius: 1
@@ -3248,13 +3275,15 @@ export default function AcyclicGraphViewer({
             {miniHoverPreviewIsVisible ? (
               <Paper
                 elevation={6}
+                onMouseEnter={handleHoverPreviewMouseEnter}
+                onMouseLeave={handleHoverPreviewMouseLeave}
                 sx={{
                   position: 'fixed',
                   left: hoveredVertexPreview.anchor.left,
                   top: hoveredVertexPreview.anchor.top,
                   transform: 'translateY(-100%)',
                   width: 'clamp(180px, 24vw, 230px)',
-                  pointerEvents: 'none',
+                  pointerEvents: 'auto',
                   zIndex: theme.zIndex.tooltip,
                   p: 0.6,
                   borderRadius: 1
