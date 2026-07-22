@@ -1,4 +1,4 @@
-// Project
+﻿// Project
 import { ProjButton } from '../buttons/button'
 import { FormTextField } from '../forms/common'
 // React
@@ -36,6 +36,7 @@ import Divider from '@mui/material/Divider'
 import Paper from '@mui/material/Paper'
 import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
+import Tooltip from '@mui/material/Tooltip'
 import Autocomplete from '@mui/material/Autocomplete'
 import Checkbox from '@mui/material/Checkbox'
 import ListItemText from '@mui/material/ListItemText'
@@ -2129,32 +2130,74 @@ export default function AcyclicGraphViewer({
     }
 
     return (
-      <Box
-        title={commonPrefix}
-        sx={{
-          position: 'absolute',
-          left: 8,
-          top,
-          zIndex: 15,
-          maxWidth: 'min(420px, 44vw)',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap',
-          borderRadius: 1,
-          px: 0.75,
-          py: 0.25,
-          backgroundColor:
-            theme.palette.mode === 'dark'
-              ? alpha(theme.palette.common.black, 0.42)
-              : alpha(theme.palette.common.white, 0.68),
-          color: theme.palette.text.secondary,
-          fontSize: '11px',
-          lineHeight: 1.35,
-          pointerEvents: 'none'
+      <Tooltip
+        title="Общий префикс требований уровня"
+        placement="top-start"
+        arrow
+        slotProps={{
+          tooltip: {
+            sx: {
+              backgroundColor:
+                theme.palette.mode === 'dark'
+                  ? alpha(theme.palette.common.white, 0.96)
+                  : alpha(theme.palette.common.black, 0.96),
+              color:
+                theme.palette.mode === 'dark'
+                  ? theme.palette.common.black
+                  : theme.palette.common.white,
+              fontSize: '11px',
+              fontWeight: 500,
+              px: 1,
+              py: 0.5,
+              maxWidth: 220
+            }
+          },
+          arrow: {
+            sx: {
+              color:
+                theme.palette.mode === 'dark'
+                  ? alpha(theme.palette.common.white, 0.96)
+                  : alpha(theme.palette.common.black, 0.96)
+            }
+          }
         }}
       >
-        {commonPrefix}
-      </Box>
+        <Box
+          sx={{
+            position: 'absolute',
+            left: 8,
+            top,
+            zIndex: 15,
+            maxWidth: 'min(420px, 44vw)',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+            border: '1px solid',
+            borderColor:
+              theme.palette.mode === 'dark'
+                ? alpha(theme.palette.common.white, 0.32)
+                : alpha(theme.palette.common.black, 0.22),
+            borderRadius: 1,
+            px: 0.75,
+            py: 0.25,
+            backgroundColor:
+              theme.palette.mode === 'dark'
+                ? alpha(theme.palette.common.black, 0.78)
+                : alpha(theme.palette.common.white, 0.92),
+            color: theme.palette.text.primary,
+            boxShadow:
+              theme.palette.mode === 'dark'
+                ? `0 2px 10px ${alpha(theme.palette.common.black, 0.45)}`
+                : `0 2px 10px ${alpha(theme.palette.common.black, 0.16)}`,
+            fontSize: '11px',
+            fontWeight: 600,
+            lineHeight: 1.35,
+            pointerEvents: 'auto'
+          }}
+        >
+          {commonPrefix}
+        </Box>
+      </Tooltip>
     )
   }
   const renderPanelControls = ({
@@ -2179,30 +2222,126 @@ export default function AcyclicGraphViewer({
     return (
       <>
         {visibleCount > 12 ? (
-          <Box
-            component="input"
-            type="range"
-            min={0}
-            max={maxScrollStartIndex}
-            value={Math.min(scrollStartIndex, maxScrollStartIndex)}
-            disabled={disabled}
-            onChange={(event) => {
-              if (disabled === true) {
-                return
-              }
-              beforeScrollChange?.()
-              setScrollStartIndex(Number(event.target.value))
-            }}
-            sx={{
-              position: 'absolute',
-              left: 24,
-              right: 56,
-              top: panelTop + 62,
-              zIndex: 16,
-              pointerEvents: 'auto',
-              accentColor: theme.palette.primary.main
-            }}
-          />
+          <>
+            <Box
+              component="button"
+              type="button"
+              title="В начало уровня"
+              aria-label="В начало уровня"
+              disabled={disabled}
+              onClick={() => {
+                if (disabled === true) {
+                  return
+                }
+                beforeScrollChange?.()
+                setScrollStartIndex(0)
+              }}
+              sx={{
+                position: 'absolute',
+                left: 18,
+                top: panelTop + 62,
+                zIndex: 16,
+                width: 16,
+                height: 16,
+                p: 0,
+                border: `1px solid ${theme.palette.primary.main}`,
+                borderRadius: '50%',
+                backgroundColor: theme.palette.primary.main,
+                boxShadow: `0 4px 6px ${alpha(theme.palette.primary.main, 0.5)}`,
+                cursor: disabled === true ? 'default' : 'pointer',
+                opacity: disabled === true ? 0.45 : 1,
+                pointerEvents: 'auto',
+                '&::before': {
+                  content: '""',
+                  position: 'absolute',
+                  left: '50%',
+                  top: '50%',
+                  transform: 'translate(-60%, -50%)',
+                  borderTop: '4px solid transparent',
+                  borderBottom: '4px solid transparent',
+                  borderRight: `4px solid ${theme.palette.primary.contrastText}`
+                },
+                '&:hover':
+                  disabled === true
+                    ? undefined
+                    : {
+                        borderColor: theme.palette.primary.light,
+                        backgroundColor: theme.palette.primary.light
+                      }
+              }}
+            />
+            <Box
+              component="input"
+              type="range"
+              min={0}
+              max={maxScrollStartIndex}
+              value={Math.min(scrollStartIndex, maxScrollStartIndex)}
+              disabled={disabled}
+              onChange={(event) => {
+                if (disabled === true) {
+                  return
+                }
+                beforeScrollChange?.()
+                setScrollStartIndex(Number(event.target.value))
+              }}
+              sx={{
+                position: 'absolute',
+                left: 44,
+                right: 82,
+                top: panelTop + 62,
+                zIndex: 16,
+                pointerEvents: 'auto',
+                accentColor: theme.palette.primary.main
+              }}
+            />
+            <Box
+              component="button"
+              type="button"
+              title="В конец уровня"
+              aria-label="В конец уровня"
+              disabled={disabled}
+              onClick={() => {
+                if (disabled === true) {
+                  return
+                }
+                beforeScrollChange?.()
+                setScrollStartIndex(maxScrollStartIndex)
+              }}
+              sx={{
+                position: 'absolute',
+                right: 56,
+                top: panelTop + 62,
+                zIndex: 16,
+                width: 16,
+                height: 16,
+                p: 0,
+                border: `1px solid ${theme.palette.primary.main}`,
+                borderRadius: '50%',
+                backgroundColor: theme.palette.primary.main,
+                boxShadow: `0 4px 6px ${alpha(theme.palette.primary.main, 0.5)}`,
+                cursor: disabled === true ? 'default' : 'pointer',
+                opacity: disabled === true ? 0.45 : 1,
+                pointerEvents: 'auto',
+                '&::before': {
+                  content: '""',
+                  position: 'absolute',
+                  left: '50%',
+                  top: '50%',
+                  transform: 'translate(-40%, -50%)',
+                  borderTop: '4px solid transparent',
+                  borderBottom: '4px solid transparent',
+                  borderLeft: `4px solid ${theme.palette.primary.contrastText}`
+                },
+                '&:hover':
+                  disabled === true
+                    ? undefined
+                    : {
+                        borderColor: theme.palette.primary.light,
+                        backgroundColor: theme.palette.primary.light
+                      }
+              }}
+            />
+          </>
         ) : null}
         <Box
           component="button"
@@ -2213,14 +2352,15 @@ export default function AcyclicGraphViewer({
           sx={{
             position: 'absolute',
             right: 8,
-            top: panelTop + 8,
+            top: panelTop + 2,
             zIndex: 16,
-            width: 22,
-            height: 22,
+            width: 16,
+            height: 16,
             p: 0,
             border: `1px solid ${theme.palette.primary.main}`,
             borderRadius: '50%',
             backgroundColor: theme.palette.primary.main,
+            boxShadow: `0 4px 6px ${alpha(theme.palette.primary.main, 0.5)}`,
             cursor: 'pointer',
             pointerEvents: 'auto',
             '&::before': {
@@ -2229,9 +2369,9 @@ export default function AcyclicGraphViewer({
               left: '50%',
               top: '50%',
               transform: 'translate(-50%, -35%)',
-              borderLeft: '5px solid transparent',
-              borderRight: '5px solid transparent',
-              borderTop: `6px solid ${theme.palette.primary.contrastText}`
+              borderLeft: '4px solid transparent',
+              borderRight: '4px solid transparent',
+              borderTop: `5px solid ${theme.palette.primary.contrastText}`
             },
             '&:hover': {
               borderColor: theme.palette.primary.light,
@@ -2547,14 +2687,11 @@ export default function AcyclicGraphViewer({
                 boxSizing: 'border-box',
                 zIndex: 1,
                 pointerEvents: 'none',
-                border: `1px solid ${theme.palette.divider}`,
+                border: 'none',
                 background: 'transparent',
                 backgroundColor: 'transparent',
                 backgroundImage: 'none',
-                boxShadow:
-                  theme.palette.mode === 'dark'
-                    ? `0 0 0 1px ${alpha(theme.palette.common.white, 0.16)}, 0 0 16px ${alpha(theme.palette.common.white, 0.18)}`
-                    : theme.shadows[10]
+                boxShadow: 'none'
               }}
             />
           ) : null}
@@ -2586,14 +2723,11 @@ export default function AcyclicGraphViewer({
                 boxSizing: 'border-box',
                 zIndex: 1,
                 pointerEvents: 'none',
-                border: `1px solid ${theme.palette.divider}`,
+                border: 'none',
                 background: 'transparent',
                 backgroundColor: 'transparent',
                 backgroundImage: 'none',
-                boxShadow:
-                  theme.palette.mode === 'dark'
-                    ? `0 0 0 1px ${alpha(theme.palette.common.white, 0.16)}, 0 0 16px ${alpha(theme.palette.common.white, 0.18)}`
-                    : theme.shadows[10]
+                boxShadow: 'none'
               }}
             />
           ) : null}
@@ -2625,14 +2759,11 @@ export default function AcyclicGraphViewer({
                 boxSizing: 'border-box',
                 zIndex: 1,
                 pointerEvents: 'none',
-                border: `1px solid ${theme.palette.divider}`,
+                border: 'none',
                 background: 'transparent',
                 backgroundColor: 'transparent',
                 backgroundImage: 'none',
-                boxShadow:
-                  theme.palette.mode === 'dark'
-                    ? `0 0 0 1px ${alpha(theme.palette.common.white, 0.16)}, 0 0 16px ${alpha(theme.palette.common.white, 0.18)}`
-                    : theme.shadows[10]
+                boxShadow: 'none'
               }}
             />
           ) : null}
@@ -2664,14 +2795,11 @@ export default function AcyclicGraphViewer({
                 boxSizing: 'border-box',
                 zIndex: 1,
                 pointerEvents: 'none',
-                border: `1px solid ${theme.palette.divider}`,
+                border: 'none',
                 background: 'transparent',
                 backgroundColor: 'transparent',
                 backgroundImage: 'none',
-                boxShadow:
-                  theme.palette.mode === 'dark'
-                    ? `0 0 0 1px ${alpha(theme.palette.common.white, 0.16)}, 0 0 16px ${alpha(theme.palette.common.white, 0.18)}`
-                    : theme.shadows[10]
+                boxShadow: 'none'
               }}
             />
           ) : null}
