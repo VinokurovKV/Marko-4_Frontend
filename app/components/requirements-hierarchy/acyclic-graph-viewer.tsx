@@ -1,6 +1,13 @@
-﻿// Project
+// Project
 import { ProjButton } from '../buttons/button'
+import { serverConnector } from '~/server-connector'
+import { useNotifier } from '~/providers/notifier'
 import { FormTextField } from '../forms/common'
+import {
+  useDocumentsFiltered,
+  useFragmentsFiltered,
+  useRequirement
+} from '~/hooks/resources'
 // React
 import {
   useCallback,
@@ -40,6 +47,12 @@ import Tooltip from '@mui/material/Tooltip'
 import Autocomplete from '@mui/material/Autocomplete'
 import Checkbox from '@mui/material/Checkbox'
 import Radio from '@mui/material/Radio'
+import Chip from '@mui/material/Chip'
+import CircularProgress from '@mui/material/CircularProgress'
+import Dialog from '@mui/material/Dialog'
+import DialogActions from '@mui/material/DialogActions'
+import DialogContent from '@mui/material/DialogContent'
+import DialogTitle from '@mui/material/DialogTitle'
 import ListItemText from '@mui/material/ListItemText'
 import Menu from '@mui/material/Menu'
 import MenuItem from '@mui/material/MenuItem'
@@ -177,6 +190,326 @@ const getBaseZoomDeltaFromWheelEvent = (event: WheelEvent) => {
   return -event.deltaY * deltaFactor * ctrlFactor
 }
 
+const FRAGMENT_SCREENSHOT_LOADER_DELAY_MS = 250
+
+function HoverPreviewFragmentsBlock({
+  requirementId,
+  active
+}: {
+  requirementId: number
+  active: boolean
+}) {
+  const theme = useTheme()
+  const notifier = useNotifier()
+  const [selectedFragmentId, setSelectedFragmentId] = useState<number | null>(
+    null
+  )
+  const [selectedFragmentScreenshotUrl, setSelectedFragmentScreenshotUrl] =
+    useState<string | null>(null)
+  const [isFragmentScreenshotLoading, setIsFragmentScreenshotLoading] =
+    useState(false)
+  const [showFragmentScreenshotLoader, setShowFragmentScreenshotLoader] =
+    useState(false)
+  const screenshotRequestSeqRef = useRef(0)
+
+  const requirement = useRequirement(
+    'UP_TO_TERTIARY_PROPS',
+    requirementId,
+    false,
+    active
+  )
+  const fragments = useFragmentsFiltered(
+    'PRIMARY_PROPS',
+    requirement?.fragmentIds ?? null,
+    false,
+    active && requirement !== null
+  )
+  const fragmentForId = useMemo(
+    () => new Map((fragments ?? []).map((fragment) => [fragment.id, fragment])),
+    [fragments]
+  )
+
+  const documentIds = useMemo(
+    () =>
+      fragments !== null
+        ? Array.from(new Set(fragments.map((fragment) => fragment.documentId)))
+        : null,
+    [fragments]
+  )
+  const documents = useDocumentsFiltered(
+    'PRIMARY_PROPS',
+    documentIds,
+    false,
+    active && documentIds !== null
+  )
+  const documentCodeForId = useMemo(
+    () =>
+      new Map(
+        (documents ?? []).map((document) => [document.id, document.code])
+      ),
+    [documents]
+  )
+
+  const selectedFragment =
+    selectedFragmentId !== null
+      ? (fragmentForId.get(selectedFragmentId) ?? null)
+      : null
+
+  const closeFragmentScreenshotDialog = useCallback(() => {
+    screenshotRequestSeqRef.current += 1
+    setSelectedFragmentId(null)
+    setIsFragmentScreenshotLoading(false)
+    setSelectedFragmentScreenshotUrl((oldUrl) => {
+      if (oldUrl !== null) {
+        URL.revokeObjectURL(oldUrl)
+      }
+      return null
+    })
+  }, [])
+
+  useEffect(() => {
+    if (!active) {
+      closeFragmentScreenshotDialog()
+    }
+  }, [active, closeFragmentScreenshotDialog])
+
+  useEffect(() => {
+    if (!isFragmentScreenshotLoading) {
+      setShowFragmentScreenshotLoader(false)
+      return
+    }
+    const timer = setTimeout(() => {
+      setShowFragmentScreenshotLoader(true)
+    }, FRAGMENT_SCREENSHOT_LOADER_DELAY_MS)
+    return () => {
+      clearTimeout(timer)
+    }
+  }, [isFragmentScreenshotLoading])
+
+  useEffect(() => {
+    return () => {
+      if (selectedFragmentScreenshotUrl !== null) {
+        URL.revokeObjectURL(selectedFragmentScreenshotUrl)
+      }
+    }
+  }, [selectedFragmentScreenshotUrl])
+
+  const handleFragmentClick = useCallback(
+    (fragmentId: number) => {
+      const fragment = fragmentForId.get(fragmentId)
+      if (fragment === undefined) {
+        return
+      }
+
+      screenshotRequestSeqRef.current += 1
+      const requestSeq = screenshotRequestSeqRef.current
+
+      setSelectedFragmentId(fragmentId)
+      setIsFragmentScreenshotLoading(true)
+      setSelectedFragmentScreenshotUrl((oldUrl) => {
+        if (oldUrl !== null) {
+          URL.revokeObjectURL(oldUrl)
+        }
+        return null
+      })
+
+      void (async () => {
+        try {
+          const blob = await serverConnector.readFragmentConfig({
+            id: fragmentId
+          })
+          const screenshotUrl = URL.createObjectURL(blob)
+          if (screenshotRequestSeqRef.current !== requestSeq) {
+            URL.revokeObjectURL(screenshotUrl)
+            return
+          }
+
+          setSelectedFragmentScreenshotUrl(screenshotUrl)
+        } catch (error) {
+          if (screenshotRequestSeqRef.current !== requestSeq) {
+            return
+          }
+          notifier.showError(
+            error,
+            `не удалось загрузить скриншот фрагмента «${fragment.innerCode}»`
+          )
+        } finally {
+          if (screenshotRequestSeqRef.current === requestSeq) {
+            setIsFragmentScreenshotLoading(false)
+          }
+        }
+      })()
+    },
+    [fragmentForId, notifier]
+  )
+
+  const isReady = requirement !== null && fragments !== null
+  if (!isReady || fragments === null) {
+    return null
+  }
+
+  return (
+    <Box sx={{ mt: 0.6 }}>
+      <Divider sx={{ mb: 0.45 }} />
+      <Typography
+        variant="caption"
+        sx={{
+          display: 'block',
+          color: theme.palette.text.secondary,
+          fontSize: '10px',
+          fontWeight: 700,
+          mb: 0.35,
+          textAlign: 'center'
+        }}
+      >
+        фрагменты документов
+      </Typography>
+      <Stack
+        direction="row"
+        spacing={0.5}
+        justifyContent="center"
+        sx={{
+          overflowX: 'auto',
+          overflowY: 'hidden',
+          flexWrap: 'nowrap',
+          pb: 0.2,
+          px: 0.1,
+          '&::-webkit-scrollbar': {
+            height: 4
+          },
+          '&::-webkit-scrollbar-thumb': {
+            borderRadius: 999,
+            backgroundColor: alpha(theme.palette.primary.main, 0.45)
+          }
+        }}
+      >
+        {fragments.length === 0 ? (
+          <Typography
+            variant="caption"
+            sx={{ color: theme.palette.text.secondary, fontSize: '10px' }}
+          >
+            нет
+          </Typography>
+        ) : (
+          fragments.map((fragment) => {
+            const documentCode =
+              documentCodeForId.get(fragment.documentId) ?? '???'
+            const label = `${documentCode} - ${fragment.innerCode}`
+            const isActive = selectedFragmentId === fragment.id
+            return (
+              <Chip
+                key={fragment.id}
+                label={label}
+                size="small"
+                variant={isActive ? 'filled' : 'outlined'}
+                clickable
+                onClick={() => handleFragmentClick(fragment.id)}
+                sx={{
+                  maxWidth: 140,
+                  flex: '0 0 auto',
+                  borderColor: isActive
+                    ? theme.palette.primary.main
+                    : theme.palette.primary.dark,
+                  backgroundColor: isActive
+                    ? theme.palette.primary.main
+                    : undefined,
+                  color: isActive
+                    ? theme.palette.primary.contrastText
+                    : undefined,
+                  ':hover': {
+                    bgcolor: isActive
+                      ? `${theme.palette.primary.dark} !important`
+                      : theme.palette.mode === 'light'
+                        ? 'rgb(239, 244, 251) !important'
+                        : 'rgb(40, 47, 54) !important'
+                  },
+                  '& .MuiChip-label': {
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis'
+                  }
+                }}
+              />
+            )
+          })
+        )}
+      </Stack>
+      <Dialog
+        open={selectedFragmentId !== null}
+        onClose={closeFragmentScreenshotDialog}
+        maxWidth="md"
+        fullWidth
+        sx={(theme) => ({
+          zIndex: theme.zIndex.tooltip + 20
+        })}
+        PaperProps={{
+          sx: (theme) => ({
+            backgroundColor:
+              theme.palette.mode === 'dark' ? gray[900] : gray[100],
+            color: theme.palette.mode === 'dark' ? gray[100] : gray[700],
+            borderRadius: 4
+          })
+        }}
+      >
+        <DialogTitle sx={{ textAlign: 'center' }}>
+          Предпросмотр фрагмента
+          {selectedFragment !== null ? `: ${selectedFragment.innerCode}` : ''}
+        </DialogTitle>
+        <DialogContent dividers>
+          <Box
+            sx={{
+              position: 'relative',
+              minHeight: 180,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
+            {selectedFragmentScreenshotUrl !== null ? (
+              <Box
+                component="img"
+                src={selectedFragmentScreenshotUrl}
+                alt={
+                  selectedFragment !== null
+                    ? `Предпросмотр фрагмента ${selectedFragment.innerCode}`
+                    : 'Предпросмотр фрагмента'
+                }
+                sx={{
+                  maxWidth: '100%',
+                  maxHeight: '70vh',
+                  objectFit: 'contain',
+                  borderRadius: 1
+                }}
+              />
+            ) : (
+              <Typography textAlign="center" variant="body2">
+                загрузка фрагмента...
+              </Typography>
+            )}
+            {isFragmentScreenshotLoading && showFragmentScreenshotLoader ? (
+              <Box
+                sx={{
+                  position: 'absolute',
+                  inset: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  bgcolor: alpha(theme.palette.background.paper, 0.55)
+                }}
+              >
+                <CircularProgress size={24} />
+              </Box>
+            ) : null}
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ justifyContent: 'center' }}>
+          <ProjButton onClick={closeFragmentScreenshotDialog}>
+            Закрыть
+          </ProjButton>
+        </DialogActions>
+      </Dialog>
+    </Box>
+  )
+}
 function ReactFlowPinchZoomSensitivityController() {
   const d3Zoom = useStore((state) => state.d3Zoom)
   const d3Selection = useStore((state) => state.d3Selection)
@@ -3089,6 +3422,10 @@ export default function AcyclicGraphViewer({
                   )
                 )}
               </Stack>
+              <HoverPreviewFragmentsBlock
+                requirementId={hoveredVertexPreview.id}
+                active={mainHoverPreviewIsVisible}
+              />
             </Paper>
           ) : null}
         </Box>
@@ -3356,6 +3693,10 @@ export default function AcyclicGraphViewer({
                     )
                   )}
                 </Stack>
+                <HoverPreviewFragmentsBlock
+                  requirementId={hoveredVertexPreview.id}
+                  active={miniHoverPreviewIsVisible}
+                />
               </Paper>
             ) : null}
           </>
