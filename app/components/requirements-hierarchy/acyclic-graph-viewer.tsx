@@ -60,6 +60,7 @@ import FullscreenIcon from '@mui/icons-material/Fullscreen'
 import FullscreenExitIcon from '@mui/icons-material/FullscreenExit'
 import AccountTreeIcon from '@mui/icons-material/AccountTree'
 import TuneIcon from '@mui/icons-material/Tune'
+import { Link } from 'react-router'
 
 const StackStyled = styled(Stack)(() => [
   {
@@ -433,6 +434,34 @@ function HoverPreviewFragmentsBlock({
           })
         )}
       </Stack>
+      <Divider sx={{ mb: 0.45, mt: 0.6 }} />{' '}
+      <Typography
+        variant="caption"
+        sx={{
+          display: 'block',
+          color: theme.palette.text.secondary,
+          fontSize: '10px',
+          fontWeight: 700,
+          mb: 0.35,
+          textAlign: 'center'
+        }}
+      >
+        {' '}
+        требование{' '}
+      </Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+        <Tooltip title="перейти к экрану выбранного требования">
+          <Box
+            component={Link}
+            to={`/requirements/${requirementId}`}
+            sx={{ textDecoration: 'none' }}
+          >
+            <ProjButton variant="contained" sx={{ minWidth: 0, px: 1.2 }}>
+              Перейти
+            </ProjButton>
+          </Box>
+        </Tooltip>
+      </Box>
       <Dialog
         open={selectedFragmentId !== null}
         onClose={closeFragmentScreenshotDialog}
