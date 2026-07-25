@@ -47,6 +47,12 @@ import type {
   ReadEventsCountSuccessResultDto
 } from '@common/dtos/server-api/events.dto'
 import type {
+  ReadApiLogsQueryDto,
+  ReadApiLogsSuccessResultItemDto,
+  ReadStorageLogsQueryDto,
+  ReadStorageLogsSuccessResultItemDto
+} from '@common/dtos/server-api/logs.dto'
+import type {
   ReadRoleParamsDto,
   ReadRoleQueryDto,
   ReadRoleWithPrimaryPropsSuccessResultDto,
@@ -1429,6 +1435,21 @@ export class ServerConnector {
     return this.withEmptyArray(params)
       ? Promise.resolve([])
       : this.getObject(`/events`, params)
+  }
+  // Logs
+  readApiLogs(
+    params: Params<ReadApiLogsQueryDto>
+  ): Result<ReadApiLogsSuccessResultItemDto[]> {
+    return this.withEmptyArray(params)
+      ? Promise.resolve([])
+      : this.getObject('/logs/api/read-many', params)
+  }
+  readStorageLogs(
+    params: Params<ReadStorageLogsQueryDto>
+  ): Result<ReadStorageLogsSuccessResultItemDto[]> {
+    return this.withEmptyArray(params)
+      ? Promise.resolve([])
+      : this.getObject('/logs/storage/read-many', params)
   }
   // History
   async archiveHistory(params: Params<ArchiveBodyDto>): Promise<void> {
