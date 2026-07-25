@@ -33,6 +33,7 @@ import AcyclicGraphVertexViewer, {
   type VertexData
 } from './acyclic-graph-vertex-viewer'
 import { edgeStyle } from './requirements'
+import type { FragmentPrimary } from '~/types/resources/fragments'
 import calculateNodePositions from './graph-layouts/layout-new'
 import { gray, green, orange, red } from '~/theme/themePrimitives'
 import './styles.css'
@@ -195,10 +196,16 @@ const FRAGMENT_SCREENSHOT_LOADER_DELAY_MS = 250
 
 function HoverPreviewFragmentsBlock({
   requirementId,
-  active
+  active,
+  showFragments,
+  previewKey,
+  onReadyChange
 }: {
   requirementId: number
   active: boolean
+  showFragments: boolean
+  previewKey: string
+  onReadyChange: (previewKey: string, ready: boolean) => void
 }) {
   const theme = useTheme()
   const notifier = useNotifier()
@@ -221,9 +228,9 @@ function HoverPreviewFragmentsBlock({
   )
   const fragments = useFragmentsFiltered(
     'PRIMARY_PROPS',
-    requirement?.fragmentIds ?? null,
+    showFragments ? (requirement?.fragmentIds ?? null) : null,
     false,
-    active && requirement !== null
+    active && requirement !== null && showFragments
   )
   const fragmentForId = useMemo(
     () => new Map((fragments ?? []).map((fragment) => [fragment.id, fragment])),
@@ -250,6 +257,17 @@ function HoverPreviewFragmentsBlock({
       ),
     [documents]
   )
+
+  const expectedFragmentIds = requirement?.fragmentIds ?? null
+  const fragmentsMatchRequirement =
+    expectedFragmentIds !== null &&
+    fragments !== null &&
+    (expectedFragmentIds.length === 0 ||
+      expectedFragmentIds.every((fragmentId) => fragmentForId.has(fragmentId)))
+  const documentsMatchFragments =
+    documentIds !== null &&
+    (documentIds.length === 0 ||
+      documentIds.every((documentId) => documentCodeForId.has(documentId)))
 
   const selectedFragment =
     selectedFragmentId !== null
@@ -344,124 +362,157 @@ function HoverPreviewFragmentsBlock({
     [fragmentForId, notifier]
   )
 
-  const isReady = requirement !== null && fragments !== null
-  if (!isReady || fragments === null) {
+  const isReady =
+    showFragments === false ||
+    (fragmentsMatchRequirement && documentsMatchFragments)
+
+  useEffect(() => {
+    onReadyChange(previewKey, isReady)
+  }, [isReady, onReadyChange, previewKey])
+
+  if (!isReady || (showFragments && fragments === null)) {
     return null
   }
+  const visibleFragments: FragmentPrimary[] = fragments ?? []
 
   return (
     <Box sx={{ mt: 0.6 }}>
       <Divider sx={{ mb: 0.45 }} />
-      <Typography
-        variant="caption"
-        sx={{
-          display: 'block',
-          color: theme.palette.text.secondary,
-          fontSize: '10px',
-          fontWeight: 700,
-          mb: 0.35,
-          textAlign: 'center'
-        }}
-      >
-        фрагменты документов
-      </Typography>
       <Stack
         direction="row"
-        spacing={0.5}
-        justifyContent="center"
-        sx={{
-          overflowX: 'auto',
-          overflowY: 'hidden',
-          flexWrap: 'nowrap',
-          pb: 0.2,
-          px: 0.1,
-          '&::-webkit-scrollbar': {
-            height: 4
-          },
-          '&::-webkit-scrollbar-thumb': {
-            borderRadius: 999,
-            backgroundColor: alpha(theme.palette.primary.main, 0.45)
-          }
-        }}
+        spacing={1}
+        divider={<Divider orientation="vertical" flexItem />}
+        sx={{ alignItems: 'stretch' }}
       >
-        {fragments.length === 0 ? (
+        {showFragments ? (
+          <Box sx={{ minWidth: 0, flex: 1 }}>
+            <Typography
+              variant="caption"
+              sx={{
+                display: 'block',
+                color: theme.palette.text.secondary,
+                fontSize: '10px',
+                fontWeight: 700,
+                mb: 0.35,
+                textAlign: 'center'
+              }}
+            >
+              фрагменты
+            </Typography>
+            <Stack
+              direction="row"
+              spacing={0.5}
+              justifyContent="center"
+              sx={{
+                overflowX: 'auto',
+                overflowY: 'hidden',
+                flexWrap: 'nowrap',
+                pb: 0.2,
+                px: 0.1,
+                '&::-webkit-scrollbar': {
+                  height: 4
+                },
+                '&::-webkit-scrollbar-thumb': {
+                  borderRadius: 999,
+                  backgroundColor: alpha(theme.palette.primary.main, 0.45)
+                }
+              }}
+            >
+              {visibleFragments.length === 0 ? (
+                <Typography
+                  variant="caption"
+                  sx={{ color: theme.palette.text.secondary, fontSize: '10px' }}
+                >
+                  нет
+                </Typography>
+              ) : (
+                visibleFragments.map((fragment) => {
+                  const documentCode =
+                    documentCodeForId.get(fragment.documentId) ?? '???'
+                  const label = `${documentCode} - ${fragment.innerCode}`
+                  const isActive = selectedFragmentId === fragment.id
+
+                  return (
+                    <Chip
+                      key={fragment.id}
+                      label={label}
+                      size="small"
+                      variant={isActive ? 'filled' : 'outlined'}
+                      clickable
+                      onClick={() => handleFragmentClick(fragment.id)}
+                      sx={{
+                        maxWidth: 126,
+                        flex: '0 0 auto',
+                        borderColor: isActive
+                          ? theme.palette.primary.main
+                          : theme.palette.primary.dark,
+                        backgroundColor: isActive
+                          ? theme.palette.primary.main
+                          : undefined,
+                        color: isActive
+                          ? theme.palette.primary.contrastText
+                          : undefined,
+                        ':hover': {
+                          bgcolor: isActive
+                            ? `${theme.palette.primary.dark} !important`
+                            : theme.palette.mode === 'light'
+                              ? 'rgb(239, 244, 251) !important'
+                              : 'rgb(40, 47, 54) !important'
+                        },
+                        '& .MuiChip-label': {
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis'
+                        }
+                      }}
+                    />
+                  )
+                })
+              )}
+            </Stack>
+          </Box>
+        ) : null}
+        <Box
+          sx={{
+            width: showFragments ? 86 : '100%',
+            flex: '0 0 auto',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center'
+          }}
+        >
           <Typography
             variant="caption"
-            sx={{ color: theme.palette.text.secondary, fontSize: '10px' }}
+            sx={{
+              display: 'block',
+              color: theme.palette.text.secondary,
+              fontSize: '10px',
+              fontWeight: 700,
+              mb: 0.35,
+              textAlign: 'center'
+            }}
           >
-            нет
+            требование
           </Typography>
-        ) : (
-          fragments.map((fragment) => {
-            const documentCode =
-              documentCodeForId.get(fragment.documentId) ?? '???'
-            const label = `${documentCode} - ${fragment.innerCode}`
-            const isActive = selectedFragmentId === fragment.id
-            return (
-              <Chip
-                key={fragment.id}
-                label={label}
-                size="small"
-                variant={isActive ? 'filled' : 'outlined'}
-                clickable
-                onClick={() => handleFragmentClick(fragment.id)}
+          <Tooltip title="перейти к экрану выбранного требования">
+            <Box
+              component={Link}
+              to={`/requirements/${requirementId}`}
+              sx={{ textDecoration: 'none' }}
+            >
+              <ProjButton
+                variant="contained"
                 sx={{
-                  maxWidth: 140,
-                  flex: '0 0 auto',
-                  borderColor: isActive
-                    ? theme.palette.primary.main
-                    : theme.palette.primary.dark,
-                  backgroundColor: isActive
-                    ? theme.palette.primary.main
-                    : undefined,
-                  color: isActive
-                    ? theme.palette.primary.contrastText
-                    : undefined,
-                  ':hover': {
-                    bgcolor: isActive
-                      ? `${theme.palette.primary.dark} !important`
-                      : theme.palette.mode === 'light'
-                        ? 'rgb(239, 244, 251) !important'
-                        : 'rgb(40, 47, 54) !important'
-                  },
-                  '& .MuiChip-label': {
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis'
-                  }
+                  minWidth: 0,
+                  width: showFragments ? 'auto' : '100%',
+                  px: 1.2
                 }}
-              />
-            )
-          })
-        )}
+              >
+                Перейти
+              </ProjButton>
+            </Box>
+          </Tooltip>
+        </Box>
       </Stack>
-      <Divider sx={{ mb: 0.45, mt: 0.6 }} />{' '}
-      <Typography
-        variant="caption"
-        sx={{
-          display: 'block',
-          color: theme.palette.text.secondary,
-          fontSize: '10px',
-          fontWeight: 700,
-          mb: 0.35,
-          textAlign: 'center'
-        }}
-      >
-        {' '}
-        требование{' '}
-      </Typography>
-      <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-        <Tooltip title="перейти к экрану выбранного требования">
-          <Box
-            component={Link}
-            to={`/requirements/${requirementId}`}
-            sx={{ textDecoration: 'none' }}
-          >
-            <ProjButton variant="contained" sx={{ minWidth: 0, px: 1.2 }}>
-              Перейти
-            </ProjButton>
-          </Box>
-        </Tooltip>
-      </Box>
       <Dialog
         open={selectedFragmentId !== null}
         onClose={closeFragmentScreenshotDialog}
@@ -1184,6 +1235,7 @@ const getDirectChildVertexes = (
     .filter((vertex): vertex is Vertex => vertex !== undefined)
     .filter((vertex) => {
       const vertexData = dataForVertexId.get(vertex.id)
+
       return (
         vertexData !== undefined && getVertexLevel(vertexData) === childLevel
       )
@@ -1276,8 +1328,13 @@ export default function AcyclicGraphViewer({
   const [visibleCoverageDisplayKeys, setVisibleCoverageDisplayKeys] = useState<
     CoverageDisplayKey[]
   >(COVERAGE_DISPLAY_OPTIONS.map((option) => option.key))
+  const [showFragmentsInHoverPreview, setShowFragmentsInHoverPreview] =
+    useState(true)
   const [hoveredVertexPreview, setHoveredVertexPreview] =
     useState<HoveredVertexPreview | null>(null)
+  const [readyHoverPreviewKey, setReadyHoverPreviewKey] = useState<
+    string | null
+  >(null)
   const selectedCoverageDisplayKey = useMemo(
     () =>
       COVERAGE_DISPLAY_OPTIONS.find((option) =>
@@ -1338,6 +1395,14 @@ export default function AcyclicGraphViewer({
   const hoverPreviewHideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
     null
   )
+  const hoveredVertexPreviewKey =
+    hoveredVertexPreview !== null
+      ? hoveredVertexPreview.source + ':' + hoveredVertexPreview.id
+      : null
+  const hoverPreviewIsReady =
+    hoveredVertexPreviewKey !== null &&
+    (showFragmentsInHoverPreview === false ||
+      readyHoverPreviewKey === hoveredVertexPreviewKey)
 
   const level2ChildVertexes = useMemo(
     () =>
@@ -2261,6 +2326,7 @@ export default function AcyclicGraphViewer({
       }
 
       hoverPreviewTimerRef.current = setTimeout(() => {
+        setReadyHoverPreviewKey(null)
         setHoveredVertexPreview(previewData)
         hoverPreviewTimerRef.current = null
       }, HOVER_PREVIEW_DELAY_MS)
@@ -2300,6 +2366,7 @@ export default function AcyclicGraphViewer({
 
     hoverPreviewHideTimerRef.current = setTimeout(() => {
       setHoveredVertexPreview(null)
+      setReadyHoverPreviewKey(null)
       hoverPreviewHideTimerRef.current = null
     }, HOVER_PREVIEW_HIDE_DELAY_MS)
   }, [])
@@ -2423,6 +2490,10 @@ export default function AcyclicGraphViewer({
     },
     []
   )
+
+  const handleToggleShowFragmentsInHoverPreview = useCallback(() => {
+    setShowFragmentsInHoverPreview((prevValue) => !prevValue)
+  }, [])
 
   const handleToggleCoverageDisplayKey = useCallback(
     (key: CoverageDisplayKey) => {
@@ -2769,6 +2840,19 @@ export default function AcyclicGraphViewer({
   const miniHoverPreviewIsVisible =
     hoveredVertexPreview !== null && hoveredVertexPreview.source === 'MINI'
 
+  const handleHoverPreviewReadyChange = useCallback(
+    (previewKey: string, ready: boolean) => {
+      setReadyHoverPreviewKey((currentReadyKey) => {
+        if (ready) {
+          return previewKey === hoveredVertexPreviewKey
+            ? previewKey
+            : currentReadyKey
+        }
+        return currentReadyKey === previewKey ? null : currentReadyKey
+      })
+    },
+    [hoveredVertexPreviewKey]
+  )
   const getClampedMiniGraphWidth = useCallback(
     (width: number) => {
       const graphContainerWidth =
@@ -3212,7 +3296,7 @@ export default function AcyclicGraphViewer({
             <Box sx={{ display: 'flex', alignItems: 'stretch' }}>
               <Box sx={{ width: 280, py: 0.75 }}>
                 <Box sx={{ px: 2, pb: 0.75, textAlign: 'center' }}>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
+                  <Typography variant="subtitle2">
                     Шкалы во всплывающей подсказке
                   </Typography>
                 </Box>
@@ -3231,11 +3315,22 @@ export default function AcyclicGraphViewer({
                     />
                   </MenuItem>
                 ))}
+                <Divider sx={{ my: 0.5 }} />
+                <MenuItem onClick={handleToggleShowFragmentsInHoverPreview}>
+                  <Checkbox
+                    size="small"
+                    checked={showFragmentsInHoverPreview}
+                  />
+                  <ListItemText
+                    primary="Показывать фрагменты"
+                    slotProps={{ primary: { fontSize: 13 } }}
+                  />
+                </MenuItem>
               </Box>
               <Divider orientation="vertical" flexItem />
               <Box sx={{ width: 280, py: 0.75 }}>
                 <Box sx={{ px: 2, pb: 0.75, textAlign: 'center' }}>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
+                  <Typography variant="subtitle2">
                     Шкала нижней полосы
                   </Typography>
                 </Box>
@@ -3365,6 +3460,7 @@ export default function AcyclicGraphViewer({
           </Menu>{' '}
           {mainHoverPreviewIsVisible ? (
             <Paper
+              key={'MAIN-PREVIEW-' + hoveredVertexPreview.id}
               elevation={6}
               onMouseEnter={handleHoverPreviewMouseEnter}
               onMouseLeave={handleHoverPreviewMouseLeave}
@@ -3374,7 +3470,8 @@ export default function AcyclicGraphViewer({
                 top: hoveredVertexPreview.anchor.top,
                 transform: 'translateY(-100%)',
                 width: 'clamp(180px, 24vw, 230px)',
-                pointerEvents: 'auto',
+                visibility: hoverPreviewIsReady ? 'visible' : 'hidden',
+                pointerEvents: hoverPreviewIsReady ? 'auto' : 'none',
                 zIndex: theme.zIndex.tooltip,
                 p: 0.6,
                 borderRadius: 1
@@ -3452,8 +3549,12 @@ export default function AcyclicGraphViewer({
                 )}
               </Stack>
               <HoverPreviewFragmentsBlock
+                key={'MAIN-' + hoveredVertexPreview.id}
                 requirementId={hoveredVertexPreview.id}
                 active={mainHoverPreviewIsVisible}
+                showFragments={showFragmentsInHoverPreview}
+                previewKey={hoveredVertexPreviewKey ?? ''}
+                onReadyChange={handleHoverPreviewReadyChange}
               />
             </Paper>
           ) : null}
@@ -3640,6 +3741,7 @@ export default function AcyclicGraphViewer({
             </Paper>
             {miniHoverPreviewIsVisible ? (
               <Paper
+                key={'MINI-PREVIEW-' + hoveredVertexPreview.id}
                 elevation={6}
                 onMouseEnter={handleHoverPreviewMouseEnter}
                 onMouseLeave={handleHoverPreviewMouseLeave}
@@ -3649,7 +3751,8 @@ export default function AcyclicGraphViewer({
                   top: hoveredVertexPreview.anchor.top,
                   transform: 'translateY(-100%)',
                   width: 'clamp(180px, 24vw, 230px)',
-                  pointerEvents: 'auto',
+                  visibility: hoverPreviewIsReady ? 'visible' : 'hidden',
+                  pointerEvents: hoverPreviewIsReady ? 'auto' : 'none',
                   zIndex: theme.zIndex.tooltip,
                   p: 0.6,
                   borderRadius: 1
@@ -3723,8 +3826,12 @@ export default function AcyclicGraphViewer({
                   )}
                 </Stack>
                 <HoverPreviewFragmentsBlock
+                  key={'MINI-' + hoveredVertexPreview.id}
                   requirementId={hoveredVertexPreview.id}
                   active={miniHoverPreviewIsVisible}
+                  showFragments={showFragmentsInHoverPreview}
+                  previewKey={hoveredVertexPreviewKey ?? ''}
+                  onReadyChange={handleHoverPreviewReadyChange}
                 />
               </Paper>
             ) : null}
