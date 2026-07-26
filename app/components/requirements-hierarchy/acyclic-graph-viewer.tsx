@@ -22,7 +22,9 @@ import ReactFlow, {
   Controls,
   type Edge,
   type Node,
+  type Viewport,
   useNodesInitialized,
+  useOnViewportChange,
   useReactFlow,
   useStore
 } from 'reactflow'
@@ -34,7 +36,8 @@ import AcyclicGraphVertexViewer, {
 } from './acyclic-graph-vertex-viewer'
 import { edgeStyle } from './requirements'
 import type { FragmentPrimary } from '~/types/resources/fragments'
-import calculateNodePositions from './graph-layouts/layout-new'
+import calculateNewNodePositions from './graph-layouts/layout-new'
+import calculateFinalNodePositions from './graph-layouts/layout-final'
 import { gray, green, orange, red } from '~/theme/themePrimitives'
 import './styles.css'
 // Material UI
@@ -164,9 +167,9 @@ const nodeTypes = {
   acyclicGraphVertex: AcyclicGraphVertexViewer
 }
 
-const MAIN_FLOW_MIN_ZOOM = 0.05
-const MAIN_FLOW_MAX_ZOOM = 2
 const MAIN_FLOW_INITIAL_ZOOM = 0.5
+const MAIN_FLOW_MIN_ZOOM = MAIN_FLOW_INITIAL_ZOOM
+const MAIN_FLOW_MAX_ZOOM = 2
 const MAIN_FLOW_PINCH_ZOOM_SENSITIVITY_MULTIPLIER = 4
 const MINI_GRAPH_ZOOM_SENSITIVITY_MULTIPLIER = 2.5
 const MINI_GRAPH_FIT_VIEW_OPTIONS = {
@@ -861,6 +864,127 @@ function MainGraphInitialTopViewport({ fitKey }: { fitKey: string }) {
   return null
 }
 
+function MainGraphViewportBounds({
+  onViewportSettled
+}: {
+  onViewportSettled: () => void
+}) {
+  const reactFlow = useReactFlow()
+  const nodesInitialized = useNodesInitialized()
+  const viewportWidth = useStore((state) => state.width)
+  const viewportHeight = useStore((state) => state.height)
+  const isClampingRef = useRef(false)
+  const settleFrameRef = useRef<number | null>(null)
+
+  const getInitialViewport = useCallback((): Viewport | null => {
+    if (
+      nodesInitialized === false ||
+      viewportWidth <= 0 ||
+      viewportHeight <= 0
+    ) {
+      return null
+    }
+
+    const nodes = reactFlow.getNodes()
+    if (nodes.length === 0) {
+      return null
+    }
+
+    const minX = Math.min(...nodes.map((node) => node.position.x))
+    const maxX = Math.max(
+      ...nodes.map((node) => node.position.x + (node.width ?? 150))
+    )
+    const minY = Math.min(...nodes.map((node) => node.position.y))
+    const zoom = MAIN_FLOW_INITIAL_ZOOM
+
+    return {
+      x: viewportWidth / 2 - ((minX + maxX) / 2) * zoom,
+      y: -minY * zoom,
+      zoom
+    }
+  }, [nodesInitialized, reactFlow, viewportHeight, viewportWidth])
+
+  const clampViewport = useCallback(
+    (viewport: Viewport): Viewport | null => {
+      const initialViewport = getInitialViewport()
+      if (initialViewport === null) {
+        return null
+      }
+
+      const zoom = Math.max(viewport.zoom, MAIN_FLOW_INITIAL_ZOOM)
+      const initialLeft = -initialViewport.x / MAIN_FLOW_INITIAL_ZOOM
+      const initialRight =
+        (viewportWidth - initialViewport.x) / MAIN_FLOW_INITIAL_ZOOM
+      const initialTop = -initialViewport.y / MAIN_FLOW_INITIAL_ZOOM
+      const initialBottom =
+        (viewportHeight - initialViewport.y) / MAIN_FLOW_INITIAL_ZOOM
+
+      const minX = viewportWidth - initialRight * zoom
+      const maxX = -initialLeft * zoom
+      const minY = viewportHeight - initialBottom * zoom
+      const maxY = -initialTop * zoom
+
+      return {
+        x: Math.min(maxX, Math.max(minX, viewport.x)),
+        y: Math.min(maxY, Math.max(minY, viewport.y)),
+        zoom
+      }
+    },
+    [getInitialViewport, viewportHeight, viewportWidth]
+  )
+
+  const scheduleViewportSettled = useCallback(() => {
+    if (settleFrameRef.current !== null) {
+      cancelAnimationFrame(settleFrameRef.current)
+    }
+
+    settleFrameRef.current = requestAnimationFrame(() => {
+      settleFrameRef.current = null
+      onViewportSettled()
+    })
+  }, [onViewportSettled])
+
+  useEffect(() => {
+    return () => {
+      if (settleFrameRef.current !== null) {
+        cancelAnimationFrame(settleFrameRef.current)
+      }
+    }
+  }, [])
+
+  const handleViewportChange = useCallback(
+    (viewport: Viewport) => {
+      if (isClampingRef.current) {
+        isClampingRef.current = false
+        scheduleViewportSettled()
+        return
+      }
+
+      const clampedViewport = clampViewport(viewport)
+      if (clampedViewport === null) {
+        return
+      }
+
+      const changed =
+        Math.abs(clampedViewport.x - viewport.x) > 0.5 ||
+        Math.abs(clampedViewport.y - viewport.y) > 0.5 ||
+        Math.abs(clampedViewport.zoom - viewport.zoom) > 0.001
+
+      if (changed) {
+        isClampingRef.current = true
+        void reactFlow.setViewport(clampedViewport, { duration: 0 })
+        scheduleViewportSettled()
+      } else {
+        scheduleViewportSettled()
+      }
+    },
+    [clampViewport, reactFlow, scheduleViewportSettled]
+  )
+
+  useOnViewportChange({ onChange: handleViewportChange })
+
+  return null
+}
 function MainGraphAutoFitOnRequest({ fitRequest }: { fitRequest: number }) {
   const reactFlow = useReactFlow()
   const nodesInitialized = useNodesInitialized()
@@ -1267,7 +1391,6 @@ export default function AcyclicGraphViewer({
   const mainGraphHostRef = useRef<HTMLDivElement | null>(null)
   const [miniGraphWidth, setMiniGraphWidth] = useState(MINI_GRAPH_DEFAULT_WIDTH)
 
-  const convertToEdges = useCallback((): Edge[] => [], [])
   const [baseNodes, setBaseNodes] = useState<AcyclicGraphNode[]>([])
   const [baseEdges, setBaseEdges] = useState<Edge[]>([])
   const [loading, setLoading] = useState(true)
@@ -1276,7 +1399,7 @@ export default function AcyclicGraphViewer({
   const [miniGraphReady, setMiniGraphReady] = useState(false)
   const [miniGraphDisplayMode, setMiniGraphDisplayMode] =
     useState<MiniGraphDisplayMode>('ALL_RELATED')
-  const [isMiniGraphEnabled, setIsMiniGraphEnabled] = useState(false)
+  const [isMiniGraphEnabled] = useState(false)
   const [expandedLevel1Id, setExpandedLevel1Id] = useState<number | null>(null)
   const [expandedLevel2Id, setExpandedLevel2Id] = useState<number | null>(null)
   const [expandedLevel3Id, setExpandedLevel3Id] = useState<number | null>(null)
@@ -1335,6 +1458,21 @@ export default function AcyclicGraphViewer({
   const [readyHoverPreviewKey, setReadyHoverPreviewKey] = useState<
     string | null
   >(null)
+  const [isFullGraphVisible, setIsFullGraphVisible] = useState(false)
+  const [fullGraphMaxLevel, setFullGraphMaxLevel] = useState(2)
+
+  const fullGraphAvailableMaxLevel = useMemo(
+    () =>
+      vertexes.reduce((maxLevel, vertex) => {
+        const vertexData = dataForVertexId.get(vertex.id)
+        return vertexData === undefined
+          ? maxLevel
+          : Math.max(maxLevel, getVertexLevel(vertexData))
+      }, 2),
+    [vertexes, dataForVertexId]
+  )
+  const fullGraphIsExpanded = fullGraphMaxLevel >= fullGraphAvailableMaxLevel
+
   const selectedCoverageDisplayKey = useMemo(
     () =>
       COVERAGE_DISPLAY_OPTIONS.find((option) =>
@@ -1344,6 +1482,41 @@ export default function AcyclicGraphViewer({
   )
   const convertToNodes = useCallback((): AcyclicGraphNode[] => {
     const nodes: AcyclicGraphNode[] = []
+
+    if (isFullGraphVisible) {
+      vertexes.forEach((vertex) => {
+        const vertexData = dataForVertexId.get(vertex.id)
+        if (
+          vertexData === undefined ||
+          getVertexLevel(vertexData) > fullGraphMaxLevel
+        ) {
+          return
+        }
+
+        nodes.push({
+          id: vertex.id.toString(),
+          type: 'acyclicGraphVertex',
+          position: { x: 0, y: 0 },
+          data: {
+            id: vertex.id,
+            level: getVertexLevel(vertexData),
+            hasParents: vertex.parentsIds.length > 0,
+            hasChildren: vertex.childIds.length > 0,
+            data: vertexData,
+            coverageFraction: getCoverageFractionForVertex(
+              vertexData,
+              selectedProgressDisplayKey
+            ),
+            type: selectedId === vertex.id ? 'SELECTED' : 'DEFAULT',
+            dimmed: false,
+            collapsed: false
+          }
+        })
+      })
+
+      return nodes
+    }
+
     const level1Vertexes = vertexes.filter((vertex) => {
       const vertexData = dataForVertexId.get(vertex.id)
       return vertexData !== undefined && getVertexLevel(vertexData) === 1
@@ -1383,7 +1556,49 @@ export default function AcyclicGraphViewer({
     })
 
     return nodes
-  }, [vertexes, dataForVertexId, selectedId, selectedProgressDisplayKey])
+  }, [
+    isFullGraphVisible,
+    fullGraphMaxLevel,
+    vertexes,
+    dataForVertexId,
+    selectedId,
+    selectedProgressDisplayKey
+  ])
+
+  const convertToEdges = useCallback((): Edge[] => {
+    if (isFullGraphVisible === false) {
+      return []
+    }
+
+    const visibleVertexIds = new Set(
+      vertexes
+        .filter((vertex) => {
+          const vertexData = dataForVertexId.get(vertex.id)
+          return (
+            vertexData !== undefined &&
+            getVertexLevel(vertexData) <= fullGraphMaxLevel
+          )
+        })
+        .map((vertex) => vertex.id)
+    )
+
+    return vertexes.flatMap((vertex) => {
+      if (visibleVertexIds.has(vertex.id) === false) {
+        return []
+      }
+
+      return vertex.childIds
+        .filter((childId) => visibleVertexIds.has(childId))
+        .map((childId) => ({
+          id: vertex.id.toString() + '-' + childId.toString(),
+          source: vertex.id.toString(),
+          target: childId.toString(),
+          type: 'default',
+          animated: false,
+          ...edgeStyle
+        }))
+    })
+  }, [isFullGraphVisible, fullGraphMaxLevel, vertexes, dataForVertexId])
 
   const [mainGraphFitRequest, setMainGraphFitRequest] = useState(0)
   const [mainGraphFocusRequest, setMainGraphFocusRequest] = useState(0)
@@ -1445,12 +1660,11 @@ export default function AcyclicGraphViewer({
       const nodes = convertToNodes()
       const edges = convertToEdges()
 
-      const layoutedNodes = calculateNodePositions(
-        nodes,
-        vertexes,
-        containerWidth,
-        containerHeight
-      )
+      const layoutedNodes = (
+        isFullGraphVisible
+          ? calculateFinalNodePositions
+          : calculateNewNodePositions
+      )(nodes, vertexes, containerWidth, containerHeight)
 
       setBaseNodes(layoutedNodes)
       setBaseEdges(edges)
@@ -1462,6 +1676,7 @@ export default function AcyclicGraphViewer({
     convertToNodes,
     convertToEdges,
     vertexes,
+    isFullGraphVisible,
     setBaseNodes,
     setBaseEdges
   ])
@@ -1667,14 +1882,18 @@ export default function AcyclicGraphViewer({
   )
 
   const allNodes = useMemo(
-    () => [
-      ...baseNodes,
-      ...childGraphData.nodes,
-      ...grandChildGraphData.nodes,
-      ...greatGrandChildGraphData.nodes,
-      ...level5GraphData.nodes
-    ],
+    () =>
+      isFullGraphVisible
+        ? baseNodes
+        : [
+            ...baseNodes,
+            ...childGraphData.nodes,
+            ...grandChildGraphData.nodes,
+            ...greatGrandChildGraphData.nodes,
+            ...level5GraphData.nodes
+          ],
     [
+      isFullGraphVisible,
       baseNodes,
       childGraphData.nodes,
       grandChildGraphData.nodes,
@@ -1683,14 +1902,18 @@ export default function AcyclicGraphViewer({
     ]
   )
   const allEdges = useMemo(
-    () => [
-      ...baseEdges,
-      ...childGraphData.edges,
-      ...grandChildGraphData.edges,
-      ...greatGrandChildGraphData.edges,
-      ...level5GraphData.edges
-    ],
+    () =>
+      isFullGraphVisible
+        ? baseEdges
+        : [
+            ...baseEdges,
+            ...childGraphData.edges,
+            ...grandChildGraphData.edges,
+            ...greatGrandChildGraphData.edges,
+            ...level5GraphData.edges
+          ],
     [
+      isFullGraphVisible,
       baseEdges,
       childGraphData.edges,
       grandChildGraphData.edges,
@@ -1724,13 +1947,21 @@ export default function AcyclicGraphViewer({
     ]
   )
   const childFlowIsVisible =
-    expandedLevel1Id !== null && level2ChildVertexes.length > 0
+    isFullGraphVisible === false &&
+    expandedLevel1Id !== null &&
+    level2ChildVertexes.length > 0
   const grandChildFlowIsVisible =
-    expandedLevel2Id !== null && level3ChildVertexes.length > 0
+    isFullGraphVisible === false &&
+    expandedLevel2Id !== null &&
+    level3ChildVertexes.length > 0
   const greatGrandChildFlowIsVisible =
-    expandedLevel3Id !== null && level4ChildVertexes.length > 0
+    isFullGraphVisible === false &&
+    expandedLevel3Id !== null &&
+    level4ChildVertexes.length > 0
   const level5FlowIsVisible =
-    expandedLevel4Id !== null && level5ChildVertexes.length > 0
+    isFullGraphVisible === false &&
+    expandedLevel4Id !== null &&
+    level5ChildVertexes.length > 0
   const updatePanelAnchor = useCallback(
     (
       nodeId: number | null,
@@ -2182,6 +2413,11 @@ export default function AcyclicGraphViewer({
       const vertexId = parseInt(nodeId, 10)
       const level = node.data.level
 
+      if (isFullGraphVisible) {
+        selectVertex(vertexId)
+        return
+      }
+
       if (selectedId === vertexId) {
         onVertexClick?.(vertexId)
         setSelectedEdgeId(null)
@@ -2261,6 +2497,7 @@ export default function AcyclicGraphViewer({
       expandedLevel2Id,
       expandedLevel3Id,
       expandedLevel4Id,
+      isFullGraphVisible,
       onVertexClick,
       selectedId,
       selectVertex,
@@ -2998,6 +3235,20 @@ export default function AcyclicGraphViewer({
             Сбросить выделение
           </ProjButton>
 
+          {isFullGraphVisible ? (
+            <ProjButton
+              variant="contained"
+              type="button"
+              onClick={() =>
+                setFullGraphMaxLevel(
+                  fullGraphIsExpanded ? 2 : fullGraphAvailableMaxLevel
+                )
+              }
+            >
+              {fullGraphIsExpanded ? 'Скрыть уровень' : 'Раскрыть уровень'}
+            </ProjButton>
+          ) : null}
+
           <Autocomplete
             size="small"
             options={requirementSearchOptions}
@@ -3038,16 +3289,21 @@ export default function AcyclicGraphViewer({
               <TuneIcon fontSize="small" />
             </ProjButton>{' '}
             <ProjButton
-              variant={isMiniGraphEnabled ? 'contained' : 'outlined'}
+              variant={isFullGraphVisible ? 'contained' : 'outlined'}
               title={
-                isMiniGraphEnabled ? 'Скрыть мини-граф' : 'Показать мини-граф'
+                isFullGraphVisible
+                  ? 'Вернуться к компактному виду'
+                  : 'Показать весь граф'
               }
               aria-label={
-                isMiniGraphEnabled ? 'Скрыть мини-граф' : 'Показать мини-граф'
+                isFullGraphVisible
+                  ? 'Вернуться к компактному виду'
+                  : 'Показать весь граф'
               }
-              onClick={() =>
-                setIsMiniGraphEnabled((prevEnabled) => !prevEnabled)
-              }
+              onClick={() => {
+                setFullGraphMaxLevel(2)
+                setIsFullGraphVisible((prevVisible) => !prevVisible)
+              }}
               sx={{ minWidth: 0, px: 1 }}
             >
               <AccountTreeIcon fontSize="small" />
@@ -3095,6 +3351,7 @@ export default function AcyclicGraphViewer({
           sx={{ flex: 1, minWidth: 0, position: 'relative' }}
         >
           <ReactFlow
+            key={isFullGraphVisible ? 'full-graph' : 'compact-graph'}
             style={{ width: '100%', height: '100%' }}
             nodes={allNodes}
             edges={allEdges}
@@ -3103,24 +3360,30 @@ export default function AcyclicGraphViewer({
             onNodeMouseLeave={handleNodeMouseLeave}
             onEdgeClick={handleEdgeClick}
             onPaneClick={handlePaneClick}
-            onMove={updateChildPanelAnchor}
             nodeTypes={nodeTypes}
-            fitView={false}
+            fitView={isFullGraphVisible}
             defaultViewport={{ x: 0, y: 0, zoom: MAIN_FLOW_INITIAL_ZOOM }}
             nodesDraggable={false}
-            panOnScroll={true}
+            panOnScroll={false}
             panOnScrollSpeed={1}
-            panOnDrag={[1, 2]}
-            selectionOnDrag={true}
+            panOnDrag={true}
+            selectionOnDrag={false}
             zoomOnScroll={true}
             zoomOnPinch={true}
             zoomOnDoubleClick={true}
-            minZoom={MAIN_FLOW_MIN_ZOOM}
+            minZoom={isFullGraphVisible ? 0.01 : MAIN_FLOW_MIN_ZOOM}
             maxZoom={MAIN_FLOW_MAX_ZOOM}
             proOptions={{ hideAttribution: true }}
           >
             <ReactFlowPinchZoomSensitivityController />
-            <MainGraphInitialTopViewport fitKey={mainGraphInitialFitKey} />
+            {isFullGraphVisible === false ? (
+              <MainGraphViewportBounds
+                onViewportSettled={updateChildPanelAnchor}
+              />
+            ) : null}
+            {isFullGraphVisible === false ? (
+              <MainGraphInitialTopViewport fitKey={mainGraphInitialFitKey} />
+            ) : null}
             <MainGraphAutoFitOnRequest fitRequest={mainGraphFitRequest} />
             <MainGraphFocusOnNodeRequest
               focusRequest={mainGraphFocusRequest}
@@ -3129,7 +3392,9 @@ export default function AcyclicGraphViewer({
             <Controls showInteractive={false} />
             <Background />
           </ReactFlow>
-          {renderLevelPrefixBadge(baseNodes)}
+          {isFullGraphVisible === false
+            ? renderLevelPrefixBadge(baseNodes)
+            : null}
           {childFlowIsVisible && childPanelReady ? (
             <Paper
               elevation={10}
