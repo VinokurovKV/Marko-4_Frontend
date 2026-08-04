@@ -221,7 +221,9 @@ function HoverPreviewFragmentsBlock({
     useState(false)
   const [showFragmentScreenshotLoader, setShowFragmentScreenshotLoader] =
     useState(false)
+  const [fragmentScreenshotZoom, setFragmentScreenshotZoom] = useState(1)
   const screenshotRequestSeqRef = useRef(0)
+  const fragmentScreenshotViewportRef = useRef<HTMLDivElement | null>(null)
 
   const requirement = useRequirement(
     'UP_TO_TERTIARY_PROPS',
@@ -281,6 +283,7 @@ function HoverPreviewFragmentsBlock({
     screenshotRequestSeqRef.current += 1
     setSelectedFragmentId(null)
     setIsFragmentScreenshotLoading(false)
+    setFragmentScreenshotZoom(1)
     setSelectedFragmentScreenshotUrl((oldUrl) => {
       if (oldUrl !== null) {
         URL.revokeObjectURL(oldUrl)
@@ -328,6 +331,7 @@ function HoverPreviewFragmentsBlock({
 
       setSelectedFragmentId(fragmentId)
       setIsFragmentScreenshotLoading(true)
+      setFragmentScreenshotZoom(1)
       setSelectedFragmentScreenshotUrl((oldUrl) => {
         if (oldUrl !== null) {
           URL.revokeObjectURL(oldUrl)
@@ -364,6 +368,56 @@ function HoverPreviewFragmentsBlock({
     },
     [fragmentForId, notifier]
   )
+
+  const zoomFragmentScreenshot = useCallback((deltaY: number) => {
+    setFragmentScreenshotZoom((prevZoom) => {
+      const nextZoom = prevZoom + (deltaY < 0 ? 0.06 : -0.06)
+      return Math.min(4, Math.max(1, nextZoom))
+    })
+  }, [])
+
+  const handleFragmentScreenshotWheel = useCallback(
+    (event: React.WheelEvent<HTMLDivElement>) => {
+      event.preventDefault()
+      event.stopPropagation()
+      event.nativeEvent.stopImmediatePropagation()
+      zoomFragmentScreenshot(event.deltaY)
+    },
+    [zoomFragmentScreenshot]
+  )
+
+  useEffect(() => {
+    if (selectedFragmentId === null) {
+      return
+    }
+
+    const handleNativeWheel = (event: WheelEvent) => {
+      event.preventDefault()
+      event.stopPropagation()
+      event.stopImmediatePropagation()
+
+      const viewport = fragmentScreenshotViewportRef.current
+      const target = event.target
+      if (
+        viewport !== null &&
+        target instanceof Node &&
+        viewport.contains(target)
+      ) {
+        zoomFragmentScreenshot(event.deltaY)
+      }
+    }
+
+    document.addEventListener('wheel', handleNativeWheel, {
+      capture: true,
+      passive: false
+    })
+
+    return () => {
+      document.removeEventListener('wheel', handleNativeWheel, {
+        capture: true
+      })
+    }
+  }, [selectedFragmentId, zoomFragmentScreenshot])
 
   const isReady =
     showFragments === false ||
@@ -476,30 +530,20 @@ function HoverPreviewFragmentsBlock({
         ) : null}
         <Box
           sx={{
-            width: showFragments ? 86 : '100%',
+            width: showFragments ? 112 : '100%',
             flex: '0 0 auto',
             display: 'flex',
             flexDirection: 'column',
-            alignItems: 'center'
+            alignItems: 'center',
+            pt: 0.45
           }}
         >
-          <Typography
-            variant="caption"
-            sx={{
-              display: 'block',
-              color: theme.palette.text.secondary,
-              fontSize: '10px',
-              fontWeight: 700,
-              mb: 0.35,
-              textAlign: 'center'
-            }}
-          >
-            требование
-          </Typography>
           <Tooltip title="перейти к экрану выбранного требования">
             <Box
               component={Link}
               to={`/requirements/${requirementId}`}
+              target="_blank"
+              rel="noopener noreferrer"
               sx={{ textDecoration: 'none' }}
             >
               <ProjButton
@@ -510,7 +554,7 @@ function HoverPreviewFragmentsBlock({
                   px: 1.2
                 }}
               >
-                Перейти
+                Подробнее
               </ProjButton>
             </Box>
           </Tooltip>
@@ -518,7 +562,9 @@ function HoverPreviewFragmentsBlock({
       </Stack>
       <Dialog
         open={selectedFragmentId !== null}
-        onClose={closeFragmentScreenshotDialog}
+        onClose={() => undefined}
+        onWheel={(event) => event.stopPropagation()}
+        onWheelCapture={(event) => event.stopPropagation()}
         maxWidth="md"
         fullWidth
         sx={(theme) => ({
@@ -537,15 +583,22 @@ function HoverPreviewFragmentsBlock({
           Предпросмотр фрагмента
           {selectedFragment !== null ? `: ${selectedFragment.innerCode}` : ''}
         </DialogTitle>
-        <DialogContent dividers>
+        <DialogContent
+          dividers
+          onWheel={(event) => event.stopPropagation()}
+          onWheelCapture={(event) => event.stopPropagation()}
+        >
           <Box
+            ref={fragmentScreenshotViewportRef}
             sx={{
               position: 'relative',
               minHeight: 180,
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center'
+              justifyContent: 'center',
+              overflow: 'auto'
             }}
+            onWheel={handleFragmentScreenshotWheel}
           >
             {selectedFragmentScreenshotUrl !== null ? (
               <Box
@@ -560,7 +613,10 @@ function HoverPreviewFragmentsBlock({
                   maxWidth: '100%',
                   maxHeight: '70vh',
                   objectFit: 'contain',
-                  borderRadius: 1
+                  borderRadius: 1,
+                  transform: 'scale(' + fragmentScreenshotZoom + ')',
+                  transformOrigin: 'center center',
+                  transition: 'transform 180ms ease-out'
                 }}
               />
             ) : (
@@ -584,7 +640,18 @@ function HoverPreviewFragmentsBlock({
             ) : null}
           </Box>
         </DialogContent>
-        <DialogActions sx={{ justifyContent: 'center' }}>
+        <DialogActions sx={{ justifyContent: 'center', gap: 1 }}>
+          {selectedFragment !== null ? (
+            <Box
+              component={Link}
+              to={`/documents/${selectedFragment.documentId}?fragmentId=${selectedFragment.id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              sx={{ textDecoration: 'none' }}
+            >
+              <ProjButton variant="contained">Подробнее</ProjButton>
+            </Box>
+          ) : null}
           <ProjButton onClick={closeFragmentScreenshotDialog}>
             Закрыть
           </ProjButton>
@@ -2530,10 +2597,9 @@ export default function AcyclicGraphViewer({
             event.currentTarget)
           : null
       const nodeRect = nodeElement?.getBoundingClientRect()
-      const previewWidth = Math.min(
-        Math.max(180, window.innerWidth * 0.24),
-        230
-      )
+      const previewWidth = showFragmentsInHoverPreview
+        ? Math.min(Math.max(280, window.innerWidth * 0.34), 330)
+        : Math.min(Math.max(180, window.innerWidth * 0.24), 230)
       const viewportPadding = 8
       const anchor =
         nodeRect !== undefined
@@ -2568,7 +2634,7 @@ export default function AcyclicGraphViewer({
         hoverPreviewTimerRef.current = null
       }, HOVER_PREVIEW_DELAY_MS)
     },
-    [containerRef]
+    [showFragmentsInHoverPreview]
   )
 
   const handleNodeMouseEnter = useCallback(
@@ -2870,7 +2936,7 @@ export default function AcyclicGraphViewer({
             pointerEvents: 'auto'
           }}
         >
-          {commonPrefix}
+          {commonPrefix}…
         </Box>
       </Tooltip>
     )
@@ -2922,7 +2988,7 @@ export default function AcyclicGraphViewer({
                 border: `1px solid ${theme.palette.primary.main}`,
                 borderRadius: '50%',
                 backgroundColor: theme.palette.primary.main,
-                boxShadow: `0 4px 6px ${alpha(theme.palette.primary.main, 0.5)}`,
+                boxShadow: `0 2px 4px ${alpha(theme.palette.primary.main, 0.28)}`,
                 cursor: disabled === true ? 'default' : 'pointer',
                 opacity: disabled === true ? 0.45 : 1,
                 pointerEvents: 'auto',
@@ -2993,7 +3059,7 @@ export default function AcyclicGraphViewer({
                 border: `1px solid ${theme.palette.primary.main}`,
                 borderRadius: '50%',
                 backgroundColor: theme.palette.primary.main,
-                boxShadow: `0 4px 6px ${alpha(theme.palette.primary.main, 0.5)}`,
+                boxShadow: `0 2px 4px ${alpha(theme.palette.primary.main, 0.28)}`,
                 cursor: disabled === true ? 'default' : 'pointer',
                 opacity: disabled === true ? 0.45 : 1,
                 pointerEvents: 'auto',
@@ -3035,7 +3101,7 @@ export default function AcyclicGraphViewer({
             border: `1px solid ${theme.palette.primary.main}`,
             borderRadius: '50%',
             backgroundColor: theme.palette.primary.main,
-            boxShadow: `0 4px 6px ${alpha(theme.palette.primary.main, 0.5)}`,
+            boxShadow: `0 2px 4px ${alpha(theme.palette.primary.main, 0.28)}`,
             cursor: 'pointer',
             pointerEvents: 'auto',
             '&::before': {
@@ -3595,9 +3661,7 @@ export default function AcyclicGraphViewer({
               <Divider orientation="vertical" flexItem />
               <Box sx={{ width: 280, py: 0.75 }}>
                 <Box sx={{ px: 2, pb: 0.75, textAlign: 'center' }}>
-                  <Typography variant="subtitle2">
-                    Шкала нижней полосы
-                  </Typography>
+                  <Typography variant="subtitle2">Шкала на вершине</Typography>
                 </Box>
                 {COVERAGE_DISPLAY_OPTIONS.map((option) => (
                   <MenuItem
@@ -3734,7 +3798,9 @@ export default function AcyclicGraphViewer({
                 left: hoveredVertexPreview.anchor.left,
                 top: hoveredVertexPreview.anchor.top,
                 transform: 'translateY(-100%)',
-                width: 'clamp(180px, 24vw, 230px)',
+                width: showFragmentsInHoverPreview
+                  ? 'clamp(280px, 34vw, 330px)'
+                  : 'clamp(180px, 24vw, 230px)',
                 visibility: hoverPreviewIsReady ? 'visible' : 'hidden',
                 pointerEvents: hoverPreviewIsReady ? 'auto' : 'none',
                 zIndex: theme.zIndex.tooltip,
@@ -4015,7 +4081,9 @@ export default function AcyclicGraphViewer({
                   left: hoveredVertexPreview.anchor.left,
                   top: hoveredVertexPreview.anchor.top,
                   transform: 'translateY(-100%)',
-                  width: 'clamp(180px, 24vw, 230px)',
+                  width: showFragmentsInHoverPreview
+                    ? 'clamp(280px, 34vw, 330px)'
+                    : 'clamp(180px, 24vw, 230px)',
                   visibility: hoverPreviewIsReady ? 'visible' : 'hidden',
                   pointerEvents: hoverPreviewIsReady ? 'auto' : 'none',
                   zIndex: theme.zIndex.tooltip,
