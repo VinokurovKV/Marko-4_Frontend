@@ -9,6 +9,7 @@ import { type GridColDef, type GridValidRowModel } from '@mui/x-data-grid'
 
 export interface SystemLogsGridProps {
   logs: SystemLog[]
+  title?: string
 }
 
 function formatLogType(value: unknown) {
@@ -128,10 +129,16 @@ export function SystemLogsGrid(props: SystemLogsGridProps) {
 
   return (
     <Grid
-      localSaveKey="SYSTEM_LOGS"
-      title="системные логи"
+      localSaveKey="SYSTEM_LOGS_SCREEN_V2"
+      title={props.title}
       cols={cols}
       rows={rows}
+      defaultHiddenFields={[
+        'displayId',
+        'duration',
+        'internalStorageError',
+        'displayErrorReasons'
+      ]}
       navigationMode={false}
     />
   )

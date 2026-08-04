@@ -33,7 +33,7 @@ import RuleIcon from '@mui/icons-material/Rule'
 // import SchemaIcon from '@mui/icons-material/Schema'
 // import SettingsIcon from '@mui/icons-material/Settings'
 // import SettingsAccessibilityIcon from '@mui/icons-material/SettingsAccessibility'
-// import StorageIcon from '@mui/icons-material/Storage'
+import StorageIcon from '@mui/icons-material/Storage'
 import TagIcon from '@mui/icons-material/Tag'
 // import TocIcon from '@mui/icons-material/Toc'
 import TaskIcon from '@mui/icons-material/Task'
@@ -286,6 +286,13 @@ export const SIDE_NAVIGATION_CONFIG: SideNavigationConfig = [
             title: 'резервные копии',
             Icon: BackupIcon,
             href: '/backups'
+          },
+          {
+            id: 'system-logs',
+            title: 'системные логи',
+            Icon: StorageIcon,
+            href: '/system-logs',
+            requiredRights: ['READ_LOGS']
           }
         ]
       }

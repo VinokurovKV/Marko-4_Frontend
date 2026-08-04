@@ -10,13 +10,10 @@ import { useMeta } from '~/providers/meta'
 import { useNotifier } from '~/providers/notifier'
 import { ProjButton } from '../buttons/button'
 import { downloadFileFromBlob } from '~/utilities'
-import { readSystemLogs } from '~/readers'
 import { ImportDataFormDialog } from '../forms/resources/import-data'
 import { ExportDataFormDialog } from '../forms/resources/export-data'
 import type { ImportSuccessResultDto } from '@common/dtos/server-api/import.dto'
-import type { SystemLog } from '~/types'
 import { ArchiveHistoryFormDialog } from '../forms/resources/archive-history'
-import { SystemLogsGrid } from '../grids/resources/system-logs'
 import { FormPassField } from '../forms/common'
 // React router
 import { useNavigate } from 'react-router'
@@ -131,22 +128,7 @@ export function DataTransferScreen() {
     string | null
   >(null)
   const [clearAllIsSubmitting, setClearAllIsSubmitting] = React.useState(false)
-  const [systemLogs, setSystemLogs] = React.useState<SystemLog[] | null>(null)
-  const [systemLogsLoadingFailed, setSystemLogsLoadingFailed] =
-    React.useState(false)
 
-  const reloadSystemLogs = React.useCallback(async () => {
-    if (canReadLogs === false) {
-      return
-    }
-    const logs = await readSystemLogs()
-    setSystemLogs(logs)
-    setSystemLogsLoadingFailed(logs === null)
-  }, [canReadLogs])
-
-  React.useEffect(() => {
-    void reloadSystemLogs()
-  }, [reloadSystemLogs])
   const clearAllPassIsEmpty = clearAllPass.length === 0
   const clearAllPassConfirmIsEmpty = clearAllPassConfirm.length === 0
   const clearAllPassesAreDifferent =
@@ -418,10 +400,14 @@ export function DataTransferScreen() {
               >
                 удалить архивированную
               </ProjButton>
-              <Divider sx={{ my: 0.5 }}>Системные логи</Divider>
-              <ProjButton variant="contained" onClick={handleLogsMenuOpen}>
-                скачать
-              </ProjButton>
+              {canReadLogs ? (
+                <>
+                  <Divider sx={{ my: 0.5 }}>Системные логи</Divider>
+                  <ProjButton variant="contained" onClick={handleLogsMenuOpen}>
+                    скачать
+                  </ProjButton>
+                </>
+              ) : null}
               {canClearAll ? (
                 <>
                   <Divider sx={{ my: 0.5 }}>Система</Divider>
@@ -497,16 +483,6 @@ export function DataTransferScreen() {
                   </>
                 ) : null}
               </Stack>
-            ) : canReadLogs && systemLogs !== null ? (
-              <SystemLogsGrid logs={systemLogs} />
-            ) : canReadLogs && systemLogsLoadingFailed ? (
-              <Typography color="text.secondary" sx={{ textAlign: 'center' }}>
-                Не удалось загрузить системные логи
-              </Typography>
-            ) : canReadLogs ? (
-              <Typography color="text.secondary" sx={{ textAlign: 'center' }}>
-                Загрузка системных логов...
-              </Typography>
             ) : (
               <Typography color="text.secondary" sx={{ textAlign: 'center' }}>
                 Здесь будет отображена техническая информация после завершения
