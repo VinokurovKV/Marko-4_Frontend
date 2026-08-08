@@ -21,6 +21,7 @@ import BackupIcon from '@mui/icons-material/Backup'
 // import HiveIcon from '@mui/icons-material/Hive'
 import HubIcon from '@mui/icons-material/Hub'
 import LanIcon from '@mui/icons-material/Lan'
+import MonitorHeartIcon from '@mui/icons-material/MonitorHeart'
 // import LayersIcon from '@mui/icons-material/Layers'
 // import ListIcon from '@mui/icons-material/List'
 // import ManageAccountsIcon from '@mui/icons-material/ManageAccounts'
@@ -292,6 +293,13 @@ export const SIDE_NAVIGATION_CONFIG: SideNavigationConfig = [
             title: 'системные логи',
             Icon: StorageIcon,
             href: '/system-logs',
+            requiredRights: ['READ_LOGS']
+          },
+          {
+            id: 'system-monitoring',
+            title: 'мониторинг',
+            Icon: MonitorHeartIcon,
+            href: '/system-monitoring',
             requiredRights: ['READ_LOGS']
           }
         ]

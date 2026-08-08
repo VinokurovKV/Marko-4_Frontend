@@ -53,6 +53,12 @@ import type {
   ReadStorageLogsSuccessResultItemDto
 } from '@common/dtos/server-api/logs.dto'
 import type {
+  FindFirstStorageStatusQueryDto,
+  FindFirstStorageStatusSuccessResultDto,
+  StorageStatusBodyDto,
+  StorageStatusStringWrapDto
+} from '@common/dtos/server-api/monitoring.dto'
+import type {
   ReadRoleParamsDto,
   ReadRoleQueryDto,
   ReadRoleWithPrimaryPropsSuccessResultDto,
@@ -1361,6 +1367,17 @@ export class ServerConnector {
     }
     this.credentials = null
     this.delegate.deleteCredentials()
+  }
+  // Monitoring
+  findFirstStorageStatus(
+    params: Params<FindFirstStorageStatusQueryDto>
+  ): Result<FindFirstStorageStatusSuccessResultDto> {
+    return this.getObject('/monitoring/find-by-time', params)
+  }
+  storageStatus(
+    params: Params<StorageStatusBodyDto>
+  ): Result<StorageStatusStringWrapDto> {
+    return this.postForObject('/monitoring/now', params)
   }
   // Logs
   readStorageErrorsLogs(): Promise<Blob> {
