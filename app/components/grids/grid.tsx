@@ -94,6 +94,9 @@ export interface GridProps extends Pick<DataGridProps, 'rowSpanning'> {
     prepareConfirmMessage?: (rowIds: number[]) => string
     action: (rowIds: number[]) => Promise<void>
   }
+  exportButton?: {
+    onClick: () => void
+  }
 }
 
 const defaultRowSelectionModel: GridRowSelectionModel = {
@@ -568,7 +571,8 @@ export function Grid(props: GridProps) {
                 : undefined,
               deleteManyButton: props.deleteMany
                 ? { active: deleteModeIsActive, onClick: handleDeleteManyClick }
-                : undefined
+                : undefined,
+              exportButton: props.exportButton
             } satisfies ProjGridToolbarProps,
             footer: footerProps
           } as DataGridProps['slotProps']

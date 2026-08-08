@@ -1451,6 +1451,12 @@ export class ServerConnector {
       ? Promise.resolve([])
       : this.getObject('/logs/storage/read-many', params)
   }
+  readApiLogsFile(params: Params<ReadApiLogsQueryDto>): Promise<Blob> {
+    return this.getBlob('/logs/api/read-many', params)
+  }
+  readStorageLogsFile(params: Params<ReadStorageLogsQueryDto>): Promise<Blob> {
+    return this.getBlob('/logs/storage/read-many', params)
+  }
   // History
   async archiveHistory(params: Params<ArchiveBodyDto>): Promise<void> {
     await this.postForObject<object>('/history/archive', params)

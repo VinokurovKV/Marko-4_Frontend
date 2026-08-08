@@ -86,6 +86,9 @@ export interface ProjGridToolbarProps {
     active: boolean
     onClick: () => void
   }
+  exportButton?: {
+    onClick: () => void
+  }
 }
 
 export function ProjGridToolbar(props: ProjGridToolbarProps) {
@@ -206,12 +209,23 @@ export function ProjGridToolbar(props: ProjGridToolbarProps) {
         >
           Печать
         </ExportPrint>
-        <ExportCsv
-          render={<MenuItem />}
-          onClick={() => setExportMenuOpen(false)}
-        >
-          Скачать в формате CSV
-        </ExportCsv>
+        {props.exportButton !== undefined ? (
+          <MenuItem
+            onClick={() => {
+              setExportMenuOpen(false)
+              props.exportButton?.onClick()
+            }}
+          >
+            Скачать
+          </MenuItem>
+        ) : (
+          <ExportCsv
+            render={<MenuItem />}
+            onClick={() => setExportMenuOpen(false)}
+          >
+            Скачать
+          </ExportCsv>
+        )}
       </Menu>
 
       <StyledQuickFilter>

@@ -21,7 +21,7 @@ export function readSystemLogs() {
           ipSelect: true,
           statusCodeSelect: true,
           pathSelect: true,
-          durationSelect: true
+          durationMsSelect: true
         }),
         serverConnector.readStorageLogs({
           returnType: ReturnTypeEnum.JSON,
