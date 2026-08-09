@@ -1,6 +1,9 @@
 // React
 import * as React from 'react'
 
+// Project
+import { serverConnector } from '~/server-connector'
+
 export interface PopupPreviewVisibilitySettings {
   requirement: boolean
   commonTopology: boolean
@@ -10,7 +13,9 @@ export interface PopupPreviewVisibilitySettings {
   subgroup: boolean
 }
 
-const STORAGE_KEY = 'marko-4.popup-preview-visibility.v1'
+type InterfaceSettings = Record<string, unknown>
+
+const SETTINGS_KEY = 'popupPreviewVisibility'
 const SETTINGS_UPDATED_EVENT = 'marko-4:popup-preview-visibility-updated'
 
 const DEFAULT_SETTINGS: PopupPreviewVisibilitySettings = {
@@ -57,37 +62,90 @@ function mergeWithDefaults(value: unknown): PopupPreviewVisibilitySettings {
   }
 }
 
-function readSettingsFromStorage(): PopupPreviewVisibilitySettings {
-  if (typeof window === 'undefined') {
-    return DEFAULT_SETTINGS
-  }
-
+function parseInterfaceSettings(value: string): InterfaceSettings {
   try {
-    const rawValue = window.localStorage.getItem(STORAGE_KEY)
-    if (rawValue === null) {
-      return DEFAULT_SETTINGS
+    const parsedValue = JSON.parse(value) as unknown
+    if (
+      typeof parsedValue !== 'object' ||
+      parsedValue === null ||
+      Array.isArray(parsedValue)
+    ) {
+      return {}
     }
-    const parsedValue = JSON.parse(rawValue) as unknown
-    return mergeWithDefaults(parsedValue)
+    return parsedValue as InterfaceSettings
   } catch {
-    return DEFAULT_SETTINGS
+    return {}
   }
 }
 
-function writeSettingsToStorage(settings: PopupPreviewVisibilitySettings) {
+function readPopupPreviewVisibility(
+  interfaceSettings: InterfaceSettings
+): PopupPreviewVisibilitySettings {
+  if (SETTINGS_KEY in interfaceSettings) {
+    return mergeWithDefaults(interfaceSettings[SETTINGS_KEY])
+  }
+
+  return mergeWithDefaults(interfaceSettings)
+}
+
+async function readSettingsFromServer(): Promise<{
+  interfaceSettings: InterfaceSettings
+  settings: PopupPreviewVisibilitySettings
+}> {
+  const response = await serverConnector.readSelfInterfaceSettings()
+  const interfaceSettings = parseInterfaceSettings(response.interfaceSettings)
+
+  return {
+    interfaceSettings,
+    settings: readPopupPreviewVisibility(interfaceSettings)
+  }
+}
+
+async function getSelfUserId(): Promise<number> {
+  if (serverConnector.meta.status === 'AUTHENTICATED') {
+    return serverConnector.meta.selfMeta.id
+  }
+
+  return (await serverConnector.readSelfMeta()).id
+}
+
+function dispatchSettingsUpdated(settings: PopupPreviewVisibilitySettings) {
   if (typeof window === 'undefined') {
     return
   }
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(settings))
-  window.dispatchEvent(new Event(SETTINGS_UPDATED_EVENT))
+
+  window.dispatchEvent(
+    new CustomEvent<PopupPreviewVisibilitySettings>(SETTINGS_UPDATED_EVENT, {
+      detail: settings
+    })
+  )
 }
 
 export function usePopupPreviewVisibilitySettings() {
   const [settings, setSettings] =
     React.useState<PopupPreviewVisibilitySettings>(DEFAULT_SETTINGS)
+  const interfaceSettingsRef = React.useRef<InterfaceSettings>({})
 
   React.useEffect(() => {
-    setSettings(readSettingsFromStorage())
+    let isMounted = true
+
+    void readSettingsFromServer()
+      .then((result) => {
+        if (isMounted === false) {
+          return
+        }
+        interfaceSettingsRef.current = result.interfaceSettings
+        setSettings(result.settings)
+      })
+      .catch(() => {
+        if (isMounted) {
+          setSettings(DEFAULT_SETTINGS)
+        }
+      })
+
+    return () => {
+      isMounted = false
+    }
   }, [])
 
   React.useEffect(() => {
@@ -95,38 +153,57 @@ export function usePopupPreviewVisibilitySettings() {
       return
     }
 
-    const syncSettings = () => {
-      setSettings(readSettingsFromStorage())
-    }
-
-    const handleStorage = (event: StorageEvent) => {
-      if (event.key !== STORAGE_KEY) {
+    const syncSettings = (event: Event) => {
+      if (event instanceof CustomEvent === false) {
         return
       }
-      syncSettings()
+
+      const nextSettings = mergeWithDefaults(event.detail)
+      interfaceSettingsRef.current = {
+        ...interfaceSettingsRef.current,
+        [SETTINGS_KEY]: nextSettings
+      }
+      setSettings(nextSettings)
     }
 
-    window.addEventListener('storage', handleStorage)
     window.addEventListener(SETTINGS_UPDATED_EVENT, syncSettings)
 
     return () => {
-      window.removeEventListener('storage', handleStorage)
       window.removeEventListener(SETTINGS_UPDATED_EVENT, syncSettings)
     }
   }, [])
 
   const setSetting = React.useCallback(
     (key: keyof PopupPreviewVisibilitySettings, value: boolean) => {
-      setSettings((previousSettings) => {
-        const nextSettings = {
-          ...previousSettings,
-          [key]: value
-        }
-        writeSettingsToStorage(nextSettings)
-        return nextSettings
-      })
+      const previousSettings = settings
+      const nextSettings = {
+        ...previousSettings,
+        [key]: value
+      }
+      const previousInterfaceSettings = interfaceSettingsRef.current
+      const nextInterfaceSettings = {
+        ...previousInterfaceSettings,
+        [SETTINGS_KEY]: nextSettings
+      }
+
+      interfaceSettingsRef.current = nextInterfaceSettings
+      setSettings(nextSettings)
+      dispatchSettingsUpdated(nextSettings)
+
+      void getSelfUserId()
+        .then((id) =>
+          serverConnector.setUserInterfaceSettings({
+            id,
+            interfaceSettings: JSON.stringify(nextInterfaceSettings)
+          })
+        )
+        .catch(() => {
+          interfaceSettingsRef.current = previousInterfaceSettings
+          setSettings(previousSettings)
+          dispatchSettingsUpdated(previousSettings)
+        })
     },
-    []
+    [settings]
   )
 
   return React.useMemo(

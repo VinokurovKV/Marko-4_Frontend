@@ -96,13 +96,18 @@ import type {
 import type {
   CreateUserBodyDto,
   CreateUserSuccessResultDto,
+  DeleteUserInterfaceSettingsBodyDto,
+  DeleteUserInterfaceSettingsSuccessResultDto,
   DeleteUserBodyDto,
   DeleteUserSuccessResultDto,
   DeleteUsersBodyDto,
   DeleteUsersSuccessResultDto,
+  ReadSelfInterfaceSettingsSuccessResultDto,
   ReadSelfMetaSuccessResultDto,
   ReadUserExistsFlagQueryDto,
   ReadUserExistsFlagSuccessResultDto,
+  ReadUserInterfaceSettingsParamsDto,
+  ReadUserInterfaceSettingsSuccessResultDto,
   ReadUserParamsDto,
   ReadUserQueryDto,
   ReadUserTransitionsCountParamsDto,
@@ -122,6 +127,8 @@ import type {
   ReadUsersQueryDto,
   ReadUsersWithPrimaryPropsSuccessResultItemDto,
   ReadUsersWithUpToSecondaryPropsSuccessResultItemDto,
+  SetUserInterfaceSettingsBodyDto,
+  SetUserInterfaceSettingsSuccessResultDto,
   UpdateUserBodyDto,
   UpdateUserPassBodyDto,
   UpdateUserPassSuccessResultDto,
@@ -1644,6 +1651,27 @@ export class ServerConnector {
       this.delegate.setCredentials(this.credentials)
     }
     return selfMeta
+  }
+  readSelfInterfaceSettings(): Result<ReadSelfInterfaceSettingsSuccessResultDto> {
+    return this.getObject('/users/self-interface-settings')
+  }
+  readUserInterfaceSettings(
+    params: Params<ReadUserInterfaceSettingsParamsDto>
+  ): Result<ReadUserInterfaceSettingsSuccessResultDto> {
+    return this.getObject(`/users/interface-settings/${params.id}`)
+  }
+  setUserInterfaceSettings(
+    params: Params<SetUserInterfaceSettingsBodyDto>
+  ): Result<SetUserInterfaceSettingsSuccessResultDto> {
+    return this.postForObject('/users/actions/set-interface-settings', params)
+  }
+  deleteUserInterfaceSettings(
+    params: Params<DeleteUserInterfaceSettingsBodyDto>
+  ): Result<DeleteUserInterfaceSettingsSuccessResultDto> {
+    return this.postForObject(
+      '/users/actions/delete-interface-settings',
+      params
+    )
   }
   async readUserExistsFlag(
     params: ReadUserExistsFlagQueryDto
