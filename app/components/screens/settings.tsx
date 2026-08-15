@@ -42,6 +42,17 @@ export function SettingsScreen() {
             <FormControlLabel
               control={
                 <Checkbox
+                  checked={settings.requirementDetails}
+                  onChange={(_, checked) => {
+                    setSetting('requirementDetails', checked)
+                  }}
+                />
+              }
+              label="Показывать подробную информацию о требовании"
+            />
+            <FormControlLabel
+              control={
+                <Checkbox
                   checked={settings.requirement}
                   onChange={(_, checked) => {
                     setSetting('requirement', checked)

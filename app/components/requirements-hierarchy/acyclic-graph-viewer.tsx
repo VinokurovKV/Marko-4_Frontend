@@ -2,6 +2,7 @@
 import { ProjButton } from '../buttons/button'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
+import { usePopupPreviewVisibilitySettings } from '~/hooks/popup-preview-visibility'
 import { FormTextField } from '../forms/common'
 import {
   useDocumentsFiltered,
@@ -1471,6 +1472,11 @@ export default function AcyclicGraphViewer({
   const [expandedLevel2Id, setExpandedLevel2Id] = useState<number | null>(null)
   const [expandedLevel3Id, setExpandedLevel3Id] = useState<number | null>(null)
   const [expandedLevel4Id, setExpandedLevel4Id] = useState<number | null>(null)
+  const [rootPanelAnchor, setRootPanelAnchor] = useState({
+    left: 0,
+    top: 12
+  })
+  const [rootPanelReady, setRootPanelReady] = useState(false)
   const [childPanelAnchor, setChildPanelAnchor] = useState({
     left: 12,
     top: 12
@@ -1492,6 +1498,7 @@ export default function AcyclicGraphViewer({
   const [greatGrandChildPanelReady, setGreatGrandChildPanelReady] =
     useState(false)
   const [level5PanelReady, setLevel5PanelReady] = useState(false)
+  const [rootScrollStartIndex, setRootScrollStartIndex] = useState(0)
   const [childScrollStartIndex, setChildScrollStartIndex] = useState(0)
   const [grandChildScrollStartIndex, setGrandChildScrollStartIndex] =
     useState(0)
@@ -1525,6 +1532,16 @@ export default function AcyclicGraphViewer({
   const [readyHoverPreviewKey, setReadyHoverPreviewKey] = useState<
     string | null
   >(null)
+  const {
+    settings: popupPreviewVisibilitySettings,
+    setSetting: setPopupPreviewVisibilitySetting
+  } = usePopupPreviewVisibilitySettings()
+  const hoverPreviewIsEnabled =
+    popupPreviewVisibilitySettings.requirementDetails &&
+    popupPreviewVisibilitySettings.requirement
+  const effectiveShowFragmentsInHoverPreview =
+    hoverPreviewIsEnabled && showFragmentsInHoverPreview
+
   const [isFullGraphVisible, setIsFullGraphVisible] = useState(false)
   const [fullGraphMaxLevel, setFullGraphMaxLevel] = useState(2)
 
@@ -1584,10 +1601,16 @@ export default function AcyclicGraphViewer({
       return nodes
     }
 
-    const level1Vertexes = vertexes.filter((vertex) => {
-      const vertexData = dataForVertexId.get(vertex.id)
-      return vertexData !== undefined && getVertexLevel(vertexData) === 1
-    })
+    const allLevel1Vertexes = vertexes
+      .filter((vertex) => {
+        const vertexData = dataForVertexId.get(vertex.id)
+        return vertexData !== undefined && getVertexLevel(vertexData) === 1
+      })
+      .sort((a, b) => a.id - b.id)
+    const level1Vertexes = allLevel1Vertexes.slice(
+      rootScrollStartIndex,
+      rootScrollStartIndex + 12
+    )
     const displayCodeInfoByVertexId = getDisplayCodeInfoByVertexId(
       level1Vertexes,
       dataForVertexId
@@ -1629,7 +1652,8 @@ export default function AcyclicGraphViewer({
     vertexes,
     dataForVertexId,
     selectedId,
-    selectedProgressDisplayKey
+    selectedProgressDisplayKey,
+    rootScrollStartIndex
   ])
 
   const convertToEdges = useCallback((): Edge[] => {
@@ -1677,15 +1701,47 @@ export default function AcyclicGraphViewer({
   const hoverPreviewHideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
     null
   )
+
+  useEffect(() => {
+    if (hoverPreviewIsEnabled) {
+      return
+    }
+
+    if (hoverPreviewTimerRef.current !== null) {
+      clearTimeout(hoverPreviewTimerRef.current)
+      hoverPreviewTimerRef.current = null
+    }
+    if (hoverPreviewHideTimerRef.current !== null) {
+      clearTimeout(hoverPreviewHideTimerRef.current)
+      hoverPreviewHideTimerRef.current = null
+    }
+    setHoveredVertexPreview(null)
+    setReadyHoverPreviewKey(null)
+  }, [hoverPreviewIsEnabled])
+
   const hoveredVertexPreviewKey =
     hoveredVertexPreview !== null
       ? hoveredVertexPreview.source + ':' + hoveredVertexPreview.id
       : null
   const hoverPreviewIsReady =
     hoveredVertexPreviewKey !== null &&
-    (showFragmentsInHoverPreview === false ||
+    (effectiveShowFragmentsInHoverPreview === false ||
       readyHoverPreviewKey === hoveredVertexPreviewKey)
 
+  const level1Count = useMemo(
+    () =>
+      vertexes.filter((vertex) => {
+        const vertexData = dataForVertexId.get(vertex.id)
+        return vertexData !== undefined && getVertexLevel(vertexData) === 1
+      }).length,
+    [vertexes, dataForVertexId]
+  )
+
+  useEffect(() => {
+    setRootScrollStartIndex((prev) =>
+      Math.min(prev, Math.max(0, level1Count - 12))
+    )
+  }, [level1Count])
   const level2ChildVertexes = useMemo(
     () =>
       getDirectChildVertexes(expandedLevel1Id, vertexes, dataForVertexId)
@@ -2032,12 +2088,38 @@ export default function AcyclicGraphViewer({
   const updatePanelAnchor = useCallback(
     (
       nodeId: number | null,
+      rowNodes: AcyclicGraphNode[],
       setAnchor: React.Dispatch<
         React.SetStateAction<{ left: number; top: number }>
       >,
       setReady: React.Dispatch<React.SetStateAction<boolean>>
     ) => {
-      if (nodeId === null || mainGraphHostRef.current === null) {
+      if (mainGraphHostRef.current === null) {
+        return
+      }
+
+      const hostRect = mainGraphHostRef.current.getBoundingClientRect()
+      const rowNodeBottoms = rowNodes
+        .map((node) =>
+          mainGraphHostRef.current?.querySelector<HTMLElement>(
+            `.react-flow__node[data-id="${node.id}"]`
+          )
+        )
+        .filter(
+          (node): node is HTMLElement => node !== null && node !== undefined
+        )
+        .map((node) => node.getBoundingClientRect().bottom - hostRect.top)
+
+      if (rowNodeBottoms.length > 0) {
+        setAnchor({
+          left: 0,
+          top: Math.max(12, Math.max(...rowNodeBottoms) - 62)
+        })
+        setReady(true)
+        return
+      }
+
+      if (nodeId === null) {
         return
       }
 
@@ -2049,38 +2131,80 @@ export default function AcyclicGraphViewer({
         return
       }
 
-      const hostRect = mainGraphHostRef.current.getBoundingClientRect()
       const nodeRect = nodeElement.getBoundingClientRect()
-      const top = Math.max(12, nodeRect.bottom - hostRect.top + 8)
-
-      setAnchor({ left: 0, top })
+      setAnchor({
+        left: 0,
+        top: Math.max(12, nodeRect.bottom - hostRect.top + 8)
+      })
       setReady(true)
     },
     []
   )
+  const updateRootPanelAnchor = useCallback(() => {
+    if (mainGraphHostRef.current === null || baseNodes.length === 0) {
+      return
+    }
+
+    const hostRect = mainGraphHostRef.current.getBoundingClientRect()
+    const rootNodeBottoms = baseNodes
+      .filter((node) => node.data.level === 1)
+      .map((node) =>
+        mainGraphHostRef.current?.querySelector<HTMLElement>(
+          `.react-flow__node[data-id="${node.id}"]`
+        )
+      )
+      .filter(
+        (node): node is HTMLElement => node !== null && node !== undefined
+      )
+      .map((node) => node.getBoundingClientRect().bottom - hostRect.top)
+
+    if (rootNodeBottoms.length === 0) {
+      return
+    }
+
+    setRootPanelAnchor({
+      left: 0,
+      top: Math.max(...rootNodeBottoms) - 62
+    })
+    setRootPanelReady(true)
+  }, [baseNodes])
   const updateChildPanelAnchor = useCallback(() => {
-    updatePanelAnchor(expandedLevel1Id, setChildPanelAnchor, setChildPanelReady)
+    updateRootPanelAnchor()
+    updatePanelAnchor(
+      expandedLevel1Id,
+      childGraphData.nodes,
+      setChildPanelAnchor,
+      setChildPanelReady
+    )
     updatePanelAnchor(
       expandedLevel2Id,
+      grandChildGraphData.nodes,
       setGrandChildPanelAnchor,
       setGrandChildPanelReady
     )
     updatePanelAnchor(
       expandedLevel3Id,
+      greatGrandChildGraphData.nodes,
       setGreatGrandChildPanelAnchor,
       setGreatGrandChildPanelReady
     )
     updatePanelAnchor(
       expandedLevel4Id,
+      level5GraphData.nodes,
       setLevel5PanelAnchor,
       setLevel5PanelReady
     )
   }, [
+    childGraphData.nodes,
     expandedLevel1Id,
     expandedLevel2Id,
     expandedLevel3Id,
     expandedLevel4Id,
-    updatePanelAnchor
+    grandChildGraphData.nodes,
+    greatGrandChildGraphData.nodes,
+    level5GraphData.nodes,
+    updatePanelAnchor,
+    updateRootPanelAnchor
   ])
   const getPanelFilterVertexes = useCallback(
     (panelKey: ChildPanelKey): Vertex[] => {
@@ -2161,6 +2285,21 @@ export default function AcyclicGraphViewer({
     },
     [getPanelFilterVertexes]
   )
+  const handleRootPanelWheel = useCallback(
+    (event: React.WheelEvent) => {
+      if (level1Count <= 12 || expandedLevel1Id !== null) {
+        return
+      }
+
+      event.preventDefault()
+      event.stopPropagation()
+      const direction = event.deltaY + event.deltaX > 0 ? 1 : -1
+      setRootScrollStartIndex((prev) =>
+        Math.min(Math.max(prev + direction, 0), level1Count - 12)
+      )
+    },
+    [expandedLevel1Id, level1Count]
+  )
   const handleChildPanelWheel = useCallback(
     (event: React.WheelEvent) => {
       if (selectedChildCount <= 12 || expandedLevel2Id !== null) {
@@ -2237,6 +2376,15 @@ export default function AcyclicGraphViewer({
       const pointerY = event.clientY - hostRect.top
 
       if (
+        rootPanelReady &&
+        pointerY >= rootPanelAnchor.top &&
+        pointerY <= rootPanelAnchor.top + 80
+      ) {
+        handleRootPanelWheel(event)
+        return
+      }
+
+      if (
         level5FlowIsVisible &&
         pointerY >= level5PanelAnchor.top &&
         pointerY <= level5PanelAnchor.top + 80
@@ -2276,10 +2424,13 @@ export default function AcyclicGraphViewer({
       grandChildFlowIsVisible,
       greatGrandChildFlowIsVisible,
       level5FlowIsVisible,
+      rootPanelReady,
+      rootPanelAnchor.top,
       childPanelAnchor.top,
       grandChildPanelAnchor.top,
       greatGrandChildPanelAnchor.top,
       level5PanelAnchor.top,
+      handleRootPanelWheel,
       handleChildPanelWheel,
       handleGrandChildPanelWheel,
       handleGreatGrandChildPanelWheel,
@@ -2582,6 +2733,10 @@ export default function AcyclicGraphViewer({
       node: Node<AcyclicGraphVertexViewerProps<VertexData>>,
       source: HoveredVertexPreview['source']
     ) => {
+      if (hoverPreviewIsEnabled === false) {
+        return
+      }
+
       if (hoverPreviewHideTimerRef.current !== null) {
         clearTimeout(hoverPreviewHideTimerRef.current)
         hoverPreviewHideTimerRef.current = null
@@ -2597,7 +2752,7 @@ export default function AcyclicGraphViewer({
             event.currentTarget)
           : null
       const nodeRect = nodeElement?.getBoundingClientRect()
-      const previewWidth = showFragmentsInHoverPreview
+      const previewWidth = effectiveShowFragmentsInHoverPreview
         ? Math.min(Math.max(280, window.innerWidth * 0.34), 330)
         : Math.min(Math.max(180, window.innerWidth * 0.24), 230)
       const viewportPadding = 8
@@ -2634,7 +2789,7 @@ export default function AcyclicGraphViewer({
         hoverPreviewTimerRef.current = null
       }, HOVER_PREVIEW_DELAY_MS)
     },
-    [showFragmentsInHoverPreview]
+    [effectiveShowFragmentsInHoverPreview, hoverPreviewIsEnabled]
   )
 
   const handleNodeMouseEnter = useCallback(
@@ -2794,9 +2949,26 @@ export default function AcyclicGraphViewer({
     []
   )
 
+  const handleToggleShowHoverPreview = useCallback(() => {
+    const nextValue = !popupPreviewVisibilitySettings.requirementDetails
+    setPopupPreviewVisibilitySetting('requirementDetails', nextValue)
+    if (nextValue === false) {
+      setShowFragmentsInHoverPreview(false)
+      handleNodeMouseLeave()
+    }
+  }, [
+    handleNodeMouseLeave,
+    popupPreviewVisibilitySettings.requirementDetails,
+    setPopupPreviewVisibilitySetting
+  ])
+
   const handleToggleShowFragmentsInHoverPreview = useCallback(() => {
+    if (popupPreviewVisibilitySettings.requirementDetails === false) {
+      return
+    }
+
     setShowFragmentsInHoverPreview((prevValue) => !prevValue)
-  }, [])
+  }, [popupPreviewVisibilitySettings.requirementDetails])
 
   const handleToggleCoverageDisplayKey = useCallback(
     (key: CoverageDisplayKey) => {
@@ -2948,7 +3120,8 @@ export default function AcyclicGraphViewer({
     scrollStartIndex,
     setScrollStartIndex,
     beforeScrollChange,
-    disabled
+    disabled,
+    hideFilterButton
   }: {
     panelKey: ChildPanelKey
     panelTop: number
@@ -2957,6 +3130,7 @@ export default function AcyclicGraphViewer({
     setScrollStartIndex: React.Dispatch<React.SetStateAction<number>>
     beforeScrollChange?: () => void
     disabled?: boolean
+    hideFilterButton?: boolean
   }) => {
     const maxScrollStartIndex = Math.max(0, visibleCount - 12)
 
@@ -3084,45 +3258,47 @@ export default function AcyclicGraphViewer({
             />
           </>
         ) : null}
-        <Box
-          component="button"
-          type="button"
-          title="Выбрать отображаемые узлы"
-          aria-label="Выбрать отображаемые узлы"
-          onClick={(event) => handleOpenPanelFilterMenu(panelKey, event)}
-          sx={{
-            position: 'absolute',
-            right: 8,
-            top: panelTop + 2,
-            zIndex: 16,
-            width: 16,
-            height: 16,
-            p: 0,
-            border: `1px solid ${theme.palette.primary.main}`,
-            borderRadius: '50%',
-            backgroundColor: theme.palette.primary.main,
-            boxShadow: `0 2px 4px ${alpha(theme.palette.primary.main, 0.28)}`,
-            cursor: 'pointer',
-            pointerEvents: 'auto',
-            '&::before': {
-              content: '""',
+        {hideFilterButton === true ? null : (
+          <Box
+            component="button"
+            type="button"
+            title="Выбрать отображаемые узлы"
+            aria-label="Выбрать отображаемые узлы"
+            onClick={(event) => handleOpenPanelFilterMenu(panelKey, event)}
+            sx={{
               position: 'absolute',
-              left: '50%',
-              top: '50%',
-              transform: 'translate(-50%, -35%)',
-              borderLeft: '4px solid transparent',
-              borderRight: '4px solid transparent',
-              borderTop: `5px solid ${theme.palette.primary.contrastText}`
-            },
-            '&:hover': {
-              borderColor: theme.palette.primary.light,
-              backgroundColor: theme.palette.primary.light,
+              right: 8,
+              top: panelTop + 2,
+              zIndex: 16,
+              width: 16,
+              height: 16,
+              p: 0,
+              border: `1px solid ${theme.palette.primary.main}`,
+              borderRadius: '50%',
+              backgroundColor: theme.palette.primary.main,
+              boxShadow: `0 2px 4px ${alpha(theme.palette.primary.main, 0.28)}`,
+              cursor: 'pointer',
+              pointerEvents: 'auto',
               '&::before': {
-                borderTopColor: theme.palette.primary.contrastText
+                content: '""',
+                position: 'absolute',
+                left: '50%',
+                top: '50%',
+                transform: 'translate(-50%, -35%)',
+                borderLeft: '4px solid transparent',
+                borderRight: '4px solid transparent',
+                borderTop: `5px solid ${theme.palette.primary.contrastText}`
+              },
+              '&:hover': {
+                borderColor: theme.palette.primary.light,
+                backgroundColor: theme.palette.primary.light,
+                '&::before': {
+                  borderTopColor: theme.palette.primary.contrastText
+                }
               }
-            }
-          }}
-        />
+            }}
+          />
+        )}
       </>
     )
   }
@@ -3139,9 +3315,13 @@ export default function AcyclicGraphViewer({
   }, [handleNodeMouseLeave])
   const isMiniGraphVisible = selectedId !== null && isMiniGraphEnabled
   const mainHoverPreviewIsVisible =
-    hoveredVertexPreview !== null && hoveredVertexPreview.source === 'MAIN'
+    hoverPreviewIsEnabled &&
+    hoveredVertexPreview !== null &&
+    hoveredVertexPreview.source === 'MAIN'
   const miniHoverPreviewIsVisible =
-    hoveredVertexPreview !== null && hoveredVertexPreview.source === 'MINI'
+    hoverPreviewIsEnabled &&
+    hoveredVertexPreview !== null &&
+    hoveredVertexPreview.source === 'MINI'
 
   const handleHoverPreviewReadyChange = useCallback(
     (previewKey: string, ready: boolean) => {
@@ -3461,6 +3641,17 @@ export default function AcyclicGraphViewer({
           {isFullGraphVisible === false
             ? renderLevelPrefixBadge(baseNodes)
             : null}
+          {isFullGraphVisible === false && rootPanelReady
+            ? renderPanelControls({
+                panelKey: 'level2',
+                panelTop: rootPanelAnchor.top,
+                visibleCount: level1Count,
+                scrollStartIndex: rootScrollStartIndex,
+                setScrollStartIndex: setRootScrollStartIndex,
+                disabled: expandedLevel1Id !== null,
+                hideFilterButton: true
+              })
+            : null}
           {childFlowIsVisible && childPanelReady ? (
             <Paper
               elevation={10}
@@ -3624,60 +3815,90 @@ export default function AcyclicGraphViewer({
               }
             }}
           >
-            <Box sx={{ display: 'flex', alignItems: 'stretch' }}>
-              <Box sx={{ width: 280, py: 0.75 }}>
-                <Box sx={{ px: 2, pb: 0.75, textAlign: 'center' }}>
-                  <Typography variant="subtitle2">
-                    Шкалы во всплывающей подсказке
-                  </Typography>
+            <Box>
+              <Box sx={{ display: 'flex', alignItems: 'stretch' }}>
+                <Box sx={{ width: 280, py: 0.75 }}>
+                  <Box sx={{ px: 2, pb: 0.75, textAlign: 'center' }}>
+                    <Typography variant="subtitle2">
+                      Шкалы во всплывающей подсказке
+                    </Typography>
+                  </Box>
+                  {COVERAGE_DISPLAY_OPTIONS.map((option) => (
+                    <MenuItem
+                      key={`coverage-${option.key}`}
+                      onClick={() => handleToggleCoverageDisplayKey(option.key)}
+                    >
+                      <Checkbox
+                        size="small"
+                        checked={visibleCoverageDisplayKeys.includes(
+                          option.key
+                        )}
+                      />
+                      <ListItemText
+                        primary={option.label}
+                        slotProps={{ primary: { fontSize: 13 } }}
+                      />
+                    </MenuItem>
+                  ))}
                 </Box>
-                {COVERAGE_DISPLAY_OPTIONS.map((option) => (
-                  <MenuItem
-                    key={`coverage-${option.key}`}
-                    onClick={() => handleToggleCoverageDisplayKey(option.key)}
-                  >
+                <Divider orientation="vertical" flexItem />
+                <Box sx={{ width: 280, py: 0.75 }}>
+                  <Box sx={{ px: 2, pb: 0.75, textAlign: 'center' }}>
+                    <Typography variant="subtitle2">
+                      Шкала на вершине
+                    </Typography>
+                  </Box>
+                  {COVERAGE_DISPLAY_OPTIONS.map((option) => (
+                    <MenuItem
+                      key={`progress-${option.key}`}
+                      onClick={() => handleSelectProgressDisplayKey(option.key)}
+                    >
+                      <Radio
+                        size="small"
+                        checked={selectedProgressDisplayKey === option.key}
+                      />
+                      <ListItemText
+                        primary={option.label}
+                        slotProps={{ primary: { fontSize: 13 } }}
+                      />
+                    </MenuItem>
+                  ))}
+                </Box>
+              </Box>
+              <Divider sx={{ my: 0.5 }} />
+              <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
+                <Tooltip title="Также можно изменить в меню настроек">
+                  <MenuItem onClick={handleToggleShowHoverPreview}>
                     <Checkbox
                       size="small"
-                      checked={visibleCoverageDisplayKeys.includes(option.key)}
+                      checked={
+                        popupPreviewVisibilitySettings.requirementDetails
+                      }
                     />
                     <ListItemText
-                      primary={option.label}
+                      primary="Показывать всплывающее окно"
                       slotProps={{ primary: { fontSize: 13 } }}
                     />
                   </MenuItem>
-                ))}
-                <Divider sx={{ my: 0.5 }} />
-                <MenuItem onClick={handleToggleShowFragmentsInHoverPreview}>
+                </Tooltip>
+                <MenuItem
+                  disabled={
+                    popupPreviewVisibilitySettings.requirementDetails === false
+                  }
+                  onClick={handleToggleShowFragmentsInHoverPreview}
+                >
                   <Checkbox
                     size="small"
-                    checked={showFragmentsInHoverPreview}
+                    checked={
+                      popupPreviewVisibilitySettings.requirementDetails &&
+                      showFragmentsInHoverPreview
+                    }
                   />
                   <ListItemText
                     primary="Показывать фрагменты"
                     slotProps={{ primary: { fontSize: 13 } }}
                   />
                 </MenuItem>
-              </Box>
-              <Divider orientation="vertical" flexItem />
-              <Box sx={{ width: 280, py: 0.75 }}>
-                <Box sx={{ px: 2, pb: 0.75, textAlign: 'center' }}>
-                  <Typography variant="subtitle2">Шкала на вершине</Typography>
-                </Box>
-                {COVERAGE_DISPLAY_OPTIONS.map((option) => (
-                  <MenuItem
-                    key={`progress-${option.key}`}
-                    onClick={() => handleSelectProgressDisplayKey(option.key)}
-                  >
-                    <Radio
-                      size="small"
-                      checked={selectedProgressDisplayKey === option.key}
-                    />
-                    <ListItemText
-                      primary={option.label}
-                      slotProps={{ primary: { fontSize: 13 } }}
-                    />
-                  </MenuItem>
-                ))}
               </Box>
             </Box>
           </Menu>{' '}
@@ -3798,7 +4019,7 @@ export default function AcyclicGraphViewer({
                 left: hoveredVertexPreview.anchor.left,
                 top: hoveredVertexPreview.anchor.top,
                 transform: 'translateY(-100%)',
-                width: showFragmentsInHoverPreview
+                width: effectiveShowFragmentsInHoverPreview
                   ? 'clamp(280px, 34vw, 330px)'
                   : 'clamp(180px, 24vw, 230px)',
                 visibility: hoverPreviewIsReady ? 'visible' : 'hidden',
@@ -3883,7 +4104,7 @@ export default function AcyclicGraphViewer({
                 key={'MAIN-' + hoveredVertexPreview.id}
                 requirementId={hoveredVertexPreview.id}
                 active={mainHoverPreviewIsVisible}
-                showFragments={showFragmentsInHoverPreview}
+                showFragments={effectiveShowFragmentsInHoverPreview}
                 previewKey={hoveredVertexPreviewKey ?? ''}
                 onReadyChange={handleHoverPreviewReadyChange}
               />
@@ -4081,7 +4302,7 @@ export default function AcyclicGraphViewer({
                   left: hoveredVertexPreview.anchor.left,
                   top: hoveredVertexPreview.anchor.top,
                   transform: 'translateY(-100%)',
-                  width: showFragmentsInHoverPreview
+                  width: effectiveShowFragmentsInHoverPreview
                     ? 'clamp(280px, 34vw, 330px)'
                     : 'clamp(180px, 24vw, 230px)',
                   visibility: hoverPreviewIsReady ? 'visible' : 'hidden',
@@ -4162,7 +4383,7 @@ export default function AcyclicGraphViewer({
                   key={'MINI-' + hoveredVertexPreview.id}
                   requirementId={hoveredVertexPreview.id}
                   active={miniHoverPreviewIsVisible}
-                  showFragments={showFragmentsInHoverPreview}
+                  showFragments={effectiveShowFragmentsInHoverPreview}
                   previewKey={hoveredVertexPreviewKey ?? ''}
                   onReadyChange={handleHoverPreviewReadyChange}
                 />

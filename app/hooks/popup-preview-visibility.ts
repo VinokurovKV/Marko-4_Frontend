@@ -5,6 +5,7 @@ import * as React from 'react'
 import { serverConnector } from '~/server-connector'
 
 export interface PopupPreviewVisibilitySettings {
+  requirementDetails: boolean
   requirement: boolean
   commonTopology: boolean
   topology: boolean
@@ -19,6 +20,7 @@ const SETTINGS_KEY = 'popupPreviewVisibility'
 const SETTINGS_UPDATED_EVENT = 'marko-4:popup-preview-visibility-updated'
 
 const DEFAULT_SETTINGS: PopupPreviewVisibilitySettings = {
+  requirementDetails: true,
   requirement: true,
   commonTopology: true,
   topology: true,
@@ -35,6 +37,10 @@ function mergeWithDefaults(value: unknown): PopupPreviewVisibilitySettings {
   const record = value as Record<string, unknown>
 
   return {
+    requirementDetails:
+      typeof record.requirementDetails === 'boolean'
+        ? record.requirementDetails
+        : DEFAULT_SETTINGS.requirementDetails,
     requirement:
       typeof record.requirement === 'boolean'
         ? record.requirement
