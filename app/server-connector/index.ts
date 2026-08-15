@@ -1476,10 +1476,10 @@ export class ServerConnector {
       : this.getObject('/logs/storage/read-many', params)
   }
   readApiLogsFile(params: Params<ReadApiLogsQueryDto>): Promise<Blob> {
-    return this.getBlob('/logs/api/read-many', params)
+    return this.getBlob('/logs/api/read-many', params, true, true, true)
   }
   readStorageLogsFile(params: Params<ReadStorageLogsQueryDto>): Promise<Blob> {
-    return this.getBlob('/logs/storage/read-many', params)
+    return this.getBlob('/logs/storage/read-many', params, true, true, true)
   }
   // History
   async archiveHistory(params: Params<ArchiveBodyDto>): Promise<void> {
@@ -4006,6 +4006,32 @@ export class ServerConnector {
       (value) => value instanceof Array && value.length === 0
     )
   }
+  private serializeParamsWithRepeatedArrays(params: object): string {
+    const searchParams = new URLSearchParams()
+    const append = (key: string, value: unknown) => {
+      if (value === undefined || value === null || value === '') return
+      if (
+        typeof value !== 'string' &&
+        typeof value !== 'number' &&
+        typeof value !== 'boolean' &&
+        !(value instanceof Date)
+      ) {
+        return
+      }
+      searchParams.append(
+        key,
+        value instanceof Date ? value.toISOString() : String(value)
+      )
+    }
+    for (const [key, value] of Object.entries(params)) {
+      if (Array.isArray(value)) {
+        value.forEach((item) => append(key, item))
+      } else {
+        append(key, value)
+      }
+    }
+    return searchParams.toString()
+  }
   private getObject<Response extends object>(
     path: string,
     params?: object,
@@ -4080,7 +4106,8 @@ export class ServerConnector {
     path: string,
     params?: object,
     withAuthentication: boolean = true,
-    withReauthenticateAttempt: boolean = true
+    withReauthenticateAttempt: boolean = true,
+    withRepeatedArrayParams: boolean = false
   ): Promise<Blob> {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const data = await this.makeRequest({
@@ -4090,7 +4117,10 @@ export class ServerConnector {
       body: undefined,
       responseType: 'blob',
       withAuthentication,
-      withReauthenticateAttempt
+      withReauthenticateAttempt,
+      paramsSerializer: withRepeatedArrayParams
+        ? (params) => this.serializeParamsWithRepeatedArrays(params)
+        : undefined
     })
     if (data instanceof Blob === false) {
       const message = 'Unsuccessful converting server response to Blob'
@@ -4177,6 +4207,7 @@ export class ServerConnector {
     responseType: 'json' | 'blob' | 'arraybuffer'
     withAuthentication: boolean
     withReauthenticateAttempt: boolean
+    paramsSerializer?: (params: object) => string
   }): Promise<any> {
     const {
       method,
@@ -4185,7 +4216,8 @@ export class ServerConnector {
       body,
       responseType,
       withAuthentication,
-      withReauthenticateAttempt
+      withReauthenticateAttempt,
+      paramsSerializer
     } = config
     // eslint-disable-next-line @typescript-eslint/no-empty-object-type
     let response: AxiosResponse<any, any, {}>
@@ -4199,6 +4231,7 @@ export class ServerConnector {
         baseURL: this.host,
         url: PATH_PREFIX + path,
         params: params,
+        paramsSerializer,
         data: body,
         responseType: responseType,
         validateStatus: function () {

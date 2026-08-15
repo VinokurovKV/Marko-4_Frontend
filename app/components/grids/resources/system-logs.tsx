@@ -8,6 +8,7 @@ import type { SystemLog } from '~/types'
 import { useNotifier } from '~/providers/notifier'
 import { serverConnector } from '~/server-connector'
 import { downloadFileFromBlob } from '~/utilities'
+import { FormDateTime } from '~/components/forms/common/form-date-time'
 import { Grid } from '../grid'
 import { useDateTimeCol } from '../cols/date'
 // React
@@ -21,6 +22,8 @@ import DialogContent from '@mui/material/DialogContent'
 import DialogTitle from '@mui/material/DialogTitle'
 import FormControlLabel from '@mui/material/FormControlLabel'
 import MenuItem from '@mui/material/MenuItem'
+import Radio from '@mui/material/Radio'
+import RadioGroup from '@mui/material/RadioGroup'
 import Stack from '@mui/material/Stack'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
@@ -35,8 +38,8 @@ type DownloadLogsFormData = {
   logType: LogTypeEnum
   returnType: ReturnTypeEnum.CSV | ReturnTypeEnum.LOG
   ids: string
-  minCreateTime: string
-  maxCreateTime: string
+  minCreateTime: Date | undefined
+  maxCreateTime: Date | undefined
   getMethod: boolean
   postMethod: boolean
   successLogs: boolean
@@ -58,8 +61,8 @@ const INITIAL_DOWNLOAD_LOGS_FORM_DATA: DownloadLogsFormData = {
   logType: LogTypeEnum.API,
   returnType: ReturnTypeEnum.CSV,
   ids: '',
-  minCreateTime: '',
-  maxCreateTime: '',
+  minCreateTime: undefined,
+  maxCreateTime: undefined,
   getMethod: true,
   postMethod: true,
   successLogs: true,
@@ -75,6 +78,72 @@ const INITIAL_DOWNLOAD_LOGS_FORM_DATA: DownloadLogsFormData = {
   externalStorageErrorLogs: true,
   methodNames: '',
   errorReasonsTypes: ''
+}
+
+const downloadLogsTextFieldSx = {
+  '& .MuiInputBase-root': {
+    height: '32px'
+  },
+  '& .MuiInputLabel-root': {
+    fontSize: '0.85rem',
+    transform: 'translate(13px, 6.5px)'
+  },
+  '& .MuiInputLabel-root.Mui-focused, & .MuiInputLabel-root.MuiFormLabel-filled':
+    {
+      transform: 'translate(14px, -6.5px) scale(0.65)'
+    },
+  '& legend': {
+    fontSize: '0.54rem !important'
+  }
+}
+
+const downloadLogsDatePickerPaperSx = {
+  transform: 'scale(0.82)',
+  transformOrigin: 'top left',
+  '& .MuiPickersLayout-root': {
+    minWidth: 0,
+    width: 'fit-content'
+  },
+  '& .MuiDateCalendar-root': {
+    width: 260,
+    height: 260
+  },
+  '& .MuiPickersCalendarHeader-root': {
+    minHeight: 36,
+    maxHeight: 36,
+    px: 1,
+    mt: 0.5,
+    mb: 0
+  },
+  '& .MuiDayCalendar-header': {
+    px: 1
+  },
+  '& .MuiDayCalendar-weekContainer': {
+    mx: 1,
+    my: 0
+  },
+  '& .MuiPickersDay-root': {
+    width: 30,
+    height: 30,
+    fontSize: '0.75rem'
+  },
+  '& .MuiMultiSectionDigitalClock-root': {
+    maxHeight: 220
+  },
+  '& .MuiMultiSectionDigitalClockSection-root': {
+    width: 48
+  },
+  '& .MuiMultiSectionDigitalClockSection-item': {
+    minHeight: 28,
+    fontSize: '0.75rem'
+  }
+}
+
+const downloadLogsDatePickerPopperSx = {
+  '& .MuiPaper-root': {
+    transform: 'scale(0.82)',
+    transformOrigin: 'top left'
+  }
 }
 
 function formatLogType(value: unknown) {
@@ -106,7 +175,9 @@ function parseStringList(value: string) {
 function parseNumberList(value: string) {
   const result = value
     .split(',')
-    .map((item) => Number(item.trim()))
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0)
+    .map((item) => Number(item))
     .filter((item) => Number.isFinite(item))
   return result.length > 0 ? result : undefined
 }
@@ -115,10 +186,6 @@ function parseNumber(value: string) {
   if (value.trim() === '') return undefined
   const result = Number(value.trim())
   return Number.isFinite(result) ? result : undefined
-}
-
-function parseDate(value: string) {
-  return value === '' ? undefined : new Date(value)
 }
 
 function getSelectedBooleans(trueSelected: boolean, falseSelected: boolean) {
@@ -139,6 +206,15 @@ function getDownloadStamp() {
   return new Date().toISOString().replace(/[:.]/gu, '-')
 }
 
+function prepareDownloadLogsParams<TParams extends object>(params: TParams) {
+  return Object.fromEntries(
+    Object.entries(params).filter(([, value]) => {
+      if (value === undefined || value === '') return false
+      return true
+    })
+  ) as TParams
+}
+
 export function SystemLogsGrid(props: SystemLogsGridProps) {
   const notifier = useNotifier()
   const [downloadDialogOpen, setDownloadDialogOpen] = React.useState(false)
@@ -157,6 +233,15 @@ export function SystemLogsGrid(props: SystemLogsGridProps) {
     []
   )
 
+  const handleDownloadLogsDateChange = React.useCallback(
+    (event: { name: string; value: Date | undefined }) => {
+      if (event.name === 'minCreateTime' || event.name === 'maxCreateTime') {
+        setDownloadLogsFormField(event.name, event.value)
+      }
+    },
+    [setDownloadLogsFormField]
+  )
+
   const handleDownloadLogsSubmit = React.useCallback(async () => {
     setDownloadSubmitting(true)
     try {
@@ -166,8 +251,8 @@ export function SystemLogsGrid(props: SystemLogsGridProps) {
         downloadLogsFormData.successLogs,
         downloadLogsFormData.failedLogs
       )
-      const minCreateTime = parseDate(downloadLogsFormData.minCreateTime)
-      const maxCreateTime = parseDate(downloadLogsFormData.maxCreateTime)
+      const minCreateTime = downloadLogsFormData.minCreateTime
+      const maxCreateTime = downloadLogsFormData.maxCreateTime
       const extension = downloadLogsFormData.returnType.toLowerCase()
       const stamp = getDownloadStamp()
       const commonParams = {
@@ -189,16 +274,6 @@ export function SystemLogsGrid(props: SystemLogsGridProps) {
         const maxDurationMs = parseNumber(downloadLogsFormData.maxDurationMs)
         const params: ReadApiLogsQueryDto = {
           ...commonParams,
-          idSelect: true,
-          timeSelect: true,
-          methodTypeSelect: true,
-          successSelect: true,
-          userIdSelect: true,
-          userLoginAtTheMomentSelect: true,
-          ipSelect: true,
-          statusCodeSelect: true,
-          pathSelect: true,
-          durationMsSelect: true,
           ...(userIds !== undefined ? { userIds } : {}),
           ...(userLogins !== undefined ? { userLogins } : {}),
           ...(ips !== undefined ? { ips } : {}),
@@ -207,7 +282,8 @@ export function SystemLogsGrid(props: SystemLogsGridProps) {
           ...(minDurationMs !== undefined ? { minDurationMs } : {}),
           ...(maxDurationMs !== undefined ? { maxDurationMs } : {})
         }
-        const blob = await serverConnector.readApiLogsFile(params)
+        const preparedParams = prepareDownloadLogsParams(params)
+        const blob = await serverConnector.readApiLogsFile(preparedParams)
         downloadFileFromBlob(blob, `api-logs-${stamp}.${extension}`)
       } else {
         const internalStorageErrors = getSelectedBooleans(
@@ -235,11 +311,12 @@ export function SystemLogsGrid(props: SystemLogsGridProps) {
           ...(methodNames !== undefined ? { methodNames } : {}),
           ...(errorReasonsTypes !== undefined ? { errorReasonsTypes } : {})
         }
-        const blob = await serverConnector.readStorageLogsFile(params)
+        const blob = await serverConnector.readStorageLogsFile(
+          prepareDownloadLogsParams(params)
+        )
         downloadFileFromBlob(blob, `storage-logs-${stamp}.${extension}`)
       }
 
-      setDownloadDialogOpen(false)
       notifier.showSuccess('Логи скачаны')
     } catch (error) {
       notifier.showError(error, 'не удалось скачать системные логи')
@@ -263,8 +340,8 @@ export function SystemLogsGrid(props: SystemLogsGridProps) {
   const timeCol = useDateTimeCol({
     field: 'time',
     headerName: 'Время',
-    minWidth: 190,
-    flex: 0.18
+    minWidth: 200,
+    flex: 0.01
   })
 
   const cols: GridColDef[] = React.useMemo(
@@ -273,7 +350,7 @@ export function SystemLogsGrid(props: SystemLogsGridProps) {
         field: 'logType',
         headerName: 'Тип',
         minWidth: 120,
-        flex: 0.12,
+        flex: 0.08,
         valueFormatter: formatLogType
       },
       {
@@ -281,64 +358,64 @@ export function SystemLogsGrid(props: SystemLogsGridProps) {
         headerName: 'ID',
         type: 'number',
         minWidth: 70,
-        flex: 0.06
+        flex: 0.01
       },
       timeCol,
       {
         field: 'displayMethod',
         headerName: 'Метод',
-        minWidth: 190,
-        flex: 0.22
+        minWidth: 150,
+        flex: 0.15
       },
       {
         field: 'success',
         headerName: 'Успех',
         minWidth: 90,
-        flex: 0.08,
+        flex: 0.01,
         valueFormatter: formatBoolean
       },
       {
         field: 'userLoginAtTheMoment',
         headerName: 'Пользователь',
-        minWidth: 150,
-        flex: 0.16
+        minWidth: 160,
+        flex: 0.12
       },
       {
         field: 'ip',
         headerName: 'IP',
         minWidth: 130,
-        flex: 0.14
+        flex: 0.08
       },
       {
         field: 'statusCode',
         headerName: 'Статус',
         minWidth: 95,
-        flex: 0.08
+        flex: 0.01
       },
       {
         field: 'path',
         headerName: 'Путь',
         minWidth: 260,
-        flex: 0.32
+        flex: 0.3
       },
       {
-        field: 'duration',
+        field: 'durationMs',
         headerName: 'Длительность',
         minWidth: 130,
-        flex: 0.12
+        flex: 0.08
       },
       {
         field: 'internalStorageError',
         headerName: 'Внутр. ошибка',
         minWidth: 130,
-        flex: 0.12,
+        flex: 0.08,
         valueFormatter: formatBoolean
       },
       {
         field: 'displayErrorReasons',
         headerName: 'Причины ошибок',
         minWidth: 220,
-        flex: 0.28
+        flex: 0.18
       }
     ],
     [timeCol]
@@ -348,7 +425,8 @@ export function SystemLogsGrid(props: SystemLogsGridProps) {
     () =>
       [
         'displayId',
-        'duration',
+        'ip',
+        'durationMs',
         'internalStorageError',
         'displayErrorReasons'
       ] as string[],
@@ -358,7 +436,7 @@ export function SystemLogsGrid(props: SystemLogsGridProps) {
   return (
     <>
       <Grid
-        localSaveKey="SYSTEM_LOGS_SCREEN_DEFAULT_COLUMNS"
+        localSaveKey="SYSTEM_LOGS"
         title={props.title}
         cols={cols}
         rows={rows}
@@ -387,6 +465,7 @@ export function SystemLogsGrid(props: SystemLogsGridProps) {
                 label="тип логов"
                 size="small"
                 fullWidth
+                sx={downloadLogsTextFieldSx}
                 value={downloadLogsFormData.logType}
                 onChange={(event) =>
                   setDownloadLogsFormField(
@@ -398,40 +477,30 @@ export function SystemLogsGrid(props: SystemLogsGridProps) {
                 <MenuItem value={LogTypeEnum.API}>API</MenuItem>
                 <MenuItem value={LogTypeEnum.STORAGE}>Хранилище</MenuItem>
               </TextField>
-              <Stack direction="row" spacing={1} sx={{ minWidth: 180 }}>
+              <RadioGroup
+                row
+                value={downloadLogsFormData.returnType}
+                onChange={(event) =>
+                  setDownloadLogsFormField(
+                    'returnType',
+                    event.target.value as
+                      | ReturnTypeEnum.CSV
+                      | ReturnTypeEnum.LOG
+                  )
+                }
+                sx={{ minWidth: 180 }}
+              >
                 <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={
-                        downloadLogsFormData.returnType === ReturnTypeEnum.CSV
-                      }
-                      onChange={() =>
-                        setDownloadLogsFormField(
-                          'returnType',
-                          ReturnTypeEnum.CSV
-                        )
-                      }
-                    />
-                  }
+                  value={ReturnTypeEnum.CSV}
+                  control={<Radio />}
                   label="CSV"
                 />
                 <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={
-                        downloadLogsFormData.returnType === ReturnTypeEnum.LOG
-                      }
-                      onChange={() =>
-                        setDownloadLogsFormField(
-                          'returnType',
-                          ReturnTypeEnum.LOG
-                        )
-                      }
-                    />
-                  }
+                  value={ReturnTypeEnum.LOG}
+                  control={<Radio />}
                   label="LOG"
                 />
-              </Stack>
+              </RadioGroup>
             </Stack>
 
             <Typography variant="subtitle1">Общие фильтры</Typography>
@@ -439,33 +508,34 @@ export function SystemLogsGrid(props: SystemLogsGridProps) {
               <TextField
                 label="ID через запятую"
                 size="small"
-                fullWidth
+                sx={{ ...downloadLogsTextFieldSx, flex: '0 0 220px' }}
+                placeholder="1, 2, 3"
                 value={downloadLogsFormData.ids}
                 onChange={(event) =>
                   setDownloadLogsFormField('ids', event.target.value)
                 }
               />
-              <TextField
+              <FormDateTime
                 label="с даты"
-                type="datetime-local"
-                size="small"
-                fullWidth
-                slotProps={{ inputLabel: { shrink: true } }}
-                value={downloadLogsFormData.minCreateTime}
-                onChange={(event) =>
-                  setDownloadLogsFormField('minCreateTime', event.target.value)
-                }
+                name="minCreateTime"
+                value={downloadLogsFormData.minCreateTime ?? null}
+                onChange={handleDownloadLogsDateChange}
+                placeholder="дд.мм.гггг чч:мм:сс"
+                formControlSx={{ flex: 1, m: 0, minWidth: 260 }}
+                sx={{ width: '100%' }}
+                popperSx={downloadLogsDatePickerPopperSx}
+                desktopPaperSx={downloadLogsDatePickerPaperSx}
               />
-              <TextField
+              <FormDateTime
                 label="по дату"
-                type="datetime-local"
-                size="small"
-                fullWidth
-                slotProps={{ inputLabel: { shrink: true } }}
-                value={downloadLogsFormData.maxCreateTime}
-                onChange={(event) =>
-                  setDownloadLogsFormField('maxCreateTime', event.target.value)
-                }
+                name="maxCreateTime"
+                value={downloadLogsFormData.maxCreateTime ?? null}
+                onChange={handleDownloadLogsDateChange}
+                placeholder="дд.мм.гггг чч:мм:сс"
+                formControlSx={{ flex: 1, m: 0, minWidth: 260 }}
+                sx={{ width: '100%' }}
+                popperSx={downloadLogsDatePickerPopperSx}
+                desktopPaperSx={downloadLogsDatePickerPaperSx}
               />
             </Stack>
 
@@ -536,6 +606,8 @@ export function SystemLogsGrid(props: SystemLogsGridProps) {
                     label="ID пользователей"
                     size="small"
                     fullWidth
+                    sx={downloadLogsTextFieldSx}
+                    placeholder="1, 2, 3"
                     value={downloadLogsFormData.userIds}
                     onChange={(event) =>
                       setDownloadLogsFormField('userIds', event.target.value)
@@ -545,6 +617,8 @@ export function SystemLogsGrid(props: SystemLogsGridProps) {
                     label="логины"
                     size="small"
                     fullWidth
+                    sx={downloadLogsTextFieldSx}
+                    placeholder="admin, user"
                     value={downloadLogsFormData.userLogins}
                     onChange={(event) =>
                       setDownloadLogsFormField('userLogins', event.target.value)
@@ -554,6 +628,8 @@ export function SystemLogsGrid(props: SystemLogsGridProps) {
                     label="IP"
                     size="small"
                     fullWidth
+                    sx={downloadLogsTextFieldSx}
+                    placeholder="127.0.0.1, 10.0.0.1"
                     value={downloadLogsFormData.ips}
                     onChange={(event) =>
                       setDownloadLogsFormField('ips', event.target.value)
@@ -565,6 +641,8 @@ export function SystemLogsGrid(props: SystemLogsGridProps) {
                     label="статусы"
                     size="small"
                     fullWidth
+                    sx={downloadLogsTextFieldSx}
+                    placeholder="200, 304, 500"
                     value={downloadLogsFormData.statusCodes}
                     onChange={(event) =>
                       setDownloadLogsFormField(
@@ -577,6 +655,8 @@ export function SystemLogsGrid(props: SystemLogsGridProps) {
                     label="пути"
                     size="small"
                     fullWidth
+                    sx={downloadLogsTextFieldSx}
+                    placeholder="/api/auth/check, /api/logs/read-many"
                     value={downloadLogsFormData.paths}
                     onChange={(event) =>
                       setDownloadLogsFormField('paths', event.target.value)
@@ -588,6 +668,8 @@ export function SystemLogsGrid(props: SystemLogsGridProps) {
                     label="мин. длительность, мс"
                     size="small"
                     fullWidth
+                    sx={downloadLogsTextFieldSx}
+                    placeholder="100"
                     value={downloadLogsFormData.minDurationMs}
                     onChange={(event) =>
                       setDownloadLogsFormField(
@@ -600,6 +682,8 @@ export function SystemLogsGrid(props: SystemLogsGridProps) {
                     label="макс. длительность, мс"
                     size="small"
                     fullWidth
+                    sx={downloadLogsTextFieldSx}
+                    placeholder="1000"
                     value={downloadLogsFormData.maxDurationMs}
                     onChange={(event) =>
                       setDownloadLogsFormField(
@@ -648,6 +732,8 @@ export function SystemLogsGrid(props: SystemLogsGridProps) {
                     label="методы"
                     size="small"
                     fullWidth
+                    sx={downloadLogsTextFieldSx}
+                    placeholder="readApiLogs, readStorageLogs"
                     value={downloadLogsFormData.methodNames}
                     onChange={(event) =>
                       setDownloadLogsFormField(
@@ -660,6 +746,8 @@ export function SystemLogsGrid(props: SystemLogsGridProps) {
                     label="причины ошибок"
                     size="small"
                     fullWidth
+                    sx={downloadLogsTextFieldSx}
+                    placeholder="VALIDATION_ERROR, INTERNAL_ERROR"
                     value={downloadLogsFormData.errorReasonsTypes}
                     onChange={(event) =>
                       setDownloadLogsFormField(
@@ -674,7 +762,7 @@ export function SystemLogsGrid(props: SystemLogsGridProps) {
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDownloadDialogOpen(false)}>Отменить</Button>
+          <Button onClick={() => setDownloadDialogOpen(false)}>Закрыть</Button>
           <Button
             variant="contained"
             disabled={downloadSubmitting}

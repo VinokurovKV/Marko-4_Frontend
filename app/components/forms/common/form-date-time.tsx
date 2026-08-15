@@ -4,6 +4,7 @@ import { FormHelperTextStyled } from './form-helper-text'
 import * as React from 'react'
 // Material UI
 import { styled, useTheme } from '@mui/material/styles'
+import type { SxProps, Theme } from '@mui/material/styles'
 import type { PickerValidDate } from '@mui/x-date-pickers/models'
 import type {} from '@mui/x-date-pickers/AdapterDayjs'
 import {
@@ -25,6 +26,10 @@ export interface FormDateTimeProps extends Omit<
   required?: boolean
   helperText?: string
   error?: boolean
+  placeholder?: string
+  formControlSx?: SxProps<Theme>
+  popperSx?: SxProps<Theme>
+  desktopPaperSx?: SxProps<Theme>
 }
 
 export const DateTimePickerStyled = styled(DateTimePicker)(({ theme }) => ({
@@ -61,6 +66,10 @@ export function FormDateTime({
   required,
   helperText,
   error,
+  placeholder,
+  formControlSx,
+  popperSx,
+  desktopPaperSx,
   ...props
 }: FormDateTimeProps) {
   const theme = useTheme()
@@ -76,9 +85,13 @@ export function FormDateTime({
   )
 
   const preparedLabel = `${props.label}${required ? '\u2009*' : ''}`
+  const formControlPreparedSx: SxProps<Theme> =
+    formControlSx === undefined
+      ? { m: 1, minWidth: 120 }
+      : [{ m: 1, minWidth: 120 }, formControlSx]
 
   return (
-    <FormControl size="small" sx={{ m: 1, minWidth: 120 }}>
+    <FormControl size="small" sx={formControlPreparedSx}>
       <DateTimePickerStyled
         {...props}
         className={error ? 'error' : undefined}
@@ -86,7 +99,12 @@ export function FormDateTime({
         value={value !== null ? dayjs(value) : null}
         onChange={handleChange}
         views={['year', 'day', 'hours', 'minutes', 'seconds']}
-        slotProps={{ field: { clearable: true } }}
+        slotProps={{
+          field: { clearable: true },
+          textField: { placeholder },
+          popper: { sx: popperSx },
+          desktopPaper: { sx: desktopPaperSx }
+        }}
       />
       <FormHelperTextStyled
         sx={{ color: error ? theme.palette.error.main : undefined }}
