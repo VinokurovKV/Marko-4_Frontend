@@ -3,8 +3,9 @@ import { TimePointTypeEnum } from '@common/enums'
 import type { StorageStatusStringWrapDto } from '@common/dtos/server-api/monitoring.dto'
 import { type ProjBreadcrumbsProps } from '../breadcrumbs'
 import { LayoutScreenContainer } from '../containers'
-import { useNotifier } from '~/providers/notifier'
 import { serverConnector } from '~/server-connector'
+import { FormDateTime } from '~/components/forms/common/form-date-time'
+import { brand, green, orange, red } from '~/theme/themePrimitives'
 // React
 import * as React from 'react'
 // Recharts
@@ -12,26 +13,24 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
+  Cell,
   LabelList,
   ResponsiveContainer,
   XAxis,
   YAxis
 } from 'recharts'
 // Material UI
+import HelpOutlineIcon from '@mui/icons-material/HelpOutline'
 import MonitorHeartIcon from '@mui/icons-material/MonitorHeart'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
+import Tooltip from '@mui/material/Tooltip'
 import Stack from '@mui/material/Stack'
-import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 import { useTheme } from '@mui/material/styles'
-
-function toDateTimeLocal(date: Date) {
-  const offsetMs = date.getTimezoneOffset() * 60 * 1000
-  return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16)
-}
+import dayjs from 'dayjs'
 
 function toBytes(value: string | undefined) {
   return value === undefined ? 0 : Number(value)
@@ -62,6 +61,12 @@ function formatTime(value: Date | string | undefined) {
     : new Date(value).toLocaleString('ru-RU')
 }
 
+function subtractMonth(date: Date) {
+  const result = new Date(date)
+  result.setMonth(result.getMonth() - 1)
+  return result
+}
+
 function toChartLabel(value: string) {
   return value.replace(/^\S+: /, '').split(' / ')[0]
 }
@@ -73,6 +78,25 @@ function splitChartLabel(value: string, maxWidth: number) {
   return [parts.slice(0, -1).join(' '), parts.at(-1)!]
 }
 
+function getFreeResourceColor(
+  freeValue: number,
+  totalValue: number,
+  mode: 'light' | 'dark'
+) {
+  const percent = totalValue === 0 ? 0 : (freeValue / totalValue) * 100
+  if (percent < 25) return mode === 'dark' ? red[300] : red[400]
+  if (percent < 75) return mode === 'dark' ? orange[300] : orange[400]
+  return mode === 'dark' ? green[300] : green[400]
+}
+
+function getUsedResourceColor(
+  usedValue: number,
+  totalValue: number,
+  mode: 'light' | 'dark'
+) {
+  return getFreeResourceColor(totalValue - usedValue, totalValue, mode)
+}
+
 function MiniComparisonChart(props: {
   beforeValue: number
   afterValue: number
@@ -82,15 +106,20 @@ function MiniComparisonChart(props: {
   positiveIsGood?: boolean
   beforeName?: string
   afterName?: string
+  beforeColor?: string
+  afterColor?: string
+  labelColor?: string
+  deltaLabelColor?: string
 }) {
   const theme = useTheme()
   const isPositive = props.afterValue >= props.beforeValue
-  const color =
+  const defaultColor =
     props.positiveIsGood === undefined
       ? theme.palette.primary.main
       : isPositive === props.positiveIsGood
         ? theme.palette.success.main
         : theme.palette.error.main
+  const deltaColor = props.afterColor ?? props.beforeColor ?? defaultColor
   const renderChartLabel = (labelProps: unknown) => {
     const { x, y, width, height, value } = labelProps as {
       x?: number
@@ -101,7 +130,8 @@ function MiniComparisonChart(props: {
     }
     if (x === undefined || y === undefined || width === undefined) return null
     const isInside = height !== undefined && height >= 24
-    const textColor = isInside ? '#fff' : theme.palette.text.primary
+    const textColor =
+      props.labelColor ?? (isInside ? '#fff' : theme.palette.text.primary)
     const lines = splitChartLabel(String(value ?? ''), width - 4)
     const firstLineY = isInside ? y + 13 : y - (lines.length === 1 ? 4 : 14)
 
@@ -128,22 +158,24 @@ function MiniComparisonChart(props: {
 
   const data = [
     {
-      name: props.beforeName ?? '\u0422\u043e\u0433\u0434\u0430',
+      name: props.beforeName ?? 'Начало',
       value:
         props.beforeValue > 0
           ? Math.max(props.beforeValue, minVisibleValue)
           : props.beforeValue,
       label: toChartLabel(props.beforeLabel),
-      fullLabel: props.beforeLabel
+      fullLabel: props.beforeLabel,
+      color: props.beforeColor ?? defaultColor
     },
     {
-      name: props.afterName ?? '\u0421\u0435\u0439\u0447\u0430\u0441',
+      name: props.afterName ?? 'Конец',
       value:
         props.afterValue > 0
           ? Math.max(props.afterValue, minVisibleValue)
           : props.afterValue,
       label: toChartLabel(props.afterLabel),
-      fullLabel: props.afterLabel
+      fullLabel: props.afterLabel,
+      color: props.afterColor ?? defaultColor
     }
   ]
 
@@ -168,11 +200,13 @@ function MiniComparisonChart(props: {
           <YAxis hide domain={[0, (dataMax: number) => dataMax * 1.18]} />
           <Bar
             dataKey="value"
-            fill={color}
             radius={[8, 8, 0, 0]}
             barSize={48}
             isAnimationActive={false}
           >
+            {data.map((item) => (
+              <Cell key={item.name} fill={item.color} />
+            ))}
             <LabelList dataKey="label" content={renderChartLabel} />
           </Bar>
         </BarChart>
@@ -186,14 +220,15 @@ function MiniComparisonChart(props: {
           px: 0.75,
           py: 0.2,
           borderRadius: 1,
-          bgcolor: color,
+          bgcolor: deltaColor,
           border: '1px solid',
-          borderColor: color,
-          boxShadow: `0 0 4px ${color}`,
+          borderColor: deltaColor,
+          boxShadow: `0 0 4px ${deltaColor}`,
           fontSize: '0.68rem',
           fontWeight: 700,
           lineHeight: 1.15,
-          color: theme.palette.getContrastText(color),
+          color:
+            props.deltaLabelColor ?? theme.palette.getContrastText(deltaColor),
           whiteSpace: 'nowrap',
           pointerEvents: 'none'
         }}
@@ -206,6 +241,7 @@ function MiniComparisonChart(props: {
 
 function MetricCard(props: {
   title: string
+  tooltip?: string
   before: string
   after: string
   delta: string
@@ -215,6 +251,10 @@ function MetricCard(props: {
     positiveIsGood?: boolean
     beforeName?: string
     afterName?: string
+    beforeColor?: string
+    afterColor?: string
+    labelColor?: string
+    deltaLabelColor?: string
   }
 }) {
   return (
@@ -223,9 +263,24 @@ function MetricCard(props: {
       sx={{ height: 160, maxHeight: 160, overflow: 'hidden' }}
     >
       <CardContent sx={{ pt: 2.25, pb: 0.75, '&:last-child': { pb: 0.75 } }}>
-        <Typography variant="h6" sx={{ mb: 0.25, fontSize: '1.05rem' }}>
-          {props.title}
-        </Typography>
+        <Stack
+          direction="row"
+          spacing={0.75}
+          alignItems="center"
+          justifyContent="center"
+        >
+          <Typography variant="h6" sx={{ mb: 0.25, fontSize: '1.05rem' }}>
+            {props.title}
+          </Typography>
+          {props.tooltip !== undefined ? (
+            <Tooltip title={props.tooltip}>
+              <HelpOutlineIcon
+                fontSize="small"
+                sx={{ color: 'text.secondary' }}
+              />
+            </Tooltip>
+          ) : null}
+        </Stack>
         <MiniComparisonChart
           {...props.chart}
           beforeLabel={props.before}
@@ -237,13 +292,83 @@ function MetricCard(props: {
   )
 }
 
+const monitoringDatePickerPaperSx = {
+  transform: 'scale(0.82)',
+  transformOrigin: 'top left',
+  '& .MuiPickersLayout-root': {
+    minWidth: 0,
+    width: 'fit-content'
+  },
+  '& .MuiDateCalendar-root': {
+    width: 260,
+    height: 260
+  },
+  '& .MuiPickersCalendarHeader-root': {
+    minHeight: 36,
+    maxHeight: 36,
+    px: 1,
+    mt: 0.5,
+    mb: 0
+  },
+  '& .MuiDayCalendar-header': {
+    px: 1
+  },
+  '& .MuiDayCalendar-weekContainer': {
+    mx: 1,
+    my: 0
+  },
+  '& .MuiPickersDay-root': {
+    width: 30,
+    height: 30,
+    fontSize: '0.75rem'
+  },
+  '& .MuiMultiSectionDigitalClock-root': {
+    maxHeight: 220
+  },
+  '& .MuiMultiSectionDigitalClockSection-root': {
+    width: 48
+  },
+  '& .MuiMultiSectionDigitalClockSection-item': {
+    minHeight: 28,
+    fontSize: '0.75rem'
+  }
+}
+
+const monitoringDatePickerPopperSx = {
+  '& .MuiPaper-root': {
+    transform: 'scale(0.82)',
+    transformOrigin: 'top left'
+  }
+}
+
+const monitoringDateTimeFieldSx = {
+  width: '100%',
+  '& .MuiPickersInputBase-root': {
+    height: 24,
+    fontSize: '0.75rem'
+  },
+  '& .MuiFormLabel-root': {
+    fontSize: '0.75rem',
+    transform: 'translate(13px, 2px)'
+  },
+  '& .MuiFormLabel-root.Mui-focused, & .MuiFormLabel-root.MuiFormLabel-filled':
+    {
+      transform: 'translate(14px, -7px) scale(0.65)'
+    },
+  '& + .MuiFormHelperText-root': {
+    mt: -10,
+    lineHeight: 1,
+    minHeight: 0
+  }
+}
+
 export function SystemMonitoringScreen() {
-  const notifier = useNotifier()
+  const theme = useTheme()
   const now = React.useMemo(() => new Date(), [])
-  const [startTime, setStartTime] = React.useState(
-    toDateTimeLocal(new Date(now.getTime() - 60 * 60 * 1000))
+  const [startTime, setStartTime] = React.useState<Date | undefined>(
+    new Date(now.getTime() - 60 * 60 * 1000)
   )
-  const [endTime, setEndTime] = React.useState(toDateTimeLocal(now))
+  const [endTime, setEndTime] = React.useState<Date | undefined>(now)
   const [loading, setLoading] = React.useState(false)
   const [startState, setStartState] =
     React.useState<StorageStatusStringWrapDto | null>(null)
@@ -281,12 +406,18 @@ export function SystemMonitoringScreen() {
     ])
 
     if (first.status === 'fulfilled') {
+      const firstAvailableTime = new Date(first.value.time)
+      const monthAgoTime = subtractMonth(new Date())
       setAvailableFrom(first.value)
-      setStartTime(toDateTimeLocal(new Date(first.value.time)))
+      setStartTime(
+        firstAvailableTime.getTime() < monthAgoTime.getTime()
+          ? monthAgoTime
+          : firstAvailableTime
+      )
     }
     if (last.status === 'fulfilled') {
       setAvailableTo(last.value)
-      setEndTime(toDateTimeLocal(new Date(last.value.time)))
+      setEndTime(new Date(last.value.time))
     }
   }, [])
 
@@ -295,28 +426,27 @@ export function SystemMonitoringScreen() {
   }, [loadAvailability])
 
   const loadComparison = React.useCallback(async () => {
-    const startDate = new Date(startTime)
-    const endDate = new Date(endTime)
-
     setStartState(null)
     setEndState(null)
 
     if (
-      !Number.isFinite(startDate.getTime()) ||
-      !Number.isFinite(endDate.getTime())
+      startTime === undefined ||
+      endTime === undefined ||
+      !Number.isFinite(startTime.getTime()) ||
+      !Number.isFinite(endTime.getTime())
     ) {
       setMessage('Выберите обе точки времени')
       return
     }
 
-    if (startDate.getTime() > endDate.getTime()) {
+    if (startTime.getTime() > endTime.getTime()) {
       setMessage('Начальная точка должна быть раньше конечной')
       return
     }
 
     if (
       availableFrom !== null &&
-      startDate.getTime() + 60 * 1000 <= new Date(availableFrom.time).getTime()
+      startTime.getTime() + 60 * 1000 <= new Date(availableFrom.time).getTime()
     ) {
       setMessage('Начальная точка раньше первого снимка мониторинга')
       return
@@ -324,7 +454,7 @@ export function SystemMonitoringScreen() {
 
     if (
       availableTo !== null &&
-      endDate.getTime() >= new Date(availableTo.time).getTime() + 60 * 1000
+      endTime.getTime() >= new Date(availableTo.time).getTime() + 60 * 1000
     ) {
       setMessage('Конечная точка позже последнего снимка мониторинга')
       return
@@ -334,11 +464,11 @@ export function SystemMonitoringScreen() {
     setLoading(true)
     const [from, to] = await Promise.allSettled([
       serverConnector.findFirstStorageStatus({
-        time: startDate,
+        time: startTime,
         timePoint: TimePointTypeEnum.AFTER
       }),
       serverConnector.findFirstStorageStatus({
-        time: endDate,
+        time: endTime,
         timePoint: TimePointTypeEnum.BEFORE
       })
     ])
@@ -353,28 +483,20 @@ export function SystemMonitoringScreen() {
     setMessage('Не удалось найти снимки мониторинга для выбранного периода')
   }, [availableFrom, availableTo, endTime, startTime])
 
-  const loadCurrent = React.useCallback(async () => {
-    setMessage('')
-    setLoading(true)
-    try {
-      const current = await serverConnector.storageStatus({ writeToDB: false })
-      setEndState(current)
-      setEndTime(toDateTimeLocal(new Date()))
-    } catch (error) {
-      setEndState(null)
-      setMessage('Не удалось получить текущее состояние')
-      notifier.showError(error, 'не удалось получить текущее состояние')
-    } finally {
-      setLoading(false)
-    }
-  }, [notifier])
-
   const metrics = React.useMemo(() => {
     if (startState === null || endState === null) return null
-    const memBefore = toBytes(startState.memUsed)
-    const memAfter = toBytes(endState.memUsed)
-    const diskBefore = toBytes(startState.diskAvailable)
-    const diskAfter = toBytes(endState.diskAvailable)
+    const memUsedBefore = toBytes(startState.memUsed)
+    const memUsedAfter = toBytes(endState.memUsed)
+    const memTotalBefore = toBytes(startState.memTotal)
+    const memTotalAfter = toBytes(endState.memTotal)
+    const memFreeBefore = memTotalBefore - memUsedBefore
+    const memFreeAfter = memTotalAfter - memUsedAfter
+    const diskFreeBefore = toBytes(startState.diskAvailable)
+    const diskFreeAfter = toBytes(endState.diskAvailable)
+    const diskTotalBefore = toBytes(startState.diskTotal)
+    const diskTotalAfter = toBytes(endState.diskTotal)
+    const diskUsedBefore = diskTotalBefore - diskFreeBefore
+    const diskUsedAfter = diskTotalAfter - diskFreeAfter
     const requestsBefore = toBytes(startState.requestsCnt)
     const requestsAfter = toBytes(endState.requestsCnt)
     const requestBytesDelta =
@@ -383,54 +505,158 @@ export function SystemMonitoringScreen() {
     const responseBytesDelta =
       toBytes(endState.responsesTotalSizeBytes) -
       toBytes(startState.responsesTotalSizeBytes)
+    const chartLabelColor = theme.palette.mode === 'dark' ? '#000' : '#fff'
+    const blueChartColor =
+      theme.palette.mode === 'dark' ? brand[300] : brand[400]
 
     return [
-      {
-        title: 'Память',
-        before: `${formatBytes(memBefore)} / ${formatBytes(toBytes(startState.memTotal))}`,
-        after: `${formatBytes(memAfter)} / ${formatBytes(toBytes(endState.memTotal))}`,
-        delta: formatBytes(memAfter - memBefore),
-        chart: {
-          beforeValue: memBefore,
-          afterValue: memAfter,
-          positiveIsGood: false
+      [
+        {
+          title: 'ОП свободно',
+          before: `${formatBytes(memFreeBefore)} / ${formatBytes(memTotalBefore)}`,
+          after: `${formatBytes(memFreeAfter)} / ${formatBytes(memTotalAfter)}`,
+          delta: formatBytes(memFreeAfter - memFreeBefore),
+          chart: {
+            beforeValue: memFreeBefore,
+            afterValue: memFreeAfter,
+            positiveIsGood: true,
+            beforeColor: getFreeResourceColor(
+              memFreeBefore,
+              memTotalBefore,
+              theme.palette.mode
+            ),
+            afterColor: getFreeResourceColor(
+              memFreeAfter,
+              memTotalAfter,
+              theme.palette.mode
+            ),
+            labelColor: chartLabelColor,
+            deltaLabelColor: chartLabelColor
+          }
+        },
+        {
+          title: 'ОП затрачено',
+          before: `${formatBytes(memUsedBefore)} / ${formatBytes(memTotalBefore)}`,
+          after: `${formatBytes(memUsedAfter)} / ${formatBytes(memTotalAfter)}`,
+          delta: formatBytes(memUsedAfter - memUsedBefore),
+          chart: {
+            beforeValue: memUsedBefore,
+            afterValue: memUsedAfter,
+            positiveIsGood: false,
+            beforeColor: getUsedResourceColor(
+              memUsedBefore,
+              memTotalBefore,
+              theme.palette.mode
+            ),
+            afterColor: getUsedResourceColor(
+              memUsedAfter,
+              memTotalAfter,
+              theme.palette.mode
+            ),
+            labelColor: chartLabelColor,
+            deltaLabelColor: chartLabelColor
+          }
         }
-      },
-      {
-        title: 'Диск доступно',
-        before: `${formatBytes(diskBefore)} / ${formatBytes(toBytes(startState.diskTotal))}`,
-        after: `${formatBytes(diskAfter)} / ${formatBytes(toBytes(endState.diskTotal))}`,
-        delta: formatBytes(diskAfter - diskBefore),
-        chart: {
-          beforeValue: diskBefore,
-          afterValue: diskAfter,
-          positiveIsGood: true
+      ],
+      [
+        {
+          title: 'Диск свободно',
+          before: `${formatBytes(diskFreeBefore)} / ${formatBytes(diskTotalBefore)}`,
+          after: `${formatBytes(diskFreeAfter)} / ${formatBytes(diskTotalAfter)}`,
+          delta: formatBytes(diskFreeAfter - diskFreeBefore),
+          chart: {
+            beforeValue: diskFreeBefore,
+            afterValue: diskFreeAfter,
+            positiveIsGood: true,
+            beforeColor: getFreeResourceColor(
+              diskFreeBefore,
+              diskTotalBefore,
+              theme.palette.mode
+            ),
+            afterColor: getFreeResourceColor(
+              diskFreeAfter,
+              diskTotalAfter,
+              theme.palette.mode
+            ),
+            labelColor: chartLabelColor,
+            deltaLabelColor: chartLabelColor
+          }
+        },
+        {
+          title: 'Диск затрачено',
+          before: `${formatBytes(diskUsedBefore)} / ${formatBytes(diskTotalBefore)}`,
+          after: `${formatBytes(diskUsedAfter)} / ${formatBytes(diskTotalAfter)}`,
+          delta: formatBytes(diskUsedAfter - diskUsedBefore),
+          chart: {
+            beforeValue: diskUsedBefore,
+            afterValue: diskUsedAfter,
+            positiveIsGood: false,
+            beforeColor: getUsedResourceColor(
+              diskUsedBefore,
+              diskTotalBefore,
+              theme.palette.mode
+            ),
+            afterColor: getUsedResourceColor(
+              diskUsedAfter,
+              diskTotalAfter,
+              theme.palette.mode
+            ),
+            labelColor: chartLabelColor,
+            deltaLabelColor: chartLabelColor
+          }
         }
-      },
-      {
-        title: 'Запросы',
-        before: formatNumber(startState.requestsCnt),
-        after: formatNumber(endState.requestsCnt),
-        delta: formatNumber(requestsAfter - requestsBefore),
-        chart: {
-          beforeValue: requestsBefore,
-          afterValue: requestsAfter
+      ],
+      [
+        {
+          title: 'Запросы',
+          tooltip: 'Количество запросов, зафиксированных системой',
+          before: formatNumber(startState.requestsCnt),
+          after: formatNumber(endState.requestsCnt),
+          delta: formatNumber(requestsAfter - requestsBefore),
+          chart: {
+            beforeValue: requestsBefore,
+            afterValue: requestsAfter,
+            beforeColor: blueChartColor,
+            afterColor: blueChartColor,
+            labelColor: chartLabelColor,
+            deltaLabelColor: chartLabelColor
+          }
+        },
+        {
+          title: 'Трафик',
+          tooltip:
+            'Суммарный объём трафика входящих запросов и исходящих ответов',
+          before: `вход: ${formatBytes(requestBytesDelta)}`,
+          after: `выход: ${formatBytes(responseBytesDelta)}`,
+          delta: formatBytes(responseBytesDelta - requestBytesDelta),
+          chart: {
+            beforeValue: Math.max(0, requestBytesDelta),
+            afterValue: Math.max(0, responseBytesDelta),
+            beforeColor: blueChartColor,
+            afterColor: blueChartColor,
+            labelColor: chartLabelColor,
+            deltaLabelColor: chartLabelColor
+          }
         }
-      },
-      {
-        title: 'Трафик за период',
-        before: `вход: ${formatBytes(requestBytesDelta)}`,
-        after: `выход: ${formatBytes(responseBytesDelta)}`,
-        delta: formatBytes(responseBytesDelta - requestBytesDelta),
-        chart: {
-          beforeValue: Math.max(0, requestBytesDelta),
-          afterValue: Math.max(0, responseBytesDelta),
-          beforeName: '\u0412\u0445\u043e\u0434',
-          afterName: '\u0412\u044b\u0445\u043e\u0434'
-        }
-      }
+      ]
     ]
-  }, [endState, startState])
+  }, [endState, startState, theme.palette.mode])
+
+  const handleMonitoringDateChange = React.useCallback(
+    (event: { name: string; value: Date | undefined }) => {
+      if (event.name === 'startTime') {
+        setStartTime(event.value)
+      } else if (event.name === 'endTime') {
+        setEndTime(event.value)
+      }
+    },
+    []
+  )
+
+  const minAvailableTime =
+    availableFrom === null ? undefined : dayjs(availableFrom.time)
+  const maxAvailableTime =
+    availableTo === null ? undefined : dayjs(availableTo.time)
 
   return (
     <LayoutScreenContainer
@@ -446,70 +672,44 @@ export function SystemMonitoringScreen() {
               alignItems="center"
               flexWrap="wrap"
             >
-              <TextField
+              <FormDateTime
                 label="начальная точка"
-                type="datetime-local"
-                size="small"
-                sx={{
-                  '& .MuiInputBase-root': { height: 24, fontSize: '0.75rem' },
-                  '& .MuiInputLabel-root': { fontSize: '0.75rem' }
-                }}
-                value={startTime}
-                onChange={(event) => setStartTime(event.target.value)}
-                slotProps={{
-                  htmlInput: {
-                    min:
-                      availableFrom === null
-                        ? undefined
-                        : toDateTimeLocal(new Date(availableFrom.time)),
-                    max:
-                      availableTo === null
-                        ? undefined
-                        : toDateTimeLocal(new Date(availableTo.time))
-                  },
-                  inputLabel: { shrink: true }
-                }}
+                name="startTime"
+                value={startTime ?? null}
+                onChange={handleMonitoringDateChange}
+                placeholder="дд.мм.гггг чч:мм:сс"
+                minDateTime={minAvailableTime}
+                maxDateTime={maxAvailableTime}
+                formControlSx={{ m: 0, minWidth: 260, alignSelf: 'flex-start' }}
+                sx={monitoringDateTimeFieldSx}
+                popperSx={monitoringDatePickerPopperSx}
+                desktopPaperSx={monitoringDatePickerPaperSx}
               />
-              <TextField
+              <FormDateTime
                 label="конечная точка"
-                type="datetime-local"
-                size="small"
-                sx={{
-                  '& .MuiInputBase-root': { height: 24, fontSize: '0.75rem' },
-                  '& .MuiInputLabel-root': { fontSize: '0.75rem' }
-                }}
-                value={endTime}
-                onChange={(event) => setEndTime(event.target.value)}
-                slotProps={{
-                  htmlInput: {
-                    min:
-                      availableFrom === null
-                        ? undefined
-                        : toDateTimeLocal(new Date(availableFrom.time)),
-                    max:
-                      availableTo === null
-                        ? undefined
-                        : toDateTimeLocal(new Date(availableTo.time))
-                  },
-                  inputLabel: { shrink: true }
-                }}
+                name="endTime"
+                value={endTime ?? null}
+                onChange={handleMonitoringDateChange}
+                placeholder="дд.мм.гггг чч:мм:сс"
+                minDateTime={minAvailableTime}
+                maxDateTime={maxAvailableTime}
+                formControlSx={{ m: 0, minWidth: 260, alignSelf: 'flex-start' }}
+                sx={monitoringDateTimeFieldSx}
+                popperSx={monitoringDatePickerPopperSx}
+                desktopPaperSx={monitoringDatePickerPaperSx}
               />
               <Button
                 variant="contained"
                 size="small"
-                sx={{ height: 24, fontSize: '0.65rem' }}
+                sx={{
+                  height: 24,
+                  fontSize: '0.65rem',
+                  alignSelf: 'flex-start'
+                }}
                 disabled={loading}
                 onClick={() => void loadComparison()}
               >
                 Сравнить
-              </Button>
-              <Button
-                size="small"
-                sx={{ height: 24, fontSize: '0.65rem' }}
-                disabled={loading}
-                onClick={() => void loadCurrent()}
-              >
-                Сейчас
               </Button>
             </Stack>
             {availableFrom !== null && availableTo !== null ? (
@@ -537,15 +737,17 @@ export function SystemMonitoringScreen() {
             useFlexGap
             sx={{ alignItems: 'stretch', maxHeight: 336, overflow: 'hidden' }}
           >
-            {metrics.map((metric) => (
+            {metrics.map((column, index) => (
               <Stack
-                key={metric.title}
+                key={index}
+                spacing={2}
                 sx={{
-                  width: { xs: '100%', md: 'calc(50% - 8px)' },
-                  height: 160
+                  width: { xs: '100%', md: 'calc((100% - 32px) / 3)' }
                 }}
               >
-                <MetricCard {...metric} />
+                {column.map((metric) => (
+                  <MetricCard key={metric.title} {...metric} />
+                ))}
               </Stack>
             ))}
           </Stack>
