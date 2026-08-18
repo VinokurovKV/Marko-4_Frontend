@@ -10,6 +10,7 @@ import { PcapFileViewer } from './pcap-viewer'
 import { PdfFileViewer } from './pdf-viewer'
 import { CodeFileViewer } from './code-viewer'
 import { TextFileViewer } from './text-viewer'
+import { PlotFileViewer } from './plot-viewer'
 // React
 import * as React from 'react'
 // Material UI
@@ -47,6 +48,11 @@ export function NotZipFileViewer({
   const [isEditMode, setIsEditMode] = React.useState<boolean>(false)
   const [editText, setEditText] = React.useState<string | null>(null)
   const [isBlobFile, setIsBlobFile] = React.useState<boolean>(false)
+
+  const isPlotFile = React.useMemo(
+    () => localFileName?.toLowerCase().endsWith('.plot.json') === true,
+    [localFileName]
+  )
 
   React.useEffect(() => {
     setIsEditMode(false)
@@ -163,7 +169,17 @@ export function NotZipFileViewer({
           isDarkMode={isDarkMode}
         />
       ) : null}
-      {ext === 'json' && text !== null && isEditMode === false ? (
+      {isPlotFile && text !== null && isEditMode === false ? (
+        <PlotFileViewer
+          fileName={localFileName}
+          fileText={text}
+          isDarkMode={isDarkMode}
+        />
+      ) : null}
+      {ext === 'json' &&
+      isPlotFile === false &&
+      text !== null &&
+      isEditMode === false ? (
         <JsonFileViewer
           fileName={localFileName}
           fileText={text}
