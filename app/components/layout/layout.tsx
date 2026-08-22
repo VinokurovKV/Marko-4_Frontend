@@ -2,6 +2,7 @@
 import { Background } from '../containers'
 import { BrandLabel } from '../brand/brand-label'
 import { Header } from './header/header'
+import { InteractiveGuideProvider } from '../interactive-guide/guide-provider'
 import { Sidebar } from './sidebar/sidebar'
 // React
 import * as React from 'react'
@@ -93,51 +94,68 @@ export function Layout(props: LayoutProps) {
   )
 
   const layoutRef = React.useRef<HTMLDivElement>(null)
+  const [interactiveGuidePortalElement, setInteractiveGuidePortalElement] =
+    React.useState<HTMLDivElement | null>(null)
 
   return (
     <Background>
-      <Box
-        ref={layoutRef}
-        sx={{
-          //position: 'relative',
-          display: 'flex',
-          overflow: 'hidden',
-          height: '100%',
-          width: '100%'
-        }}
-      >
-        <Header
-          logo={<BrandLabel />}
-          menuIsOpen={isNavigationExpanded}
-          onToggleMenu={handleToggleHeaderMenu}
-        />
-        <Sidebar
-          expanded={isNavigationExpanded}
-          setExpanded={setIsNavigationExpanded}
-          container={layoutRef?.current ?? undefined}
-        />
+      <InteractiveGuideProvider portalElement={interactiveGuidePortalElement}>
         <Box
+          ref={layoutRef}
           sx={{
+            //position: 'relative',
             display: 'flex',
-            flexDirection: 'column',
-            flex: 1,
-            minWidth: 0
+            overflow: 'hidden',
+            height: '100%',
+            width: '100%'
           }}
         >
-          <Toolbar sx={{ displayPrint: 'none' }} />
+          <Header
+            logo={<BrandLabel />}
+            menuIsOpen={isNavigationExpanded}
+            onToggleMenu={handleToggleHeaderMenu}
+          />
+          <Sidebar
+            expanded={isNavigationExpanded}
+            setExpanded={setIsNavigationExpanded}
+            container={layoutRef?.current ?? undefined}
+          />
           <Box
-            component="main"
+            ref={setInteractiveGuidePortalElement}
+            sx={{
+              position: 'absolute',
+              inset: 0,
+              pointerEvents: 'none',
+              zIndex: (theme) => theme.zIndex.drawer + 2,
+              '& > *': {
+                pointerEvents: 'auto'
+              }
+            }}
+          />
+          <Box
             sx={{
               display: 'flex',
               flexDirection: 'column',
               flex: 1,
-              overflow: 'auto'
+              minWidth: 0
             }}
           >
-            {props.children}
+            <Toolbar sx={{ displayPrint: 'none' }} />
+            <Box
+              component="main"
+              data-guide-id="main-content"
+              sx={{
+                display: 'flex',
+                flexDirection: 'column',
+                flex: 1,
+                overflow: 'auto'
+              }}
+            >
+              {props.children}
+            </Box>
           </Box>
         </Box>
-      </Box>
+      </InteractiveGuideProvider>
     </Background>
   )
 }

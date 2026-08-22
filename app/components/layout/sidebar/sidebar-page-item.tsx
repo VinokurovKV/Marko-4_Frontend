@@ -130,6 +130,7 @@ export function SidebarPageItem({
         }}
       >
         <ListItemButton
+          data-guide-id={`sidebar-item-${id}`}
           selected={selected}
           disabled={disabled}
           sx={{

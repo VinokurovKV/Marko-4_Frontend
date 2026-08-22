@@ -2,6 +2,7 @@
 import { ToggleIconButton } from '../../buttons/toggle-icon-button'
 import { AccountMenu } from './account-menu'
 import { ThemeSwitcher } from '../../theme/theme-switcher'
+import { useInteractiveGuide } from '~/components/interactive-guide/guide-provider'
 // React router
 import { Link } from 'react-router'
 // React
@@ -9,10 +10,13 @@ import * as React from 'react'
 // Material UI
 import MenuIcon from '@mui/icons-material/Menu'
 import MenuOpenIcon from '@mui/icons-material/MenuOpen'
+import HelpOutlineIcon from '@mui/icons-material/HelpOutline'
 import { styled } from '@mui/material/styles'
 import MuiAppBar from '@mui/material/AppBar'
 import Box from '@mui/material/Box'
+import IconButton from '@mui/material/IconButton'
 import Stack from '@mui/material/Stack'
+import Tooltip from '@mui/material/Tooltip'
 import Toolbar from '@mui/material/Toolbar'
 
 const AppBar = styled(MuiAppBar)(({ theme }) => ({
@@ -31,6 +35,8 @@ export interface HeaderProps {
 }
 
 export function Header({ logo, menuIsOpen, onToggleMenu }: HeaderProps) {
+  const { startGuide } = useInteractiveGuide()
+
   const handleToggleMenu = React.useCallback(() => {
     onToggleMenu(!menuIsOpen)
   }, [menuIsOpen, onToggleMenu])
@@ -55,6 +61,7 @@ export function Header({ logo, menuIsOpen, onToggleMenu }: HeaderProps) {
             <Box sx={{ mr: 2 }}>
               {
                 <ToggleIconButton
+                  data-guide-id="header-menu-button"
                   ActiveIcon={MenuOpenIcon}
                   InactiveIcon={MenuIcon}
                   activePrompt="уменьшить меню"
@@ -64,7 +71,11 @@ export function Header({ logo, menuIsOpen, onToggleMenu }: HeaderProps) {
                 />
               }
             </Box>
-            <Link to="/" style={{ textDecoration: 'none' }}>
+            <Link
+              to="/"
+              style={{ textDecoration: 'none' }}
+              data-guide-id="header-logo"
+            >
               <Stack direction="row" alignItems="center">
                 {logo}
               </Stack>
@@ -77,8 +88,29 @@ export function Header({ logo, menuIsOpen, onToggleMenu }: HeaderProps) {
             sx={{ ml: 'auto' }}
           >
             <Stack direction="row" alignItems="center" spacing={1}>
-              <ThemeSwitcher />
-              <AccountMenu />
+              <Tooltip title="Открыть руководство">
+                <IconButton
+                  size="medium"
+                  onClick={startGuide}
+                  data-guide-id="header-guide-button"
+                  sx={{
+                    height: '1.8rem',
+                    width: '1.8rem',
+                    borderWidth: 1.2,
+                    borderStyle: 'solid',
+                    borderColor: 'grey.600',
+                    borderRadius: 1
+                  }}
+                >
+                  <HelpOutlineIcon />
+                </IconButton>
+              </Tooltip>
+              <Box data-guide-id="header-theme-switcher">
+                <ThemeSwitcher />
+              </Box>
+              <Box data-guide-id="header-account-menu">
+                <AccountMenu />
+              </Box>
             </Stack>
           </Stack>
         </Stack>
