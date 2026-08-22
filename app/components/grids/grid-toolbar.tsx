@@ -223,7 +223,7 @@ export function ProjGridToolbar(props: ProjGridToolbarProps) {
             render={<MenuItem />}
             onClick={() => setExportMenuOpen(false)}
           >
-            Скачать
+            Скачать CSV
           </ExportCsv>
         )}
       </Menu>

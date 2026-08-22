@@ -1,4 +1,4 @@
-// Project
+﻿// Project
 import { ProjButton } from '../buttons/button'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
@@ -2618,18 +2618,154 @@ export default function AcyclicGraphViewer({
     [onVertexClick, setSelectedId]
   )
 
+  const selectVertexWithoutExpandingChildren = useCallback(
+    (vertexId: number, level: number) => {
+      if (isFullGraphVisible === false) {
+        if (level === 1) {
+          setExpandedLevel1Id(null)
+          setExpandedLevel2Id(null)
+          setExpandedLevel3Id(null)
+          setExpandedLevel4Id(null)
+        } else if (level === 2) {
+          setExpandedLevel2Id(null)
+          setExpandedLevel3Id(null)
+          setExpandedLevel4Id(null)
+        } else if (level === 3) {
+          setExpandedLevel3Id(null)
+          setExpandedLevel4Id(null)
+        } else if (level === 4) {
+          setExpandedLevel4Id(null)
+        }
+      }
+
+      selectVertex(vertexId)
+    },
+    [isFullGraphVisible, selectVertex]
+  )
+
+  const getNavigationVertexIdsForLevel = useCallback(
+    (level: number) => {
+      if (isFullGraphVisible) {
+        return allNodes
+          .filter((node) => node.data.level === level)
+          .sort(
+            (firstNode, secondNode) =>
+              firstNode.position.x - secondNode.position.x ||
+              firstNode.data.id - secondNode.data.id
+          )
+          .map((node) => node.data.id)
+      }
+
+      if (level === 1) {
+        return vertexes
+          .filter((vertex) => {
+            const vertexData = dataForVertexId.get(vertex.id)
+            return vertexData !== undefined && getVertexLevel(vertexData) === 1
+          })
+          .sort((firstVertex, secondVertex) => firstVertex.id - secondVertex.id)
+          .map((vertex) => vertex.id)
+      }
+
+      if (level === 2) {
+        return level2ChildVertexes
+          .filter(
+            (vertex) => !hiddenChildVertexIdsByPanel.level2.includes(vertex.id)
+          )
+          .map((vertex) => vertex.id)
+      }
+
+      if (level === 3) {
+        return level3ChildVertexes
+          .filter(
+            (vertex) => !hiddenChildVertexIdsByPanel.level3.includes(vertex.id)
+          )
+          .map((vertex) => vertex.id)
+      }
+
+      if (level === 4) {
+        return level4ChildVertexes
+          .filter(
+            (vertex) => !hiddenChildVertexIdsByPanel.level4.includes(vertex.id)
+          )
+          .map((vertex) => vertex.id)
+      }
+
+      if (level === 5) {
+        return level5ChildVertexes
+          .filter(
+            (vertex) => !hiddenChildVertexIdsByPanel.level5.includes(vertex.id)
+          )
+          .map((vertex) => vertex.id)
+      }
+
+      return []
+    },
+    [
+      allNodes,
+      dataForVertexId,
+      hiddenChildVertexIdsByPanel,
+      isFullGraphVisible,
+      level2ChildVertexes,
+      level3ChildVertexes,
+      level4ChildVertexes,
+      level5ChildVertexes,
+      vertexes
+    ]
+  )
+
+  const ensureNavigationIndexVisible = useCallback(
+    (level: number, index: number) => {
+      const getNextScrollStart = (currentStart: number, totalCount: number) => {
+        if (totalCount <= 12) return currentStart
+        if (index < currentStart) return index
+        if (index >= currentStart + 12) return index - 11
+        return currentStart
+      }
+
+      if (level === 1) {
+        setRootScrollStartIndex((prev) => getNextScrollStart(prev, level1Count))
+      } else if (level === 2) {
+        setChildScrollStartIndex((prev) =>
+          getNextScrollStart(prev, selectedChildCount)
+        )
+      } else if (level === 3) {
+        setGrandChildScrollStartIndex((prev) =>
+          getNextScrollStart(prev, selectedGrandChildCount)
+        )
+      } else if (level === 4) {
+        setGreatGrandChildScrollStartIndex((prev) =>
+          getNextScrollStart(prev, selectedGreatGrandChildCount)
+        )
+      } else if (level === 5) {
+        setLevel5ScrollStartIndex((prev) =>
+          getNextScrollStart(prev, selectedLevel5Count)
+        )
+      }
+    },
+    [
+      level1Count,
+      selectedChildCount,
+      selectedGrandChildCount,
+      selectedGreatGrandChildCount,
+      selectedLevel5Count
+    ]
+  )
+
   const handleNodeClick = useCallback(
     (
       _event: React.MouseEvent,
       node: Node<AcyclicGraphVertexViewerProps<VertexData>>
     ) => {
-      if (node.data.data.atomicityFlag) {
-        return
-      }
+      mainGraphHostRef.current?.focus({ preventScroll: true })
 
       const nodeId = node.id
       const vertexId = parseInt(nodeId, 10)
       const level = node.data.level
+
+      if (node.data.data.atomicityFlag) {
+        selectVertexWithoutExpandingChildren(vertexId, level)
+        return
+      }
 
       if (isFullGraphVisible) {
         selectVertex(vertexId)
@@ -2719,7 +2855,229 @@ export default function AcyclicGraphViewer({
       onVertexClick,
       selectedId,
       selectVertex,
+      selectVertexWithoutExpandingChildren,
       setSelectedId
+    ]
+  )
+  const handleGraphKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLDivElement>) => {
+      if (
+        event.key !== 'ArrowLeft' &&
+        event.key !== 'ArrowRight' &&
+        event.key !== 'ArrowUp' &&
+        event.key !== 'ArrowDown'
+      ) {
+        return
+      }
+
+      if (selectedNodeId === null) {
+        return
+      }
+
+      const selectedNode = allNodes.find((node) => node.id === selectedNodeId)
+      if (selectedNode === undefined) {
+        return
+      }
+
+      const selectedVertexId = selectedNode.data.id
+      const selectedLevel = selectedNode.data.level
+      const selectedVertex = vertexes.find(
+        (vertex) => vertex.id === selectedVertexId
+      )
+
+      if (event.key === 'ArrowDown') {
+        if (selectedVertex === undefined || selectedLevel >= 5) {
+          return
+        }
+
+        const { childLevel, childVertexes } = getDirectChildVertexes(
+          selectedVertexId,
+          vertexes,
+          dataForVertexId
+        )
+        const visibleChildVertexes = childVertexes.filter((vertex) => {
+          if (childLevel === 2) {
+            return !hiddenChildVertexIdsByPanel.level2.includes(vertex.id)
+          }
+          if (childLevel === 3) {
+            return !hiddenChildVertexIdsByPanel.level3.includes(vertex.id)
+          }
+          if (childLevel === 4) {
+            return !hiddenChildVertexIdsByPanel.level4.includes(vertex.id)
+          }
+          if (childLevel === 5) {
+            return !hiddenChildVertexIdsByPanel.level5.includes(vertex.id)
+          }
+          return true
+        })
+        const firstChildVertex = visibleChildVertexes[0]
+        if (firstChildVertex === undefined) {
+          return
+        }
+
+        event.preventDefault()
+        event.stopPropagation()
+
+        if (isFullGraphVisible === false) {
+          if (selectedLevel === 1) {
+            setExpandedLevel1Id(selectedVertexId)
+            setExpandedLevel2Id(null)
+            setExpandedLevel3Id(null)
+            setExpandedLevel4Id(null)
+            setChildScrollStartIndex(0)
+          } else if (selectedLevel === 2) {
+            setExpandedLevel2Id(selectedVertexId)
+            setExpandedLevel3Id(null)
+            setExpandedLevel4Id(null)
+            setGrandChildScrollStartIndex(0)
+          } else if (selectedLevel === 3) {
+            setExpandedLevel3Id(selectedVertexId)
+            setExpandedLevel4Id(null)
+            setGreatGrandChildScrollStartIndex(0)
+          } else if (selectedLevel === 4) {
+            setExpandedLevel4Id(selectedVertexId)
+            setLevel5ScrollStartIndex(0)
+          }
+        }
+
+        selectVertexWithoutExpandingChildren(firstChildVertex.id, childLevel)
+        return
+      }
+
+      if (event.key === 'ArrowUp') {
+        if (selectedVertex === undefined || selectedLevel <= 1) {
+          return
+        }
+
+        const parentVertex = selectedVertex.parentsIds
+          .map((parentId) => vertexes.find((vertex) => vertex.id === parentId))
+          .filter((vertex): vertex is Vertex => vertex !== undefined)
+          .filter((vertex) => {
+            const vertexData = dataForVertexId.get(vertex.id)
+            return (
+              vertexData !== undefined &&
+              getVertexLevel(vertexData) === selectedLevel - 1
+            )
+          })
+          .sort(
+            (firstVertex, secondVertex) => firstVertex.id - secondVertex.id
+          )[0]
+        if (parentVertex === undefined) {
+          return
+        }
+
+        event.preventDefault()
+        event.stopPropagation()
+
+        const parentLevel = selectedLevel - 1
+        const parentNavigationIndex = getNavigationVertexIdsForLevel(
+          parentLevel
+        ).findIndex((vertexId) => vertexId === parentVertex.id)
+        if (parentNavigationIndex !== -1) {
+          ensureNavigationIndexVisible(parentLevel, parentNavigationIndex)
+        }
+
+        if (isFullGraphVisible === false) {
+          if (parentLevel === 1) {
+            setExpandedLevel1Id(parentVertex.id)
+            setExpandedLevel2Id(null)
+            setExpandedLevel3Id(null)
+            setExpandedLevel4Id(null)
+          } else if (parentLevel === 2) {
+            setExpandedLevel2Id(parentVertex.id)
+            setExpandedLevel3Id(null)
+            setExpandedLevel4Id(null)
+          } else if (parentLevel === 3) {
+            setExpandedLevel3Id(parentVertex.id)
+            setExpandedLevel4Id(null)
+          } else if (parentLevel === 4) {
+            setExpandedLevel4Id(parentVertex.id)
+          }
+        }
+
+        selectVertex(parentVertex.id)
+        return
+      }
+
+      const navigationVertexIds = getNavigationVertexIdsForLevel(selectedLevel)
+      const direction = event.key === 'ArrowRight' ? 1 : -1
+      const visualLevelVertexIds = allNodes
+        .filter((node) => node.data.level === selectedLevel)
+        .sort(
+          (firstNode, secondNode) =>
+            firstNode.position.x - secondNode.position.x ||
+            firstNode.data.id - secondNode.data.id
+        )
+        .map((node) => node.data.id)
+      const visualSelectedIndex = visualLevelVertexIds.findIndex(
+        (vertexId) => vertexId.toString() === selectedNodeId
+      )
+      const visualNextVertexId =
+        visualSelectedIndex === -1
+          ? undefined
+          : visualLevelVertexIds[visualSelectedIndex + direction]
+      const selectedIndex = navigationVertexIds.findIndex(
+        (vertexId) => vertexId.toString() === selectedNodeId
+      )
+      if (selectedIndex === -1) {
+        return
+      }
+
+      const fallbackNextIndex = selectedIndex + direction
+      const nextVertexId =
+        visualNextVertexId ?? navigationVertexIds[fallbackNextIndex]
+      if (nextVertexId === undefined) {
+        return
+      }
+      const nextIndex = navigationVertexIds.findIndex(
+        (vertexId) => vertexId === nextVertexId
+      )
+      if (nextIndex === -1) {
+        return
+      }
+
+      event.preventDefault()
+      event.stopPropagation()
+
+      ensureNavigationIndexVisible(selectedLevel, nextIndex)
+
+      const nextVertexData = dataForVertexId.get(nextVertexId)
+      if (nextVertexData?.atomicityFlag === true) {
+        selectVertexWithoutExpandingChildren(nextVertexId, selectedLevel)
+        return
+      }
+
+      if (isFullGraphVisible === false) {
+        if (selectedLevel === 1) {
+          setExpandedLevel1Id(nextVertexId)
+          setExpandedLevel2Id(null)
+          setExpandedLevel3Id(null)
+          setExpandedLevel4Id(null)
+        } else if (selectedLevel === 2) {
+          setExpandedLevel2Id(nextVertexId)
+          setExpandedLevel3Id(null)
+          setExpandedLevel4Id(null)
+        } else if (selectedLevel === 3) {
+          setExpandedLevel3Id(nextVertexId)
+          setExpandedLevel4Id(null)
+        } else if (selectedLevel === 4) {
+          setExpandedLevel4Id(nextVertexId)
+        }
+      }
+
+      selectVertex(nextVertexId)
+    },
+    [
+      allNodes,
+      dataForVertexId,
+      ensureNavigationIndexVisible,
+      getNavigationVertexIdsForLevel,
+      hiddenChildVertexIdsByPanel,
+      isFullGraphVisible,
+      selectVertex,
+      selectVertexWithoutExpandingChildren,
+      selectedNodeId,
+      vertexes
     ]
   )
   const handleEdgeClick = useCallback((event: React.MouseEvent, edge: Edge) => {
@@ -3154,7 +3512,7 @@ export default function AcyclicGraphViewer({
               sx={{
                 position: 'absolute',
                 left: 18,
-                top: panelTop + 62,
+                top: panelTop + 64,
                 zIndex: 16,
                 width: 16,
                 height: 16,
@@ -3225,7 +3583,7 @@ export default function AcyclicGraphViewer({
               sx={{
                 position: 'absolute',
                 right: 56,
-                top: panelTop + 62,
+                top: panelTop + 64,
                 zIndex: 16,
                 width: 16,
                 height: 16,
@@ -3593,8 +3951,15 @@ export default function AcyclicGraphViewer({
       >
         <Box
           ref={mainGraphHostRef}
+          tabIndex={0}
+          onKeyDown={handleGraphKeyDown}
           onWheelCapture={handleMainGraphHostWheelCapture}
-          sx={{ flex: 1, minWidth: 0, position: 'relative' }}
+          sx={{
+            flex: 1,
+            minWidth: 0,
+            position: 'relative',
+            outline: 'none'
+          }}
         >
           <ReactFlow
             key={isFullGraphVisible ? 'full-graph' : 'compact-graph'}
@@ -3867,20 +4232,16 @@ export default function AcyclicGraphViewer({
               </Box>
               <Divider sx={{ my: 0.5 }} />
               <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
-                <Tooltip title="Также можно изменить в меню настроек">
-                  <MenuItem onClick={handleToggleShowHoverPreview}>
-                    <Checkbox
-                      size="small"
-                      checked={
-                        popupPreviewVisibilitySettings.requirementDetails
-                      }
-                    />
-                    <ListItemText
-                      primary="Показывать всплывающее окно"
-                      slotProps={{ primary: { fontSize: 13 } }}
-                    />
-                  </MenuItem>
-                </Tooltip>
+                <MenuItem onClick={handleToggleShowHoverPreview}>
+                  <Checkbox
+                    size="small"
+                    checked={popupPreviewVisibilitySettings.requirementDetails}
+                  />
+                  <ListItemText
+                    primary="Показывать всплывающее окно"
+                    slotProps={{ primary: { fontSize: 13 } }}
+                  />
+                </MenuItem>
                 <MenuItem
                   disabled={
                     popupPreviewVisibilitySettings.requirementDetails === false

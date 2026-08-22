@@ -32,6 +32,9 @@ import Typography from '@mui/material/Typography'
 import { useTheme } from '@mui/material/styles'
 import dayjs from 'dayjs'
 
+const MONITORING_START_TIME_LOCAL_STORAGE_KEY = 'SYSTEM_MONITORING_START_TIME'
+const MONITORING_END_TIME_LOCAL_STORAGE_KEY = 'SYSTEM_MONITORING_END_TIME'
+
 function toBytes(value: string | undefined) {
   return value === undefined ? 0 : Number(value)
 }
@@ -65,6 +68,21 @@ function subtractMonth(date: Date) {
   const result = new Date(date)
   result.setMonth(result.getMonth() - 1)
   return result
+}
+
+function getSavedMonitoringTime(key: string) {
+  const value = localStorage.getItem(key)
+  if (value === null) return undefined
+  const date = new Date(value)
+  return Number.isFinite(date.getTime()) ? date : undefined
+}
+
+function saveMonitoringTime(key: string, value: Date | undefined) {
+  if (value === undefined || !Number.isFinite(value.getTime())) {
+    localStorage.removeItem(key)
+    return
+  }
+  localStorage.setItem(key, value.toISOString())
 }
 
 function toChartLabel(value: string) {
@@ -130,8 +148,9 @@ function MiniComparisonChart(props: {
     }
     if (x === undefined || y === undefined || width === undefined) return null
     const isInside = height !== undefined && height >= 24
-    const textColor =
-      props.labelColor ?? (isInside ? '#fff' : theme.palette.text.primary)
+    const textColor = isInside
+      ? (props.labelColor ?? '#fff')
+      : theme.palette.text.primary
     const lines = splitChartLabel(String(value ?? ''), width - 4)
     const firstLineY = isInside ? y + 13 : y - (lines.length === 1 ? 4 : 14)
 
@@ -293,42 +312,61 @@ function MetricCard(props: {
 }
 
 const monitoringDatePickerPaperSx = {
-  transform: 'scale(0.82)',
-  transformOrigin: 'top left',
+  zoom: 0.78,
   '& .MuiPickersLayout-root': {
     minWidth: 0,
-    width: 'fit-content'
+    width: 'fit-content',
+    maxWidth: 560
   },
   '& .MuiDateCalendar-root': {
-    width: 260,
-    height: 260
+    width: 228,
+    height: 230
   },
   '& .MuiPickersCalendarHeader-root': {
-    minHeight: 36,
-    maxHeight: 36,
+    minHeight: 30,
+    maxHeight: 30,
     px: 1,
-    mt: 0.5,
+    mt: 0,
     mb: 0
+  },
+  '& .MuiPickersCalendarHeader-label': {
+    fontSize: '0.8rem'
+  },
+  '& .MuiPickersArrowSwitcher-button': {
+    p: 0.25
   },
   '& .MuiDayCalendar-header': {
     px: 1
+  },
+  '& .MuiDayCalendar-weekDayLabel': {
+    width: 26,
+    height: 22,
+    fontSize: '0.7rem'
   },
   '& .MuiDayCalendar-weekContainer': {
     mx: 1,
     my: 0
   },
   '& .MuiPickersDay-root': {
-    width: 30,
-    height: 30,
-    fontSize: '0.75rem'
+    width: 26,
+    height: 26,
+    fontSize: '0.7rem'
   },
   '& .MuiMultiSectionDigitalClock-root': {
-    maxHeight: 220
+    maxHeight: 178
   },
   '& .MuiMultiSectionDigitalClockSection-root': {
-    width: 48
+    width: 42
   },
   '& .MuiMultiSectionDigitalClockSection-item': {
+    minHeight: 24,
+    fontSize: '0.7rem'
+  },
+  '& .MuiDialogActions-root': {
+    px: 1,
+    py: 0.5
+  },
+  '& .MuiDialogActions-root .MuiButton-root': {
     minHeight: 28,
     fontSize: '0.75rem'
   }
@@ -336,8 +374,9 @@ const monitoringDatePickerPaperSx = {
 
 const monitoringDatePickerPopperSx = {
   '& .MuiPaper-root': {
-    transform: 'scale(0.82)',
-    transformOrigin: 'top left'
+    zoom: 0.78,
+    width: 'fit-content',
+    maxWidth: 560
   }
 }
 
@@ -409,15 +448,21 @@ export function SystemMonitoringScreen() {
       const firstAvailableTime = new Date(first.value.time)
       const monthAgoTime = subtractMonth(new Date())
       setAvailableFrom(first.value)
-      setStartTime(
+      const calculatedStartTime =
         firstAvailableTime.getTime() < monthAgoTime.getTime()
           ? monthAgoTime
           : firstAvailableTime
+      setStartTime(
+        getSavedMonitoringTime(MONITORING_START_TIME_LOCAL_STORAGE_KEY) ??
+          calculatedStartTime
       )
     }
     if (last.status === 'fulfilled') {
       setAvailableTo(last.value)
-      setEndTime(new Date(last.value.time))
+      setEndTime(
+        getSavedMonitoringTime(MONITORING_END_TIME_LOCAL_STORAGE_KEY) ??
+          new Date(last.value.time)
+      )
     }
   }, [])
 
@@ -449,14 +494,6 @@ export function SystemMonitoringScreen() {
       startTime.getTime() + 60 * 1000 <= new Date(availableFrom.time).getTime()
     ) {
       setMessage('Начальная точка раньше первого снимка мониторинга')
-      return
-    }
-
-    if (
-      availableTo !== null &&
-      endTime.getTime() >= new Date(availableTo.time).getTime() + 60 * 1000
-    ) {
-      setMessage('Конечная точка позже последнего снимка мониторинга')
       return
     }
 
@@ -646,12 +683,20 @@ export function SystemMonitoringScreen() {
     (event: { name: string; value: Date | undefined }) => {
       if (event.name === 'startTime') {
         setStartTime(event.value)
+        saveMonitoringTime(MONITORING_START_TIME_LOCAL_STORAGE_KEY, event.value)
       } else if (event.name === 'endTime') {
         setEndTime(event.value)
+        saveMonitoringTime(MONITORING_END_TIME_LOCAL_STORAGE_KEY, event.value)
       }
     },
     []
   )
+
+  const handleSetCurrentEndTime = React.useCallback(() => {
+    const currentTime = new Date()
+    setEndTime(currentTime)
+    saveMonitoringTime(MONITORING_END_TIME_LOCAL_STORAGE_KEY, currentTime)
+  }, [])
 
   const minAvailableTime =
     availableFrom === null ? undefined : dayjs(availableFrom.time)
@@ -666,11 +711,17 @@ export function SystemMonitoringScreen() {
       <Stack spacing={2}>
         <Card variant="outlined">
           <CardContent sx={{ pt: 2.75, pb: 1, '&:last-child': { pb: 1 } }}>
-            <Stack
-              direction="row"
-              spacing={1.5}
-              alignItems="center"
-              flexWrap="wrap"
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: {
+                  xs: '1fr',
+                  md: '260px 260px max-content'
+                },
+                columnGap: 1.5,
+                rowGap: 0.25,
+                alignItems: 'start'
+              }}
             >
               <FormDateTime
                 label="начальная точка"
@@ -692,7 +743,7 @@ export function SystemMonitoringScreen() {
                 onChange={handleMonitoringDateChange}
                 placeholder="дд.мм.гггг чч:мм:сс"
                 minDateTime={minAvailableTime}
-                maxDateTime={maxAvailableTime}
+                maxDateTime={undefined}
                 formControlSx={{ m: 0, minWidth: 260, alignSelf: 'flex-start' }}
                 sx={monitoringDateTimeFieldSx}
                 popperSx={monitoringDatePickerPopperSx}
@@ -703,6 +754,8 @@ export function SystemMonitoringScreen() {
                 size="small"
                 sx={{
                   height: 24,
+                  minWidth: 104,
+                  px: 1.5,
                   fontSize: '0.65rem',
                   alignSelf: 'flex-start'
                 }}
@@ -711,15 +764,36 @@ export function SystemMonitoringScreen() {
               >
                 Сравнить
               </Button>
-            </Stack>
-            {availableFrom !== null && availableTo !== null ? (
-              <Typography
-                color="text.secondary"
-                sx={{ mt: 1, fontSize: '0.65rem', lineHeight: 1.2 }}
+              {availableFrom !== null && availableTo !== null ? (
+                <Typography
+                  color="text.secondary"
+                  sx={{
+                    gridColumn: 1,
+                    fontSize: '0.65rem',
+                    lineHeight: 1.2
+                  }}
+                >
+                  Данные доступны с {formatTime(availableFrom.time)}
+                </Typography>
+              ) : null}
+              <Button
+                variant="contained"
+                size="small"
+                sx={{
+                  gridColumn: { xs: 1, md: 2 },
+                  justifySelf: 'start',
+                  minWidth: 0,
+                  height: 14,
+                  px: 0.75,
+                  py: 0,
+                  fontSize: '0.55rem',
+                  lineHeight: 1
+                }}
+                onClick={handleSetCurrentEndTime}
               >
-                Данные доступны с {formatTime(availableFrom.time)}
-              </Typography>
-            ) : null}
+                Текущее время
+              </Button>
+            </Box>
           </CardContent>
         </Card>
 

@@ -24,7 +24,8 @@ export default [
             route('events', 'routes/events.tsx'),
             route('data-transfer', 'routes/data-transfer.tsx'),
             route('backups', 'routes/backups.tsx'),
-            route('system-logs', 'routes/system-logs.tsx'),
+            route('api-logs', 'routes/api-logs.tsx'),
+            route('storage-logs', 'routes/storage-logs.tsx'),
             route('system-monitoring', 'routes/system-monitoring.tsx'),
             // route('data-transfer', 'routes/data-transfer.tsx', [
             //   route('import', 'routes/data-import.tsx'),

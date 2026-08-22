@@ -17,6 +17,7 @@ import * as React from 'react'
 import ContentCopyIcon from '@mui/icons-material/ContentCopy'
 import DownloadIcon from '@mui/icons-material/Download'
 import EditIcon from '@mui/icons-material/Edit'
+import VisibilityIcon from '@mui/icons-material/Visibility'
 import IconButton from '@mui/material/IconButton'
 import Button from '@mui/material/Button'
 import { useTheme } from '@mui/material/styles'
@@ -48,6 +49,7 @@ export function NotZipFileViewer({
   const [isEditMode, setIsEditMode] = React.useState<boolean>(false)
   const [editText, setEditText] = React.useState<string | null>(null)
   const [isBlobFile, setIsBlobFile] = React.useState<boolean>(false)
+  const plotViewerRef = React.useRef<HTMLDivElement | null>(null)
 
   const isPlotFile = React.useMemo(
     () => localFileName?.toLowerCase().endsWith('.plot.json') === true,
@@ -159,6 +161,93 @@ export function NotZipFileViewer({
     }
   }, [localFileName, localFileBlob])
 
+  const handleDownloadPlotPngClick = React.useCallback(() => {
+    void (async () => {
+      const plotViewer = plotViewerRef.current
+      const svg = plotViewer?.querySelector('svg.recharts-surface')
+      if (svg === undefined || svg === null || localFileName === null) return
+
+      const plotViewerRect = plotViewer.getBoundingClientRect()
+      const svgRect = svg.getBoundingClientRect()
+      const title = plotViewer.querySelector('h6')
+      const titleRect = title?.getBoundingClientRect()
+      if (
+        plotViewerRect.width === 0 ||
+        plotViewerRect.height === 0 ||
+        svgRect.width === 0 ||
+        svgRect.height === 0
+      ) {
+        return
+      }
+
+      const clonedSvg = svg.cloneNode(true) as SVGElement
+      clonedSvg.setAttribute('xmlns', 'http://www.w3.org/2000/svg')
+      clonedSvg.setAttribute('width', svgRect.width.toString())
+      clonedSvg.setAttribute('height', svgRect.height.toString())
+
+      const svgText = new XMLSerializer().serializeToString(clonedSvg)
+      const svgBlob = new Blob([svgText], {
+        type: 'image/svg+xml;charset=utf-8'
+      })
+      const svgUrl = URL.createObjectURL(svgBlob)
+      const image = new Image()
+
+      try {
+        await new Promise<void>((resolve, reject) => {
+          image.onload = () => resolve()
+          image.onerror = () => reject(new Error('не удалось подготовить PNG'))
+          image.src = svgUrl
+        })
+
+        const pixelRatio = window.devicePixelRatio || 1
+        const canvas = document.createElement('canvas')
+        canvas.width = Math.round(plotViewerRect.width * pixelRatio)
+        canvas.height = Math.round(plotViewerRect.height * pixelRatio)
+        const context = canvas.getContext('2d')
+        if (context === null) return
+
+        context.scale(pixelRatio, pixelRatio)
+        context.fillStyle = getComputedStyle(plotViewer).backgroundColor
+        context.fillRect(0, 0, plotViewerRect.width, plotViewerRect.height)
+
+        if (title !== null && titleRect !== undefined) {
+          const titleStyle = getComputedStyle(title)
+          context.fillStyle = titleStyle.color
+          context.font = `${titleStyle.fontWeight} ${titleStyle.fontSize} ${titleStyle.fontFamily}`
+          context.textAlign = 'center'
+          context.textBaseline = 'middle'
+          context.fillText(
+            title.textContent ?? '',
+            titleRect.left - plotViewerRect.left + titleRect.width / 2,
+            titleRect.top - plotViewerRect.top + titleRect.height / 2
+          )
+        }
+
+        context.drawImage(
+          image,
+          svgRect.left - plotViewerRect.left,
+          svgRect.top - plotViewerRect.top,
+          svgRect.width,
+          svgRect.height
+        )
+
+        const pngBlob = await new Promise<Blob | null>((resolve) =>
+          canvas.toBlob(resolve, 'image/png')
+        )
+        if (pngBlob === null) return
+
+        downloadFileFromBlob(
+          pngBlob,
+          localFileName.replace(/\.plot\.json$/i, '-plot-screenshot.png')
+        )
+      } catch (error) {
+        notifier.showError(error, 'ошибка при сохранении PNG графика')
+      } finally {
+        URL.revokeObjectURL(svgUrl)
+      }
+    })()
+  }, [localFileName, notifier])
+
   return localFileName !== null ? (
     <Stack spacing={1.5} p={0} sx={{ height: '100%' }}>
       {ext !== null &&
@@ -174,6 +263,7 @@ export function NotZipFileViewer({
           fileName={localFileName}
           fileText={text}
           isDarkMode={isDarkMode}
+          containerRef={plotViewerRef}
         />
       ) : null}
       {ext === 'json' &&
@@ -311,6 +401,17 @@ export function NotZipFileViewer({
           bottom: '10px'
         }}
       >
+        {isPlotFile && isEditMode === false ? (
+          <Tooltip title="Скачать PNG графика">
+            <IconButton
+              size="medium"
+              onClick={handleDownloadPlotPngClick}
+              sx={{ transform: 'translateX(-5px)' }}
+            >
+              <VisibilityIcon />
+            </IconButton>
+          </Tooltip>
+        ) : null}
         {isTextFile ? (
           <Tooltip
             title={`Скопировать текст${isEditMode ? ' измененного' : ''} файла`}

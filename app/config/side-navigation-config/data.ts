@@ -289,10 +289,17 @@ export const SIDE_NAVIGATION_CONFIG: SideNavigationConfig = [
             href: '/backups'
           },
           {
-            id: 'system-logs',
-            title: 'системные логи',
+            id: 'api-logs',
+            title: 'логи API',
             Icon: StorageIcon,
-            href: '/system-logs',
+            href: '/api-logs',
+            requiredRights: ['READ_LOGS']
+          },
+          {
+            id: 'storage-logs',
+            title: 'логи хранилища',
+            Icon: StorageIcon,
+            href: '/storage-logs',
             requiredRights: ['READ_LOGS']
           },
           {

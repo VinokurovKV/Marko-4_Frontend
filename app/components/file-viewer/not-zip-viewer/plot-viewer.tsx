@@ -14,7 +14,13 @@ import {
 } from 'recharts'
 // Material UI
 import Box from '@mui/material/Box'
+import Dialog from '@mui/material/Dialog'
+import IconButton from '@mui/material/IconButton'
+import Tooltip from '@mui/material/Tooltip'
 import Typography from '@mui/material/Typography'
+// Icons
+import CloseIcon from '@mui/icons-material/Close'
+import FullscreenIcon from '@mui/icons-material/Fullscreen'
 
 export type Plot = {
   /** Название графика */
@@ -35,6 +41,7 @@ export interface PlotFileViewerProps {
   fileName: string
   fileText: string
   isDarkMode: boolean
+  containerRef?: React.Ref<HTMLDivElement>
 }
 
 type PlotChartPoint = {
@@ -53,9 +60,11 @@ type PlotDotProps = {
   payload?: PlotChartPoint
 }
 
-const ChartHeight = 300
-const ChartMargin = { top: 16, right: 28, bottom: 30, left: 28 }
+const ChartMargin = { top: 6, right: 24, bottom: 6, left: 24 }
+const XAxisHeight = 42
 const ReferenceLineStrokeWidth = 2.5
+const TooltipGap = 10
+const TooltipContainerGap = 8
 
 function isFiniteNumber(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value)
@@ -112,12 +121,20 @@ function isSamePoint(
 export function PlotFileViewer({
   fileName,
   fileText,
-  isDarkMode
+  isDarkMode,
+  containerRef
 }: PlotFileViewerProps) {
   const [hoveredPoint, setHoveredPoint] =
     React.useState<ActivePlotPoint | null>(null)
   const [selectedPoint, setSelectedPoint] =
     React.useState<ActivePlotPoint | null>(null)
+  const [isFullscreenOpen, setIsFullscreenOpen] = React.useState(false)
+  const chartContainerRef = React.useRef<HTMLDivElement | null>(null)
+  const tooltipRef = React.useRef<HTMLDivElement | null>(null)
+  const [tooltipSize, setTooltipSize] = React.useState<{
+    width: number
+    height: number
+  } | null>(null)
 
   const activePoint = selectedPoint ?? hoveredPoint
   const chartColor = isDarkMode ? brand[300] : brand[500]
@@ -153,6 +170,60 @@ export function PlotFileViewer({
     }
   }, [chartData])
 
+  React.useLayoutEffect(() => {
+    if (activePoint === null) {
+      setTooltipSize(null)
+      return
+    }
+
+    const animationFrameId = requestAnimationFrame(() => {
+      const tooltip = tooltipRef.current
+      if (tooltip === null) return
+      const tooltipRect = tooltip.getBoundingClientRect()
+      setTooltipSize({
+        width: tooltipRect.width,
+        height: tooltipRect.height
+      })
+    })
+
+    return () => cancelAnimationFrame(animationFrameId)
+  }, [activePoint])
+
+  const tooltipPosition = React.useMemo(() => {
+    const chartContainer = chartContainerRef.current
+    if (
+      activePoint === null ||
+      tooltipSize === null ||
+      chartContainer === null
+    ) {
+      return null
+    }
+
+    const minLeft = tooltipSize.width / 2 + TooltipContainerGap
+    const maxLeft =
+      chartContainer.clientWidth - tooltipSize.width / 2 - TooltipContainerGap
+    const left =
+      maxLeft > minLeft
+        ? Math.min(Math.max(activePoint.chartX, minLeft), maxLeft)
+        : chartContainer.clientWidth / 2
+    const topAbove = activePoint.chartY - tooltipSize.height - TooltipGap
+    const topBelow = activePoint.chartY + TooltipGap
+    const top =
+      topAbove >= TooltipContainerGap
+        ? topAbove
+        : Math.min(
+            topBelow,
+            chartContainer.clientHeight -
+              tooltipSize.height -
+              TooltipContainerGap
+          )
+
+    return {
+      left,
+      top: Math.max(top, TooltipContainerGap)
+    }
+  }, [activePoint, tooltipSize])
+
   if (plot === null) {
     return (
       <Box sx={{ p: 2 }}>
@@ -165,23 +236,53 @@ export function PlotFileViewer({
 
   return (
     <Box
+      ref={containerRef}
       sx={{
         height: '100%',
-        minHeight: 360,
-        p: 2,
+        minHeight: 320,
+        px: 1.5,
+        pt: 1,
+        pb: 2,
         borderRadius: 1,
-        bgcolor: chartBackgroundColor
+        bgcolor: chartBackgroundColor,
+        display: 'flex',
+        flexDirection: 'column'
       }}
     >
-      <Typography variant="h6" align="center">
-        {plot.title}
-      </Typography>
+      <Box sx={{ position: 'relative' }}>
+        <Typography
+          variant="h6"
+          align="center"
+          sx={{ fontSize: '1rem', lineHeight: 1.2, px: 5 }}
+        >
+          {plot.title}
+        </Typography>
+        <Tooltip title="Открыть график во весь экран">
+          <IconButton
+            size="small"
+            onClick={() => setIsFullscreenOpen(true)}
+            sx={{
+              position: 'absolute',
+              top: -2,
+              right: -2,
+              zIndex: 2,
+              bgcolor: 'background.paper',
+              '&:hover': { bgcolor: 'action.hover' }
+            }}
+          >
+            <FullscreenIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+      </Box>
 
       <Box
+        ref={chartContainerRef}
         sx={{
-          height: ChartHeight,
+          flex: 1,
+          minHeight: 0,
           mt: 1,
           position: 'relative',
+          overflow: 'hidden',
           '& .recharts-wrapper, & .recharts-surface': {
             outline: 'none'
           },
@@ -202,12 +303,16 @@ export function PlotFileViewer({
       >
         {activePoint !== null && (
           <Box
+            ref={tooltipRef}
             data-plot-tooltip
             sx={{
               position: 'absolute',
-              left: activePoint.chartX,
-              top: activePoint.chartY,
-              transform: 'translate(-50%, calc(-100% - 10px))',
+              left: tooltipPosition?.left ?? activePoint.chartX,
+              top: tooltipPosition?.top ?? activePoint.chartY,
+              transform:
+                tooltipPosition === null
+                  ? 'translate(-50%, calc(-100% - 10px))'
+                  : 'translateX(-50%)',
               zIndex: 2,
               px: 1,
               py: 0.5,
@@ -234,10 +339,11 @@ export function PlotFileViewer({
               dataKey="xValue"
               type="number"
               domain={[chartExtents.xMin, chartExtents.xMax]}
+              height={XAxisHeight}
               label={{
                 value: `${plot.xTitle}${plot.xUnit ? `, ${plot.xUnit}` : ''}`,
                 position: 'insideBottom',
-                offset: -20
+                offset: 0
               }}
             />
             <YAxis
@@ -323,6 +429,70 @@ export function PlotFileViewer({
           </LineChart>
         </ResponsiveContainer>
       </Box>
+      <Dialog
+        fullScreen
+        open={isFullscreenOpen}
+        onClose={() => setIsFullscreenOpen(false)}
+      >
+        <Box
+          sx={{
+            height: '100vh',
+            p: 2,
+            bgcolor: chartBackgroundColor,
+            display: 'flex',
+            flexDirection: 'column'
+          }}
+        >
+          <Box sx={{ position: 'relative', mb: 1 }}>
+            <Typography variant="h5" align="center">
+              {plot.title}
+            </Typography>
+            <IconButton
+              onClick={() => setIsFullscreenOpen(false)}
+              sx={{ position: 'absolute', top: 0, right: 0 }}
+            >
+              <CloseIcon />
+            </IconButton>
+          </Box>
+          <Box sx={{ flex: 1, minHeight: 0 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={chartData} margin={ChartMargin}>
+                <CartesianGrid strokeDasharray="3 3" opacity={0.35} />
+                <XAxis
+                  dataKey="xValue"
+                  type="number"
+                  domain={[chartExtents.xMin, chartExtents.xMax]}
+                  height={XAxisHeight}
+                  label={{
+                    value: `${plot.xTitle}${plot.xUnit ? `, ${plot.xUnit}` : ''}`,
+                    position: 'insideBottom',
+                    offset: 0
+                  }}
+                />
+                <YAxis
+                  dataKey="yValue"
+                  type="number"
+                  domain={[chartExtents.yMin, chartExtents.yMax]}
+                  label={{
+                    value: `${plot.yTitle}${plot.yUnit ? `, ${plot.yUnit}` : ''}`,
+                    angle: -90,
+                    position: 'insideLeft'
+                  }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="yValue"
+                  stroke={chartColor}
+                  strokeWidth={2}
+                  dot={{ r: 4, fill: chartColor, stroke: chartColor }}
+                  activeDot={{ r: 6 }}
+                  isAnimationActive={false}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </Box>
+        </Box>
+      </Dialog>
     </Box>
   )
 }
