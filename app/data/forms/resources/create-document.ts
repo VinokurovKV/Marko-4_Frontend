@@ -63,7 +63,7 @@ export const createDocumentFormValidator =
         rules: ['NOT_UNDEFINED']
       },
       config: {
-        rules: ['NOT_UNDEFINED', 'PDF_EXT']
+        rules: ['NOT_UNDEFINED', 'DOCUMENT_EXT']
       },
       publicVersion: {
         transforms: ['TRIM', 'EMPTY_STR_TO_UNDEFINED'],

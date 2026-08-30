@@ -1887,6 +1887,16 @@ export class ServerConnector {
   ): Promise<ArrayBuffer> {
     return this.getArrayBuffer(`/documents/${params.id}/config`)
   }
+  readDocumentConfigPDF(
+    params: Params<ReadDocumentConfigParamsDto>
+  ): Promise<Blob> {
+    return this.getBlob(`/documents/${params.id}/config-pdf`)
+  }
+  readDocumentConfigPDFBuffer(
+    params: Params<ReadDocumentConfigParamsDto>
+  ): Promise<ArrayBuffer> {
+    return this.getArrayBuffer(`/documents/${params.id}/config-pdf`)
+  }
   readDocument<ScopeWrap extends ReadOneScopeWrap>(
     params: Params<ReadDocumentParamsDto>,
     extra: ReadOneExtra<ScopeWrap, ReadDocumentQueryDto>

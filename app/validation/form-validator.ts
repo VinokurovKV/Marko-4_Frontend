@@ -33,6 +33,7 @@ type FormValidatorOneFieldRule =
   | 'PASS'
   | 'PATRONYMIC'
   | 'PERCENT'
+  | 'DOCUMENT_EXT'
   | 'PDF_EXT'
   | 'PHONE'
   | 'PRIORITY'
@@ -222,6 +223,11 @@ export class FormValidator<Data extends FormData> {
         case 'PDF_EXT':
           ;(() => {
             props.push(`допустимые  расширения: '.pdf'`)
+          })()
+          break
+        case 'DOCUMENT_EXT':
+          ;(() => {
+            props.push(`допустимые расширения: '.pdf', '.txt', '.html'`)
           })()
           break
         case 'PHONE':
@@ -734,6 +740,14 @@ export class FormValidator<Data extends FormData> {
         case 'PDF_EXT':
           ;(() => {
             const fileErrors = this.getFileErrors(val, ['pdf'])
+            if (fileErrors !== null) {
+              errors.push(...fileErrors)
+            }
+          })()
+          break
+        case 'DOCUMENT_EXT':
+          ;(() => {
+            const fileErrors = this.getFileErrors(val, ['pdf', 'txt', 'html'])
             if (fileErrors !== null) {
               errors.push(...fileErrors)
             }

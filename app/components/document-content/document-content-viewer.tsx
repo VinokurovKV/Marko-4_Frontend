@@ -539,7 +539,7 @@ export function DocumentContentViewer({
       void (async () => {
         setConfigBuffer(null)
         try {
-          const config = await serverConnector.readDocumentConfigBuffer({
+          const config = await serverConnector.readDocumentConfigPDFBuffer({
             id: document.id
           })
           setConfigBuffer(config)

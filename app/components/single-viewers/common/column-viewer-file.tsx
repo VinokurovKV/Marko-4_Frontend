@@ -23,8 +23,10 @@ type Item = TestReportTertiary['items'][0]
 
 export interface ColumnViewerFileProps extends Omit<Item, 'size' | 'time'> {
   getFileBlob: (id: number) => Promise<Blob | null>
+  getBrowseFileBlob?: (id: number) => Promise<Blob | null>
   field?: string
   fieldFull?: string
+  browseFormat?: FileFormat
   size?: number
   time?: Date
   hideTitle?: boolean
@@ -57,6 +59,19 @@ export function ColumnViewerFile(props: ColumnViewerFileProps) {
     [props.name, ext]
   )
 
+  const browseExt = React.useMemo(
+    () =>
+      convertFileFormatToExtension(
+        props.browseFormat ?? (props.format as FileFormat)
+      ) ?? '',
+    [props.browseFormat, props.format]
+  )
+
+  const browseFileName = React.useMemo(
+    () => `${props.name}.${browseExt}`,
+    [props.name, browseExt]
+  )
+
   const handleDownloadClick = React.useCallback(() => {
     void (async () => {
       const blob = await props.getFileBlob(props.id)
@@ -67,13 +82,13 @@ export function ColumnViewerFile(props: ColumnViewerFileProps) {
   }, [props.id, props.getFileBlob, fileName])
 
   const updateBlob = React.useCallback(async () => {
-    const blob = await props.getFileBlob(props.id)
+    const blob = await (props.getBrowseFileBlob ?? props.getFileBlob)(props.id)
     if (blob === null) {
       notifier.showError('файл отсутствует')
       return
     }
     setFileBlob(blob)
-  }, [props.id, props.getFileBlob])
+  }, [props.id, props.getBrowseFileBlob, props.getFileBlob, notifier])
 
   const handlePopoverClick = React.useCallback(() => {
     void (async () => {
@@ -163,8 +178,8 @@ export function ColumnViewerFile(props: ColumnViewerFileProps) {
       <FileViewer
         isActive={fileViewerIsActive}
         setIsActive={setFileViewerIsActive}
-        fileTitle={props.fieldFull ?? props.field ?? fileName}
-        fileName={fileName}
+        fileTitle={props.fieldFull ?? props.field ?? browseFileName}
+        fileName={browseFileName}
         fileBlob={fileBlob}
         onFileBlobChange={
           props.onFileBlobChange !== undefined

@@ -206,7 +206,7 @@ export function CreateDocumentFormDialog(props: CreateDocumentFormDialogProps) {
           required
           name="config"
           label="файл"
-          extensions={['pdf']}
+          extensions={['pdf', 'txt', 'html']}
           value={data.config}
           helperText={
             errors?.config ?? CREATE_DOCUMENT_FORM_PROPS_JOINED.config ?? ' '

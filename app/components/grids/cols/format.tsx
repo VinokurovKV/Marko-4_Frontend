@@ -10,7 +10,11 @@ import Tooltip from '@mui/material/Tooltip'
 
 const PREFIX = '/format-icons/'
 
-const iconFileForFormat = new Map<Format, string>([['PDF', 'pdf.png']])
+const iconFileForFormat = new Map<Format, string>([
+  ['PDF', 'pdf.png'],
+  ['TXT', 'txt.png'],
+  ['HTML', 'html.png']
+])
 
 interface FormatIconProps {
   format?: Format | null

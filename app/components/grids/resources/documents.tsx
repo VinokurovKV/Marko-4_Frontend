@@ -65,7 +65,7 @@ export function DocumentsGrid(props: DocumentsGridProps) {
     useCodeCol('id', true, '/documents', navigationMode),
     useNameCol(),
     useDocumentTypeCol(),
-    useFormatCol(['PDF']),
+    useFormatCol(['PDF', 'TXT', 'HTML']),
     useFragmentsCountCol(),
     usePublicVersionCol(),
     useDocumentDateCol(),

@@ -155,7 +155,19 @@ export function DocumentViewer({
       notifier.showError(error)
       return null
     }
-  }, [document])
+  }, [document.id, notifier])
+
+  const getConfigPDFBlob = React.useCallback(async () => {
+    try {
+      const data = await serverConnector.readDocumentConfigPDF({
+        id: document.id
+      })
+      return data
+    } catch (error) {
+      notifier.showError(error)
+      return null
+    }
+  }, [document.id, notifier])
 
   const requestBrowseArea = React.useCallback((areaId: number) => {
     browseAreaRequestSeqRef.current += 1
@@ -282,6 +294,8 @@ export function DocumentViewer({
                 size={document.config.size}
                 format={document.config.format}
                 getFileBlob={getConfigBlob}
+                getBrowseFileBlob={getConfigPDFBlob}
+                browseFormat="PDF"
                 withBrowse
               />
               <ColumnViewerItem field="версия" val={document.publicVersion} />
