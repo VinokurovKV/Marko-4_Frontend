@@ -38,7 +38,23 @@ div.acyclic-vertex.atomic-disabled * {
 
 div.acyclic-vertex.selected {
   background-color: hsla(240, 37%, 67%, 0.8);
-  box-shadow: 0 0 0 8px hsla(240, 37%, 67%, 0.4), 0 8px 30px hsla(240, 37%, 67%, 0.4);
+  box-shadow: 0 0 0 9px hsla(240, 90%, 82%, 0.32), 0 8px 30px hsla(240, 37%, 67%, 0.45);
+  outline: 4px solid hsla(240, 90%, 82%, 1);
+  outline-offset: 2px;
+  animation: selected-vertex-outline-pulse 0.95s ease-in-out infinite;
+}
+
+@keyframes selected-vertex-outline-pulse {
+  0%,
+  100% {
+    outline-color: hsla(240, 90%, 82%, 1);
+    outline-offset: 2px;
+  }
+
+  50% {
+    outline-color: hsla(240, 90%, 82%, 0.18);
+    outline-offset: 8px;
+  }
 }
 
 div.acyclic-vertex.related {

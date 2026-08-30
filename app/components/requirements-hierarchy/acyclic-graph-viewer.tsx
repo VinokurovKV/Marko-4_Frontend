@@ -46,6 +46,7 @@ import { alpha, styled, useTheme } from '@mui/material/styles'
 import Box from '@mui/material/Box'
 import Divider from '@mui/material/Divider'
 import Paper from '@mui/material/Paper'
+import Popper from '@mui/material/Popper'
 import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
 import Tooltip from '@mui/material/Tooltip'
@@ -65,6 +66,7 @@ import FullscreenIcon from '@mui/icons-material/Fullscreen'
 import FullscreenExitIcon from '@mui/icons-material/FullscreenExit'
 import AccountTreeIcon from '@mui/icons-material/AccountTree'
 import TuneIcon from '@mui/icons-material/Tune'
+import HelpOutlineIcon from '@mui/icons-material/HelpOutline'
 import { Link } from 'react-router'
 
 const StackStyled = styled(Stack)(() => [
@@ -223,6 +225,10 @@ function HoverPreviewFragmentsBlock({
   const [showFragmentScreenshotLoader, setShowFragmentScreenshotLoader] =
     useState(false)
   const [fragmentScreenshotZoom, setFragmentScreenshotZoom] = useState(1)
+  const [fragmentsListAnchorEl, setFragmentsListAnchorEl] =
+    useState<HTMLElement | null>(null)
+  const fragmentsBlockRef = useRef<HTMLDivElement | null>(null)
+  const fragmentsListSectionRef = useRef<HTMLDivElement | null>(null)
   const screenshotRequestSeqRef = useRef(0)
   const fragmentScreenshotViewportRef = useRef<HTMLDivElement | null>(null)
 
@@ -296,6 +302,7 @@ function HoverPreviewFragmentsBlock({
   useEffect(() => {
     if (!active) {
       closeFragmentScreenshotDialog()
+      setFragmentsListAnchorEl(null)
     }
   }, [active, closeFragmentScreenshotDialog])
 
@@ -377,6 +384,17 @@ function HoverPreviewFragmentsBlock({
     })
   }, [])
 
+  const handleToggleFragmentsList = useCallback(
+    (event: React.MouseEvent<HTMLButtonElement>) => {
+      event.preventDefault()
+      event.stopPropagation()
+      setFragmentsListAnchorEl((prevAnchorEl) =>
+        prevAnchorEl === null ? event.currentTarget : null
+      )
+    },
+    []
+  )
+
   const handleFragmentScreenshotWheel = useCallback(
     (event: React.WheelEvent<HTMLDivElement>) => {
       event.preventDefault()
@@ -432,101 +450,54 @@ function HoverPreviewFragmentsBlock({
     return null
   }
   const visibleFragments: FragmentPrimary[] = fragments ?? []
+  const fragmentsListIsOpen = fragmentsListAnchorEl !== null
+  const fragmentsListLeftOffset =
+    fragmentsBlockRef.current !== null &&
+    fragmentsListSectionRef.current !== null
+      ? Math.max(
+          0,
+          fragmentsListSectionRef.current.getBoundingClientRect().left -
+            fragmentsBlockRef.current.getBoundingClientRect().left
+        )
+      : 0
+  const fragmentsListWidth =
+    (fragmentsListSectionRef.current?.offsetWidth ??
+      fragmentsListAnchorEl?.offsetWidth ??
+      152) +
+    parseFloat(theme.spacing(1)) +
+    fragmentsListLeftOffset
 
   return (
-    <Box sx={{ mt: 0.6 }}>
+    <Box ref={fragmentsBlockRef} sx={{ mt: 0.6 }}>
       <Divider sx={{ mb: 0.45 }} />
       <Stack
         direction="row"
         spacing={1}
         divider={<Divider orientation="vertical" flexItem />}
-        sx={{ alignItems: 'stretch' }}
+        sx={{ alignItems: 'stretch', justifyContent: 'center' }}
       >
         {showFragments ? (
-          <Box sx={{ minWidth: 0, flex: 1 }}>
-            <Typography
-              variant="caption"
+          <Box
+            ref={fragmentsListSectionRef}
+            sx={{
+              width: 112,
+              flex: '0 0 auto',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              pt: 0.45
+            }}
+          >
+            <ProjButton
+              variant="contained"
+              onClick={handleToggleFragmentsList}
               sx={{
-                display: 'block',
-                color: theme.palette.text.secondary,
-                fontSize: '10px',
-                fontWeight: 700,
-                mb: 0.35,
-                textAlign: 'center'
+                minWidth: 0,
+                px: 1.2
               }}
             >
-              фрагменты
-            </Typography>
-            <Stack
-              direction="row"
-              spacing={0.5}
-              justifyContent="center"
-              sx={{
-                overflowX: 'auto',
-                overflowY: 'hidden',
-                flexWrap: 'nowrap',
-                pb: 0.2,
-                px: 0.1,
-                '&::-webkit-scrollbar': {
-                  height: 4
-                },
-                '&::-webkit-scrollbar-thumb': {
-                  borderRadius: 999,
-                  backgroundColor: alpha(theme.palette.primary.main, 0.45)
-                }
-              }}
-            >
-              {visibleFragments.length === 0 ? (
-                <Typography
-                  variant="caption"
-                  sx={{ color: theme.palette.text.secondary, fontSize: '10px' }}
-                >
-                  нет
-                </Typography>
-              ) : (
-                visibleFragments.map((fragment) => {
-                  const documentCode =
-                    documentCodeForId.get(fragment.documentId) ?? '???'
-                  const label = `${documentCode} - ${fragment.innerCode}`
-                  const isActive = selectedFragmentId === fragment.id
-
-                  return (
-                    <Chip
-                      key={fragment.id}
-                      label={label}
-                      size="small"
-                      variant={isActive ? 'filled' : 'outlined'}
-                      clickable
-                      onClick={() => handleFragmentClick(fragment.id)}
-                      sx={{
-                        maxWidth: 126,
-                        flex: '0 0 auto',
-                        borderColor: isActive
-                          ? theme.palette.primary.main
-                          : theme.palette.primary.dark,
-                        backgroundColor: isActive
-                          ? theme.palette.primary.main
-                          : undefined,
-                        color: isActive
-                          ? theme.palette.primary.contrastText
-                          : undefined,
-                        ':hover': {
-                          bgcolor: isActive
-                            ? `${theme.palette.primary.dark} !important`
-                            : theme.palette.mode === 'light'
-                              ? 'rgb(239, 244, 251) !important'
-                              : 'rgb(40, 47, 54) !important'
-                        },
-                        '& .MuiChip-label': {
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis'
-                        }
-                      }}
-                    />
-                  )
-                })
-              )}
-            </Stack>
+              Фрагменты
+            </ProjButton>
           </Box>
         ) : null}
         <Box
@@ -561,6 +532,101 @@ function HoverPreviewFragmentsBlock({
           </Tooltip>
         </Box>
       </Stack>
+      <Popper
+        open={fragmentsListIsOpen}
+        anchorEl={fragmentsListSectionRef.current ?? fragmentsListAnchorEl}
+        placement="bottom-start"
+        modifiers={[
+          {
+            name: 'offset',
+            options: {
+              offset: [-fragmentsListLeftOffset, 4]
+            }
+          }
+        ]}
+        sx={{
+          zIndex: theme.zIndex.tooltip + 10,
+          mt: 0
+        }}
+      >
+        <Paper
+          elevation={6}
+          onClick={(event) => event.stopPropagation()}
+          onWheel={(event) => event.stopPropagation()}
+          sx={{
+            width: fragmentsListWidth,
+            boxSizing: 'border-box',
+            maxHeight: 144,
+            overflowY: 'auto',
+            overflowX: 'hidden',
+            p: 0,
+            backgroundColor: theme.palette.background.paper,
+            '&::-webkit-scrollbar': {
+              width: 4
+            },
+            '&::-webkit-scrollbar-thumb': {
+              borderRadius: 999,
+              backgroundColor: alpha(theme.palette.primary.main, 0.45)
+            }
+          }}
+        >
+          <Stack direction="column" spacing={0.5} alignItems="stretch">
+            {visibleFragments.length === 0 ? (
+              <Typography
+                variant="caption"
+                sx={{
+                  color: theme.palette.text.secondary,
+                  fontSize: '10px',
+                  textAlign: 'center'
+                }}
+              >
+                нет
+              </Typography>
+            ) : (
+              visibleFragments.map((fragment) => {
+                const documentCode =
+                  documentCodeForId.get(fragment.documentId) ?? '???'
+                const label = `${documentCode} - ${fragment.innerCode}`
+                const isActive = selectedFragmentId === fragment.id
+
+                return (
+                  <Chip
+                    key={fragment.id}
+                    label={label}
+                    size="small"
+                    variant={isActive ? 'filled' : 'outlined'}
+                    clickable
+                    onClick={() => handleFragmentClick(fragment.id)}
+                    sx={{
+                      width: '100%',
+                      borderColor: isActive
+                        ? theme.palette.primary.main
+                        : theme.palette.primary.dark,
+                      backgroundColor: isActive
+                        ? theme.palette.primary.main
+                        : undefined,
+                      color: isActive
+                        ? theme.palette.primary.contrastText
+                        : undefined,
+                      ':hover': {
+                        bgcolor: isActive
+                          ? `${theme.palette.primary.dark} !important`
+                          : theme.palette.mode === 'light'
+                            ? 'rgb(239, 244, 251) !important'
+                            : 'rgb(40, 47, 54) !important'
+                      },
+                      '& .MuiChip-label': {
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis'
+                      }
+                    }}
+                  />
+                )
+              })
+            )}
+          </Stack>
+        </Paper>
+      </Popper>
       <Dialog
         open={selectedFragmentId !== null}
         onClose={() => undefined}
@@ -1457,6 +1523,7 @@ export default function AcyclicGraphViewer({
   } = useContainerSize()
   const theme = useTheme()
   const mainGraphHostRef = useRef<HTMLDivElement | null>(null)
+  const requirementSearchRef = useRef<HTMLDivElement | null>(null)
   const [miniGraphWidth, setMiniGraphWidth] = useState(MINI_GRAPH_DEFAULT_WIDTH)
 
   const [baseNodes, setBaseNodes] = useState<AcyclicGraphNode[]>([])
@@ -1695,6 +1762,7 @@ export default function AcyclicGraphViewer({
   const [mainGraphFocusRequest, setMainGraphFocusRequest] = useState(0)
   const isFullscreenInitializedRef = useRef(false)
   const isMiniGraphToggleInitializedRef = useRef(false)
+  const searchExpansionInProgressRef = useRef(false)
   const hoverPreviewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
     null
   )
@@ -2453,6 +2521,23 @@ export default function AcyclicGraphViewer({
   }, [miniGraphFitKey])
 
   useEffect(() => {
+    if (searchExpansionInProgressRef.current) {
+      return
+    }
+
+    const expandedLevel2IsValid =
+      expandedLevel1Id !== null &&
+      expandedLevel2Id !== null &&
+      getDirectChildVertexes(
+        expandedLevel1Id,
+        vertexes,
+        dataForVertexId
+      ).childVertexes.some((vertex) => vertex.id === expandedLevel2Id)
+
+    if (expandedLevel2IsValid) {
+      return
+    }
+
     setChildPanelReady(false)
     setChildScrollStartIndex(0)
     setExpandedLevel2Id(null)
@@ -2471,9 +2556,26 @@ export default function AcyclicGraphViewer({
       level4: [],
       level5: []
     }))
-  }, [expandedLevel1Id])
+  }, [expandedLevel1Id, expandedLevel2Id, vertexes, dataForVertexId])
 
   useEffect(() => {
+    if (searchExpansionInProgressRef.current) {
+      return
+    }
+
+    const expandedLevel3IsValid =
+      expandedLevel2Id !== null &&
+      expandedLevel3Id !== null &&
+      getDirectChildVertexes(
+        expandedLevel2Id,
+        vertexes,
+        dataForVertexId
+      ).childVertexes.some((vertex) => vertex.id === expandedLevel3Id)
+
+    if (expandedLevel3IsValid) {
+      return
+    }
+
     setGrandChildPanelReady(false)
     setGrandChildScrollStartIndex(0)
     setExpandedLevel3Id(null)
@@ -2487,9 +2589,26 @@ export default function AcyclicGraphViewer({
       level4: [],
       level5: []
     }))
-  }, [expandedLevel2Id])
+  }, [expandedLevel2Id, expandedLevel3Id, vertexes, dataForVertexId])
 
   useEffect(() => {
+    if (searchExpansionInProgressRef.current) {
+      return
+    }
+
+    const expandedLevel4IsValid =
+      expandedLevel3Id !== null &&
+      expandedLevel4Id !== null &&
+      getDirectChildVertexes(
+        expandedLevel3Id,
+        vertexes,
+        dataForVertexId
+      ).childVertexes.some((vertex) => vertex.id === expandedLevel4Id)
+
+    if (expandedLevel4IsValid) {
+      return
+    }
+
     setGreatGrandChildPanelReady(false)
     setGreatGrandChildScrollStartIndex(0)
     setExpandedLevel4Id(null)
@@ -2500,9 +2619,13 @@ export default function AcyclicGraphViewer({
       level4: [],
       level5: []
     }))
-  }, [expandedLevel3Id])
+  }, [expandedLevel3Id, expandedLevel4Id, vertexes, dataForVertexId])
 
   useEffect(() => {
+    if (searchExpansionInProgressRef.current) {
+      return
+    }
+
     setLevel5PanelReady(false)
     setLevel5ScrollStartIndex(0)
     setHiddenChildVertexIdsByPanel((prev) => ({
@@ -2865,7 +2988,8 @@ export default function AcyclicGraphViewer({
         event.key !== 'ArrowLeft' &&
         event.key !== 'ArrowRight' &&
         event.key !== 'ArrowUp' &&
-        event.key !== 'ArrowDown'
+        event.key !== 'ArrowDown' &&
+        event.key !== 'Enter'
       ) {
         return
       }
@@ -2884,6 +3008,17 @@ export default function AcyclicGraphViewer({
       const selectedVertex = vertexes.find(
         (vertex) => vertex.id === selectedVertexId
       )
+
+      if (event.key === 'Enter') {
+        event.preventDefault()
+        event.stopPropagation()
+        window.open(
+          `/requirements/${selectedVertexId}`,
+          '_blank',
+          'noopener,noreferrer'
+        )
+        return
+      }
 
       if (event.key === 'ArrowDown') {
         if (selectedVertex === undefined || selectedLevel >= 5) {
@@ -3110,9 +3245,10 @@ export default function AcyclicGraphViewer({
             event.currentTarget)
           : null
       const nodeRect = nodeElement?.getBoundingClientRect()
-      const previewWidth = effectiveShowFragmentsInHoverPreview
-        ? Math.min(Math.max(280, window.innerWidth * 0.34), 330)
-        : Math.min(Math.max(180, window.innerWidth * 0.24), 230)
+      const previewWidth = Math.min(
+        Math.max(244, window.innerWidth * 0.24),
+        260
+      )
       const viewportPadding = 8
       const anchor =
         nodeRect !== undefined
@@ -3231,59 +3367,226 @@ export default function AcyclicGraphViewer({
   const handleRequirementSearchChange = useCallback(
     (
       _event: React.SyntheticEvent,
-      value: { id: number; title: string; level: number } | null
+      value: { id: number; title: string; level: number } | null,
+      reason: string
     ) => {
       if (value === null) {
-        resetSelection()
+        if (reason === 'clear') {
+          resetSelection()
+        }
         return
       }
 
-      if (value.level === 1) {
-        setExpandedLevel1Id(value.id)
-        setExpandedLevel2Id(null)
-        setExpandedLevel3Id(null)
-        setExpandedLevel4Id(null)
-      } else if (value.level === 2) {
-        const parent = vertexes.find((vertex) =>
-          vertex.childIds.includes(value.id)
-        )
-        setExpandedLevel1Id(parent?.id ?? null)
-        setExpandedLevel2Id(value.id)
-        setExpandedLevel3Id(null)
-        setExpandedLevel4Id(null)
-      } else if (value.level === 3) {
-        const parent2 = vertexes.find((vertex) =>
-          vertex.childIds.includes(value.id)
-        )
-        const parent1 = vertexes.find(
-          (vertex) =>
-            parent2 !== undefined && vertex.childIds.includes(parent2.id)
-        )
-        setExpandedLevel1Id(parent1?.id ?? null)
-        setExpandedLevel2Id(parent2?.id ?? null)
-        setExpandedLevel3Id(value.id)
-        setExpandedLevel4Id(null)
-      } else if (value.level === 4) {
-        const parent3 = vertexes.find((vertex) =>
-          vertex.childIds.includes(value.id)
-        )
-        const parent2 = vertexes.find(
-          (vertex) =>
-            parent3 !== undefined && vertex.childIds.includes(parent3.id)
-        )
-        const parent1 = vertexes.find(
-          (vertex) =>
-            parent2 !== undefined && vertex.childIds.includes(parent2.id)
-        )
-        setExpandedLevel1Id(parent1?.id ?? null)
-        setExpandedLevel2Id(parent2?.id ?? null)
-        setExpandedLevel3Id(parent3?.id ?? null)
-        setExpandedLevel4Id(value.id)
+      const vertexById = new Map(vertexes.map((vertex) => [vertex.id, vertex]))
+      const getLevelByVertexId = (vertexId: number) => {
+        const vertexData = dataForVertexId.get(vertexId)
+        return vertexData === undefined ? null : getVertexLevel(vertexData)
+      }
+      const getParentOnPreviousLevel = (vertex: Vertex, level: number) => {
+        const parentFromIds = vertex.parentsIds
+          .map((parentId) => vertexById.get(parentId))
+          .filter((parent): parent is Vertex => parent !== undefined)
+          .filter((parent) => getLevelByVertexId(parent.id) === level - 1)
+          .sort(
+            (firstParent, secondParent) => firstParent.id - secondParent.id
+          )[0]
+
+        if (parentFromIds !== undefined) {
+          return parentFromIds
+        }
+
+        return vertexes
+          .filter((parent) => parent.childIds.includes(vertex.id))
+          .filter((parent) => getLevelByVertexId(parent.id) === level - 1)
+          .sort(
+            (firstParent, secondParent) => firstParent.id - secondParent.id
+          )[0]
+      }
+      const pathByLevel: Array<Vertex | null> = [null, null, null, null, null]
+      let currentVertex = vertexById.get(value.id)
+      let currentLevel = value.level
+
+      while (currentVertex !== undefined && currentLevel >= 1) {
+        pathByLevel[currentLevel - 1] = currentVertex
+        if (currentLevel === 1) {
+          break
+        }
+
+        currentVertex = getParentOnPreviousLevel(currentVertex, currentLevel)
+        currentLevel -= 1
       }
 
+      const getFilteredSiblings = (
+        panelKey: ChildPanelKey,
+        siblings: Vertex[],
+        targetVertexId: number
+      ) =>
+        siblings.filter(
+          (vertex) =>
+            vertex.id === targetVertexId ||
+            !hiddenChildVertexIdsByPanel[panelKey].includes(vertex.id)
+        )
+      const getScrollStartForVertex = (
+        siblings: Vertex[],
+        vertexId: number
+      ) => {
+        const index = siblings.findIndex((vertex) => vertex.id === vertexId)
+        if (index === -1 || siblings.length <= 12) {
+          return 0
+        }
+
+        return Math.min(Math.max(index - 11, 0), siblings.length - 12)
+      }
+      const rootTargetVertex = pathByLevel[0]
+      const level2TargetVertex = pathByLevel[1]
+      const level3TargetVertex = pathByLevel[2]
+      const level4TargetVertex = pathByLevel[3]
+      const level5TargetVertex = pathByLevel[4]
+      const selectedVertexData = dataForVertexId.get(value.id)
+      const selectedVertexHasChildren =
+        selectedVertexData !== undefined &&
+        selectedVertexData.atomicityFlag !== true &&
+        getDirectChildVertexes(value.id, vertexes, dataForVertexId)
+          .childVertexes.length > 0
+
+      searchExpansionInProgressRef.current = true
+      setTimeout(() => {
+        searchExpansionInProgressRef.current = false
+      }, 0)
+
+      if (rootTargetVertex !== null) {
+        const rootVertexes = vertexes
+          .filter((vertex) => getLevelByVertexId(vertex.id) === 1)
+          .sort((firstVertex, secondVertex) => firstVertex.id - secondVertex.id)
+        setRootScrollStartIndex(
+          getScrollStartForVertex(rootVertexes, rootTargetVertex.id)
+        )
+      }
+      if (rootTargetVertex !== null && level2TargetVertex !== null) {
+        setChildScrollStartIndex(
+          getScrollStartForVertex(
+            getFilteredSiblings(
+              'level2',
+              getDirectChildVertexes(
+                rootTargetVertex.id,
+                vertexes,
+                dataForVertexId
+              ).childVertexes,
+              level2TargetVertex.id
+            ),
+            level2TargetVertex.id
+          )
+        )
+      }
+      if (level2TargetVertex !== null && level3TargetVertex !== null) {
+        setGrandChildScrollStartIndex(
+          getScrollStartForVertex(
+            getFilteredSiblings(
+              'level3',
+              getDirectChildVertexes(
+                level2TargetVertex.id,
+                vertexes,
+                dataForVertexId
+              ).childVertexes,
+              level3TargetVertex.id
+            ),
+            level3TargetVertex.id
+          )
+        )
+      }
+      if (level3TargetVertex !== null && level4TargetVertex !== null) {
+        setGreatGrandChildScrollStartIndex(
+          getScrollStartForVertex(
+            getFilteredSiblings(
+              'level4',
+              getDirectChildVertexes(
+                level3TargetVertex.id,
+                vertexes,
+                dataForVertexId
+              ).childVertexes,
+              level4TargetVertex.id
+            ),
+            level4TargetVertex.id
+          )
+        )
+      }
+      if (level4TargetVertex !== null && level5TargetVertex !== null) {
+        setLevel5ScrollStartIndex(
+          getScrollStartForVertex(
+            getFilteredSiblings(
+              'level5',
+              getDirectChildVertexes(
+                level4TargetVertex.id,
+                vertexes,
+                dataForVertexId
+              ).childVertexes,
+              level5TargetVertex.id
+            ),
+            level5TargetVertex.id
+          )
+        )
+      }
+
+      setHiddenChildVertexIdsByPanel((prev) => ({
+        ...prev,
+        level2:
+          level2TargetVertex === null
+            ? prev.level2
+            : prev.level2.filter((id) => id !== level2TargetVertex.id),
+        level3:
+          level3TargetVertex === null
+            ? prev.level3
+            : prev.level3.filter((id) => id !== level3TargetVertex.id),
+        level4:
+          level4TargetVertex === null
+            ? prev.level4
+            : prev.level4.filter((id) => id !== level4TargetVertex.id),
+        level5:
+          level5TargetVertex === null
+            ? prev.level5
+            : prev.level5.filter((id) => id !== level5TargetVertex.id)
+      }))
+
+      setExpandedLevel1Id(
+        value.level > 1 || (value.level === 1 && selectedVertexHasChildren)
+          ? (rootTargetVertex?.id ?? null)
+          : null
+      )
+      setExpandedLevel2Id(
+        value.level > 2 || (value.level === 2 && selectedVertexHasChildren)
+          ? (level2TargetVertex?.id ?? null)
+          : null
+      )
+      setExpandedLevel3Id(
+        value.level > 3 || (value.level === 3 && selectedVertexHasChildren)
+          ? (level3TargetVertex?.id ?? null)
+          : null
+      )
+      setExpandedLevel4Id(
+        value.level > 4 || (value.level === 4 && selectedVertexHasChildren)
+          ? (level4TargetVertex?.id ?? null)
+          : null
+      )
+
       selectVertex(value.id, { ensureVisible: true, focus: true })
+      requestAnimationFrame(() => {
+        const activeElement = document.activeElement
+        if (
+          activeElement instanceof HTMLElement &&
+          requirementSearchRef.current?.contains(activeElement) === true
+        ) {
+          activeElement.blur()
+        }
+        mainGraphHostRef.current?.focus({ preventScroll: true })
+      })
     },
-    [resetSelection, selectVertex, vertexes]
+    [
+      dataForVertexId,
+      hiddenChildVertexIdsByPanel,
+      resetSelection,
+      selectVertex,
+      vertexes
+    ]
   )
 
   const handleOpenCoverageSettingsMenu = useCallback(
@@ -3491,129 +3794,163 @@ export default function AcyclicGraphViewer({
     hideFilterButton?: boolean
   }) => {
     const maxScrollStartIndex = Math.max(0, visibleCount - 12)
+    const disabledScrollTooltipTitle =
+      'Для прокрутки данного уровня необходимо закрыть нижележащий'
 
     return (
       <>
         {visibleCount > 12 ? (
           <>
-            <Box
-              component="button"
-              type="button"
-              title="В начало уровня"
-              aria-label="В начало уровня"
-              disabled={disabled}
-              onClick={() => {
-                if (disabled === true) {
-                  return
-                }
-                beforeScrollChange?.()
-                setScrollStartIndex(0)
-              }}
-              sx={{
-                position: 'absolute',
-                left: 18,
-                top: panelTop + 64,
-                zIndex: 16,
-                width: 16,
-                height: 16,
-                p: 0,
-                border: `1px solid ${theme.palette.primary.main}`,
-                borderRadius: '50%',
-                backgroundColor: theme.palette.primary.main,
-                boxShadow: `0 2px 4px ${alpha(theme.palette.primary.main, 0.28)}`,
-                cursor: disabled === true ? 'default' : 'pointer',
-                opacity: disabled === true ? 0.45 : 1,
-                pointerEvents: 'auto',
-                '&::before': {
-                  content: '""',
-                  position: 'absolute',
-                  left: '50%',
-                  top: '50%',
-                  transform: 'translate(-60%, -50%)',
-                  borderTop: '4px solid transparent',
-                  borderBottom: '4px solid transparent',
-                  borderRight: `4px solid ${theme.palette.primary.contrastText}`
-                },
-                '&:hover':
+            <Tooltip
+              title={disabled === true ? disabledScrollTooltipTitle : ''}
+            >
+              <Box
+                component="button"
+                type="button"
+                title={
                   disabled === true
-                    ? undefined
-                    : {
-                        borderColor: theme.palette.primary.light,
-                        backgroundColor: theme.palette.primary.light
-                      }
-              }}
-            />
-            <Box
-              component="input"
-              type="range"
-              min={0}
-              max={maxScrollStartIndex}
-              value={Math.min(scrollStartIndex, maxScrollStartIndex)}
-              disabled={disabled}
-              onChange={(event) => {
-                if (disabled === true) {
-                  return
+                    ? disabledScrollTooltipTitle
+                    : 'В начало уровня'
                 }
-                beforeScrollChange?.()
-                setScrollStartIndex(Number(event.target.value))
-              }}
-              sx={{
-                position: 'absolute',
-                left: 44,
-                right: 82,
-                top: panelTop + 62,
-                zIndex: 16,
-                pointerEvents: 'auto',
-                accentColor: theme.palette.primary.main
-              }}
-            />
-            <Box
-              component="button"
-              type="button"
-              title="В конец уровня"
-              aria-label="В конец уровня"
-              disabled={disabled}
-              onClick={() => {
-                if (disabled === true) {
-                  return
-                }
-                beforeScrollChange?.()
-                setScrollStartIndex(maxScrollStartIndex)
-              }}
-              sx={{
-                position: 'absolute',
-                right: 56,
-                top: panelTop + 64,
-                zIndex: 16,
-                width: 16,
-                height: 16,
-                p: 0,
-                border: `1px solid ${theme.palette.primary.main}`,
-                borderRadius: '50%',
-                backgroundColor: theme.palette.primary.main,
-                boxShadow: `0 2px 4px ${alpha(theme.palette.primary.main, 0.28)}`,
-                cursor: disabled === true ? 'default' : 'pointer',
-                opacity: disabled === true ? 0.45 : 1,
-                pointerEvents: 'auto',
-                '&::before': {
-                  content: '""',
+                aria-label="В начало уровня"
+                aria-disabled={disabled}
+                onClick={() => {
+                  if (disabled === true) {
+                    return
+                  }
+                  beforeScrollChange?.()
+                  setScrollStartIndex(0)
+                }}
+                sx={{
                   position: 'absolute',
-                  left: '50%',
-                  top: '50%',
-                  transform: 'translate(-40%, -50%)',
-                  borderTop: '4px solid transparent',
-                  borderBottom: '4px solid transparent',
-                  borderLeft: `4px solid ${theme.palette.primary.contrastText}`
-                },
-                '&:hover':
+                  left: 18,
+                  top: panelTop + 64,
+                  zIndex: 16,
+                  width: 16,
+                  height: 16,
+                  p: 0,
+                  border: `1px solid ${theme.palette.primary.main}`,
+                  borderRadius: '50%',
+                  backgroundColor: theme.palette.primary.main,
+                  boxShadow: `0 2px 4px ${alpha(theme.palette.primary.main, 0.28)}`,
+                  cursor: disabled === true ? 'default' : 'pointer',
+                  opacity: disabled === true ? 0.45 : 1,
+                  pointerEvents: 'auto',
+                  '&::before': {
+                    content: '""',
+                    position: 'absolute',
+                    left: '50%',
+                    top: '50%',
+                    transform: 'translate(-60%, -50%)',
+                    borderTop: '4px solid transparent',
+                    borderBottom: '4px solid transparent',
+                    borderRight: `4px solid ${theme.palette.primary.contrastText}`
+                  },
+                  '&:hover':
+                    disabled === true
+                      ? undefined
+                      : {
+                          borderColor: theme.palette.primary.light,
+                          backgroundColor: theme.palette.primary.light
+                        }
+                }}
+              />
+            </Tooltip>
+            <Tooltip
+              title={disabled === true ? disabledScrollTooltipTitle : ''}
+            >
+              <Box
+                component="input"
+                type="range"
+                min={0}
+                max={maxScrollStartIndex}
+                value={Math.min(scrollStartIndex, maxScrollStartIndex)}
+                title={
                   disabled === true
-                    ? undefined
-                    : {
-                        borderColor: theme.palette.primary.light,
-                        backgroundColor: theme.palette.primary.light
-                      }
-              }}
-            />
+                    ? disabledScrollTooltipTitle
+                    : 'Прокрутка уровня'
+                }
+                aria-disabled={disabled}
+                onPointerDown={(event) => {
+                  if (disabled === true) {
+                    event.preventDefault()
+                  }
+                }}
+                onChange={(event) => {
+                  if (disabled === true) {
+                    return
+                  }
+                  beforeScrollChange?.()
+                  setScrollStartIndex(Number(event.target.value))
+                }}
+                sx={{
+                  position: 'absolute',
+                  left: 44,
+                  right: 82,
+                  top: panelTop + 62,
+                  zIndex: 16,
+                  pointerEvents: 'auto',
+                  accentColor: theme.palette.primary.main,
+                  cursor: disabled === true ? 'default' : 'pointer',
+                  opacity: disabled === true ? 0.45 : 1
+                }}
+              />
+            </Tooltip>
+            <Tooltip
+              title={disabled === true ? disabledScrollTooltipTitle : ''}
+            >
+              <Box
+                component="button"
+                type="button"
+                title={
+                  disabled === true
+                    ? disabledScrollTooltipTitle
+                    : 'В конец уровня'
+                }
+                aria-label="В конец уровня"
+                aria-disabled={disabled}
+                onClick={() => {
+                  if (disabled === true) {
+                    return
+                  }
+                  beforeScrollChange?.()
+                  setScrollStartIndex(maxScrollStartIndex)
+                }}
+                sx={{
+                  position: 'absolute',
+                  right: 56,
+                  top: panelTop + 64,
+                  zIndex: 16,
+                  width: 16,
+                  height: 16,
+                  p: 0,
+                  border: `1px solid ${theme.palette.primary.main}`,
+                  borderRadius: '50%',
+                  backgroundColor: theme.palette.primary.main,
+                  boxShadow: `0 2px 4px ${alpha(theme.palette.primary.main, 0.28)}`,
+                  cursor: disabled === true ? 'default' : 'pointer',
+                  opacity: disabled === true ? 0.45 : 1,
+                  pointerEvents: 'auto',
+                  '&::before': {
+                    content: '""',
+                    position: 'absolute',
+                    left: '50%',
+                    top: '50%',
+                    transform: 'translate(-40%, -50%)',
+                    borderTop: '4px solid transparent',
+                    borderBottom: '4px solid transparent',
+                    borderLeft: `4px solid ${theme.palette.primary.contrastText}`
+                  },
+                  '&:hover':
+                    disabled === true
+                      ? undefined
+                      : {
+                          borderColor: theme.palette.primary.light,
+                          backgroundColor: theme.palette.primary.light
+                        }
+                }}
+              />
+            </Tooltip>
           </>
         ) : null}
         {hideFilterButton === true ? null : (
@@ -3854,6 +4191,7 @@ export default function AcyclicGraphViewer({
           ) : null}
 
           <Autocomplete
+            ref={requirementSearchRef}
             size="small"
             options={requirementSearchOptions}
             value={selectedRequirementSearchOption}
@@ -3871,6 +4209,15 @@ export default function AcyclicGraphViewer({
               }
             }}
           />
+          <Tooltip title="Стрелки перемещают выделение по иерархии, Enter открывает выбранное требование в новой вкладке">
+            <HelpOutlineIcon
+              fontSize="small"
+              sx={{
+                alignSelf: 'center',
+                color: 'text.secondary'
+              }}
+            />
+          </Tooltip>
         </Stack>
         {onToggleFullscreen !== undefined ? (
           <Box
@@ -4380,9 +4727,7 @@ export default function AcyclicGraphViewer({
                 left: hoveredVertexPreview.anchor.left,
                 top: hoveredVertexPreview.anchor.top,
                 transform: 'translateY(-100%)',
-                width: effectiveShowFragmentsInHoverPreview
-                  ? 'clamp(280px, 34vw, 330px)'
-                  : 'clamp(180px, 24vw, 230px)',
+                width: 'clamp(244px, 24vw, 260px)',
                 visibility: hoverPreviewIsReady ? 'visible' : 'hidden',
                 pointerEvents: hoverPreviewIsReady ? 'auto' : 'none',
                 zIndex: theme.zIndex.tooltip,
@@ -4663,9 +5008,7 @@ export default function AcyclicGraphViewer({
                   left: hoveredVertexPreview.anchor.left,
                   top: hoveredVertexPreview.anchor.top,
                   transform: 'translateY(-100%)',
-                  width: effectiveShowFragmentsInHoverPreview
-                    ? 'clamp(280px, 34vw, 330px)'
-                    : 'clamp(180px, 24vw, 230px)',
+                  width: 'clamp(244px, 24vw, 260px)',
                   visibility: hoverPreviewIsReady ? 'visible' : 'hidden',
                   pointerEvents: hoverPreviewIsReady ? 'auto' : 'none',
                   zIndex: theme.zIndex.tooltip,
