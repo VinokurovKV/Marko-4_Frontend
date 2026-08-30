@@ -1,5 +1,15 @@
 // Project
-import type { TestSecondary, SubgroupSecondary, GroupPrimary } from '~/types'
+import type {
+  TestSecondary,
+  SubgroupSecondary,
+  GroupPrimary,
+  TagPrimary
+} from '~/types'
+import {
+  readGroupsPrimaryFiltered,
+  readSubgroupsSecondaryFiltered,
+  readTestsSecondaryFiltered
+} from '~/readers'
 // React router
 import { useNavigate } from 'react-router'
 // React
@@ -18,10 +28,15 @@ import IconButton from '@mui/material/IconButton'
 import Tooltip from '@mui/material/Tooltip'
 import TextField from '@mui/material/TextField'
 import InputAdornment from '@mui/material/InputAdornment'
+import Autocomplete from '@mui/material/Autocomplete'
+import Badge from '@mui/material/Badge'
+import Chip from '@mui/material/Chip'
+import Popover from '@mui/material/Popover'
 import UnfoldMoreIcon from '@mui/icons-material/UnfoldMore'
 import UnfoldLessIcon from '@mui/icons-material/UnfoldLess'
 import SearchIcon from '@mui/icons-material/Search'
 import ClearIcon from '@mui/icons-material/Clear'
+import FilterAltIcon from '@mui/icons-material/FilterAlt'
 // Other
 import capitalize from 'capitalize'
 
@@ -169,6 +184,7 @@ export interface TestsHierarchyTreeProps {
   tests: TestSecondary[]
   subgroups: SubgroupSecondary[]
   groups: GroupPrimary[]
+  tags: TagPrimary[] | null
   selectedTestId?: number
   selectedSubgroupId?: number
   selectedGroupId?: number
@@ -176,10 +192,17 @@ export interface TestsHierarchyTreeProps {
 
 const STORAGE_KEYS = {
   SEARCH_TEXT: 'tests-hierarchy-search-text',
-  EXPANDED_ITEMS: 'tests-hierarchy-expanded-items'
+  EXPANDED_ITEMS: 'tests-hierarchy-expanded-items',
+  TAG_IDS: 'tests-hierarchy-tag-ids'
 }
 
 const EMPTY_ARRAY: string[] = []
+
+type TagFilteredResources = {
+  tests: TestSecondary[]
+  subgroups: SubgroupSecondary[]
+  groups: GroupPrimary[]
+}
 
 const getAllItemIds = (
   items: TreeViewDefaultItemModelProperties[]
@@ -280,6 +303,7 @@ export function TestsHierarchyTree({
   tests,
   subgroups,
   groups: groupsUnsorted,
+  tags,
   selectedTestId,
   selectedSubgroupId,
   selectedGroupId
@@ -287,6 +311,8 @@ export function TestsHierarchyTree({
   const navigate = useNavigate()
   const apiRef = useRichTreeViewApiRef()
   const inputRef = React.useRef<HTMLInputElement>(null)
+  const [filterAnchorEl, setFilterAnchorEl] =
+    React.useState<HTMLElement | null>(null)
 
   const [searchText, setSearchText] = React.useState(() => {
     try {
@@ -298,6 +324,21 @@ export function TestsHierarchyTree({
 
   const [debouncedSearchText, setDebouncedSearchText] =
     React.useState(searchText)
+  const [selectedTagIds, setSelectedTagIds] = React.useState<number[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.TAG_IDS)
+      const parsed = saved !== null ? (JSON.parse(saved) as unknown) : null
+      return Array.isArray(parsed)
+        ? parsed.filter(
+            (id): id is number => typeof id === 'number' && Number.isInteger(id)
+          )
+        : []
+    } catch {
+      return []
+    }
+  })
+  const [tagFilteredResources, setTagFilteredResources] =
+    React.useState<TagFilteredResources | null>(null)
 
   React.useEffect(() => {
     const timer = setTimeout(() => {
@@ -333,10 +374,150 @@ export function TestsHierarchyTree({
     () => new Map(subgroups.map((s) => [s.id, s])),
     [subgroups]
   )
+  const tagCodeForId = React.useMemo(
+    () => new Map((tags ?? []).map((tag) => [tag.id, tag.code])),
+    [tags]
+  )
+  const tagIds = React.useMemo(() => tags?.map((tag) => tag.id) ?? [], [tags])
+  const filterTagIds = React.useMemo(
+    () => Array.from(new Set([...tagIds, ...selectedTagIds])),
+    [selectedTagIds, tagIds]
+  )
+  const tagFilterIsActive = selectedTagIds.length > 0
+
+  React.useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEYS.TAG_IDS, JSON.stringify(selectedTagIds))
+    } catch {
+      // ...
+    }
+  }, [selectedTagIds])
+
+  React.useEffect(() => {
+    if (tags === null) {
+      return
+    }
+
+    const actualTagIds = new Set(tags.map((tag) => tag.id))
+    setSelectedTagIds((previousValue) =>
+      previousValue.filter((tagId) => actualTagIds.has(tagId))
+    )
+  }, [tags])
+
+  React.useEffect(() => {
+    let isActual = true
+
+    if (selectedTagIds.length === 0) {
+      setTagFilteredResources(null)
+      return () => {
+        isActual = false
+      }
+    }
+
+    void Promise.all([
+      readTestsSecondaryFiltered(undefined, { tagIds: selectedTagIds }),
+      readSubgroupsSecondaryFiltered(undefined, { tagIds: selectedTagIds }),
+      readGroupsPrimaryFiltered(undefined, { tagIds: selectedTagIds })
+    ]).then(([filteredTests, filteredSubgroups, filteredGroups]) => {
+      if (!isActual) {
+        return
+      }
+
+      setTagFilteredResources({
+        tests: filteredTests ?? [],
+        subgroups: filteredSubgroups ?? [],
+        groups: filteredGroups ?? []
+      })
+    })
+
+    return () => {
+      isActual = false
+    }
+  }, [selectedTagIds])
+
+  const hierarchyResources = React.useMemo(() => {
+    if (!tagFilterIsActive || tagFilteredResources === null) {
+      return {
+        tests,
+        subgroups,
+        groups: groupsUnsorted
+      }
+    }
+
+    const directlyMatchedTestIds = new Set(
+      tagFilteredResources.tests.map((test) => test.id)
+    )
+    const directlyMatchedSubgroupIds = new Set(
+      tagFilteredResources.subgroups.map((subgroup) => subgroup.id)
+    )
+    const directlyMatchedGroupIds = new Set(
+      tagFilteredResources.groups.map((group) => group.id)
+    )
+    const includedTestIds = new Set(directlyMatchedTestIds)
+    const includedSubgroupIds = new Set(directlyMatchedSubgroupIds)
+    const includedGroupIds = new Set(directlyMatchedGroupIds)
+    const fullyIncludedSubgroupIds = new Set(directlyMatchedSubgroupIds)
+
+    for (const test of tests) {
+      if (!directlyMatchedTestIds.has(test.id) || test.subgroupId === null) {
+        continue
+      }
+
+      includedSubgroupIds.add(test.subgroupId)
+      const subgroup = subgroupForId.get(test.subgroupId)
+
+      if (subgroup?.groupId !== null && subgroup?.groupId !== undefined) {
+        includedGroupIds.add(subgroup.groupId)
+      }
+    }
+
+    for (const subgroup of subgroups) {
+      if (directlyMatchedSubgroupIds.has(subgroup.id)) {
+        includedSubgroupIds.add(subgroup.id)
+        fullyIncludedSubgroupIds.add(subgroup.id)
+
+        if (subgroup.groupId !== null) {
+          includedGroupIds.add(subgroup.groupId)
+        }
+      }
+
+      if (
+        subgroup.groupId !== null &&
+        directlyMatchedGroupIds.has(subgroup.groupId)
+      ) {
+        includedSubgroupIds.add(subgroup.id)
+        fullyIncludedSubgroupIds.add(subgroup.id)
+      }
+    }
+
+    for (const test of tests) {
+      if (
+        test.subgroupId !== null &&
+        fullyIncludedSubgroupIds.has(test.subgroupId)
+      ) {
+        includedTestIds.add(test.id)
+      }
+    }
+
+    return {
+      tests: tests.filter((test) => includedTestIds.has(test.id)),
+      subgroups: subgroups.filter((subgroup) =>
+        includedSubgroupIds.has(subgroup.id)
+      ),
+      groups: groupsUnsorted.filter((group) => includedGroupIds.has(group.id))
+    }
+  }, [
+    groupsUnsorted,
+    subgroupForId,
+    subgroups,
+    tagFilterIsActive,
+    tagFilteredResources,
+    tests
+  ])
 
   const subgroupsForGroupId = React.useMemo(() => {
     const map = new Map<number, SubgroupSecondary[]>()
-    for (const subgroup of subgroups) {
+    for (const subgroup of hierarchyResources.subgroups) {
       const gid = subgroup.groupId
       if (gid !== null) {
         if (!map.has(gid)) map.set(gid, [])
@@ -350,11 +531,11 @@ export function TestsHierarchyTree({
       )
     }
     return map
-  }, [subgroups])
+  }, [hierarchyResources.subgroups])
 
   const testsForSubgroupId = React.useMemo(() => {
     const map = new Map<number, TestSecondary[]>()
-    for (const test of tests) {
+    for (const test of hierarchyResources.tests) {
       const sid = test.subgroupId
       if (sid !== null) {
         if (!map.has(sid)) map.set(sid, [])
@@ -368,25 +549,28 @@ export function TestsHierarchyTree({
       )
     }
     return map
-  }, [tests])
+  }, [hierarchyResources.tests])
 
   const orphanTests = React.useMemo(
     () =>
-      tests
+      hierarchyResources.tests
         .filter((t) => t.subgroupId === null)
         .toSorted((a, b) => a.code.localeCompare(b.code)),
-    [tests]
+    [hierarchyResources.tests]
   )
   const orphanSubgroups = React.useMemo(
     () =>
-      subgroups
+      hierarchyResources.subgroups
         .filter((s) => s.groupId === null)
         .toSorted((a, b) => a.code.localeCompare(b.code)),
-    [subgroups]
+    [hierarchyResources.subgroups]
   )
   const groups = React.useMemo(
-    () => groupsUnsorted.toSorted((a, b) => a.code.localeCompare(b.code)),
-    [groupsUnsorted]
+    () =>
+      hierarchyResources.groups.toSorted((a, b) =>
+        a.code.localeCompare(b.code)
+      ),
+    [hierarchyResources.groups]
   )
 
   const highlightedTestId = React.useMemo(
@@ -677,6 +861,14 @@ export function TestsHierarchyTree({
     }
   }, [debouncedSearchText, items, isInitialized])
 
+  React.useEffect(() => {
+    if (isInitialized && tagFilterIsActive) {
+      startTransition(() => {
+        setExpandedItems(getAllItemIds(items))
+      })
+    }
+  }, [items, isInitialized, tagFilterIsActive])
+
   const allItemIds = React.useMemo(() => getAllItemIds(items), [items])
 
   const disableStickyTemporarily = () => {
@@ -705,6 +897,21 @@ export function TestsHierarchyTree({
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) =>
     setSearchText(e.target.value)
+
+  const handleOpenTagFilter = (event: React.MouseEvent<HTMLElement>) => {
+    setFilterAnchorEl(event.currentTarget)
+  }
+
+  const handleCloseTagFilter = () => {
+    setFilterAnchorEl(null)
+  }
+
+  const handleTagFilterChange = (
+    _event: React.SyntheticEvent,
+    value: number[]
+  ) => {
+    setSelectedTagIds(value)
+  }
 
   const handleClearSearch = () => {
     setSearchText('')
@@ -782,6 +989,22 @@ export function TestsHierarchyTree({
                 <UnfoldMoreIcon />
               </IconButton>
             </Tooltip>
+            <Tooltip title="Фильтр по тегам" arrow>
+              <IconButton
+                onClick={handleOpenTagFilter}
+                size="small"
+                color="primary"
+                aria-label="filter by tags"
+              >
+                <Badge
+                  badgeContent={selectedTagIds.length}
+                  color="primary"
+                  invisible={!tagFilterIsActive}
+                >
+                  <FilterAltIcon />
+                </Badge>
+              </IconButton>
+            </Tooltip>
           </ButtonGroup>
           <SearchField
             inputRef={inputRef}
@@ -807,6 +1030,56 @@ export function TestsHierarchyTree({
               )
             }}
           />
+          <Popover
+            open={filterAnchorEl !== null}
+            anchorEl={filterAnchorEl}
+            onClose={handleCloseTagFilter}
+            anchorOrigin={{
+              vertical: 'bottom',
+              horizontal: 'left'
+            }}
+            transformOrigin={{
+              vertical: 'top',
+              horizontal: 'left'
+            }}
+          >
+            <Box sx={{ width: 340, p: 1.5 }}>
+              <Autocomplete<number, true, false, false>
+                multiple
+                disableCloseOnSelect
+                size="small"
+                options={filterTagIds}
+                value={selectedTagIds}
+                getOptionLabel={(tagId) =>
+                  capitalize(tagCodeForId.get(tagId) ?? `[ID:${tagId}]`, true)
+                }
+                onChange={handleTagFilterChange}
+                noOptionsText="тегов нет"
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Теги"
+                    placeholder={
+                      selectedTagIds.length === 0 ? 'Выберите теги' : ''
+                    }
+                  />
+                )}
+                renderTags={(value, getTagProps) =>
+                  value.map((tagId, index) => (
+                    <Chip
+                      {...getTagProps({ index })}
+                      key={tagId}
+                      size="small"
+                      label={capitalize(
+                        tagCodeForId.get(tagId) ?? `[ID:${tagId}]`,
+                        true
+                      )}
+                    />
+                  ))
+                }
+              />
+            </Box>
+          </Popover>
         </ToolbarContainer>
         <RichTreeViewStyled
           apiRef={apiRef}

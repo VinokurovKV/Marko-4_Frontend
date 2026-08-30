@@ -1,5 +1,6 @@
 // Project
 import { serverConnector } from '~/server-connector'
+import type { GroupsFilter } from '~/types'
 
 // Read many
 
@@ -29,7 +30,10 @@ export function readGroupsSecondary() {
 
 // Read many filtered
 
-export function readGroupsPrimaryFiltered(groupIds: number[] | null) {
+export function readGroupsPrimaryFiltered(
+  groupIds?: number[] | null,
+  extraFilter?: GroupsFilter
+) {
   const meta = serverConnector.meta
   return meta.status === 'AUTHENTICATED' &&
     meta.selfMeta.rights.includes('READ_GROUP') &&
@@ -37,13 +41,17 @@ export function readGroupsPrimaryFiltered(groupIds: number[] | null) {
     ? serverConnector
         .readGroups({
           ids: groupIds,
+          ...extraFilter,
           scope: 'PRIMARY_PROPS'
         })
         .catch(() => null)
     : Promise.resolve(null)
 }
 
-export function readGroupsSecondaryFiltered(groupIds: number[] | null) {
+export function readGroupsSecondaryFiltered(
+  groupIds?: number[] | null,
+  extraFilter?: GroupsFilter
+) {
   const meta = serverConnector.meta
   return meta.status === 'AUTHENTICATED' &&
     meta.selfMeta.rights.includes('READ_GROUP') &&
@@ -51,6 +59,7 @@ export function readGroupsSecondaryFiltered(groupIds: number[] | null) {
     ? serverConnector
         .readGroups({
           ids: groupIds,
+          ...extraFilter,
           scope: 'UP_TO_SECONDARY_PROPS'
         })
         .catch(() => null)

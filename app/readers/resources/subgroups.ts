@@ -1,5 +1,6 @@
 // Project
 import { serverConnector } from '~/server-connector'
+import type { SubgroupsFilter } from '~/types'
 
 // Read many
 
@@ -29,7 +30,10 @@ export function readSubgroupsSecondary() {
 
 // Read many filtered
 
-export function readSubgroupsPrimaryFiltered(subgroupIds: number[] | null) {
+export function readSubgroupsPrimaryFiltered(
+  subgroupIds?: number[] | null,
+  extraFilter?: SubgroupsFilter
+) {
   const meta = serverConnector.meta
   return meta.status === 'AUTHENTICATED' &&
     meta.selfMeta.rights.includes('READ_SUBGROUP') &&
@@ -37,13 +41,17 @@ export function readSubgroupsPrimaryFiltered(subgroupIds: number[] | null) {
     ? serverConnector
         .readSubgroups({
           ids: subgroupIds,
+          ...extraFilter,
           scope: 'PRIMARY_PROPS'
         })
         .catch(() => null)
     : Promise.resolve(null)
 }
 
-export function readSubgroupsSecondaryFiltered(subgroupIds: number[] | null) {
+export function readSubgroupsSecondaryFiltered(
+  subgroupIds?: number[] | null,
+  extraFilter?: SubgroupsFilter
+) {
   const meta = serverConnector.meta
   return meta.status === 'AUTHENTICATED' &&
     meta.selfMeta.rights.includes('READ_SUBGROUP') &&
@@ -51,6 +59,7 @@ export function readSubgroupsSecondaryFiltered(subgroupIds: number[] | null) {
     ? serverConnector
         .readSubgroups({
           ids: subgroupIds,
+          ...extraFilter,
           scope: 'UP_TO_SECONDARY_PROPS'
         })
         .catch(() => null)

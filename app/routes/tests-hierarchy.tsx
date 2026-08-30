@@ -1,17 +1,24 @@
 // Project
-import type { TestSecondary, SubgroupSecondary, GroupPrimary } from '~/types'
+import type {
+  TestSecondary,
+  SubgroupSecondary,
+  GroupPrimary,
+  TagPrimary
+} from '~/types'
 import { serverConnector } from '~/server-connector'
 import {
   readTestsSecondary,
   readSubgroupsSecondary,
-  readGroupsPrimary
+  readGroupsPrimary,
+  readTagsPrimary
 } from '~/readers'
 import { useNotifier } from '~/providers/notifier'
 import { useMeta } from '~/providers/meta'
 import {
   useTestsSubscription,
   useSubgroupsSubscription,
-  useGroupsSubscription
+  useGroupsSubscription,
+  useTagsSubscription
 } from '~/hooks/resources'
 import { ForbiddenScreen } from '~/components/screens/problem/forbidden'
 import { TestsHierarchyScreen } from '~/components/screens/tests-hierarchy'
@@ -23,15 +30,17 @@ import * as React from 'react'
 
 export async function clientLoader() {
   await serverConnector.connect()
-  const [tests, subgroups, groups] = await Promise.all([
+  const [tests, subgroups, groups, tags] = await Promise.all([
     readTestsSecondary(),
     readSubgroupsSecondary(),
-    readGroupsPrimary()
+    readGroupsPrimary(),
+    readTagsPrimary()
   ])
   return {
     tests,
     subgroups,
-    groups
+    groups,
+    tags
   }
 }
 
@@ -39,7 +48,8 @@ export default function TestsHierarchyRoute({
   loaderData: {
     tests: initialTests,
     subgroups: initialSubgroups,
-    groups: initialGroups
+    groups: initialGroups,
+    tags: initialTags
   }
 }: Route.ComponentProps) {
   const notifier = useNotifier()
@@ -53,10 +63,12 @@ export default function TestsHierarchyRoute({
   const [groups, setGroups] = React.useState<GroupPrimary[] | null>(
     initialGroups
   )
+  const [tags, setTags] = React.useState<TagPrimary[] | null>(initialTags)
 
   useTestsSubscription('UP_TO_SECONDARY_PROPS', setTests)
   useSubgroupsSubscription('UP_TO_SECONDARY_PROPS', setSubgroups)
   useGroupsSubscription('PRIMARY_PROPS', setGroups)
+  useTagsSubscription('PRIMARY_PROPS', setTags)
 
   React.useEffect(() => {
     if (
@@ -94,7 +106,12 @@ export default function TestsHierarchyRoute({
       meta.selfMeta.rights.includes('READ_GROUP') === false) ? (
     <ForbiddenScreen />
   ) : tests !== null && subgroups !== null && groups !== null ? (
-    <TestsHierarchyScreen tests={tests} subgroups={subgroups} groups={groups}>
+    <TestsHierarchyScreen
+      tests={tests}
+      subgroups={subgroups}
+      groups={groups}
+      tags={tags}
+    >
       {outlet !== null ? outlet : null}
     </TestsHierarchyScreen>
   ) : null
