@@ -154,6 +154,7 @@ export function Sidebar({
         <Toolbar />
         <Box
           component="nav"
+          data-guide-id="sidebar-scroll-container"
           sx={{
             height: '100%',
             display: 'flex',
