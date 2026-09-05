@@ -95,6 +95,9 @@ export default [
             route('devices', 'routes/devices.tsx', [
               route(':deviceId', 'routes/device.tsx')
             ]),
+            route('slices', 'routes/slices.tsx', [
+              route(':sliceId', 'routes/slice.tsx', { id: 'slice' })
+            ]),
             route('tasks', 'routes/tasks.tsx', [
               route(':taskId', 'routes/task.tsx', [
                 route(':testId', 'routes/test-report.tsx')

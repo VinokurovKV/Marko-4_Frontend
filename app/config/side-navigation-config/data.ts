@@ -63,11 +63,25 @@ export const SIDE_NAVIGATION_CONFIG: SideNavigationConfig = [
     title: 'тестирование',
     nested: [
       {
-        id: 'tasks',
+        id: 'tasks-block',
         title: 'задания',
         Icon: TaskIcon,
-        href: '/tasks',
-        requiredRights: ['READ_TASK']
+        nested: [
+          {
+            id: 'tasks',
+            title: 'задания',
+            Icon: TaskIcon,
+            href: '/tasks',
+            requiredRights: ['READ_TASK']
+          },
+          {
+            id: 'slices',
+            title: 'срезы заданий',
+            Icon: ViewStreamIcon,
+            href: '/slices',
+            requiredRights: ['READ_SLICE', 'READ_TASK']
+          }
+        ]
       },
       {
         id: 'devices',
