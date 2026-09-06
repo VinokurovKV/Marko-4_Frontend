@@ -3,7 +3,7 @@ import {
   type RequirementModifier,
   allRequirementModifiers
 } from '@common/enums'
-import { localizationForRequirementModifier } from '~/localization'
+import { localizationForRequirementModifier } from '@common/localization'
 import { RequirementModifierIcon } from '~/components/icons'
 // React
 import * as React from 'react'

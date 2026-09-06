@@ -5,7 +5,7 @@ import type {
   CoverageTertiary,
   TestPrimary
 } from '~/types'
-import { localizationForCoverageType } from '~/localization'
+import { localizationForCoverageType } from '@common/localization'
 import { CoverageTypeIcon } from '~/components/icons/coverage-type'
 import { HorizontalTwoPartsContainer } from '~/components/containers'
 import {

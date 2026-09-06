@@ -7,7 +7,7 @@ import {
 } from '~/server-connector/error'
 import { useMeta } from '~/providers/meta'
 import { useNotifier } from '~/providers/notifier'
-import { localizationForRight } from '~/localization'
+import { localizationForRight } from '@common/localization'
 import { type ProjBreadcrumbsProps } from '../breadcrumbs'
 import {
   HorizontalTwoPartsContainer,

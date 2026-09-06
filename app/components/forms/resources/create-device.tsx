@@ -4,7 +4,7 @@ import type { CreateDeviceSuccessResultDto } from '@common/dtos/server-api/devic
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
 import { useTags } from '~/hooks/resources'
-import { localizationForDeviceType } from '~/localization'
+import { localizationForDeviceType } from '@common/localization'
 import {
   type CreateDeviceFormData,
   INITIAL_CREATE_DEVICE_FORM_DATA,

@@ -4,7 +4,7 @@ import { serverConnector } from '~/server-connector'
 import { useDialogs } from '~/providers/dialogs'
 import { useNotifier } from '~/providers/notifier'
 import { useMeta } from '~/providers/meta'
-import { localizationForRight } from '~/localization'
+import { localizationForRight } from '@common/localization'
 import {
   HorizontalTwoPartsContainer,
   VerticalTwoPartsContainer

@@ -6,7 +6,7 @@ import type { RequirementPrimary } from '~/types'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
 import { useTags, useTests } from '~/hooks/resources'
-import { localizationForCoverageType } from '~/localization'
+import { localizationForCoverageType } from '@common/localization'
 import {
   type CreateCoverageFormData,
   INITIAL_CREATE_COVERAGE_FORM_DATA,

@@ -4,7 +4,7 @@ import {
   allVersionedResourceTypePlurals,
   versionResourceTypeFromPlural
 } from '@common/enums'
-import { localizationForVersionedResourceType } from '~/localization'
+import { localizationForVersionedResourceType } from '@common/localization'
 import { HorizontalTwoPartsContainer } from '../containers'
 import {
   type TransitionsGridProps,

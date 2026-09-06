@@ -1,6 +1,6 @@
 // Project
 import { allTransitionTypes } from '@common/enums'
-import { localizationForTransitionType } from '~/localization'
+import { localizationForTransitionType } from '@common/localization'
 // React
 import * as React from 'react'
 // Material UI

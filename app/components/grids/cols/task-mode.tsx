@@ -1,6 +1,6 @@
 // Project
 import { type TaskMode, allTaskModes } from '@common/enums'
-import { localizationForTaskMode } from '~/localization'
+import { localizationForTaskMode } from '@common/localization'
 import { TaskModeIcon } from '~/components/icons'
 // React
 import * as React from 'react'

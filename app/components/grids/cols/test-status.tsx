@@ -1,6 +1,6 @@
 // Project
 import { type TestStatus, allTestStatuses } from '@common/enums'
-import { localizationForTestStatus } from '~/localization'
+import { localizationForTestStatus } from '@common/localization'
 import { TestStatusIcon } from '~/components/icons'
 // React
 import * as React from 'react'

@@ -11,7 +11,7 @@ import type {
 import {
   localizationForRequirementModifier,
   localizationForRequirementOrigin
-} from '~/localization'
+} from '@common/localization'
 import { FlagIcon, RequirementModifierIcon } from '~/components/icons'
 import { HorizontalTwoPartsContainer } from '~/components/containers'
 import {

@@ -1,6 +1,6 @@
 // Project
 import { type TaskStatus } from '@common/enums'
-import { localizationForTaskStatus } from '~/localization'
+import { localizationForTaskStatus } from '@common/localization'
 // React
 import * as React from 'react'
 // Material UI

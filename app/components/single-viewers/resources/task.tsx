@@ -17,7 +17,7 @@ import {
   localizationForTaskMode,
   localizationForTaskResultToSave,
   localizationForTaskStatus
-} from '~/localization'
+} from '@common/localization'
 import {
   FlagIcon,
   TaskModeIcon,

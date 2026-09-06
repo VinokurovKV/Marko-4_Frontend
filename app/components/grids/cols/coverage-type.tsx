@@ -1,6 +1,6 @@
 // Project
 import { type CoverageType, allCoverageTypes } from '@common/enums'
-import { localizationForCoverageType } from '~/localization'
+import { localizationForCoverageType } from '@common/localization'
 import { CoverageTypeIcon } from '~/components/icons/coverage-type'
 // React
 import * as React from 'react'

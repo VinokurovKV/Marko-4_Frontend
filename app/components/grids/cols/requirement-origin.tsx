@@ -1,6 +1,6 @@
 // Project
 import { allRequirementOrigins } from '@common/enums'
-import { localizationForRequirementOrigin } from '~/localization'
+import { localizationForRequirementOrigin } from '@common/localization'
 // React
 import * as React from 'react'
 // Material UI

@@ -5,7 +5,7 @@ import type { Transition } from '~/types'
 import {
   localizationForTransitionType,
   localizationForVersionedResourceType
-} from '~/localization'
+} from '@common/localization'
 import { formatDateTime } from '~/utilities'
 import {
   HorizontalTwoPartsContainer,

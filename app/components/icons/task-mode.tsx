@@ -1,6 +1,6 @@
 // Project
 import { type TaskMode } from '@common/enums'
-import { localizationForTaskMode } from '~/localization'
+import { localizationForTaskMode } from '@common/localization'
 // Material UI
 // import ExploreIcon from '@mui/icons-material/Explore'
 // import FlagIcon from '@mui/icons-material/Flag'

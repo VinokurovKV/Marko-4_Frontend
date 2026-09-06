@@ -15,7 +15,7 @@ import { useTags, useDocuments, useFragments } from '~/hooks/resources'
 import {
   localizationForRequirementModifier,
   localizationForRequirementOrigin
-} from '~/localization'
+} from '@common/localization'
 import {
   type UpdateRequirementFormData,
   updateRequirementFormValidator

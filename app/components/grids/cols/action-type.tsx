@@ -1,6 +1,6 @@
 // Project
 import { allActionTypes } from '@common/enums'
-import { localizationForActionType } from '~/localization'
+import { localizationForActionType } from '@common/localization'
 // React
 import * as React from 'react'
 // Material UI

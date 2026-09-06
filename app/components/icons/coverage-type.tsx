@@ -1,6 +1,6 @@
 // Project
 import { type CoverageType } from '@common/enums'
-import { localizationForCoverageType } from '~/localization'
+import { localizationForCoverageType } from '@common/localization'
 // Material UI
 import LockOpenIcon from '@mui/icons-material/LockOpenTwoTone'
 import LockIcon from '@mui/icons-material/LockTwoTone'

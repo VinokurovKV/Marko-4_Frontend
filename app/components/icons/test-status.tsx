@@ -1,6 +1,6 @@
 // Project
 import { type TestStatus } from '@common/enums'
-import { localizationForTestStatus } from '~/localization'
+import { localizationForTestStatus } from '@common/localization'
 // Material UI
 import CancelIcon from '@mui/icons-material/CancelTwoTone'
 import CloseIcon from '@mui/icons-material/Close'

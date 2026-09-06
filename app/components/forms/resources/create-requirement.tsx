@@ -9,7 +9,7 @@ import { useTags, useDocuments, useFragments } from '~/hooks/resources'
 import {
   localizationForRequirementModifier,
   localizationForRequirementOrigin
-} from '~/localization'
+} from '@common/localization'
 import {
   type CreateRequirementFormData,
   INITIAL_CREATE_REQUIREMENT_FORM_DATA,

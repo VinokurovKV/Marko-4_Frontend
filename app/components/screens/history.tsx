@@ -5,7 +5,7 @@ import { type ProjBreadcrumbsProps } from '../breadcrumbs'
 import { LayoutScreenContainer, VerticalTwoPartsContainer } from '../containers'
 import type { FormSelectProps } from '../forms/common'
 import { FormNumField, FormSelect } from '../forms/common'
-import { localizationForVersionedResourceTypePlural } from '~/localization'
+import { localizationForVersionedResourceTypePlural } from '@common/localization'
 import { ProjButton } from '../buttons/button'
 import { ColumnViewerRef } from '../single-viewers/common'
 // React router

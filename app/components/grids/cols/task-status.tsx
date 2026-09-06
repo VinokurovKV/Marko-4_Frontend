@@ -1,6 +1,6 @@
 // Project
 import { type TaskStatus, allTaskStatuses } from '@common/enums'
-import { localizationForTaskStatus } from '~/localization'
+import { localizationForTaskStatus } from '@common/localization'
 import { TaskStatusIcon } from '~/components/icons'
 // React
 import * as React from 'react'

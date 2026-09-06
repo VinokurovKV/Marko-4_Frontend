@@ -9,7 +9,7 @@ import { useNotifier } from '~/providers/notifier'
 import { useMeta } from '~/providers/meta'
 import { useDeviceSubscription } from '~/hooks/resources'
 import { useTags } from '~/hooks/resources'
-import { localizationForDeviceType } from '~/localization'
+import { localizationForDeviceType } from '@common/localization'
 import {
   type UpdateDeviceFormData,
   updateDeviceFormValidator

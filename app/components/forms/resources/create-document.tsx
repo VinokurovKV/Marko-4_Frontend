@@ -4,7 +4,7 @@ import type { CreateDocumentSuccessResultDto } from '@common/dtos/server-api/doc
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
 import { useTags } from '~/hooks/resources'
-import { localizationForDocumentType } from '~/localization'
+import { localizationForDocumentType } from '@common/localization'
 import {
   type CreateDocumentFormData,
   INITIAL_CREATE_DOCUMENT_FORM_DATA,

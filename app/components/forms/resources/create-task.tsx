@@ -17,7 +17,7 @@ import {
 import {
   localizationForTaskMode,
   localizationForTaskResultToSave
-} from '~/localization'
+} from '@common/localization'
 import {
   type CreateTaskFormDataWithoutVertexes,
   type CreateTaskFormData,

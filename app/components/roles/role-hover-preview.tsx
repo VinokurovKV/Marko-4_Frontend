@@ -1,6 +1,6 @@
 // Project
 import { useRole } from '~/hooks/resources'
-import { localizationForRight } from '~/localization'
+import { localizationForRight } from '@common/localization'
 import { ColumnViewerChipsBlock } from '~/components/single-viewers/common'
 // React
 import * as React from 'react'

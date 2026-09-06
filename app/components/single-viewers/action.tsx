@@ -1,6 +1,6 @@
 // Project
 import type { Action, UserPrimary } from '~/types'
-import { localizationForActionType } from '~/localization'
+import { localizationForActionType } from '@common/localization'
 import { formatDateTime } from '~/utilities'
 import {
   HorizontalTwoPartsContainer,

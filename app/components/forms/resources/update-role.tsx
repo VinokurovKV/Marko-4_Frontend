@@ -6,7 +6,7 @@ import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
 import { useMeta } from '~/providers/meta'
 import { useRoleSubscription } from '~/hooks/resources'
-import { localizationForRight } from '~/localization'
+import { localizationForRight } from '@common/localization'
 import {
   type UpdateRoleFormData,
   updateRoleFormValidator

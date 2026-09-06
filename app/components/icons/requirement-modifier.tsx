@@ -1,6 +1,6 @@
 // Project
 import { type RequirementModifier } from '@common/enums'
-import { localizationForRequirementModifier } from '~/localization'
+import { localizationForRequirementModifier } from '@common/localization'
 // Material UI
 import LockOpenIcon from '@mui/icons-material/LockOpenTwoTone'
 import LockIcon from '@mui/icons-material/LockTwoTone'

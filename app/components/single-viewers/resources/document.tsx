@@ -5,7 +5,7 @@ import { useLocationHash } from '~/hooks/use-location-hash'
 import { useDialogs } from '~/providers/dialogs'
 import { useNotifier } from '~/providers/notifier'
 import { useMeta } from '~/providers/meta'
-import { localizationForDocumentType } from '~/localization'
+import { localizationForDocumentType } from '@common/localization'
 import { formatDate } from '~/utilities'
 import {
   HorizontalTwoPartsContainer,

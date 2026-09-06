@@ -1,7 +1,7 @@
 // Project
 import { RightEnum, allRights, type Right } from '@common/enums'
 import { ProjButton } from '~/components/buttons/button'
-import { localizationForRight } from '~/localization'
+import { localizationForRight } from '@common/localization'
 // React
 import * as React from 'react'
 // Material UI

@@ -2,7 +2,7 @@
 import type { TestPrimary, TestReportTertiary } from '~/types'
 import { serverConnector } from '~/server-connector'
 import { useNotifier } from '~/providers/notifier'
-import { localizationForTestStatus } from '~/localization'
+import { localizationForTestStatus } from '@common/localization'
 import { TestStatusIcon } from '~/components/icons'
 import { HorizontalTwoPartsContainer } from '~/components/containers'
 import {

@@ -1,6 +1,6 @@
 // Project
 import { allDeviceTypes } from '@common/enums'
-import { localizationForDeviceType } from '~/localization'
+import { localizationForDeviceType } from '@common/localization'
 // React
 import * as React from 'react'
 // Material UI

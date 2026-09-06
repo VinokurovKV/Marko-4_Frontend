@@ -7,7 +7,7 @@ import { useNotifier } from '~/providers/notifier'
 import { useMeta } from '~/providers/meta'
 import { useDocumentSubscription } from '~/hooks/resources'
 import { useTags } from '~/hooks/resources'
-import { localizationForDocumentType } from '~/localization'
+import { localizationForDocumentType } from '@common/localization'
 import {
   type UpdateDocumentFormData,
   updateDocumentFormValidator
