@@ -32,6 +32,7 @@ import ReactFlow, {
 import 'reactflow/dist/style.css'
 // Other
 import AcyclicGraphVertexViewer, {
+  type AcyclicGraphVertexType,
   type AcyclicGraphVertexViewerProps,
   type VertexData
 } from './acyclic-graph-vertex-viewer'
@@ -104,6 +105,10 @@ type AcyclicGraphNode = Node<AcyclicGraphVertexViewerProps<VertexData>>
 type MiniGraphDisplayMode = 'ROOT_PATH' | 'ALL_RELATED'
 type ChildPanelKey = 'level2' | 'level3' | 'level4' | 'level5'
 type CoverageDisplayKey = 'full' | 'must' | 'mustShould' | 'should' | 'may'
+type GraphKeyboardNavigationEvent = Pick<
+  KeyboardEvent,
+  'key' | 'preventDefault' | 'stopPropagation'
+>
 type HoveredVertexPreview = {
   id: number
   data: VertexData
@@ -123,6 +128,25 @@ const COVERAGE_DISPLAY_OPTIONS: Array<{
 ]
 const HOVER_PREVIEW_DELAY_MS = 640
 const HOVER_PREVIEW_HIDE_DELAY_MS = 160
+const GRAPH_NAVIGATION_KEYS = new Set([
+  'ArrowLeft',
+  'ArrowRight',
+  'ArrowUp',
+  'ArrowDown',
+  'Enter'
+])
+
+function eventTargetIsEditable(target: EventTarget | null): boolean {
+  if (target instanceof HTMLElement === false) {
+    return false
+  }
+
+  return (
+    target.closest(
+      'input, textarea, select, [contenteditable="true"], [role="textbox"]'
+    ) !== null
+  )
+}
 
 function parseCoverageFractionPercent(fraction: string): number | null {
   const [coveredRaw, totalRaw] = fraction.split('/').map((part) => part.trim())
@@ -1524,6 +1548,7 @@ export default function AcyclicGraphViewer({
   const theme = useTheme()
   const mainGraphHostRef = useRef<HTMLDivElement | null>(null)
   const requirementSearchRef = useRef<HTMLDivElement | null>(null)
+  const initialSelectionIsAppliedRef = useRef(false)
   const [miniGraphWidth, setMiniGraphWidth] = useState(MINI_GRAPH_DEFAULT_WIDTH)
 
   const [baseNodes, setBaseNodes] = useState<AcyclicGraphNode[]>([])
@@ -1658,7 +1683,7 @@ export default function AcyclicGraphViewer({
               vertexData,
               selectedProgressDisplayKey
             ),
-            type: selectedId === vertex.id ? 'SELECTED' : 'DEFAULT',
+            type: 'DEFAULT',
             dimmed: false,
             collapsed: false
           }
@@ -1705,7 +1730,7 @@ export default function AcyclicGraphViewer({
             vertexData,
             selectedProgressDisplayKey
           ),
-          type: selectedId === vertex.id ? 'SELECTED' : 'DEFAULT',
+          type: 'DEFAULT',
           dimmed: false,
           collapsed: false
         }
@@ -1718,7 +1743,6 @@ export default function AcyclicGraphViewer({
     fullGraphMaxLevel,
     vertexes,
     dataForVertexId,
-    selectedId,
     selectedProgressDisplayKey,
     rootScrollStartIndex
   ])
@@ -1969,7 +1993,7 @@ export default function AcyclicGraphViewer({
                       vertexData,
                       selectedProgressDisplayKey
                     ),
-                    type: selectedId === vertex.id ? 'SELECTED' : 'RELATED',
+                    type: 'RELATED',
                     dimmed: false,
                     collapsed: false
                   },
@@ -1992,13 +2016,7 @@ export default function AcyclicGraphViewer({
 
       return { nodes, edges }
     },
-    [
-      baseNodes,
-      vertexes,
-      dataForVertexId,
-      selectedId,
-      selectedProgressDisplayKey
-    ]
+    [baseNodes, vertexes, dataForVertexId, selectedProgressDisplayKey]
   )
 
   const childGraphData = useMemo(
@@ -2072,26 +2090,44 @@ export default function AcyclicGraphViewer({
     ]
   )
 
-  const allNodes = useMemo(
-    () =>
-      isFullGraphVisible
-        ? baseNodes
-        : [
-            ...baseNodes,
-            ...childGraphData.nodes,
-            ...grandChildGraphData.nodes,
-            ...greatGrandChildGraphData.nodes,
-            ...level5GraphData.nodes
-          ],
-    [
-      isFullGraphVisible,
-      baseNodes,
-      childGraphData.nodes,
-      grandChildGraphData.nodes,
-      greatGrandChildGraphData.nodes,
-      level5GraphData.nodes
-    ]
+  const applySelectionToNodes = useCallback(
+    (nodes: AcyclicGraphNode[], useRelatedForChildNodes: boolean) =>
+      nodes.map((node) => {
+        const type: AcyclicGraphVertexType =
+          selectedId === node.data.id
+            ? 'SELECTED'
+            : useRelatedForChildNodes && node.data.hasParents
+              ? 'RELATED'
+              : 'DEFAULT'
+
+        return node.data.type === type
+          ? node
+          : { ...node, data: { ...node.data, type } }
+      }),
+    [selectedId]
   )
+
+  const allNodes = useMemo(() => {
+    const nodes = isFullGraphVisible
+      ? baseNodes
+      : [
+          ...baseNodes,
+          ...childGraphData.nodes,
+          ...grandChildGraphData.nodes,
+          ...greatGrandChildGraphData.nodes,
+          ...level5GraphData.nodes
+        ]
+
+    return applySelectionToNodes(nodes, isFullGraphVisible === false)
+  }, [
+    applySelectionToNodes,
+    isFullGraphVisible,
+    baseNodes,
+    childGraphData.nodes,
+    grandChildGraphData.nodes,
+    greatGrandChildGraphData.nodes,
+    level5GraphData.nodes
+  ])
   const allEdges = useMemo(
     () =>
       isFullGraphVisible
@@ -2538,16 +2574,12 @@ export default function AcyclicGraphViewer({
       return
     }
 
-    setChildPanelReady(false)
     setChildScrollStartIndex(0)
     setExpandedLevel2Id(null)
     setExpandedLevel3Id(null)
     setExpandedLevel4Id(null)
-    setGrandChildPanelReady(false)
     setGrandChildScrollStartIndex(0)
-    setGreatGrandChildPanelReady(false)
     setGreatGrandChildScrollStartIndex(0)
-    setLevel5PanelReady(false)
     setLevel5ScrollStartIndex(0)
     setHiddenChildVertexIdsByPanel((prev) => ({
       ...prev,
@@ -2576,12 +2608,9 @@ export default function AcyclicGraphViewer({
       return
     }
 
-    setGrandChildPanelReady(false)
     setGrandChildScrollStartIndex(0)
     setExpandedLevel3Id(null)
-    setGreatGrandChildPanelReady(false)
     setGreatGrandChildScrollStartIndex(0)
-    setLevel5PanelReady(false)
     setLevel5ScrollStartIndex(0)
     setHiddenChildVertexIdsByPanel((prev) => ({
       ...prev,
@@ -2609,10 +2638,8 @@ export default function AcyclicGraphViewer({
       return
     }
 
-    setGreatGrandChildPanelReady(false)
     setGreatGrandChildScrollStartIndex(0)
     setExpandedLevel4Id(null)
-    setLevel5PanelReady(false)
     setLevel5ScrollStartIndex(0)
     setHiddenChildVertexIdsByPanel((prev) => ({
       ...prev,
@@ -2626,7 +2653,6 @@ export default function AcyclicGraphViewer({
       return
     }
 
-    setLevel5PanelReady(false)
     setLevel5ScrollStartIndex(0)
     setHiddenChildVertexIdsByPanel((prev) => ({
       ...prev,
@@ -2735,6 +2761,7 @@ export default function AcyclicGraphViewer({
       setSelectedEdgeId(null)
 
       if (options?.focus === true) {
+        mainGraphHostRef.current?.focus({ preventScroll: true })
         setMainGraphFocusRequest((prev) => prev + 1)
       }
     },
@@ -2764,6 +2791,122 @@ export default function AcyclicGraphViewer({
       selectVertex(vertexId)
     },
     [isFullGraphVisible, selectVertex]
+  )
+
+  const selectVertexWithChildrenExpansion = useCallback(
+    (
+      vertexId: number,
+      level: number,
+      options?: { focus?: boolean; ensureVisible?: boolean }
+    ) => {
+      const vertexData = dataForVertexId.get(vertexId)
+      const hasVisibleChildren =
+        vertexData !== undefined &&
+        vertexData.atomicityFlag !== true &&
+        getDirectChildVertexes(vertexId, vertexes, dataForVertexId)
+          .childVertexes.length > 0
+
+      if (isFullGraphVisible === false) {
+        if (level === 1) {
+          setExpandedLevel1Id(hasVisibleChildren ? vertexId : null)
+          setExpandedLevel2Id(null)
+          setExpandedLevel3Id(null)
+          setExpandedLevel4Id(null)
+          setChildScrollStartIndex(0)
+        } else if (level === 2) {
+          setExpandedLevel2Id(hasVisibleChildren ? vertexId : null)
+          setExpandedLevel3Id(null)
+          setExpandedLevel4Id(null)
+          setGrandChildScrollStartIndex(0)
+        } else if (level === 3) {
+          setExpandedLevel3Id(hasVisibleChildren ? vertexId : null)
+          setExpandedLevel4Id(null)
+          setGreatGrandChildScrollStartIndex(0)
+        } else if (level === 4) {
+          setExpandedLevel4Id(hasVisibleChildren ? vertexId : null)
+          setLevel5ScrollStartIndex(0)
+        }
+      }
+
+      selectVertex(vertexId, options)
+    },
+    [dataForVertexId, isFullGraphVisible, selectVertex, vertexes]
+  )
+
+  useEffect(() => {
+    if (
+      initialSelectionIsAppliedRef.current ||
+      selectedId !== null ||
+      baseNodes.length === 0
+    ) {
+      return
+    }
+
+    const rootNodes = baseNodes
+      .filter((node) => node.data.level === 1)
+      .sort(
+        (firstNode, secondNode) =>
+          firstNode.position.x - secondNode.position.x ||
+          firstNode.data.id - secondNode.data.id
+      )
+
+    if (rootNodes.length === 0) {
+      return
+    }
+
+    initialSelectionIsAppliedRef.current = true
+
+    const left = Math.min(...rootNodes.map((node) => node.position.x))
+    const right = Math.max(...rootNodes.map((node) => node.position.x + 150))
+    const centerX = (left + right) / 2
+    const centralRootNode = rootNodes.reduce((bestNode, node) => {
+      const bestDistance = Math.abs(bestNode.position.x + 75 - centerX)
+      const nodeDistance = Math.abs(node.position.x + 75 - centerX)
+      return nodeDistance < bestDistance ? node : bestNode
+    }, rootNodes[0])
+
+    selectVertexWithChildrenExpansion(centralRootNode.data.id, 1, {
+      focus: true
+    })
+  }, [baseNodes, selectVertexWithChildrenExpansion, selectedId])
+
+  const getChildVertexUnderNode = useCallback(
+    (
+      parentNode: AcyclicGraphNode,
+      childVertexes: Vertex[]
+    ): Vertex | undefined => {
+      const visibleChildLimit = 12
+      if (childVertexes.length <= visibleChildLimit) {
+        return childVertexes[0]
+      }
+
+      const nodeWidth = 150
+      const nodeSpacing = 16
+      const slotStep = nodeWidth + nodeSpacing
+      const graphCenterX =
+        baseNodes.length === 0
+          ? 0
+          : (Math.min(...baseNodes.map((node) => node.position.x)) +
+              Math.max(
+                ...baseNodes.map((node) => node.position.x + nodeWidth)
+              )) /
+            2
+      const parentCenterX = parentNode.position.x + nodeWidth / 2
+      const fullSlotsStartX =
+        graphCenterX - ((visibleChildLimit - 1) * slotStep) / 2 - nodeWidth / 2
+      const parentSlotIndex = Math.min(
+        visibleChildLimit - 1,
+        Math.max(
+          0,
+          Math.round(
+            (parentCenterX - fullSlotsStartX - nodeWidth / 2) / slotStep
+          )
+        )
+      )
+
+      return childVertexes[Math.min(parentSlotIndex, childVertexes.length - 1)]
+    },
+    [baseNodes]
   )
 
   const getNavigationVertexIdsForLevel = useCallback(
@@ -2983,14 +3126,8 @@ export default function AcyclicGraphViewer({
     ]
   )
   const handleGraphKeyDown = useCallback(
-    (event: React.KeyboardEvent<HTMLDivElement>) => {
-      if (
-        event.key !== 'ArrowLeft' &&
-        event.key !== 'ArrowRight' &&
-        event.key !== 'ArrowUp' &&
-        event.key !== 'ArrowDown' &&
-        event.key !== 'Enter'
-      ) {
+    (event: GraphKeyboardNavigationEvent) => {
+      if (GRAPH_NAVIGATION_KEYS.has(event.key) === false) {
         return
       }
 
@@ -3045,8 +3182,11 @@ export default function AcyclicGraphViewer({
           }
           return true
         })
-        const firstChildVertex = visibleChildVertexes[0]
-        if (firstChildVertex === undefined) {
+        const childVertex = getChildVertexUnderNode(
+          selectedNode,
+          visibleChildVertexes
+        )
+        if (childVertex === undefined) {
           return
         }
 
@@ -3075,7 +3215,7 @@ export default function AcyclicGraphViewer({
           }
         }
 
-        selectVertexWithoutExpandingChildren(firstChildVertex.id, childLevel)
+        selectVertexWithChildrenExpansion(childVertex.id, childLevel)
         return
       }
 
@@ -3207,14 +3347,32 @@ export default function AcyclicGraphViewer({
       dataForVertexId,
       ensureNavigationIndexVisible,
       getNavigationVertexIdsForLevel,
+      getChildVertexUnderNode,
       hiddenChildVertexIdsByPanel,
       isFullGraphVisible,
       selectVertex,
       selectVertexWithoutExpandingChildren,
+      selectVertexWithChildrenExpansion,
       selectedNodeId,
       vertexes
     ]
   )
+
+  useEffect(() => {
+    const handleWindowKeyDown = (event: KeyboardEvent) => {
+      if (eventTargetIsEditable(event.target)) {
+        return
+      }
+
+      handleGraphKeyDown(event)
+    }
+
+    window.addEventListener('keydown', handleWindowKeyDown)
+
+    return () => {
+      window.removeEventListener('keydown', handleWindowKeyDown)
+    }
+  }, [handleGraphKeyDown])
   const handleEdgeClick = useCallback((event: React.MouseEvent, edge: Edge) => {
     event.stopPropagation()
     setSelectedEdgeId((prev) => (prev === edge.id ? null : edge.id))
@@ -4299,7 +4457,6 @@ export default function AcyclicGraphViewer({
         <Box
           ref={mainGraphHostRef}
           tabIndex={0}
-          onKeyDown={handleGraphKeyDown}
           onWheelCapture={handleMainGraphHostWheelCapture}
           sx={{
             flex: 1,
