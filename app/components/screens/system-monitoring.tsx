@@ -408,6 +408,7 @@ export function SystemMonitoringScreen() {
     new Date(now.getTime() - 60 * 60 * 1000)
   )
   const [endTime, setEndTime] = React.useState<Date | undefined>(now)
+  const [endTimeIsCurrent, setEndTimeIsCurrent] = React.useState(true)
   const [loading, setLoading] = React.useState(false)
   const [startState, setStartState] =
     React.useState<StorageStatusStringWrapDto | null>(null)
@@ -420,6 +421,10 @@ export function SystemMonitoringScreen() {
     React.useState<StorageStatusStringWrapDto | null>(null)
   const [availableTo, setAvailableTo] =
     React.useState<StorageStatusStringWrapDto | null>(null)
+
+  const [maxSelectableTime, setMaxSelectableTime] = React.useState(() =>
+    dayjs()
+  )
 
   const breadcrumbsItems: ProjBreadcrumbsProps['items'] = React.useMemo(
     () => [
@@ -459,16 +464,33 @@ export function SystemMonitoringScreen() {
     }
     if (last.status === 'fulfilled') {
       setAvailableTo(last.value)
-      setEndTime(
-        getSavedMonitoringTime(MONITORING_END_TIME_LOCAL_STORAGE_KEY) ??
-          new Date(last.value.time)
+      const savedEndTime = getSavedMonitoringTime(
+        MONITORING_END_TIME_LOCAL_STORAGE_KEY
       )
+      setEndTime(savedEndTime ?? new Date(last.value.time))
+      setEndTimeIsCurrent(savedEndTime === undefined)
     }
   }, [])
 
   React.useEffect(() => {
     void loadAvailability()
   }, [loadAvailability])
+
+  React.useEffect(() => {
+    const updateMaxSelectableTime = () => {
+      setMaxSelectableTime(dayjs())
+    }
+
+    window.addEventListener('focus', updateMaxSelectableTime)
+
+    return () => {
+      window.removeEventListener('focus', updateMaxSelectableTime)
+    }
+  }, [])
+
+  const handleDateTimePickerOpen = React.useCallback(() => {
+    setMaxSelectableTime(dayjs())
+  }, [])
 
   const loadComparison = React.useCallback(async () => {
     setStartState(null)
@@ -484,9 +506,35 @@ export function SystemMonitoringScreen() {
       return
     }
 
-    if (startTime.getTime() > endTime.getTime()) {
+    const selectedEndTime = endTimeIsCurrent ? new Date() : endTime
+
+    if (startTime.getTime() > selectedEndTime.getTime()) {
       setMessage('Начальная точка должна быть раньше конечной')
       return
+    }
+
+    setMessage('')
+    setLoading(true)
+
+    const actualEndStatus = endTimeIsCurrent
+      ? await serverConnector
+          .findFirstStorageStatus({
+            time: new Date(),
+            timePoint: TimePointTypeEnum.BEFORE
+          })
+          .then(
+            (value) => ({ status: 'fulfilled' as const, value }),
+            (reason: unknown) => ({ status: 'rejected' as const, reason })
+          )
+      : null
+
+    const effectiveEndTime =
+      actualEndStatus?.status === 'fulfilled'
+        ? new Date(actualEndStatus.value.time)
+        : selectedEndTime
+
+    if (actualEndStatus?.status === 'fulfilled') {
+      setAvailableTo(actualEndStatus.value)
     }
 
     if (
@@ -494,20 +542,21 @@ export function SystemMonitoringScreen() {
       startTime.getTime() + 60 * 1000 <= new Date(availableFrom.time).getTime()
     ) {
       setMessage('Начальная точка раньше первого снимка мониторинга')
+      setLoading(false)
       return
     }
 
-    setMessage('')
-    setLoading(true)
     const [from, to] = await Promise.allSettled([
       serverConnector.findFirstStorageStatus({
         time: startTime,
         timePoint: TimePointTypeEnum.AFTER
       }),
-      serverConnector.findFirstStorageStatus({
-        time: endTime,
-        timePoint: TimePointTypeEnum.BEFORE
-      })
+      actualEndStatus?.status === 'fulfilled'
+        ? Promise.resolve(actualEndStatus.value)
+        : serverConnector.findFirstStorageStatus({
+            time: effectiveEndTime,
+            timePoint: TimePointTypeEnum.BEFORE
+          })
     ])
     setLoading(false)
 
@@ -518,7 +567,7 @@ export function SystemMonitoringScreen() {
     }
 
     setMessage('Не удалось найти снимки мониторинга для выбранного периода')
-  }, [availableFrom, availableTo, endTime, startTime])
+  }, [availableFrom, endTime, endTimeIsCurrent, startTime])
 
   const metrics = React.useMemo(() => {
     if (startState === null || endState === null) return null
@@ -536,12 +585,12 @@ export function SystemMonitoringScreen() {
     const diskUsedAfter = diskTotalAfter - diskFreeAfter
     const requestsBefore = toBytes(startState.requestsCnt)
     const requestsAfter = toBytes(endState.requestsCnt)
-    const requestBytesDelta =
-      toBytes(endState.requestsTotalSizeBytes) -
-      toBytes(startState.requestsTotalSizeBytes)
-    const responseBytesDelta =
-      toBytes(endState.responsesTotalSizeBytes) -
+    const trafficBefore =
+      toBytes(startState.requestsTotalSizeBytes) +
       toBytes(startState.responsesTotalSizeBytes)
+    const trafficAfter =
+      toBytes(endState.requestsTotalSizeBytes) +
+      toBytes(endState.responsesTotalSizeBytes)
     const chartLabelColor = theme.palette.mode === 'dark' ? '#000' : '#fff'
     const blueChartColor =
       theme.palette.mode === 'dark' ? brand[300] : brand[400]
@@ -663,12 +712,12 @@ export function SystemMonitoringScreen() {
           title: 'Трафик',
           tooltip:
             'Суммарный объём трафика входящих запросов и исходящих ответов',
-          before: `вход: ${formatBytes(requestBytesDelta)}`,
-          after: `выход: ${formatBytes(responseBytesDelta)}`,
-          delta: formatBytes(responseBytesDelta - requestBytesDelta),
+          before: formatBytes(trafficBefore),
+          after: formatBytes(trafficAfter),
+          delta: formatBytes(trafficAfter - trafficBefore),
           chart: {
-            beforeValue: Math.max(0, requestBytesDelta),
-            afterValue: Math.max(0, responseBytesDelta),
+            beforeValue: trafficBefore,
+            afterValue: trafficAfter,
             beforeColor: blueChartColor,
             afterColor: blueChartColor,
             labelColor: chartLabelColor,
@@ -686,6 +735,7 @@ export function SystemMonitoringScreen() {
         saveMonitoringTime(MONITORING_START_TIME_LOCAL_STORAGE_KEY, event.value)
       } else if (event.name === 'endTime') {
         setEndTime(event.value)
+        setEndTimeIsCurrent(false)
         saveMonitoringTime(MONITORING_END_TIME_LOCAL_STORAGE_KEY, event.value)
       }
     },
@@ -694,14 +744,15 @@ export function SystemMonitoringScreen() {
 
   const handleSetCurrentEndTime = React.useCallback(() => {
     const currentTime = new Date()
+
+    setMaxSelectableTime(dayjs(currentTime))
     setEndTime(currentTime)
+    setEndTimeIsCurrent(true)
     saveMonitoringTime(MONITORING_END_TIME_LOCAL_STORAGE_KEY, currentTime)
   }, [])
 
   const minAvailableTime =
     availableFrom === null ? undefined : dayjs(availableFrom.time)
-  const maxAvailableTime =
-    availableTo === null ? undefined : dayjs(availableTo.time)
 
   return (
     <LayoutScreenContainer
@@ -730,11 +781,12 @@ export function SystemMonitoringScreen() {
                 onChange={handleMonitoringDateChange}
                 placeholder="дд.мм.гггг чч:мм:сс"
                 minDateTime={minAvailableTime}
-                maxDateTime={maxAvailableTime}
+                maxDateTime={maxSelectableTime}
                 formControlSx={{ m: 0, minWidth: 260, alignSelf: 'flex-start' }}
                 sx={monitoringDateTimeFieldSx}
                 popperSx={monitoringDatePickerPopperSx}
                 desktopPaperSx={monitoringDatePickerPaperSx}
+                onOpen={handleDateTimePickerOpen}
               />
               <FormDateTime
                 label="конечная точка"
@@ -743,11 +795,12 @@ export function SystemMonitoringScreen() {
                 onChange={handleMonitoringDateChange}
                 placeholder="дд.мм.гггг чч:мм:сс"
                 minDateTime={minAvailableTime}
-                maxDateTime={undefined}
+                maxDateTime={maxSelectableTime}
                 formControlSx={{ m: 0, minWidth: 260, alignSelf: 'flex-start' }}
                 sx={monitoringDateTimeFieldSx}
                 popperSx={monitoringDatePickerPopperSx}
                 desktopPaperSx={monitoringDatePickerPaperSx}
+                onOpen={handleDateTimePickerOpen}
               />
               <Button
                 variant="contained"
