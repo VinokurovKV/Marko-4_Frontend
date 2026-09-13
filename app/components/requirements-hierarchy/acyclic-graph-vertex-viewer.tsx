@@ -29,6 +29,7 @@ export interface AcyclicGraphVertexViewerProps<VertexData> {
   id: number
   level: number
   hasParents: boolean
+  hasMultipleParents: boolean
   hasChildren: boolean
   data: VertexData
   displayCode?: string
@@ -67,6 +68,7 @@ export default function AcyclicGraphVertexViewer({
   data: {
     id,
     hasParents,
+    hasMultipleParents,
     hasChildren,
     data,
     displayCode,
@@ -159,6 +161,28 @@ export default function AcyclicGraphVertexViewer({
           }}
         >
           А
+        </span>
+      ) : null}
+
+      {hasMultipleParents ? (
+        <span
+          className={`multiple-parents-indicator ${data.atomicityFlag ? 'with-atomic-indicator' : ''}`}
+          title="Несколько родителей"
+          style={{
+            backgroundColor: indicatorBgColor,
+            color: theme.palette.primary.main,
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderRadius: '4px',
+            padding: '2px',
+            width: '20px',
+            height: '20px',
+            fontSize: '14px',
+            fontWeight: 'bold'
+          }}
+        >
+          M
         </span>
       ) : null}
 

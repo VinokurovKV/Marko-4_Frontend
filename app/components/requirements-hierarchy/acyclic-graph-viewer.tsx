@@ -63,8 +63,6 @@ import DialogTitle from '@mui/material/DialogTitle'
 import ListItemText from '@mui/material/ListItemText'
 import Menu from '@mui/material/Menu'
 import MenuItem from '@mui/material/MenuItem'
-import FullscreenIcon from '@mui/icons-material/Fullscreen'
-import FullscreenExitIcon from '@mui/icons-material/FullscreenExit'
 import AccountTreeIcon from '@mui/icons-material/AccountTree'
 import TuneIcon from '@mui/icons-material/Tune'
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline'
@@ -103,7 +101,14 @@ export interface AcyclicGraphViewerProps {
 
 type AcyclicGraphNode = Node<AcyclicGraphVertexViewerProps<VertexData>>
 type MiniGraphDisplayMode = 'ROOT_PATH' | 'ALL_RELATED'
-type ChildPanelKey = 'level2' | 'level3' | 'level4' | 'level5'
+type ChildPanelKey =
+  | 'level2'
+  | 'level3'
+  | 'level4'
+  | 'level5'
+  | 'level6'
+  | 'level7'
+  | 'level8'
 type CoverageDisplayKey = 'full' | 'must' | 'mustShould' | 'should' | 'may'
 type GraphKeyboardNavigationEvent = Pick<
   KeyboardEvent,
@@ -1459,6 +1464,7 @@ const getMiniFlowData = (
           hasParents: vertex.parentsIds.some((parentId) =>
             includedIds.has(parentId)
           ),
+          hasMultipleParents: vertex.parentsIds.length > 1,
           hasChildren: vertex.childIds.some((childId) =>
             includedIds.has(childId)
           ),
@@ -1498,7 +1504,8 @@ const getMiniFlowData = (
 const getDirectChildVertexes = (
   selectedId: number | null,
   vertexes: Vertex[],
-  dataForVertexId: Map<number, VertexData>
+  dataForVertexId: Map<number, VertexData>,
+  parentDisplayLevel?: number
 ): { childLevel: number; childVertexes: Vertex[] } => {
   if (selectedId === null) {
     return { childLevel: 1, childVertexes: [] }
@@ -1511,17 +1518,10 @@ const getDirectChildVertexes = (
     return { childLevel: 1, childVertexes: [] }
   }
 
-  const childLevel = getVertexLevel(selectedData) + 1
+  const childLevel = (parentDisplayLevel ?? getVertexLevel(selectedData)) + 1
   const childVertexes = selectedVertex.childIds
     .map((childId) => vertexes.find((vertex) => vertex.id === childId))
     .filter((vertex): vertex is Vertex => vertex !== undefined)
-    .filter((vertex) => {
-      const vertexData = dataForVertexId.get(vertex.id)
-
-      return (
-        vertexData !== undefined && getVertexLevel(vertexData) === childLevel
-      )
-    })
     .sort((a, b) => a.id - b.id)
 
   return { childLevel, childVertexes }
@@ -1549,6 +1549,7 @@ export default function AcyclicGraphViewer({
   const mainGraphHostRef = useRef<HTMLDivElement | null>(null)
   const requirementSearchRef = useRef<HTMLDivElement | null>(null)
   const initialSelectionIsAppliedRef = useRef(false)
+  const requirementSearchSelectionInProgressRef = useRef(false)
   const [miniGraphWidth, setMiniGraphWidth] = useState(MINI_GRAPH_DEFAULT_WIDTH)
 
   const [baseNodes, setBaseNodes] = useState<AcyclicGraphNode[]>([])
@@ -1564,6 +1565,9 @@ export default function AcyclicGraphViewer({
   const [expandedLevel2Id, setExpandedLevel2Id] = useState<number | null>(null)
   const [expandedLevel3Id, setExpandedLevel3Id] = useState<number | null>(null)
   const [expandedLevel4Id, setExpandedLevel4Id] = useState<number | null>(null)
+  const [expandedLevel5Id, setExpandedLevel5Id] = useState<number | null>(null)
+  const [expandedLevel6Id, setExpandedLevel6Id] = useState<number | null>(null)
+  const [expandedLevel7Id, setExpandedLevel7Id] = useState<number | null>(null)
   const [rootPanelAnchor, setRootPanelAnchor] = useState({
     left: 0,
     top: 12
@@ -1585,11 +1589,26 @@ export default function AcyclicGraphViewer({
     left: 12,
     top: 288
   })
+  const [level6PanelAnchor, setLevel6PanelAnchor] = useState({
+    left: 12,
+    top: 380
+  })
+  const [level7PanelAnchor, setLevel7PanelAnchor] = useState({
+    left: 12,
+    top: 472
+  })
+  const [level8PanelAnchor, setLevel8PanelAnchor] = useState({
+    left: 12,
+    top: 564
+  })
   const [childPanelReady, setChildPanelReady] = useState(false)
   const [grandChildPanelReady, setGrandChildPanelReady] = useState(false)
   const [greatGrandChildPanelReady, setGreatGrandChildPanelReady] =
     useState(false)
   const [level5PanelReady, setLevel5PanelReady] = useState(false)
+  const [level6PanelReady, setLevel6PanelReady] = useState(false)
+  const [level7PanelReady, setLevel7PanelReady] = useState(false)
+  const [level8PanelReady, setLevel8PanelReady] = useState(false)
   const [rootScrollStartIndex, setRootScrollStartIndex] = useState(0)
   const [childScrollStartIndex, setChildScrollStartIndex] = useState(0)
   const [grandChildScrollStartIndex, setGrandChildScrollStartIndex] =
@@ -1597,12 +1616,18 @@ export default function AcyclicGraphViewer({
   const [greatGrandChildScrollStartIndex, setGreatGrandChildScrollStartIndex] =
     useState(0)
   const [level5ScrollStartIndex, setLevel5ScrollStartIndex] = useState(0)
+  const [level6ScrollStartIndex, setLevel6ScrollStartIndex] = useState(0)
+  const [level7ScrollStartIndex, setLevel7ScrollStartIndex] = useState(0)
+  const [level8ScrollStartIndex, setLevel8ScrollStartIndex] = useState(0)
   const [hiddenChildVertexIdsByPanel, setHiddenChildVertexIdsByPanel] =
     useState<Record<ChildPanelKey, number[]>>({
       level2: [],
       level3: [],
       level4: [],
-      level5: []
+      level5: [],
+      level6: [],
+      level7: [],
+      level8: []
     })
   const [filterMenuAnchor, setFilterMenuAnchor] = useState<HTMLElement | null>(
     null
@@ -1610,6 +1635,8 @@ export default function AcyclicGraphViewer({
   const [filterMenuPanelKey, setFilterMenuPanelKey] =
     useState<ChildPanelKey | null>(null)
   const [filterMenuSearch, setFilterMenuSearch] = useState('')
+  const [requirementSearchInputValue, setRequirementSearchInputValue] =
+    useState('')
   const [coverageSettingsMenuAnchor, setCoverageSettingsMenuAnchor] =
     useState<HTMLElement | null>(null)
   const [selectedProgressDisplayKey, setSelectedProgressDisplayKey] =
@@ -1677,6 +1704,7 @@ export default function AcyclicGraphViewer({
             id: vertex.id,
             level: getVertexLevel(vertexData),
             hasParents: vertex.parentsIds.length > 0,
+            hasMultipleParents: vertex.parentsIds.length > 1,
             hasChildren: vertex.childIds.length > 0,
             data: vertexData,
             coverageFraction: getCoverageFractionForVertex(
@@ -1722,6 +1750,7 @@ export default function AcyclicGraphViewer({
           id: vertex.id,
           level: 1,
           hasParents: false,
+          hasMultipleParents: vertex.parentsIds.length > 1,
           hasChildren: vertex.childIds.length > 0,
           data: vertexData,
           displayCode: displayCodeInfoByVertexId.get(vertex.id)?.displayCode,
@@ -1836,27 +1865,45 @@ export default function AcyclicGraphViewer({
   }, [level1Count])
   const level2ChildVertexes = useMemo(
     () =>
-      getDirectChildVertexes(expandedLevel1Id, vertexes, dataForVertexId)
+      getDirectChildVertexes(expandedLevel1Id, vertexes, dataForVertexId, 1)
         .childVertexes,
     [expandedLevel1Id, vertexes, dataForVertexId]
   )
   const level3ChildVertexes = useMemo(
     () =>
-      getDirectChildVertexes(expandedLevel2Id, vertexes, dataForVertexId)
+      getDirectChildVertexes(expandedLevel2Id, vertexes, dataForVertexId, 2)
         .childVertexes,
     [expandedLevel2Id, vertexes, dataForVertexId]
   )
   const level4ChildVertexes = useMemo(
     () =>
-      getDirectChildVertexes(expandedLevel3Id, vertexes, dataForVertexId)
+      getDirectChildVertexes(expandedLevel3Id, vertexes, dataForVertexId, 3)
         .childVertexes,
     [expandedLevel3Id, vertexes, dataForVertexId]
   )
   const level5ChildVertexes = useMemo(
     () =>
-      getDirectChildVertexes(expandedLevel4Id, vertexes, dataForVertexId)
+      getDirectChildVertexes(expandedLevel4Id, vertexes, dataForVertexId, 4)
         .childVertexes,
     [expandedLevel4Id, vertexes, dataForVertexId]
+  )
+  const level6ChildVertexes = useMemo(
+    () =>
+      getDirectChildVertexes(expandedLevel5Id, vertexes, dataForVertexId, 5)
+        .childVertexes,
+    [expandedLevel5Id, vertexes, dataForVertexId]
+  )
+  const level7ChildVertexes = useMemo(
+    () =>
+      getDirectChildVertexes(expandedLevel6Id, vertexes, dataForVertexId, 6)
+        .childVertexes,
+    [expandedLevel6Id, vertexes, dataForVertexId]
+  )
+  const level8ChildVertexes = useMemo(
+    () =>
+      getDirectChildVertexes(expandedLevel7Id, vertexes, dataForVertexId, 7)
+        .childVertexes,
+    [expandedLevel7Id, vertexes, dataForVertexId]
   )
   const selectedChildCount = level2ChildVertexes.filter(
     (vertex) => !hiddenChildVertexIdsByPanel.level2.includes(vertex.id)
@@ -1869,6 +1916,15 @@ export default function AcyclicGraphViewer({
   ).length
   const selectedLevel5Count = level5ChildVertexes.filter(
     (vertex) => !hiddenChildVertexIdsByPanel.level5.includes(vertex.id)
+  ).length
+  const selectedLevel6Count = level6ChildVertexes.filter(
+    (vertex) => !hiddenChildVertexIdsByPanel.level6.includes(vertex.id)
+  ).length
+  const selectedLevel7Count = level7ChildVertexes.filter(
+    (vertex) => !hiddenChildVertexIdsByPanel.level7.includes(vertex.id)
+  ).length
+  const selectedLevel8Count = level8ChildVertexes.filter(
+    (vertex) => !hiddenChildVertexIdsByPanel.level8.includes(vertex.id)
   ).length
   useLayoutEffect(() => {
     if (containerWidth > 0 && containerHeight > 0) {
@@ -1902,6 +1958,7 @@ export default function AcyclicGraphViewer({
       parentNodes: AcyclicGraphNode[],
       scrollStartIndex: number,
       panelId: string,
+      parentDisplayLevel: number,
       hiddenVertexIds: number[]
     ) => {
       const selectedLayoutedNode =
@@ -1909,7 +1966,12 @@ export default function AcyclicGraphViewer({
           ? parentNodes.find((node) => node.id === parentId.toString())
           : undefined
       const { childLevel, childVertexes: allChildVertexes } =
-        getDirectChildVertexes(parentId, vertexes, dataForVertexId)
+        getDirectChildVertexes(
+          parentId,
+          vertexes,
+          dataForVertexId,
+          parentDisplayLevel
+        )
       const childVertexes = allChildVertexes.filter(
         (vertex) => !hiddenVertexIds.includes(vertex.id)
       )
@@ -1983,6 +2045,7 @@ export default function AcyclicGraphViewer({
                     id: vertex.id,
                     level: childLevel,
                     hasParents: true,
+                    hasMultipleParents: vertex.parentsIds.length > 1,
                     hasChildren: vertex.childIds.length > 0,
                     data: vertexData,
                     displayCode: displayCodeInfoByVertexId.get(vertex.id)
@@ -2026,6 +2089,7 @@ export default function AcyclicGraphViewer({
         baseNodes,
         childScrollStartIndex,
         'child-panel',
+        1,
         hiddenChildVertexIdsByPanel.level2
       ),
     [
@@ -2043,6 +2107,7 @@ export default function AcyclicGraphViewer({
         childGraphData.nodes,
         grandChildScrollStartIndex,
         'grand-child-panel',
+        2,
         hiddenChildVertexIdsByPanel.level3
       ),
     [
@@ -2061,6 +2126,7 @@ export default function AcyclicGraphViewer({
         grandChildGraphData.nodes,
         greatGrandChildScrollStartIndex,
         'great-grand-child-panel',
+        3,
         hiddenChildVertexIdsByPanel.level4
       ),
     [
@@ -2079,6 +2145,7 @@ export default function AcyclicGraphViewer({
         greatGrandChildGraphData.nodes,
         level5ScrollStartIndex,
         'level-5-panel',
+        4,
         hiddenChildVertexIdsByPanel.level5
       ),
     [
@@ -2087,6 +2154,60 @@ export default function AcyclicGraphViewer({
       greatGrandChildGraphData.nodes,
       level5ScrollStartIndex,
       hiddenChildVertexIdsByPanel.level5
+    ]
+  )
+  const level6GraphData = useMemo(
+    () =>
+      createChildGraphData(
+        expandedLevel5Id,
+        level5GraphData.nodes,
+        level6ScrollStartIndex,
+        'level-6-panel',
+        5,
+        hiddenChildVertexIdsByPanel.level6
+      ),
+    [
+      createChildGraphData,
+      expandedLevel5Id,
+      level5GraphData.nodes,
+      level6ScrollStartIndex,
+      hiddenChildVertexIdsByPanel.level6
+    ]
+  )
+  const level7GraphData = useMemo(
+    () =>
+      createChildGraphData(
+        expandedLevel6Id,
+        level6GraphData.nodes,
+        level7ScrollStartIndex,
+        'level-7-panel',
+        6,
+        hiddenChildVertexIdsByPanel.level7
+      ),
+    [
+      createChildGraphData,
+      expandedLevel6Id,
+      level6GraphData.nodes,
+      level7ScrollStartIndex,
+      hiddenChildVertexIdsByPanel.level7
+    ]
+  )
+  const level8GraphData = useMemo(
+    () =>
+      createChildGraphData(
+        expandedLevel7Id,
+        level7GraphData.nodes,
+        level8ScrollStartIndex,
+        'level-8-panel',
+        7,
+        hiddenChildVertexIdsByPanel.level8
+      ),
+    [
+      createChildGraphData,
+      expandedLevel7Id,
+      level7GraphData.nodes,
+      level8ScrollStartIndex,
+      hiddenChildVertexIdsByPanel.level8
     ]
   )
 
@@ -2115,7 +2236,10 @@ export default function AcyclicGraphViewer({
           ...childGraphData.nodes,
           ...grandChildGraphData.nodes,
           ...greatGrandChildGraphData.nodes,
-          ...level5GraphData.nodes
+          ...level5GraphData.nodes,
+          ...level6GraphData.nodes,
+          ...level7GraphData.nodes,
+          ...level8GraphData.nodes
         ]
 
     return applySelectionToNodes(nodes, isFullGraphVisible === false)
@@ -2126,7 +2250,10 @@ export default function AcyclicGraphViewer({
     childGraphData.nodes,
     grandChildGraphData.nodes,
     greatGrandChildGraphData.nodes,
-    level5GraphData.nodes
+    level5GraphData.nodes,
+    level6GraphData.nodes,
+    level7GraphData.nodes,
+    level8GraphData.nodes
   ])
   const allEdges = useMemo(
     () =>
@@ -2137,7 +2264,10 @@ export default function AcyclicGraphViewer({
             ...childGraphData.edges,
             ...grandChildGraphData.edges,
             ...greatGrandChildGraphData.edges,
-            ...level5GraphData.edges
+            ...level5GraphData.edges,
+            ...level6GraphData.edges,
+            ...level7GraphData.edges,
+            ...level8GraphData.edges
           ],
     [
       isFullGraphVisible,
@@ -2145,7 +2275,10 @@ export default function AcyclicGraphViewer({
       childGraphData.edges,
       grandChildGraphData.edges,
       greatGrandChildGraphData.edges,
-      level5GraphData.edges
+      level5GraphData.edges,
+      level6GraphData.edges,
+      level7GraphData.edges,
+      level8GraphData.edges
     ]
   )
   const mainGraphInitialFitKey = useMemo(
@@ -2189,6 +2322,18 @@ export default function AcyclicGraphViewer({
     isFullGraphVisible === false &&
     expandedLevel4Id !== null &&
     level5ChildVertexes.length > 0
+  const level6FlowIsVisible =
+    isFullGraphVisible === false &&
+    expandedLevel5Id !== null &&
+    level6ChildVertexes.length > 0
+  const level7FlowIsVisible =
+    isFullGraphVisible === false &&
+    expandedLevel6Id !== null &&
+    level7ChildVertexes.length > 0
+  const level8FlowIsVisible =
+    isFullGraphVisible === false &&
+    expandedLevel7Id !== null &&
+    level8ChildVertexes.length > 0
   const updatePanelAnchor = useCallback(
     (
       nodeId: number | null,
@@ -2298,15 +2443,39 @@ export default function AcyclicGraphViewer({
       setLevel5PanelAnchor,
       setLevel5PanelReady
     )
+    updatePanelAnchor(
+      expandedLevel5Id,
+      level6GraphData.nodes,
+      setLevel6PanelAnchor,
+      setLevel6PanelReady
+    )
+    updatePanelAnchor(
+      expandedLevel6Id,
+      level7GraphData.nodes,
+      setLevel7PanelAnchor,
+      setLevel7PanelReady
+    )
+    updatePanelAnchor(
+      expandedLevel7Id,
+      level8GraphData.nodes,
+      setLevel8PanelAnchor,
+      setLevel8PanelReady
+    )
   }, [
     childGraphData.nodes,
     expandedLevel1Id,
     expandedLevel2Id,
     expandedLevel3Id,
     expandedLevel4Id,
+    expandedLevel5Id,
+    expandedLevel6Id,
+    expandedLevel7Id,
     grandChildGraphData.nodes,
     greatGrandChildGraphData.nodes,
     level5GraphData.nodes,
+    level6GraphData.nodes,
+    level7GraphData.nodes,
+    level8GraphData.nodes,
     updatePanelAnchor,
     updateRootPanelAnchor
   ])
@@ -2321,13 +2490,22 @@ export default function AcyclicGraphViewer({
           return level4ChildVertexes
         case 'level5':
           return level5ChildVertexes
+        case 'level6':
+          return level6ChildVertexes
+        case 'level7':
+          return level7ChildVertexes
+        case 'level8':
+          return level8ChildVertexes
       }
     },
     [
       level2ChildVertexes,
       level3ChildVertexes,
       level4ChildVertexes,
-      level5ChildVertexes
+      level5ChildVertexes,
+      level6ChildVertexes,
+      level7ChildVertexes,
+      level8ChildVertexes
     ]
   )
 
@@ -2462,12 +2640,60 @@ export default function AcyclicGraphViewer({
 
       event.preventDefault()
       event.stopPropagation()
+      setExpandedLevel5Id(null)
       const direction = event.deltaY + event.deltaX > 0 ? 1 : -1
       setLevel5ScrollStartIndex((prev) =>
         Math.min(Math.max(prev + direction, 0), selectedLevel5Count - 12)
       )
     },
     [selectedLevel5Count]
+  )
+  const handleLevel6PanelWheel = useCallback(
+    (event: React.WheelEvent) => {
+      if (selectedLevel6Count <= 12) {
+        return
+      }
+
+      event.preventDefault()
+      event.stopPropagation()
+      setExpandedLevel6Id(null)
+      const direction = event.deltaY + event.deltaX > 0 ? 1 : -1
+      setLevel6ScrollStartIndex((prev) =>
+        Math.min(Math.max(prev + direction, 0), selectedLevel6Count - 12)
+      )
+    },
+    [selectedLevel6Count]
+  )
+  const handleLevel7PanelWheel = useCallback(
+    (event: React.WheelEvent) => {
+      if (selectedLevel7Count <= 12) {
+        return
+      }
+
+      event.preventDefault()
+      event.stopPropagation()
+      setExpandedLevel7Id(null)
+      const direction = event.deltaY + event.deltaX > 0 ? 1 : -1
+      setLevel7ScrollStartIndex((prev) =>
+        Math.min(Math.max(prev + direction, 0), selectedLevel7Count - 12)
+      )
+    },
+    [selectedLevel7Count]
+  )
+  const handleLevel8PanelWheel = useCallback(
+    (event: React.WheelEvent) => {
+      if (selectedLevel8Count <= 12) {
+        return
+      }
+
+      event.preventDefault()
+      event.stopPropagation()
+      const direction = event.deltaY + event.deltaX > 0 ? 1 : -1
+      setLevel8ScrollStartIndex((prev) =>
+        Math.min(Math.max(prev + direction, 0), selectedLevel8Count - 12)
+      )
+    },
+    [selectedLevel8Count]
   )
 
   const handleMainGraphHostWheelCapture = useCallback(
@@ -2485,6 +2711,33 @@ export default function AcyclicGraphViewer({
         pointerY <= rootPanelAnchor.top + 80
       ) {
         handleRootPanelWheel(event)
+        return
+      }
+
+      if (
+        level8FlowIsVisible &&
+        pointerY >= level8PanelAnchor.top &&
+        pointerY <= level8PanelAnchor.top + 80
+      ) {
+        handleLevel8PanelWheel(event)
+        return
+      }
+
+      if (
+        level7FlowIsVisible &&
+        pointerY >= level7PanelAnchor.top &&
+        pointerY <= level7PanelAnchor.top + 80
+      ) {
+        handleLevel7PanelWheel(event)
+        return
+      }
+
+      if (
+        level6FlowIsVisible &&
+        pointerY >= level6PanelAnchor.top &&
+        pointerY <= level6PanelAnchor.top + 80
+      ) {
+        handleLevel6PanelWheel(event)
         return
       }
 
@@ -2528,17 +2781,26 @@ export default function AcyclicGraphViewer({
       grandChildFlowIsVisible,
       greatGrandChildFlowIsVisible,
       level5FlowIsVisible,
+      level6FlowIsVisible,
+      level7FlowIsVisible,
+      level8FlowIsVisible,
       rootPanelReady,
       rootPanelAnchor.top,
       childPanelAnchor.top,
       grandChildPanelAnchor.top,
       greatGrandChildPanelAnchor.top,
       level5PanelAnchor.top,
+      level6PanelAnchor.top,
+      level7PanelAnchor.top,
+      level8PanelAnchor.top,
       handleRootPanelWheel,
       handleChildPanelWheel,
       handleGrandChildPanelWheel,
       handleGreatGrandChildPanelWheel,
-      handleLevel5PanelWheel
+      handleLevel5PanelWheel,
+      handleLevel6PanelWheel,
+      handleLevel7PanelWheel,
+      handleLevel8PanelWheel
     ]
   )
   const miniGraphFitKey = useMemo(
@@ -2567,7 +2829,8 @@ export default function AcyclicGraphViewer({
       getDirectChildVertexes(
         expandedLevel1Id,
         vertexes,
-        dataForVertexId
+        dataForVertexId,
+        1
       ).childVertexes.some((vertex) => vertex.id === expandedLevel2Id)
 
     if (expandedLevel2IsValid) {
@@ -2578,15 +2841,24 @@ export default function AcyclicGraphViewer({
     setExpandedLevel2Id(null)
     setExpandedLevel3Id(null)
     setExpandedLevel4Id(null)
+    setExpandedLevel5Id(null)
+    setExpandedLevel6Id(null)
+    setExpandedLevel7Id(null)
     setGrandChildScrollStartIndex(0)
     setGreatGrandChildScrollStartIndex(0)
     setLevel5ScrollStartIndex(0)
+    setLevel6ScrollStartIndex(0)
+    setLevel7ScrollStartIndex(0)
+    setLevel8ScrollStartIndex(0)
     setHiddenChildVertexIdsByPanel((prev) => ({
       ...prev,
       level2: [],
       level3: [],
       level4: [],
-      level5: []
+      level5: [],
+      level6: [],
+      level7: [],
+      level8: []
     }))
   }, [expandedLevel1Id, expandedLevel2Id, vertexes, dataForVertexId])
 
@@ -2601,7 +2873,8 @@ export default function AcyclicGraphViewer({
       getDirectChildVertexes(
         expandedLevel2Id,
         vertexes,
-        dataForVertexId
+        dataForVertexId,
+        2
       ).childVertexes.some((vertex) => vertex.id === expandedLevel3Id)
 
     if (expandedLevel3IsValid) {
@@ -2610,13 +2883,23 @@ export default function AcyclicGraphViewer({
 
     setGrandChildScrollStartIndex(0)
     setExpandedLevel3Id(null)
+    setExpandedLevel4Id(null)
+    setExpandedLevel5Id(null)
+    setExpandedLevel6Id(null)
+    setExpandedLevel7Id(null)
     setGreatGrandChildScrollStartIndex(0)
     setLevel5ScrollStartIndex(0)
+    setLevel6ScrollStartIndex(0)
+    setLevel7ScrollStartIndex(0)
+    setLevel8ScrollStartIndex(0)
     setHiddenChildVertexIdsByPanel((prev) => ({
       ...prev,
       level3: [],
       level4: [],
-      level5: []
+      level5: [],
+      level6: [],
+      level7: [],
+      level8: []
     }))
   }, [expandedLevel2Id, expandedLevel3Id, vertexes, dataForVertexId])
 
@@ -2631,7 +2914,8 @@ export default function AcyclicGraphViewer({
       getDirectChildVertexes(
         expandedLevel3Id,
         vertexes,
-        dataForVertexId
+        dataForVertexId,
+        3
       ).childVertexes.some((vertex) => vertex.id === expandedLevel4Id)
 
     if (expandedLevel4IsValid) {
@@ -2640,11 +2924,20 @@ export default function AcyclicGraphViewer({
 
     setGreatGrandChildScrollStartIndex(0)
     setExpandedLevel4Id(null)
+    setExpandedLevel5Id(null)
+    setExpandedLevel6Id(null)
+    setExpandedLevel7Id(null)
     setLevel5ScrollStartIndex(0)
+    setLevel6ScrollStartIndex(0)
+    setLevel7ScrollStartIndex(0)
+    setLevel8ScrollStartIndex(0)
     setHiddenChildVertexIdsByPanel((prev) => ({
       ...prev,
       level4: [],
-      level5: []
+      level5: [],
+      level6: [],
+      level7: [],
+      level8: []
     }))
   }, [expandedLevel3Id, expandedLevel4Id, vertexes, dataForVertexId])
 
@@ -2654,23 +2947,128 @@ export default function AcyclicGraphViewer({
     }
 
     setLevel5ScrollStartIndex(0)
+    setExpandedLevel5Id(null)
+    setExpandedLevel6Id(null)
+    setExpandedLevel7Id(null)
+    setLevel6ScrollStartIndex(0)
+    setLevel7ScrollStartIndex(0)
+    setLevel8ScrollStartIndex(0)
     setHiddenChildVertexIdsByPanel((prev) => ({
       ...prev,
-      level5: []
+      level5: [],
+      level6: [],
+      level7: [],
+      level8: []
     }))
   }, [expandedLevel4Id])
+
+  useEffect(() => {
+    if (searchExpansionInProgressRef.current) {
+      return
+    }
+
+    const expandedLevel5IsValid =
+      expandedLevel4Id !== null &&
+      expandedLevel5Id !== null &&
+      getDirectChildVertexes(
+        expandedLevel4Id,
+        vertexes,
+        dataForVertexId,
+        4
+      ).childVertexes.some((vertex) => vertex.id === expandedLevel5Id)
+
+    if (expandedLevel5IsValid) {
+      return
+    }
+
+    setLevel6ScrollStartIndex(0)
+    setExpandedLevel5Id(null)
+    setExpandedLevel6Id(null)
+    setExpandedLevel7Id(null)
+    setLevel7ScrollStartIndex(0)
+    setLevel8ScrollStartIndex(0)
+    setHiddenChildVertexIdsByPanel((prev) => ({
+      ...prev,
+      level6: [],
+      level7: [],
+      level8: []
+    }))
+  }, [expandedLevel4Id, expandedLevel5Id, vertexes, dataForVertexId])
+
+  useEffect(() => {
+    if (searchExpansionInProgressRef.current) {
+      return
+    }
+
+    const expandedLevel6IsValid =
+      expandedLevel5Id !== null &&
+      expandedLevel6Id !== null &&
+      getDirectChildVertexes(
+        expandedLevel5Id,
+        vertexes,
+        dataForVertexId,
+        5
+      ).childVertexes.some((vertex) => vertex.id === expandedLevel6Id)
+
+    if (expandedLevel6IsValid) {
+      return
+    }
+
+    setLevel7ScrollStartIndex(0)
+    setExpandedLevel6Id(null)
+    setExpandedLevel7Id(null)
+    setLevel8ScrollStartIndex(0)
+    setHiddenChildVertexIdsByPanel((prev) => ({
+      ...prev,
+      level7: [],
+      level8: []
+    }))
+  }, [expandedLevel5Id, expandedLevel6Id, vertexes, dataForVertexId])
+
+  useEffect(() => {
+    if (searchExpansionInProgressRef.current) {
+      return
+    }
+
+    const expandedLevel7IsValid =
+      expandedLevel6Id !== null &&
+      expandedLevel7Id !== null &&
+      getDirectChildVertexes(
+        expandedLevel6Id,
+        vertexes,
+        dataForVertexId,
+        6
+      ).childVertexes.some((vertex) => vertex.id === expandedLevel7Id)
+
+    if (expandedLevel7IsValid) {
+      return
+    }
+
+    setLevel8ScrollStartIndex(0)
+    setExpandedLevel7Id(null)
+    setHiddenChildVertexIdsByPanel((prev) => ({
+      ...prev,
+      level8: []
+    }))
+  }, [expandedLevel6Id, expandedLevel7Id, vertexes, dataForVertexId])
 
   useLayoutEffect(() => {
     if (
       childFlowIsVisible === false &&
       grandChildFlowIsVisible === false &&
       greatGrandChildFlowIsVisible === false &&
-      level5FlowIsVisible === false
+      level5FlowIsVisible === false &&
+      level6FlowIsVisible === false &&
+      level7FlowIsVisible === false &&
+      level8FlowIsVisible === false
     ) {
       setChildPanelReady(false)
       setGrandChildPanelReady(false)
       setGreatGrandChildPanelReady(false)
       setLevel5PanelReady(false)
+      setLevel6PanelReady(false)
+      setLevel7PanelReady(false)
+      setLevel8PanelReady(false)
       return undefined
     }
 
@@ -2691,10 +3089,16 @@ export default function AcyclicGraphViewer({
     expandedLevel2Id,
     expandedLevel3Id,
     expandedLevel4Id,
+    expandedLevel5Id,
+    expandedLevel6Id,
+    expandedLevel7Id,
     childFlowIsVisible,
     grandChildFlowIsVisible,
     greatGrandChildFlowIsVisible,
-    level5FlowIsVisible
+    level5FlowIsVisible,
+    level6FlowIsVisible,
+    level7FlowIsVisible,
+    level8FlowIsVisible
   ])
   useEffect(() => {
     if (isFullscreenInitializedRef.current === false) {
@@ -2748,6 +3152,18 @@ export default function AcyclicGraphViewer({
     [selectedId, requirementSearchOptions]
   )
 
+  useEffect(() => {
+    const activeElement = document.activeElement
+    if (
+      activeElement instanceof HTMLElement &&
+      requirementSearchRef.current?.contains(activeElement) === true
+    ) {
+      return
+    }
+
+    setRequirementSearchInputValue(selectedRequirementSearchOption?.title ?? '')
+  }, [selectedRequirementSearchOption])
+
   const selectVertex = useCallback(
     (
       vertexId: number,
@@ -2776,15 +3192,36 @@ export default function AcyclicGraphViewer({
           setExpandedLevel2Id(null)
           setExpandedLevel3Id(null)
           setExpandedLevel4Id(null)
+          setExpandedLevel5Id(null)
+          setExpandedLevel6Id(null)
+          setExpandedLevel7Id(null)
         } else if (level === 2) {
           setExpandedLevel2Id(null)
           setExpandedLevel3Id(null)
           setExpandedLevel4Id(null)
+          setExpandedLevel5Id(null)
+          setExpandedLevel6Id(null)
+          setExpandedLevel7Id(null)
         } else if (level === 3) {
           setExpandedLevel3Id(null)
           setExpandedLevel4Id(null)
+          setExpandedLevel5Id(null)
+          setExpandedLevel6Id(null)
+          setExpandedLevel7Id(null)
         } else if (level === 4) {
           setExpandedLevel4Id(null)
+          setExpandedLevel5Id(null)
+          setExpandedLevel6Id(null)
+          setExpandedLevel7Id(null)
+        } else if (level === 5) {
+          setExpandedLevel5Id(null)
+          setExpandedLevel6Id(null)
+          setExpandedLevel7Id(null)
+        } else if (level === 6) {
+          setExpandedLevel6Id(null)
+          setExpandedLevel7Id(null)
+        } else if (level === 7) {
+          setExpandedLevel7Id(null)
         }
       }
 
@@ -2803,7 +3240,7 @@ export default function AcyclicGraphViewer({
       const hasVisibleChildren =
         vertexData !== undefined &&
         vertexData.atomicityFlag !== true &&
-        getDirectChildVertexes(vertexId, vertexes, dataForVertexId)
+        getDirectChildVertexes(vertexId, vertexes, dataForVertexId, level)
           .childVertexes.length > 0
 
       if (isFullGraphVisible === false) {
@@ -2812,19 +3249,43 @@ export default function AcyclicGraphViewer({
           setExpandedLevel2Id(null)
           setExpandedLevel3Id(null)
           setExpandedLevel4Id(null)
+          setExpandedLevel5Id(null)
+          setExpandedLevel6Id(null)
+          setExpandedLevel7Id(null)
           setChildScrollStartIndex(0)
         } else if (level === 2) {
           setExpandedLevel2Id(hasVisibleChildren ? vertexId : null)
           setExpandedLevel3Id(null)
           setExpandedLevel4Id(null)
+          setExpandedLevel5Id(null)
+          setExpandedLevel6Id(null)
+          setExpandedLevel7Id(null)
           setGrandChildScrollStartIndex(0)
         } else if (level === 3) {
           setExpandedLevel3Id(hasVisibleChildren ? vertexId : null)
           setExpandedLevel4Id(null)
+          setExpandedLevel5Id(null)
+          setExpandedLevel6Id(null)
+          setExpandedLevel7Id(null)
           setGreatGrandChildScrollStartIndex(0)
         } else if (level === 4) {
           setExpandedLevel4Id(hasVisibleChildren ? vertexId : null)
+          setExpandedLevel5Id(null)
+          setExpandedLevel6Id(null)
+          setExpandedLevel7Id(null)
           setLevel5ScrollStartIndex(0)
+        } else if (level === 5) {
+          setExpandedLevel5Id(hasVisibleChildren ? vertexId : null)
+          setExpandedLevel6Id(null)
+          setExpandedLevel7Id(null)
+          setLevel6ScrollStartIndex(0)
+        } else if (level === 6) {
+          setExpandedLevel6Id(hasVisibleChildren ? vertexId : null)
+          setExpandedLevel7Id(null)
+          setLevel7ScrollStartIndex(0)
+        } else if (level === 7) {
+          setExpandedLevel7Id(hasVisibleChildren ? vertexId : null)
+          setLevel8ScrollStartIndex(0)
         }
       }
 
@@ -2964,9 +3425,34 @@ export default function AcyclicGraphViewer({
           .map((vertex) => vertex.id)
       }
 
+      if (level === 6) {
+        return level6ChildVertexes
+          .filter(
+            (vertex) => !hiddenChildVertexIdsByPanel.level6.includes(vertex.id)
+          )
+          .map((vertex) => vertex.id)
+      }
+
+      if (level === 7) {
+        return level7ChildVertexes
+          .filter(
+            (vertex) => !hiddenChildVertexIdsByPanel.level7.includes(vertex.id)
+          )
+          .map((vertex) => vertex.id)
+      }
+
+      if (level === 8) {
+        return level8ChildVertexes
+          .filter(
+            (vertex) => !hiddenChildVertexIdsByPanel.level8.includes(vertex.id)
+          )
+          .map((vertex) => vertex.id)
+      }
+
       return []
     },
     [
+      allEdges,
       allNodes,
       dataForVertexId,
       hiddenChildVertexIdsByPanel,
@@ -2975,6 +3461,9 @@ export default function AcyclicGraphViewer({
       level3ChildVertexes,
       level4ChildVertexes,
       level5ChildVertexes,
+      level6ChildVertexes,
+      level7ChildVertexes,
+      level8ChildVertexes,
       vertexes
     ]
   )
@@ -3006,6 +3495,18 @@ export default function AcyclicGraphViewer({
         setLevel5ScrollStartIndex((prev) =>
           getNextScrollStart(prev, selectedLevel5Count)
         )
+      } else if (level === 6) {
+        setLevel6ScrollStartIndex((prev) =>
+          getNextScrollStart(prev, selectedLevel6Count)
+        )
+      } else if (level === 7) {
+        setLevel7ScrollStartIndex((prev) =>
+          getNextScrollStart(prev, selectedLevel7Count)
+        )
+      } else if (level === 8) {
+        setLevel8ScrollStartIndex((prev) =>
+          getNextScrollStart(prev, selectedLevel8Count)
+        )
       }
     },
     [
@@ -3013,7 +3514,10 @@ export default function AcyclicGraphViewer({
       selectedChildCount,
       selectedGrandChildCount,
       selectedGreatGrandChildCount,
-      selectedLevel5Count
+      selectedLevel5Count,
+      selectedLevel6Count,
+      selectedLevel7Count,
+      selectedLevel8Count
     ]
   )
 
@@ -3049,10 +3553,16 @@ export default function AcyclicGraphViewer({
           setExpandedLevel2Id(null)
           setExpandedLevel3Id(null)
           setExpandedLevel4Id(null)
+          setExpandedLevel5Id(null)
+          setExpandedLevel6Id(null)
+          setExpandedLevel7Id(null)
         } else if (level === 2) {
           setExpandedLevel2Id(null)
           setExpandedLevel3Id(null)
           setExpandedLevel4Id(null)
+          setExpandedLevel5Id(null)
+          setExpandedLevel6Id(null)
+          setExpandedLevel7Id(null)
           if (expandedLevel1Id !== null) {
             setSelectedId(expandedLevel1Id)
             setSelectedNodeId(expandedLevel1Id.toString())
@@ -3063,6 +3573,9 @@ export default function AcyclicGraphViewer({
         } else if (level === 3) {
           setExpandedLevel3Id(null)
           setExpandedLevel4Id(null)
+          setExpandedLevel5Id(null)
+          setExpandedLevel6Id(null)
+          setExpandedLevel7Id(null)
           if (expandedLevel2Id !== null) {
             setSelectedId(expandedLevel2Id)
             setSelectedNodeId(expandedLevel2Id.toString())
@@ -3072,6 +3585,9 @@ export default function AcyclicGraphViewer({
           }
         } else if (level === 4) {
           setExpandedLevel4Id(null)
+          setExpandedLevel5Id(null)
+          setExpandedLevel6Id(null)
+          setExpandedLevel7Id(null)
           if (expandedLevel3Id !== null) {
             setSelectedId(expandedLevel3Id)
             setSelectedNodeId(expandedLevel3Id.toString())
@@ -3080,9 +3596,39 @@ export default function AcyclicGraphViewer({
             setSelectedNodeId(null)
           }
         } else if (level === 5) {
+          setExpandedLevel5Id(null)
+          setExpandedLevel6Id(null)
+          setExpandedLevel7Id(null)
           if (expandedLevel4Id !== null) {
             setSelectedId(expandedLevel4Id)
             setSelectedNodeId(expandedLevel4Id.toString())
+          } else {
+            setSelectedId(null)
+            setSelectedNodeId(null)
+          }
+        } else if (level === 6) {
+          setExpandedLevel6Id(null)
+          setExpandedLevel7Id(null)
+          if (expandedLevel5Id !== null) {
+            setSelectedId(expandedLevel5Id)
+            setSelectedNodeId(expandedLevel5Id.toString())
+          } else {
+            setSelectedId(null)
+            setSelectedNodeId(null)
+          }
+        } else if (level === 7) {
+          setExpandedLevel7Id(null)
+          if (expandedLevel6Id !== null) {
+            setSelectedId(expandedLevel6Id)
+            setSelectedNodeId(expandedLevel6Id.toString())
+          } else {
+            setSelectedId(null)
+            setSelectedNodeId(null)
+          }
+        } else if (level === 8) {
+          if (expandedLevel7Id !== null) {
+            setSelectedId(expandedLevel7Id)
+            setSelectedNodeId(expandedLevel7Id.toString())
           } else {
             setSelectedId(null)
             setSelectedNodeId(null)
@@ -3099,15 +3645,36 @@ export default function AcyclicGraphViewer({
         setExpandedLevel2Id(null)
         setExpandedLevel3Id(null)
         setExpandedLevel4Id(null)
+        setExpandedLevel5Id(null)
+        setExpandedLevel6Id(null)
+        setExpandedLevel7Id(null)
       } else if (level === 2) {
         setExpandedLevel2Id(vertexId)
         setExpandedLevel3Id(null)
         setExpandedLevel4Id(null)
+        setExpandedLevel5Id(null)
+        setExpandedLevel6Id(null)
+        setExpandedLevel7Id(null)
       } else if (level === 3) {
         setExpandedLevel3Id(vertexId)
         setExpandedLevel4Id(null)
+        setExpandedLevel5Id(null)
+        setExpandedLevel6Id(null)
+        setExpandedLevel7Id(null)
       } else if (level === 4) {
         setExpandedLevel4Id(vertexId)
+        setExpandedLevel5Id(null)
+        setExpandedLevel6Id(null)
+        setExpandedLevel7Id(null)
+      } else if (level === 5) {
+        setExpandedLevel5Id(vertexId)
+        setExpandedLevel6Id(null)
+        setExpandedLevel7Id(null)
+      } else if (level === 6) {
+        setExpandedLevel6Id(vertexId)
+        setExpandedLevel7Id(null)
+      } else if (level === 7) {
+        setExpandedLevel7Id(vertexId)
       }
 
       selectVertex(vertexId)
@@ -3117,6 +3684,9 @@ export default function AcyclicGraphViewer({
       expandedLevel2Id,
       expandedLevel3Id,
       expandedLevel4Id,
+      expandedLevel5Id,
+      expandedLevel6Id,
+      expandedLevel7Id,
       isFullGraphVisible,
       onVertexClick,
       selectedId,
@@ -3158,14 +3728,15 @@ export default function AcyclicGraphViewer({
       }
 
       if (event.key === 'ArrowDown') {
-        if (selectedVertex === undefined || selectedLevel >= 5) {
+        if (selectedVertex === undefined || selectedLevel >= 8) {
           return
         }
 
         const { childLevel, childVertexes } = getDirectChildVertexes(
           selectedVertexId,
           vertexes,
-          dataForVertexId
+          dataForVertexId,
+          selectedLevel
         )
         const visibleChildVertexes = childVertexes.filter((vertex) => {
           if (childLevel === 2) {
@@ -3179,6 +3750,15 @@ export default function AcyclicGraphViewer({
           }
           if (childLevel === 5) {
             return !hiddenChildVertexIdsByPanel.level5.includes(vertex.id)
+          }
+          if (childLevel === 6) {
+            return !hiddenChildVertexIdsByPanel.level6.includes(vertex.id)
+          }
+          if (childLevel === 7) {
+            return !hiddenChildVertexIdsByPanel.level7.includes(vertex.id)
+          }
+          if (childLevel === 8) {
+            return !hiddenChildVertexIdsByPanel.level8.includes(vertex.id)
           }
           return true
         })
@@ -3199,19 +3779,43 @@ export default function AcyclicGraphViewer({
             setExpandedLevel2Id(null)
             setExpandedLevel3Id(null)
             setExpandedLevel4Id(null)
+            setExpandedLevel5Id(null)
+            setExpandedLevel6Id(null)
+            setExpandedLevel7Id(null)
             setChildScrollStartIndex(0)
           } else if (selectedLevel === 2) {
             setExpandedLevel2Id(selectedVertexId)
             setExpandedLevel3Id(null)
             setExpandedLevel4Id(null)
+            setExpandedLevel5Id(null)
+            setExpandedLevel6Id(null)
+            setExpandedLevel7Id(null)
             setGrandChildScrollStartIndex(0)
           } else if (selectedLevel === 3) {
             setExpandedLevel3Id(selectedVertexId)
             setExpandedLevel4Id(null)
+            setExpandedLevel5Id(null)
+            setExpandedLevel6Id(null)
+            setExpandedLevel7Id(null)
             setGreatGrandChildScrollStartIndex(0)
           } else if (selectedLevel === 4) {
             setExpandedLevel4Id(selectedVertexId)
+            setExpandedLevel5Id(null)
+            setExpandedLevel6Id(null)
+            setExpandedLevel7Id(null)
             setLevel5ScrollStartIndex(0)
+          } else if (selectedLevel === 5) {
+            setExpandedLevel5Id(selectedVertexId)
+            setExpandedLevel6Id(null)
+            setExpandedLevel7Id(null)
+            setLevel6ScrollStartIndex(0)
+          } else if (selectedLevel === 6) {
+            setExpandedLevel6Id(selectedVertexId)
+            setExpandedLevel7Id(null)
+            setLevel7ScrollStartIndex(0)
+          } else if (selectedLevel === 7) {
+            setExpandedLevel7Id(selectedVertexId)
+            setLevel8ScrollStartIndex(0)
           }
         }
 
@@ -3224,19 +3828,42 @@ export default function AcyclicGraphViewer({
           return
         }
 
-        const parentVertex = selectedVertex.parentsIds
-          .map((parentId) => vertexes.find((vertex) => vertex.id === parentId))
-          .filter((vertex): vertex is Vertex => vertex !== undefined)
-          .filter((vertex) => {
-            const vertexData = dataForVertexId.get(vertex.id)
-            return (
-              vertexData !== undefined &&
-              getVertexLevel(vertexData) === selectedLevel - 1
-            )
-          })
-          .sort(
-            (firstVertex, secondVertex) => firstVertex.id - secondVertex.id
-          )[0]
+        const visibleParentNode =
+          isFullGraphVisible === false
+            ? allEdges
+                .filter((edge) => edge.target === selectedNodeId)
+                .map((edge) => allNodes.find((node) => node.id === edge.source))
+                .filter(
+                  (node): node is AcyclicGraphNode =>
+                    node !== undefined && node.data.level === selectedLevel - 1
+                )
+                .sort(
+                  (firstNode, secondNode) =>
+                    Math.abs(firstNode.position.x - selectedNode.position.x) -
+                      Math.abs(
+                        secondNode.position.x - selectedNode.position.x
+                      ) || firstNode.data.id - secondNode.data.id
+                )[0]
+            : undefined
+        const parentVertex =
+          visibleParentNode === undefined
+            ? selectedVertex.parentsIds
+                .map((parentId) =>
+                  vertexes.find((vertex) => vertex.id === parentId)
+                )
+                .filter((vertex): vertex is Vertex => vertex !== undefined)
+                .filter((vertex) => {
+                  const vertexData = dataForVertexId.get(vertex.id)
+                  return (
+                    vertexData !== undefined &&
+                    getVertexLevel(vertexData) === selectedLevel - 1
+                  )
+                })
+                .sort(
+                  (firstVertex, secondVertex) =>
+                    firstVertex.id - secondVertex.id
+                )[0]
+            : vertexes.find((vertex) => vertex.id === visibleParentNode.data.id)
         if (parentVertex === undefined) {
           return
         }
@@ -3244,7 +3871,7 @@ export default function AcyclicGraphViewer({
         event.preventDefault()
         event.stopPropagation()
 
-        const parentLevel = selectedLevel - 1
+        const parentLevel = visibleParentNode?.data.level ?? selectedLevel - 1
         const parentNavigationIndex = getNavigationVertexIdsForLevel(
           parentLevel
         ).findIndex((vertexId) => vertexId === parentVertex.id)
@@ -3258,15 +3885,36 @@ export default function AcyclicGraphViewer({
             setExpandedLevel2Id(null)
             setExpandedLevel3Id(null)
             setExpandedLevel4Id(null)
+            setExpandedLevel5Id(null)
+            setExpandedLevel6Id(null)
+            setExpandedLevel7Id(null)
           } else if (parentLevel === 2) {
             setExpandedLevel2Id(parentVertex.id)
             setExpandedLevel3Id(null)
             setExpandedLevel4Id(null)
+            setExpandedLevel5Id(null)
+            setExpandedLevel6Id(null)
+            setExpandedLevel7Id(null)
           } else if (parentLevel === 3) {
             setExpandedLevel3Id(parentVertex.id)
             setExpandedLevel4Id(null)
+            setExpandedLevel5Id(null)
+            setExpandedLevel6Id(null)
+            setExpandedLevel7Id(null)
           } else if (parentLevel === 4) {
             setExpandedLevel4Id(parentVertex.id)
+            setExpandedLevel5Id(null)
+            setExpandedLevel6Id(null)
+            setExpandedLevel7Id(null)
+          } else if (parentLevel === 5) {
+            setExpandedLevel5Id(parentVertex.id)
+            setExpandedLevel6Id(null)
+            setExpandedLevel7Id(null)
+          } else if (parentLevel === 6) {
+            setExpandedLevel6Id(parentVertex.id)
+            setExpandedLevel7Id(null)
+          } else if (parentLevel === 7) {
+            setExpandedLevel7Id(parentVertex.id)
           }
         }
 
@@ -3328,15 +3976,36 @@ export default function AcyclicGraphViewer({
           setExpandedLevel2Id(null)
           setExpandedLevel3Id(null)
           setExpandedLevel4Id(null)
+          setExpandedLevel5Id(null)
+          setExpandedLevel6Id(null)
+          setExpandedLevel7Id(null)
         } else if (selectedLevel === 2) {
           setExpandedLevel2Id(nextVertexId)
           setExpandedLevel3Id(null)
           setExpandedLevel4Id(null)
+          setExpandedLevel5Id(null)
+          setExpandedLevel6Id(null)
+          setExpandedLevel7Id(null)
         } else if (selectedLevel === 3) {
           setExpandedLevel3Id(nextVertexId)
           setExpandedLevel4Id(null)
+          setExpandedLevel5Id(null)
+          setExpandedLevel6Id(null)
+          setExpandedLevel7Id(null)
         } else if (selectedLevel === 4) {
           setExpandedLevel4Id(nextVertexId)
+          setExpandedLevel5Id(null)
+          setExpandedLevel6Id(null)
+          setExpandedLevel7Id(null)
+        } else if (selectedLevel === 5) {
+          setExpandedLevel5Id(nextVertexId)
+          setExpandedLevel6Id(null)
+          setExpandedLevel7Id(null)
+        } else if (selectedLevel === 6) {
+          setExpandedLevel6Id(nextVertexId)
+          setExpandedLevel7Id(null)
+        } else if (selectedLevel === 7) {
+          setExpandedLevel7Id(nextVertexId)
         }
       }
 
@@ -3516,24 +4185,58 @@ export default function AcyclicGraphViewer({
     setExpandedLevel2Id(null)
     setExpandedLevel3Id(null)
     setExpandedLevel4Id(null)
+    setExpandedLevel5Id(null)
+    setExpandedLevel6Id(null)
+    setExpandedLevel7Id(null)
   }, [setSelectedId])
 
   const handlePaneClick = useCallback(() => {
     resetSelection()
   }, [resetSelection])
 
+  const handleRequirementSearchInputChange = useCallback(
+    (_event: React.SyntheticEvent, value: string, reason: string) => {
+      if (reason === 'reset') {
+        return
+      }
+
+      setRequirementSearchInputValue(value)
+    },
+    []
+  )
+
+  const handleRequirementSearchBlur = useCallback(() => {
+    if (requirementSearchSelectionInProgressRef.current) {
+      return
+    }
+
+    if (requirementSearchInputValue.trim() === '') {
+      resetSelection()
+      return
+    }
+
+    if (selectedRequirementSearchOption !== null) {
+      setRequirementSearchInputValue(selectedRequirementSearchOption.title)
+    }
+  }, [
+    requirementSearchInputValue,
+    resetSelection,
+    selectedRequirementSearchOption
+  ])
+
   const handleRequirementSearchChange = useCallback(
     (
       _event: React.SyntheticEvent,
       value: { id: number; title: string; level: number } | null,
-      reason: string
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      _reason: string
     ) => {
       if (value === null) {
-        if (reason === 'clear') {
-          resetSelection()
-        }
         return
       }
+
+      requirementSearchSelectionInProgressRef.current = true
+      setRequirementSearchInputValue(value.title)
 
       const vertexById = new Map(vertexes.map((vertex) => [vertex.id, vertex]))
       const getLevelByVertexId = (vertexId: number) => {
@@ -3560,7 +4263,16 @@ export default function AcyclicGraphViewer({
             (firstParent, secondParent) => firstParent.id - secondParent.id
           )[0]
       }
-      const pathByLevel: Array<Vertex | null> = [null, null, null, null, null]
+      const pathByLevel: Array<Vertex | null> = [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ]
       let currentVertex = vertexById.get(value.id)
       let currentLevel = value.level
 
@@ -3600,11 +4312,14 @@ export default function AcyclicGraphViewer({
       const level3TargetVertex = pathByLevel[2]
       const level4TargetVertex = pathByLevel[3]
       const level5TargetVertex = pathByLevel[4]
+      const level6TargetVertex = pathByLevel[5]
+      const level7TargetVertex = pathByLevel[6]
+      const level8TargetVertex = pathByLevel[7]
       const selectedVertexData = dataForVertexId.get(value.id)
       const selectedVertexHasChildren =
         selectedVertexData !== undefined &&
         selectedVertexData.atomicityFlag !== true &&
-        getDirectChildVertexes(value.id, vertexes, dataForVertexId)
+        getDirectChildVertexes(value.id, vertexes, dataForVertexId, value.level)
           .childVertexes.length > 0
 
       searchExpansionInProgressRef.current = true
@@ -3628,7 +4343,8 @@ export default function AcyclicGraphViewer({
               getDirectChildVertexes(
                 rootTargetVertex.id,
                 vertexes,
-                dataForVertexId
+                dataForVertexId,
+                1
               ).childVertexes,
               level2TargetVertex.id
             ),
@@ -3644,7 +4360,8 @@ export default function AcyclicGraphViewer({
               getDirectChildVertexes(
                 level2TargetVertex.id,
                 vertexes,
-                dataForVertexId
+                dataForVertexId,
+                2
               ).childVertexes,
               level3TargetVertex.id
             ),
@@ -3660,7 +4377,8 @@ export default function AcyclicGraphViewer({
               getDirectChildVertexes(
                 level3TargetVertex.id,
                 vertexes,
-                dataForVertexId
+                dataForVertexId,
+                3
               ).childVertexes,
               level4TargetVertex.id
             ),
@@ -3676,11 +4394,63 @@ export default function AcyclicGraphViewer({
               getDirectChildVertexes(
                 level4TargetVertex.id,
                 vertexes,
-                dataForVertexId
+                dataForVertexId,
+                4
               ).childVertexes,
               level5TargetVertex.id
             ),
             level5TargetVertex.id
+          )
+        )
+      }
+      if (level5TargetVertex !== null && level6TargetVertex !== null) {
+        setLevel6ScrollStartIndex(
+          getScrollStartForVertex(
+            getFilteredSiblings(
+              'level6',
+              getDirectChildVertexes(
+                level5TargetVertex.id,
+                vertexes,
+                dataForVertexId,
+                5
+              ).childVertexes,
+              level6TargetVertex.id
+            ),
+            level6TargetVertex.id
+          )
+        )
+      }
+      if (level6TargetVertex !== null && level7TargetVertex !== null) {
+        setLevel7ScrollStartIndex(
+          getScrollStartForVertex(
+            getFilteredSiblings(
+              'level7',
+              getDirectChildVertexes(
+                level6TargetVertex.id,
+                vertexes,
+                dataForVertexId,
+                6
+              ).childVertexes,
+              level7TargetVertex.id
+            ),
+            level7TargetVertex.id
+          )
+        )
+      }
+      if (level7TargetVertex !== null && level8TargetVertex !== null) {
+        setLevel8ScrollStartIndex(
+          getScrollStartForVertex(
+            getFilteredSiblings(
+              'level8',
+              getDirectChildVertexes(
+                level7TargetVertex.id,
+                vertexes,
+                dataForVertexId,
+                7
+              ).childVertexes,
+              level8TargetVertex.id
+            ),
+            level8TargetVertex.id
           )
         )
       }
@@ -3702,7 +4472,19 @@ export default function AcyclicGraphViewer({
         level5:
           level5TargetVertex === null
             ? prev.level5
-            : prev.level5.filter((id) => id !== level5TargetVertex.id)
+            : prev.level5.filter((id) => id !== level5TargetVertex.id),
+        level6:
+          level6TargetVertex === null
+            ? prev.level6
+            : prev.level6.filter((id) => id !== level6TargetVertex.id),
+        level7:
+          level7TargetVertex === null
+            ? prev.level7
+            : prev.level7.filter((id) => id !== level7TargetVertex.id),
+        level8:
+          level8TargetVertex === null
+            ? prev.level8
+            : prev.level8.filter((id) => id !== level8TargetVertex.id)
       }))
 
       setExpandedLevel1Id(
@@ -3725,6 +4507,21 @@ export default function AcyclicGraphViewer({
           ? (level4TargetVertex?.id ?? null)
           : null
       )
+      setExpandedLevel5Id(
+        value.level > 5 || (value.level === 5 && selectedVertexHasChildren)
+          ? (level5TargetVertex?.id ?? null)
+          : null
+      )
+      setExpandedLevel6Id(
+        value.level > 6 || (value.level === 6 && selectedVertexHasChildren)
+          ? (level6TargetVertex?.id ?? null)
+          : null
+      )
+      setExpandedLevel7Id(
+        value.level > 7 || (value.level === 7 && selectedVertexHasChildren)
+          ? (level7TargetVertex?.id ?? null)
+          : null
+      )
 
       selectVertex(value.id, { ensureVisible: true, focus: true })
       requestAnimationFrame(() => {
@@ -3736,6 +4533,9 @@ export default function AcyclicGraphViewer({
           activeElement.blur()
         }
         mainGraphHostRef.current?.focus({ preventScroll: true })
+        setTimeout(() => {
+          requirementSearchSelectionInProgressRef.current = false
+        }, 0)
       })
     },
     [
@@ -4353,7 +5153,10 @@ export default function AcyclicGraphViewer({
             size="small"
             options={requirementSearchOptions}
             value={selectedRequirementSearchOption}
+            inputValue={requirementSearchInputValue}
             onChange={handleRequirementSearchChange}
+            onInputChange={handleRequirementSearchInputChange}
+            onBlur={handleRequirementSearchBlur}
             getOptionLabel={(option) => option.title}
             isOptionEqualToValue={(option, value) => option.id === value.id}
             noOptionsText="требования не найдены"
@@ -4416,27 +5219,6 @@ export default function AcyclicGraphViewer({
               sx={{ minWidth: 0, px: 1 }}
             >
               <AccountTreeIcon fontSize="small" />
-            </ProjButton>
-            <ProjButton
-              variant={isFullscreen ? 'contained' : 'outlined'}
-              title={
-                isFullscreen
-                  ? 'Выйти из полноэкранного режима'
-                  : 'Развернуть на весь экран'
-              }
-              aria-label={
-                isFullscreen
-                  ? 'Выйти из полноэкранного режима'
-                  : 'Развернуть на весь экран'
-              }
-              onClick={onToggleFullscreen}
-              sx={{ minWidth: 0, px: 1 }}
-            >
-              {isFullscreen ? (
-                <FullscreenExitIcon fontSize="small" />
-              ) : (
-                <FullscreenIcon fontSize="small" />
-              )}
             </ProjButton>
           </Box>
         ) : null}
@@ -4661,7 +5443,115 @@ export default function AcyclicGraphViewer({
                 panelTop: level5PanelAnchor.top,
                 visibleCount: selectedLevel5Count,
                 scrollStartIndex: level5ScrollStartIndex,
-                setScrollStartIndex: setLevel5ScrollStartIndex
+                setScrollStartIndex: setLevel5ScrollStartIndex,
+                beforeScrollChange: () => setExpandedLevel5Id(null)
+              })
+            : null}
+          {level6FlowIsVisible && level6PanelReady ? (
+            <Paper
+              elevation={10}
+              sx={{
+                position: 'absolute',
+                left: 0,
+                right: 0,
+                top: level6PanelAnchor.top,
+                height: 80,
+                boxSizing: 'border-box',
+                zIndex: 1,
+                pointerEvents: 'none',
+                border: 'none',
+                background: 'transparent',
+                backgroundColor: 'transparent',
+                backgroundImage: 'none',
+                boxShadow: 'none'
+              }}
+            />
+          ) : null}
+          {level6FlowIsVisible && level6PanelReady
+            ? renderLevelPrefixBadge(
+                level6GraphData.nodes,
+                level6PanelAnchor.top + 8
+              )
+            : null}
+          {level6FlowIsVisible && level6PanelReady
+            ? renderPanelControls({
+                panelKey: 'level6',
+                panelTop: level6PanelAnchor.top,
+                visibleCount: selectedLevel6Count,
+                scrollStartIndex: level6ScrollStartIndex,
+                setScrollStartIndex: setLevel6ScrollStartIndex,
+                beforeScrollChange: () => setExpandedLevel6Id(null)
+              })
+            : null}
+          {level7FlowIsVisible && level7PanelReady ? (
+            <Paper
+              elevation={10}
+              sx={{
+                position: 'absolute',
+                left: 0,
+                right: 0,
+                top: level7PanelAnchor.top,
+                height: 80,
+                boxSizing: 'border-box',
+                zIndex: 1,
+                pointerEvents: 'none',
+                border: 'none',
+                background: 'transparent',
+                backgroundColor: 'transparent',
+                backgroundImage: 'none',
+                boxShadow: 'none'
+              }}
+            />
+          ) : null}
+          {level7FlowIsVisible && level7PanelReady
+            ? renderLevelPrefixBadge(
+                level7GraphData.nodes,
+                level7PanelAnchor.top + 8
+              )
+            : null}
+          {level7FlowIsVisible && level7PanelReady
+            ? renderPanelControls({
+                panelKey: 'level7',
+                panelTop: level7PanelAnchor.top,
+                visibleCount: selectedLevel7Count,
+                scrollStartIndex: level7ScrollStartIndex,
+                setScrollStartIndex: setLevel7ScrollStartIndex,
+                beforeScrollChange: () => setExpandedLevel7Id(null)
+              })
+            : null}
+          {level8FlowIsVisible && level8PanelReady ? (
+            <Paper
+              elevation={10}
+              sx={{
+                position: 'absolute',
+                left: 0,
+                right: 0,
+                top: level8PanelAnchor.top,
+                height: 80,
+                boxSizing: 'border-box',
+                zIndex: 1,
+                pointerEvents: 'none',
+                border: 'none',
+                background: 'transparent',
+                backgroundColor: 'transparent',
+                backgroundImage: 'none',
+                boxShadow: 'none'
+              }}
+            />
+          ) : null}
+          {level8FlowIsVisible && level8PanelReady
+            ? renderLevelPrefixBadge(
+                level8GraphData.nodes,
+                level8PanelAnchor.top + 8
+              )
+            : null}
+          {level8FlowIsVisible && level8PanelReady
+            ? renderPanelControls({
+                panelKey: 'level8',
+                panelTop: level8PanelAnchor.top,
+                visibleCount: selectedLevel8Count,
+                scrollStartIndex: level8ScrollStartIndex,
+                setScrollStartIndex: setLevel8ScrollStartIndex
               })
             : null}
           <Menu

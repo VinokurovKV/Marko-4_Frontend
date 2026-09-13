@@ -108,6 +108,24 @@ div.acyclic-vertex .atomic-indicator {
   color: hsl(220, 30%, 94%);
 }
 
+div.acyclic-vertex .multiple-parents-indicator {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  background: hsla(220, 30%, 6%, 0.18);
+  color: hsl(220, 30%, 94%);
+}
+
+div.acyclic-vertex .multiple-parents-indicator.with-atomic-indicator {
+  left: 28px;
+}
+
 div.acyclic-vertex .modifier-indicator {
   position: absolute;
   top: 4px;
