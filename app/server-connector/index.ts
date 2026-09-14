@@ -791,7 +791,10 @@ import type {
   UpdateSliceBodyDto,
   UpdateSliceSuccessResultDto
 } from '@common/dtos/server-api/slices.dto'
-import type { ExportQueryDto } from '@common/dtos/server-api/export.dto'
+import type {
+  ExportGitLabQueryDto,
+  ExportQueryDto
+} from '@common/dtos/server-api/export.dto'
 import type {
   ImportBodyMainDto,
   ImportSuccessResultDto
@@ -3767,6 +3770,9 @@ export class ServerConnector {
   // Export
   export(query: Query<ExportQueryDto>): Promise<Blob> {
     return this.getBlob(`/export`, query)
+  }
+  exportGitlab(query: Query<ExportGitLabQueryDto>): Promise<Blob> {
+    return this.getBlob('/export/gitlab', query)
   }
   // Import
   import(

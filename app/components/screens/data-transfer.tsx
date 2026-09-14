@@ -84,6 +84,11 @@ const LOG_DOWNLOAD_ITEMS: Array<{
   }
 ]
 
+const dataTransferActionButtonSx = {
+  minHeight: 26,
+  py: 0.25
+} as const
+
 function getArrayLength(
   result: ImportSuccessResultDto,
   key: keyof ImportSuccessResultDto
@@ -101,6 +106,7 @@ export function DataTransferScreen() {
   const canReadLogs =
     meta.status === 'AUTHENTICATED' &&
     meta.selfMeta.rights.includes('READ_LOGS')
+  const canDownloadGitlabData = meta.status === 'AUTHENTICATED'
   const [importModeIsActive, setImportModeIsActive] = React.useState(false)
   const [exportModeIsActive, setExportModeIsActive] = React.useState(false)
   const [technicalReport, setTechnicalReport] = React.useState<{
@@ -118,6 +124,8 @@ export function DataTransferScreen() {
     React.useState(false)
   const [logsMenuAnchorEl, setLogsMenuAnchorEl] =
     React.useState<null | HTMLElement>(null)
+  const [gitlabDataIsDownloading, setGitlabDataIsDownloading] =
+    React.useState(false)
   const [clearAllDialogIsActive, setClearAllDialogIsActive] =
     React.useState(false)
   const [clearAllPass, setClearAllPass] = React.useState('')
@@ -291,6 +299,26 @@ export function DataTransferScreen() {
     [handleLogsMenuClose, notifier]
   )
 
+  const handleGitlabDataDownload = React.useCallback(async () => {
+    if (gitlabDataIsDownloading) {
+      return
+    }
+    setGitlabDataIsDownloading(true)
+    try {
+      const blob = await serverConnector.exportGitlab({
+        openDescription: true,
+        openTags: true,
+        addBackLinks: true
+      })
+      const stamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-')
+      downloadFileFromBlob(blob, `gitlab-data-${stamp}.zip`)
+    } catch (error) {
+      notifier.showError(error, 'не удалось скачать данные Gitlab репозитория')
+    } finally {
+      setGitlabDataIsDownloading(false)
+    }
+  }, [gitlabDataIsDownloading, notifier])
+
   const clearClearAllDialog = React.useCallback(() => {
     setClearAllPass('')
     setClearAllPassConfirm('')
@@ -345,12 +373,23 @@ export function DataTransferScreen() {
         <HorizontalTwoPartsContainer proportions="ONE_TWO">
           <Paper
             variant="outlined"
-            sx={{ p: 2.5, width: '100%', maxWidth: '420px', height: '100%' }}
+            sx={{
+              p: 2.5,
+              width: '100%',
+              maxWidth: '420px',
+              height: '100%',
+              overflowY: 'auto',
+              scrollbarWidth: 'none',
+              '&::-webkit-scrollbar': {
+                display: 'none'
+              }
+            }}
           >
             <Stack spacing={1.2}>
               <Divider sx={{ my: 0.5 }}>Данные</Divider>
               <ProjButton
                 variant="contained"
+                sx={dataTransferActionButtonSx}
                 onClick={() => {
                   setImportModeIsActive(true)
                 }}
@@ -359,6 +398,7 @@ export function DataTransferScreen() {
               </ProjButton>
               <ProjButton
                 variant="contained"
+                sx={dataTransferActionButtonSx}
                 onClick={() => {
                   setExportModeIsActive(true)
                 }}
@@ -368,6 +408,7 @@ export function DataTransferScreen() {
               <Divider sx={{ my: 0.5 }}>История</Divider>
               <ProjButton
                 variant="contained"
+                sx={dataTransferActionButtonSx}
                 onClick={() => {
                   setArchiveHistoryModeIsActive(true)
                   // setHistoryActionDialog({
@@ -380,6 +421,7 @@ export function DataTransferScreen() {
               </ProjButton>
               <ProjButton
                 variant="contained"
+                sx={dataTransferActionButtonSx}
                 onClick={() => {
                   setHistoryActionDialog({
                     mode: 'UNARCHIVE',
@@ -391,6 +433,7 @@ export function DataTransferScreen() {
               </ProjButton>
               <ProjButton
                 variant="contained"
+                sx={dataTransferActionButtonSx}
                 onClick={() => {
                   setHistoryActionDialog({
                     mode: 'DELETE_ARCHIVED',
@@ -403,7 +446,27 @@ export function DataTransferScreen() {
               {canReadLogs ? (
                 <>
                   <Divider sx={{ my: 0.5 }}>Системные логи</Divider>
-                  <ProjButton variant="contained" onClick={handleLogsMenuOpen}>
+                  <ProjButton
+                    variant="contained"
+                    sx={dataTransferActionButtonSx}
+                    onClick={handleLogsMenuOpen}
+                  >
+                    скачать
+                  </ProjButton>
+                </>
+              ) : null}
+              {canDownloadGitlabData ? (
+                <>
+                  <Divider sx={{ my: 0.5 }}>Данные Gitlab репозитория</Divider>
+                  <ProjButton
+                    variant="contained"
+                    sx={dataTransferActionButtonSx}
+                    loading={gitlabDataIsDownloading}
+                    disabled={gitlabDataIsDownloading}
+                    onClick={() => {
+                      void handleGitlabDataDownload()
+                    }}
+                  >
                     скачать
                   </ProjButton>
                 </>
@@ -414,6 +477,7 @@ export function DataTransferScreen() {
                   <ProjButton
                     variant="outlined"
                     color="error"
+                    sx={dataTransferActionButtonSx}
                     onClick={() => {
                       setClearAllDialogIsActive(true)
                     }}
