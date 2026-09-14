@@ -66,7 +66,7 @@ export function SlicesScreen(props: SlicesScreenProps) {
       breadcrumbsItems={breadcrumbsItems}
     >
       <HorizontalTwoPartsContainer
-        proportions={withSlice ? 'ONE_TWO' : 'ONE_ZERO'}
+        proportions={withSlice ? 'ONE_THREE' : 'ONE_ZERO'}
       >
         <SlicesGrid
           key={`${withSlice}`}

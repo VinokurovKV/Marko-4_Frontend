@@ -146,8 +146,7 @@ export function InteractiveGuideProvider({
   portalElement
 }: InteractiveGuideProviderProps) {
   const theme = useTheme()
-  const { loaded, settings, setGuideSettings } = useInteractiveGuideSettings()
-  const [isStartPromptOpen, setIsStartPromptOpen] = React.useState(false)
+  const { settings, setGuideSettings } = useInteractiveGuideSettings()
   const [isManualStartPromptOpen, setIsManualStartPromptOpen] =
     React.useState(false)
   const [isGuideRunning, setIsGuideRunning] = React.useState(false)
@@ -293,12 +292,6 @@ export function InteractiveGuideProvider({
     []
   )
 
-  React.useEffect(() => {
-    if (loaded && settings.firstLaunchPromptAnswered === false) {
-      setIsStartPromptOpen(true)
-    }
-  }, [loaded, settings.firstLaunchPromptAnswered])
-
   const completeGuide = React.useCallback(
     (completed: boolean) => {
       setIsGuideRunning(false)
@@ -342,7 +335,6 @@ export function InteractiveGuideProvider({
   }, [completeGuide, guideStepIndex, guideSteps, moveToGuideStep])
 
   const startGuide = React.useCallback(() => {
-    setIsStartPromptOpen(false)
     setIsManualStartPromptOpen(false)
     setIsGuideRunning(false)
     requestAnimationFrame(() => {
@@ -366,14 +358,6 @@ export function InteractiveGuideProvider({
   const requestGuideStart = React.useCallback(() => {
     setIsManualStartPromptOpen(true)
   }, [])
-
-  const declineGuide = React.useCallback(() => {
-    setIsStartPromptOpen(false)
-    setGuideSettings({
-      ...settings,
-      firstLaunchPromptAnswered: true
-    })
-  }, [settings, setGuideSettings])
 
   const handleJoyrideCallback = React.useCallback(
     (state: EventData) => {
@@ -666,24 +650,6 @@ export function InteractiveGuideProvider({
           <ProjButton onClick={() => setIsManualStartPromptOpen(false)}>
             отменить
           </ProjButton>
-          <ProjButton variant="contained" onClick={startGuide}>
-            начать
-          </ProjButton>
-        </DialogActions>
-      </Dialog>
-
-      <Dialog open={isStartPromptOpen} onClose={declineGuide} maxWidth="sm">
-        <DialogTitle sx={{ textAlign: 'center' }}>
-          Краткое руководство
-        </DialogTitle>
-        <DialogContent>
-          <Typography>
-            Хотите пройти краткое интерактивное руководство по основным экранам
-            системы?
-          </Typography>
-        </DialogContent>
-        <DialogActions sx={{ justifyContent: 'center' }}>
-          <ProjButton onClick={declineGuide}>позже</ProjButton>
           <ProjButton variant="contained" onClick={startGuide}>
             начать
           </ProjButton>

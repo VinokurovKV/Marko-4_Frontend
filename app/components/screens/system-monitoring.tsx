@@ -5,6 +5,7 @@ import { type ProjBreadcrumbsProps } from '../breadcrumbs'
 import { LayoutScreenContainer } from '../containers'
 import { serverConnector } from '~/server-connector'
 import { FormDateTime } from '~/components/forms/common/form-date-time'
+import { useNotifier } from '~/providers/notifier'
 import { brand, green, orange, red } from '~/theme/themePrimitives'
 // React
 import * as React from 'react'
@@ -30,7 +31,6 @@ import Tooltip from '@mui/material/Tooltip'
 import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
 import { useTheme } from '@mui/material/styles'
-import dayjs from 'dayjs'
 
 const MONITORING_START_TIME_LOCAL_STORAGE_KEY = 'SYSTEM_MONITORING_START_TIME'
 const MONITORING_END_TIME_LOCAL_STORAGE_KEY = 'SYSTEM_MONITORING_END_TIME'
@@ -390,9 +390,23 @@ const monitoringDateTimeFieldSx = {
     fontSize: '0.75rem',
     transform: 'translate(13px, 2px)'
   },
+  '& .MuiFormLabel-root.Mui-error': {
+    color: 'text.secondary'
+  },
+  '& .MuiFormLabel-root.Mui-focused.Mui-error': {
+    color: 'primary.main'
+  },
   '& .MuiFormLabel-root.Mui-focused, & .MuiFormLabel-root.MuiFormLabel-filled':
     {
       transform: 'translate(14px, -7px) scale(0.65)'
+    },
+  '& .MuiPickersInputBase-root.Mui-error .MuiPickersOutlinedInput-notchedOutline':
+    {
+      borderColor: 'divider'
+    },
+  '& .MuiPickersInputBase-root.Mui-focused.Mui-error .MuiPickersOutlinedInput-notchedOutline':
+    {
+      borderColor: 'primary.main'
     },
   '& + .MuiFormHelperText-root': {
     mt: -10,
@@ -403,6 +417,7 @@ const monitoringDateTimeFieldSx = {
 
 export function SystemMonitoringScreen() {
   const theme = useTheme()
+  const notifier = useNotifier()
   const now = React.useMemo(() => new Date(), [])
   const [startTime, setStartTime] = React.useState<Date | undefined>(
     new Date(now.getTime() - 60 * 60 * 1000)
@@ -421,10 +436,6 @@ export function SystemMonitoringScreen() {
     React.useState<StorageStatusStringWrapDto | null>(null)
   const [availableTo, setAvailableTo] =
     React.useState<StorageStatusStringWrapDto | null>(null)
-
-  const [maxSelectableTime, setMaxSelectableTime] = React.useState(() =>
-    dayjs()
-  )
 
   const breadcrumbsItems: ProjBreadcrumbsProps['items'] = React.useMemo(
     () => [
@@ -476,22 +487,6 @@ export function SystemMonitoringScreen() {
     void loadAvailability()
   }, [loadAvailability])
 
-  React.useEffect(() => {
-    const updateMaxSelectableTime = () => {
-      setMaxSelectableTime(dayjs())
-    }
-
-    window.addEventListener('focus', updateMaxSelectableTime)
-
-    return () => {
-      window.removeEventListener('focus', updateMaxSelectableTime)
-    }
-  }, [])
-
-  const handleDateTimePickerOpen = React.useCallback(() => {
-    setMaxSelectableTime(dayjs())
-  }, [])
-
   const loadComparison = React.useCallback(async () => {
     setStartState(null)
     setEndState(null)
@@ -503,13 +498,22 @@ export function SystemMonitoringScreen() {
       !Number.isFinite(endTime.getTime())
     ) {
       setMessage('Выберите обе точки времени')
+      notifier.showWarning('Выберите обе точки времени')
       return
     }
 
-    const selectedEndTime = endTimeIsCurrent ? new Date() : endTime
+    const compareTime = new Date()
+    const selectedEndTime = endTimeIsCurrent ? compareTime : endTime
 
     if (startTime.getTime() > selectedEndTime.getTime()) {
       setMessage('Начальная точка должна быть раньше конечной')
+      notifier.showWarning('Начальная точка должна быть раньше конечной')
+      return
+    }
+
+    if (selectedEndTime.getTime() > compareTime.getTime()) {
+      setMessage('Конечная точка не может быть из будущего')
+      notifier.showWarning('Конечная точка не может быть из будущего')
       return
     }
 
@@ -519,7 +523,7 @@ export function SystemMonitoringScreen() {
     const actualEndStatus = endTimeIsCurrent
       ? await serverConnector
           .findFirstStorageStatus({
-            time: new Date(),
+            time: compareTime,
             timePoint: TimePointTypeEnum.BEFORE
           })
           .then(
@@ -542,6 +546,7 @@ export function SystemMonitoringScreen() {
       startTime.getTime() + 60 * 1000 <= new Date(availableFrom.time).getTime()
     ) {
       setMessage('Начальная точка раньше первого снимка мониторинга')
+      notifier.showWarning('Начальная точка раньше первого снимка мониторинга')
       setLoading(false)
       return
     }
@@ -567,7 +572,10 @@ export function SystemMonitoringScreen() {
     }
 
     setMessage('Не удалось найти снимки мониторинга для выбранного периода')
-  }, [availableFrom, endTime, endTimeIsCurrent, startTime])
+    notifier.showWarning(
+      'Не удалось найти снимки мониторинга для выбранного периода'
+    )
+  }, [availableFrom, endTime, endTimeIsCurrent, notifier, startTime])
 
   const metrics = React.useMemo(() => {
     if (startState === null || endState === null) return null
@@ -745,14 +753,10 @@ export function SystemMonitoringScreen() {
   const handleSetCurrentEndTime = React.useCallback(() => {
     const currentTime = new Date()
 
-    setMaxSelectableTime(dayjs(currentTime))
     setEndTime(currentTime)
     setEndTimeIsCurrent(true)
     saveMonitoringTime(MONITORING_END_TIME_LOCAL_STORAGE_KEY, currentTime)
   }, [])
-
-  const minAvailableTime =
-    availableFrom === null ? undefined : dayjs(availableFrom.time)
 
   return (
     <LayoutScreenContainer
@@ -780,13 +784,10 @@ export function SystemMonitoringScreen() {
                 value={startTime ?? null}
                 onChange={handleMonitoringDateChange}
                 placeholder="дд.мм.гггг чч:мм:сс"
-                minDateTime={minAvailableTime}
-                maxDateTime={maxSelectableTime}
                 formControlSx={{ m: 0, minWidth: 260, alignSelf: 'flex-start' }}
                 sx={monitoringDateTimeFieldSx}
                 popperSx={monitoringDatePickerPopperSx}
                 desktopPaperSx={monitoringDatePickerPaperSx}
-                onOpen={handleDateTimePickerOpen}
               />
               <FormDateTime
                 label="конечная точка"
@@ -794,13 +795,10 @@ export function SystemMonitoringScreen() {
                 value={endTime ?? null}
                 onChange={handleMonitoringDateChange}
                 placeholder="дд.мм.гггг чч:мм:сс"
-                minDateTime={minAvailableTime}
-                maxDateTime={maxSelectableTime}
                 formControlSx={{ m: 0, minWidth: 260, alignSelf: 'flex-start' }}
                 sx={monitoringDateTimeFieldSx}
                 popperSx={monitoringDatePickerPopperSx}
                 desktopPaperSx={monitoringDatePickerPaperSx}
-                onOpen={handleDateTimePickerOpen}
               />
               <Button
                 variant="contained"

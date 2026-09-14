@@ -1000,6 +1000,15 @@ export function TestsHierarchyTree({
                   badgeContent={selectedTagIds.length}
                   color="primary"
                   invisible={!tagFilterIsActive}
+                  sx={{
+                    '& .MuiBadge-badge': {
+                      minWidth: 12,
+                      height: 12,
+                      px: 0.4,
+                      fontSize: 8,
+                      lineHeight: '12px'
+                    }
+                  }}
                 >
                   <FilterAltIcon />
                 </Badge>
