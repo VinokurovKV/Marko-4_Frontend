@@ -132,6 +132,11 @@ export function RequirementViewer({
 
   const handleFragmentClick = React.useCallback(
     (fragmentId: number) => {
+      const fragment = fragmentForId.get(fragmentId)
+      if (fragment === undefined) {
+        return
+      }
+
       if (selectedFragmentId === fragmentId) {
         screenshotRequestSeqRef.current += 1
         setSelectedFragmentId(null)
@@ -145,10 +150,14 @@ export function RequirementViewer({
         return
       }
 
-      const fragment = fragmentForId.get(fragmentId)
-      if (fragment === undefined) {
-        return
+      if (fragment.documentId !== null) {
+        const documentWindow = globalThis.open('', '_blank')
+        if (documentWindow !== null) {
+          documentWindow.location.href = `/documents/${fragment.documentId}?fragmentId=${fragment.id}`
+          documentWindow.opener = null
+        }
       }
+
       screenshotRequestSeqRef.current += 1
       const requestSeq = screenshotRequestSeqRef.current
 
