@@ -1022,6 +1022,7 @@ export class ServerConnector {
   private credentials: ServerConnectorCredentials | null = null
   // private accessToken: string | null = null
   private refreshTokensPlanId: NodeJS.Timeout | null = null
+  private refreshTokensPr: Promise<void> | null = null
   private socket: Socket | null = null
   private lastUsedSubscriptionId = -1
   private subscriptionBlockForSubscriptionId = new Map<
@@ -1168,7 +1169,24 @@ export class ServerConnector {
     throw new ServerConnectorUnauthorizedError()
   }
   private async check(): Promise<object> {
-    return await this.getObject<object>('/auth/check', undefined, true, false)
+    const result: unknown = await this.makeRequest({
+      method: 'GET',
+      path: '/auth/check',
+      params: undefined,
+      body: undefined,
+      responseType: 'json',
+      withAuthentication: true,
+      withReauthenticateAttempt: false,
+      suppressUnauthorizedState: true
+    })
+    if (result instanceof Object) {
+      return result
+    }
+    throw new ServerConnectorError(
+      undefined,
+      'Invalid server response: no object',
+      undefined
+    )
   }
   private planToRefreshTokens(accessTokenExpirationTime: Date) {
     if (this.refreshTokensPlanId !== null) {
@@ -1206,7 +1224,17 @@ export class ServerConnector {
       })()
     }, refreshTimeMs - currentTimeMs)
   }
-  private async refreshTokens(refreshToken: string): Promise<void> {
+  private refreshTokens(refreshToken: string): Promise<void> {
+    if (this.refreshTokensPr === null) {
+      this.refreshTokensPr = this.refreshTokensInner(refreshToken).finally(
+        () => {
+          this.refreshTokensPr = null
+        }
+      )
+    }
+    return this.refreshTokensPr
+  }
+  private async refreshTokensInner(refreshToken: string): Promise<void> {
     const result = await this.postForObject<RefreshTokensSuccessResultDto>(
       '/auth/refresh-tokens',
       { refreshToken: refreshToken } as RefreshTokensBodyDto,
@@ -4224,6 +4252,7 @@ export class ServerConnector {
     withAuthentication: boolean
     withReauthenticateAttempt: boolean
     paramsSerializer?: (params: object) => string
+    suppressUnauthorizedState?: boolean
   }): Promise<any> {
     const {
       method,
@@ -4233,7 +4262,8 @@ export class ServerConnector {
       responseType,
       withAuthentication,
       withReauthenticateAttempt,
-      paramsSerializer
+      paramsSerializer,
+      suppressUnauthorizedState = false
     } = config
     // eslint-disable-next-line @typescript-eslint/no-empty-object-type
     let response: AxiosResponse<any, any, {}>
@@ -4290,13 +4320,6 @@ export class ServerConnector {
       if (errorData) {
         logWithoutTime([errorData], 'error')
       }
-      if (response.status === SERVER_CONNECTOR_ERROR_STATUS.UNAUTHORIZED) {
-        if (this.meta.status !== 'NOT_SETUP') {
-          this.meta = {
-            status: 'NOT_AUTHENTICATED'
-          }
-        }
-      }
       if (
         response.status === SERVER_CONNECTOR_ERROR_STATUS.UNAUTHORIZED &&
         withReauthenticateAttempt
@@ -4311,6 +4334,15 @@ export class ServerConnector {
           withAuthentication,
           withReauthenticateAttempt: false
         })
+      }
+      if (
+        response.status === SERVER_CONNECTOR_ERROR_STATUS.UNAUTHORIZED &&
+        suppressUnauthorizedState === false &&
+        this.meta.status !== 'NOT_SETUP'
+      ) {
+        this.meta = {
+          status: 'NOT_AUTHENTICATED'
+        }
       }
       switch (response.status) {
         case SERVER_CONNECTOR_ERROR_STATUS.BAD_REQUEST:

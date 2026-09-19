@@ -291,8 +291,22 @@ export const SIDE_NAVIGATION_CONFIG: SideNavigationConfig = [
             requiredRights: ['READ_EVENT']
           },
           {
+            id: 'system-monitoring',
+            title: 'мониторинг',
+            Icon: MonitorHeartIcon,
+            href: '/system-monitoring',
+            requiredRights: ['READ_LOGS']
+          }
+        ]
+      },
+      {
+        id: 'data-management',
+        title: 'данные',
+        Icon: ImportExportIcon,
+        nested: [
+          {
             id: 'data-transfer',
-            title: 'данные',
+            title: 'данные системы',
             Icon: ImportExportIcon,
             href: '/data-transfer'
           },
@@ -314,13 +328,6 @@ export const SIDE_NAVIGATION_CONFIG: SideNavigationConfig = [
             title: 'логи хранилища',
             Icon: StorageIcon,
             href: '/storage-logs',
-            requiredRights: ['READ_LOGS']
-          },
-          {
-            id: 'system-monitoring',
-            title: 'мониторинг',
-            Icon: MonitorHeartIcon,
-            href: '/system-monitoring',
             requiredRights: ['READ_LOGS']
           }
         ]

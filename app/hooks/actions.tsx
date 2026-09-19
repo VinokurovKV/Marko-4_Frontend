@@ -9,6 +9,7 @@ import * as React from 'react'
 import { isEqual } from 'lodash'
 
 const EMPTY_ACTIONS_ARR: ActionInfo[] = []
+const EMPTY_ACTIONS_READ_PARAMS = {}
 
 /** Subscribe to actions updates for existing actions state */
 export function useActionsSubscription(
@@ -17,7 +18,10 @@ export function useActionsSubscription(
     | React.Dispatch<React.SetStateAction<ActionInfo[] | null>>,
   withInitialLoad: boolean = false,
   notifyAboutInitialLoadProblems: boolean = false,
-  active: boolean = true
+  active: boolean = true,
+  readParams: Parameters<
+    typeof serverConnector.readActionInfos
+  >[0] = EMPTY_ACTIONS_READ_PARAMS
 ) {
   const notifier = useNotifier()
 
@@ -27,7 +31,7 @@ export function useActionsSubscription(
     async (notifyAboutProblems: boolean) => {
       try {
         const actions = (await serverConnector.readActionInfos(
-          {}
+          readParams
         )) as ActionInfo[]
         setActions(actions)
       } catch {
@@ -38,7 +42,7 @@ export function useActionsSubscription(
         }
       }
     },
-    [setActions, notifier]
+    [setActions, notifier, readParams]
   )
 
   // Initial load
@@ -54,13 +58,14 @@ export function useActionsSubscription(
     active,
     initialized,
     setInitialized,
-    load
+    load,
+    readParams
   ])
 
   // Process active flag change to true
   useChangeDetector({
     detectedObjects: [active],
-    otherDependencies: [notifyAboutInitialLoadProblems, load],
+    otherDependencies: [notifyAboutInitialLoadProblems, load, readParams],
     onChange: () => {
       if (active) {
         void load(notifyAboutInitialLoadProblems)

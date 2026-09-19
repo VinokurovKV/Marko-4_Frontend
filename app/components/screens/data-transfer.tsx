@@ -386,7 +386,7 @@ export function DataTransferScreen() {
             }}
           >
             <Stack spacing={1.2}>
-              <Divider sx={{ my: 0.5 }}>Данные</Divider>
+              <Divider sx={{ my: 0.5 }}>Данные системы</Divider>
               <ProjButton
                 variant="contained"
                 sx={dataTransferActionButtonSx}

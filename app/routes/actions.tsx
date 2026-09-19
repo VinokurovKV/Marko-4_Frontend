@@ -1,7 +1,11 @@
 // Project
 import type { UserPrimary, ActionInfo } from '~/types'
 import { serverConnector } from '~/server-connector'
-import { readActionInfos, readUsersPrimary } from '~/readers'
+import {
+  ACTION_INFOS_READ_PARAMS,
+  readActionInfos,
+  readUsersPrimary
+} from '~/readers'
 import { useNotifier } from '~/providers/notifier'
 import { useMeta } from '~/providers/meta'
 import { useUsersSubscription } from '~/hooks/resources'
@@ -39,7 +43,13 @@ export default function ActionsRoute({
   )
 
   useUsersSubscription('PRIMARY_PROPS', setUsers)
-  useActionsSubscription(setActions)
+  useActionsSubscription(
+    setActions,
+    false,
+    false,
+    true,
+    ACTION_INFOS_READ_PARAMS
+  )
 
   React.useEffect(() => {
     if (
