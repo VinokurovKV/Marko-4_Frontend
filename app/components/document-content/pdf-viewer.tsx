@@ -365,19 +365,14 @@ function extractPageSizes(doc: unknown): PageSize[] {
   return sizes
 }
 
-function isElementFullyVisibleInContainer(
+function isElementVerticallyVisibleInContainer(
   el: HTMLElement,
   container: HTMLElement
 ): boolean {
   const elRect = el.getBoundingClientRect()
   const containerRect = container.getBoundingClientRect()
 
-  return (
-    elRect.top >= containerRect.top &&
-    elRect.bottom <= containerRect.bottom &&
-    elRect.left >= containerRect.left &&
-    elRect.right <= containerRect.right
-  )
+  return elRect.bottom > containerRect.top && elRect.top < containerRect.bottom
 }
 
 function isRectContained(inner: Rectangle, outer: Rectangle): boolean {
@@ -1262,65 +1257,60 @@ const PdfViewerBody: React.FC<
   }, [props.onAreaPagesChange, areaPagesForId])
 
   const scrollToArea = useCallback(
-    (areaId: number) => {
+    (areaId: number, forcePosition: boolean) => {
       const a = derivedAreas.find((x) => x.id === areaId)
-      if (!a) return
+      if (!a) return null
 
       const host = viewportHostRef.current
-      if (!host) return
+      if (!host) return null
 
       const viewportEl = host.querySelector('.pdfv-viewport')
       const root = viewportEl instanceof HTMLElement ? viewportEl : host
 
-      const tryScroll = (attempt: number) => {
-        const el = areaElsRef.current.get(areaId)
-        if (el) {
-          if (isElementFullyVisibleInContainer(el, root)) return
-
+      const el = areaElsRef.current.get(areaId)
+      if (el) {
+        if (forcePosition || !isElementVerticallyVisibleInContainer(el, root)) {
           const elRect = el.getBoundingClientRect()
           const rootRect = root.getBoundingClientRect()
+          const verticalOffset =
+            elRect.height >= root.clientHeight
+              ? 0
+              : (root.clientHeight - elRect.height) / 2
           const targetTop =
-            root.scrollTop +
-            (elRect.top - rootRect.top) -
-            (root.clientHeight - elRect.height) / 2
+            root.scrollTop + (elRect.top - rootRect.top) - verticalOffset
 
           root.scrollTo({
             top: Math.max(0, targetTop),
             behavior: 'auto'
           })
-          return
         }
 
-        const pageEl = root.querySelector(`.pdfv-page--p${a.pageIndex}`)
-        if (!(pageEl instanceof HTMLElement)) {
-          scrollRef.current?.scrollToPage({
-            pageNumber: a.pageIndex + 1,
-            behavior: 'auto'
-          })
-
-          if (attempt < 12) {
-            window.requestAnimationFrame(() => tryScroll(attempt + 1))
-          }
-
-          return
-        }
-
-        const pageScale = pageScaleRef.current.get(a.pageIndex) ?? 1
-        const rootRect = root.getBoundingClientRect()
-        const pageRect = pageEl.getBoundingClientRect()
-        const targetTop =
-          root.scrollTop +
-          (pageRect.top - rootRect.top) +
-          a.localRect.yMin * pageScale -
-          root.clientHeight / 3
-
-        root.scrollTo({
-          top: Math.max(0, targetTop),
-          behavior: 'auto'
-        })
+        return { element: el, root }
       }
 
-      tryScroll(0)
+      const pageEl = root.querySelector(`.pdfv-page--p${a.pageIndex}`)
+      if (!(pageEl instanceof HTMLElement)) {
+        scrollRef.current?.scrollToPage({
+          pageNumber: a.pageIndex + 1,
+          behavior: 'auto'
+        })
+        return null
+      }
+
+      const pageScale = pageScaleRef.current.get(a.pageIndex) ?? 1
+      const rootRect = root.getBoundingClientRect()
+      const pageRect = pageEl.getBoundingClientRect()
+      const targetTop =
+        root.scrollTop +
+        (pageRect.top - rootRect.top) +
+        a.localRect.yMin * pageScale -
+        root.clientHeight / 3
+
+      root.scrollTo({
+        top: Math.max(0, targetTop),
+        behavior: 'auto'
+      })
+      return null
     },
     [derivedAreas]
   )
@@ -1420,8 +1410,91 @@ const PdfViewerBody: React.FC<
       return
     }
 
-    handledBrowseSeqRef.current = browseReq.seq
-    scrollToArea(browseReq.areaId)
+    let stopped = false
+    let retryTimer: number | null = null
+    let stableSince: number | null = null
+    let hasPositionedArea = false
+    let lastGeometry: {
+      elementTop: number
+      elementHeight: number
+      rootTop: number
+      rootHeight: number
+    } | null = null
+
+    const stop = () => {
+      stopped = true
+      if (retryTimer !== null) {
+        window.clearTimeout(retryTimer)
+        retryTimer = null
+      }
+    }
+
+    const scheduleRetry = () => {
+      if (stopped || retryTimer !== null) return
+      retryTimer = window.setTimeout(() => {
+        retryTimer = null
+        tryScroll()
+      }, 50)
+    }
+
+    const tryScroll = () => {
+      if (stopped) return
+
+      const positionedArea = scrollToArea(
+        browseReq.areaId,
+        fitDoneRef.current && !hasPositionedArea
+      )
+      if (positionedArea === null || !fitDoneRef.current) {
+        stableSince = null
+        scheduleRetry()
+        return
+      }
+      hasPositionedArea = true
+
+      const isVisible = isElementVerticallyVisibleInContainer(
+        positionedArea.element,
+        positionedArea.root
+      )
+      if (!isVisible) {
+        stableSince = null
+        lastGeometry = null
+        scheduleRetry()
+        return
+      }
+
+      const now = performance.now()
+      const elementRect = positionedArea.element.getBoundingClientRect()
+      const rootRect = positionedArea.root.getBoundingClientRect()
+      const geometry = {
+        elementTop: elementRect.top,
+        elementHeight: elementRect.height,
+        rootTop: rootRect.top,
+        rootHeight: rootRect.height
+      }
+      const geometryChanged =
+        lastGeometry === null ||
+        Math.abs(lastGeometry.elementTop - geometry.elementTop) > 0.5 ||
+        Math.abs(lastGeometry.elementHeight - geometry.elementHeight) > 0.5 ||
+        Math.abs(lastGeometry.rootTop - geometry.rootTop) > 0.5 ||
+        Math.abs(lastGeometry.rootHeight - geometry.rootHeight) > 0.5
+
+      if (geometryChanged || stableSince === null) {
+        lastGeometry = geometry
+        stableSince = now
+      }
+
+      if (now - stableSince < 500) {
+        scheduleRetry()
+        return
+      }
+
+      handledBrowseSeqRef.current = browseReq.seq
+      stop()
+    }
+
+    tryScroll()
+
+    return stop
   }, [browseReq, derivedAreas, scrollToArea])
 
   useEffect(() => {
